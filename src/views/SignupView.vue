@@ -1,4 +1,9 @@
 <script setup>
+/**
+ * This method is currently used only to create bakery_admin users.
+ * Customer and staff accounts will be created by the bakery_admin user.
+ */
+
 import { ref } from "vue";
 import { useAuthenticationStore } from "../stores/authentication";
 import { useRouter } from "vue-router";
@@ -44,6 +49,7 @@ const handleRegister = async () => {
       email: form.value.email,
       password: form.value.password,
       name: form.value.name,
+      role: "bakery_admin",
     });
   } catch (err) {
     error.value = err.message;

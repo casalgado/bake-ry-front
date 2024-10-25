@@ -8,5 +8,6 @@ const authStore = useAuthenticationStore();
   <section>
     <h1>Hello World</h1>
     <div>Logged in: {{ authStore.isLoggedIn }}</div>
+    <div>User data: {{ authStore.getUserData }}</div>
   </section>
 </template>

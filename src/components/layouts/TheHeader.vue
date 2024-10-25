@@ -1,4 +1,8 @@
-<script setup></script>
+<script setup>
+import { useAuthenticationStore } from "@/stores/authentication";
+
+const authStore = useAuthenticationStore();
+</script>
 
 <template>
   <div>
@@ -6,6 +10,8 @@
       <router-link to="/">Home</router-link>
       <router-link to="/login">Login</router-link>
       <router-link to="/signup">Signup</router-link>
+      <router-link to="/dashboard">Dashboard</router-link>
+      <button @click="authStore.logout">Logout</button>
     </nav>
   </div>
 </template>
