@@ -5,7 +5,7 @@
  */
 
 import { ref } from "vue";
-import { useAuthenticationStore } from "../stores/authentication";
+import { useAuthenticationStore } from "../../stores/authentication";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
