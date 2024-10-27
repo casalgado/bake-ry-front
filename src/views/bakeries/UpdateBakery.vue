@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import { useBakeryStore } from "@/stores/bakery";
+import { useBakeryStore } from "@/stores/bakeryStore";
 import BakeryForm from "@/components/bakeries/BakeryForm.vue";
 import { useAuthenticationStore } from "@/stores/authentication";
 
