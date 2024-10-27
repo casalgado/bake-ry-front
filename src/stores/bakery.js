@@ -151,6 +151,7 @@ export const useBakeryStore = defineStore("bakery", {
     async updateBakery(id, bakeryData) {
       this.setLoading(true);
       this.clearError();
+      console.log("store updateBakery", id, bakeryData);
 
       try {
         const updatedBakery = await BakeryService.updateBakery(id, bakeryData);

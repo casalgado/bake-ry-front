@@ -2,13 +2,9 @@
 import { ref, onMounted } from "vue";
 import { useBakeryStore } from "@/stores/bakery";
 import BakeryForm from "@/components/bakeries/BakeryForm.vue";
+import { useAuthenticationStore } from "@/stores/authentication";
 
-const props = defineProps({
-  bakeryId: {
-    type: String,
-    required: true,
-  },
-});
+const authStore = useAuthenticationStore();
 
 const bakeryStore = useBakeryStore();
 const loading = ref(false);
@@ -17,7 +13,8 @@ const isLoading = ref(true);
 
 onMounted(async () => {
   try {
-    await bakeryStore.fetchBakeryById(props.bakeryId);
+    console.log("onMounted fetchBakeryById", authStore.getBakeryId);
+    await bakeryStore.fetchBakeryById(authStore.getBakeryId);
     initialData.value = { ...bakeryStore.currentBakery };
   } catch (error) {
     console.error("Failed to fetch bakery:", error);
@@ -29,7 +26,8 @@ onMounted(async () => {
 const handleSubmit = async (formData) => {
   try {
     loading.value = true;
-    await bakeryStore.updateBakery(props.bakeryId, formData);
+    console.log("handleSubmit updateBakery", authStore.getBakeryId, formData);
+    await bakeryStore.updateBakery(authStore.getBakeryId, formData);
     emit("success");
   } catch (error) {
     console.error("Failed to update bakery:", error);

@@ -44,14 +44,14 @@ export class BakeryService {
 
   /**
    * Get a specific bakery by ID
-   * @param {string} id - The bakery ID
+   * @param {string} bakeryId - The bakery ID
    * @returns {Promise<Object>} The bakery object
    * @throws {Error} If fetching fails
    */
-  static async getBakeryById(id) {
+  static async getBakeryById(bakeryId) {
     try {
-      console.log("IN SERVICEgetBakeryById", id);
-      const response = await api.get(`/bakeries/${id}`);
+      console.log("IN SERVICEgetBakeryById", bakeryId);
+      const response = await api.get(`/bakeries/${bakeryId}`);
       return response.data;
     } catch (error) {
       throw this.handleError(error, "Failed to fetch bakery");
@@ -60,14 +60,15 @@ export class BakeryService {
 
   /**
    * Update a bakery
-   * @param {string} id - The bakery ID
+   * @param {string} bakeryId - The bakery ID
    * @param {Object} bakeryData - The updated bakery data
    * @returns {Promise<Object>} The updated bakery
    * @throws {Error} If update fails
    */
-  static async updateBakery(id, bakeryData) {
+  static async updateBakery(bakeryId, bakeryData) {
     try {
-      const response = await api.put(`/bakeries/${id}`, bakeryData);
+      console.log("IN SERVICEupdateBakery", bakeryId, bakeryData);
+      const response = await api.patch(`/bakeries/${bakeryId}`, bakeryData);
       return response.data;
     } catch (error) {
       throw this.handleError(error, "Failed to update bakery");
@@ -76,13 +77,13 @@ export class BakeryService {
 
   /**
    * Delete a bakery
-   * @param {string} id - The bakery ID
+   * @param {string} bakeryId - The bakery ID
    * @returns {Promise<void>}
    * @throws {Error} If deletion fails
    */
-  static async deleteBakery(id) {
+  static async deleteBakery(bakeryId) {
     try {
-      await api.delete(`/bakeries/${id}`);
+      await api.delete(`/bakeries/${bakeryId}`);
     } catch (error) {
       throw this.handleError(error, "Failed to delete bakery");
     }
@@ -112,7 +113,7 @@ export class BakeryService {
    */
   static handleError(error, defaultMessage = "An error occurred") {
     // Check for missing token
-    if (!localStorage.getItem("token")) {
+    if (!localStorage.getItem("AuthToken")) {
       return new Error("No token provided - please log in");
     }
 
