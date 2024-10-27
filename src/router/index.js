@@ -26,6 +26,18 @@ const router = createRouter({
       name: "dashboard",
       component: () => import("../views/dashboard/AdminDashboard.vue"),
       meta: { requiresAuth: true },
+      children: [
+        {
+          path: "show-bakery",
+          name: "show-bakery",
+          component: () => import("../views/bakeries/ShowBakery.vue"),
+        },
+        {
+          path: "update-bakery",
+          name: "update-bakery",
+          component: () => import("../views/bakeries/UpdateBakery.vue"),
+        },
+      ],
     },
   ],
 });

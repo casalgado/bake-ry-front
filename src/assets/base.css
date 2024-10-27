@@ -18,3 +18,7 @@
   margin: 0;
   position: relative;
 }
+
+main {
+  margin-bottom: 3rem;
+}

@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted } from "vue";
 import { useAuthenticationStore } from "@/stores/authentication";
-import BakeryForm from "@/components/bakeries/BakeryForm.vue";
+import CreateBakery from "@/views/bakeries/CreateBakery.vue";
 
 const authStore = useAuthenticationStore();
 
@@ -15,7 +15,7 @@ onMounted(async () => {
 <template>
   <section v-if="!authStore.hasAssignedBakery">
     <h2>Welcome! Get Started with Your Bakery</h2>
-    <BakeryForm @success="handleSuccess" />
+    <CreateBakery @success="handleSuccess" />
   </section>
   <section v-else>
     <h1>Dashboard</h1>

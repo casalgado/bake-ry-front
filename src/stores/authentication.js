@@ -41,6 +41,7 @@ export const useAuthenticationStore = defineStore("authentication", {
   getters: {
     isLoggedIn: (state) => !!state.user && !!state.idToken,
     getUserData: (state) => state.user,
+    getBakeryId: (state) => state.user?.bakeryId,
     isSystemAdmin: (state) => state.user?.role === "system_admin",
     isBakeryAdmin: (state) => state.user?.role === VALID_ROLES.BAKERY_ADMIN,
     isBakeryStaff: (state) => state.user?.role === VALID_ROLES.BAKERY_STAFF,
@@ -182,7 +183,7 @@ export const useAuthenticationStore = defineStore("authentication", {
               },
             }
           );
-
+          console.log("Backend login response:", response.data);
           this.user = transformUserData(firebaseUser, response.data);
           this.idToken = idToken;
 

@@ -1,9 +1,17 @@
 <script setup>
 import { ref } from "vue";
-import { useBakeryStore } from "@/stores/bakery";
 
-const bakeryStore = useBakeryStore();
-const loading = ref(false);
+const props = defineProps({
+  initialData: {
+    type: Object,
+    default: () => null,
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 const days = [
   "Monday",
   "Tuesday",
@@ -63,18 +71,25 @@ const initialOperatingHours = days.reduce((acc, day) => {
   return acc;
 }, {});
 
-const formData = ref({
-  name: "a",
-  email: "a@a.com",
-  phone: "1234567890",
-  address: "a",
-  description: "a",
-  socialMedia: {
-    facebook: "https://facebook.com/a",
-    instagram: "https://instagram.com/a",
-  },
-  operatingHours: initialOperatingHours,
-});
+// Initialize form data with either provided initial data or defaults
+const formData = ref(
+  props.initialData || {
+    name: "a",
+    email: "a@a.com",
+    phone: "1234567890",
+    address: "1234567890",
+    description: "a",
+    socialMedia: {
+      facebook: "https://facebook.com/a",
+      instagram: "https://instagram.com/a",
+      tiktok: "https://tiktok.com/a",
+      youtube: "https://youtube.com/a",
+      twitter: "https://twitter.com/a",
+      pinterest: "https://pinterest.com/a",
+    },
+    operatingHours: initialOperatingHours,
+  }
+);
 
 const errors = ref({});
 
@@ -91,19 +106,10 @@ const validate = () => {
 
 const handleSubmit = async () => {
   if (!validate()) return;
-
-  try {
-    loading.value = true;
-    await bakeryStore.createBakery(formData.value);
-    emit("success");
-  } catch (error) {
-    console.error("Failed to create bakery:", error);
-  } finally {
-    loading.value = false;
-  }
+  emit("submit", formData.value);
 };
 
-const emit = defineEmits(["success"]);
+const emit = defineEmits(["submit", "cancel"]);
 </script>
 
 <template>
@@ -172,14 +178,20 @@ const emit = defineEmits(["success"]);
       </div>
     </div>
 
-    <button type="submit" :disabled="loading">
-      {{ loading ? "Creating..." : "Create Bakery" }}
-    </button>
+    <div class="form-actions">
+      <button type="submit" :disabled="loading">
+        {{ loading ? "Saving..." : "Save" }}
+      </button>
+      <button
+        type="button"
+        @click="$emit('cancel')"
+        :disabled="loading"
+        class="cancel-button"
+      >
+        Cancel
+      </button>
+    </div>
   </form>
 </template>
 
-<style scoped lang="scss">
-form {
-  margin-bottom: 2rem;
-}
-</style>
+<style scoped lang="scss"></style>
