@@ -161,18 +161,22 @@ export class BaseService {
    * @returns {Object} Formatted response
    */
   handleResponse(response) {
-    // Handle both paginated and non-paginated responses
+    if (!response || typeof response !== "object") {
+      throw new Error("Invalid response format");
+    }
+
+    const responseData = response.data;
     const isPaginated =
-      response.data.hasOwnProperty("items") ||
-      response.data.hasOwnProperty("data");
+      responseData &&
+      (Array.isArray(responseData.items) || Array.isArray(responseData.data));
 
     return {
       data: isPaginated
-        ? response.data.items || response.data.data
-        : response.data,
-      total: response.data.total,
-      page: response.data.page,
-      message: response.data?.message,
+        ? responseData.items || responseData.data
+        : responseData,
+      total: responseData?.total,
+      page: responseData?.page,
+      message: responseData?.message,
       status: response.status,
       headers: response.headers,
     };

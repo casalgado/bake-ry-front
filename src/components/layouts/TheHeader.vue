@@ -13,6 +13,7 @@ const authStore = useAuthenticationStore();
       <router-link to="/dashboard">Dashboard</router-link>
       <router-link to="/dashboard/show-bakery">Show Bakery</router-link>
       <router-link to="/dashboard/update-bakery">Update Bakery</router-link>
+      <router-link to="/dashboard/ingredients">Ingredients</router-link>
       <button @click="authStore.logout">Logout</button>
     </nav>
   </div>

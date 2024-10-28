@@ -5,11 +5,12 @@ import { useRouter } from "vue-router";
 
 const router = useRouter();
 const ingredientStore = useIngredientStore();
+console.log("ingredientStore contents:", ingredientStore);
 
 const handleSubmit = async (formData) => {
   try {
     await ingredientStore.create(formData);
-    router.push("/ingredients"); // Navigate to ingredients list after creation
+    router.push("/dashboard/ingredients"); // Navigate to ingredients list after creation
   } catch (error) {
     console.error("Failed to create ingredient:", error);
   }
