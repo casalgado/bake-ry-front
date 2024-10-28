@@ -37,6 +37,16 @@ const router = createRouter({
           name: "update-bakery",
           component: () => import("../views/bakeries/UpdateBakery.vue"),
         },
+        {
+          path: "ingredients",
+          name: "ingredients",
+          component: () => import("../views/ingredients/ShowIngredients.vue"),
+        },
+        {
+          path: "ingredients/create",
+          name: "create-ingredient",
+          component: () => import("../views/ingredients/CreateIngredient.vue"),
+        },
       ],
     },
   ],

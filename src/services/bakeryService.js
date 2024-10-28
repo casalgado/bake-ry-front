@@ -19,7 +19,6 @@ export class BakeryService {
    */
   static async createBakery(bakeryData) {
     try {
-      console.log("Creating bakery:", bakeryData);
       const response = await api.post("/bakeries", bakeryData);
       console.log("Bakery created:", response.data);
       return response.data;
@@ -50,7 +49,6 @@ export class BakeryService {
    */
   static async getBakeryById(bakeryId) {
     try {
-      console.log("IN SERVICEgetBakeryById", bakeryId);
       const response = await api.get(`/bakeries/${bakeryId}`);
       return response.data;
     } catch (error) {
@@ -67,7 +65,6 @@ export class BakeryService {
    */
   static async updateBakery(bakeryId, bakeryData) {
     try {
-      console.log("IN SERVICEupdateBakery", bakeryId, bakeryData);
       const response = await api.patch(`/bakeries/${bakeryId}`, bakeryData);
       return response.data;
     } catch (error) {

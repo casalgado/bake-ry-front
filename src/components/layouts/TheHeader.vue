@@ -18,4 +18,9 @@ const authStore = useAuthenticationStore();
   </div>
 </template>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+nav {
+  display: flex;
+  gap: 0.5rem;
+}
+</style>
