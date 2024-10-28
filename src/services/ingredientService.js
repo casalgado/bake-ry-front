@@ -2,7 +2,7 @@
 import { BaseService } from "./base/resourceService";
 
 export class IngredientService extends BaseService {
-  constructor() {
-    super("ingredients");
+  constructor(bakeryId) {
+    super("ingredients", `/bakeries/${bakeryId}`);
   }
 }

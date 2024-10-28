@@ -34,11 +34,11 @@ const storageTempOptions = ["Ambiente", "Refrigeracion", "Congelacion"];
 // Initialize form data
 const formData = ref(
   props.initialData || {
-    name: "",
-    description: "",
+    name: "test",
+    description: "test_ingredient",
     category: "",
     unit: "",
-    costPerUnit: 0,
+    costPerUnit: 10,
     suppliers: [],
     storageTemp: "",
   }

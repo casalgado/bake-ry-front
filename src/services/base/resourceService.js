@@ -7,28 +7,36 @@ import api from "../api";
 export class BaseService {
   /**
    * @param {string} resource - The resource endpoint (e.g., 'ingredients', 'recipes')
+   * @param {string} basePath - Base path for the API (e.g., '/bakeries/123')
    */
-  constructor(resource) {
+  constructor(resource, basePath) {
     if (!resource) {
       throw new Error("Resource name is required");
     }
+    if (!basePath) {
+      throw new Error("Base path is required");
+    }
     this.resource = resource;
+    this.basePath = basePath;
     this.api = api;
+  }
+
+  /**
+   * Get full endpoint path
+   * @private
+   * @returns {string} The complete endpoint path
+   */
+  getPath() {
+    return `${this.basePath}/${this.resource}`;
   }
 
   /**
    * Get all resources
    * @param {Object} params - Query parameters
-   * @param {number} [params.page] - Page number
-   * @param {number} [params.perPage] - Items per page
-   * @param {string} [params.sortBy] - Sort field
-   * @param {boolean} [params.sortDesc] - Sort direction
-   * @param {string} [params.search] - Search term
    * @returns {Promise<{data: Array, total?: number, page?: number}>}
    */
   async getAll(params = {}) {
     try {
-      // Convert params to API-friendly format
       const queryParams = {
         page: params.page,
         per_page: params.perPage,
@@ -37,7 +45,7 @@ export class BaseService {
         search: params.search,
       };
 
-      const response = await this.api.get(`/${this.resource}`, {
+      const response = await this.api.get(this.getPath(), {
         params: queryParams,
       });
       return this.handleResponse(response);
@@ -57,7 +65,7 @@ export class BaseService {
     }
 
     try {
-      const response = await this.api.get(`/${this.resource}/${id}`);
+      const response = await this.api.get(`${this.getPath()}/${id}`);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error);
@@ -75,7 +83,7 @@ export class BaseService {
     }
 
     try {
-      const response = await this.api.post(`/${this.resource}`, data);
+      const response = await this.api.post(this.getPath(), data);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error);
@@ -98,7 +106,7 @@ export class BaseService {
     }
 
     try {
-      const response = await this.api.put(`/${this.resource}/${id}`, data);
+      const response = await this.api.put(`${this.getPath()}/${id}`, data);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error);
@@ -121,7 +129,7 @@ export class BaseService {
     }
 
     try {
-      const response = await this.api.patch(`/${this.resource}/${id}`, data);
+      const response = await this.api.patch(`${this.getPath()}/${id}`, data);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error);
@@ -139,7 +147,7 @@ export class BaseService {
     }
 
     try {
-      const response = await this.api.delete(`/${this.resource}/${id}`);
+      const response = await this.api.delete(`${this.getPath()}/${id}`);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error);
