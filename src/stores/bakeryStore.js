@@ -1,4 +1,5 @@
 // stores/bakeryStore.js
+console.log("Initializing store:", "bakery");
 import { defineStore } from "pinia";
 import { BakeryService } from "@/services/bakeryService";
 

@@ -1,4 +1,5 @@
 <script setup>
+import { RouterLink } from "vue-router";
 import { useAuthenticationStore } from "@/stores/authentication";
 
 const authStore = useAuthenticationStore();
@@ -7,13 +8,13 @@ const authStore = useAuthenticationStore();
 <template>
   <div>
     <nav>
-      <router-link to="/">Home</router-link>
-      <router-link to="/login">Login</router-link>
-      <router-link to="/signup">Signup</router-link>
-      <router-link to="/dashboard">Dashboard</router-link>
-      <router-link to="/dashboard/show-bakery">Show Bakery</router-link>
-      <router-link to="/dashboard/update-bakery">Update Bakery</router-link>
-      <router-link to="/dashboard/ingredients">Ingredients</router-link>
+      <RouterLink to="/">Home</RouterLink>
+      <RouterLink to="/login">Login</RouterLink>
+      <RouterLink to="/signup">Signup</RouterLink>
+      <RouterLink to="/dashboard">Dashboard</RouterLink>
+      <RouterLink to="/dashboard/show-bakery">Show Bakery</RouterLink>
+      <RouterLink to="/dashboard/update-bakery">Update Bakery</RouterLink>
+      <RouterLink to="/dashboard/ingredients">Ingredients</RouterLink>
       <button @click="authStore.logout">Logout</button>
     </nav>
   </div>

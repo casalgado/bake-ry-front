@@ -1,5 +1,6 @@
+console.log("Initializing store:", "authentication");
 import { defineStore } from "pinia";
-import { auth } from "../main";
+import { auth } from "../config/firebase";
 import {
   signInWithEmailAndPassword,
   signOut,

@@ -1,4 +1,5 @@
 // stores/ingredientStore.js
+console.log("Initializing store:", "ingredient");
 import { createResourceStore } from "./base/resourceStore";
 import { IngredientService } from "../services/ingredientService";
 import { useAuthenticationStore } from "./authentication";

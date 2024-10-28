@@ -1,3 +1,5 @@
+console.log("Router initialization");
+
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthenticationStore } from "@/stores/authentication";
 
