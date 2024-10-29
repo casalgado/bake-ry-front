@@ -49,6 +49,16 @@ const router = createRouter({
           name: "create-ingredient",
           component: () => import("../views/ingredients/CreateIngredient.vue"),
         },
+        {
+          path: "recipes",
+          name: "recipes",
+          component: () => import("../views/recipes/ShowRecipes.vue"),
+        },
+        {
+          path: "recipes/create",
+          name: "create-recipe",
+          component: () => import("../views/recipes/CreateRecipe.vue"),
+        },
       ],
     },
   ],
