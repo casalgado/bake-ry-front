@@ -162,7 +162,7 @@ export const createResourceStore = (resourceName, resourceService) => {
       if (!id) throw new Error("ID is required for update");
       if (!formData) throw new Error("Data is required for update");
 
-      const { createdAt, ...data } = formData;
+      const { data } = formData;
 
       setLoading(true);
       clearError();

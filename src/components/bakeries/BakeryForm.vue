@@ -106,7 +106,11 @@ const validate = () => {
 
 const handleSubmit = async () => {
   if (!validate()) return;
-  emit("submit", formData.value);
+  const submitData = {
+    ...formData.value,
+  };
+  console.log("submitData", submitData);
+  emit("submit", submitData);
 };
 
 const emit = defineEmits(["submit", "cancel"]);

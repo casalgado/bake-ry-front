@@ -36,7 +36,7 @@ const categoryOptions = [
 
 // Ingredient form handling
 const selectedIngredient = ref("");
-const ingredientQuantity = ref(0);
+const ingredientQuantity = ref(5);
 
 const addIngredient = () => {
   if (!selectedIngredient.value || ingredientQuantity.value <= 0) return;
@@ -60,7 +60,7 @@ const addIngredient = () => {
 
   // Reset selection
   selectedIngredient.value = "";
-  ingredientQuantity.value = 0;
+  ingredientQuantity.value = 5;
 };
 
 const removeIngredient = (index) => {
@@ -71,13 +71,7 @@ const removeIngredient = (index) => {
 const handleSubmit = () => {
   const submitData = {
     ...formData.value,
-    updatedAt: new Date(),
   };
-  console.log("submitData", submitData);
-  if (!submitData.id) {
-    console.log("adding createdAt");
-    submitData.createdAt = new Date();
-  }
   console.log("submitData", submitData);
   emit("submit", submitData);
 };

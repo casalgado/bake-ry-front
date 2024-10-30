@@ -67,7 +67,7 @@ const handleDelete = async (ingredientId) => {
 const handleSubmit = async (formData) => {
   try {
     if (selectedIngredient.value) {
-      await ingredientStore.patch(selectedIngredient.value.id, formData);
+      await ingredientStore.update(selectedIngredient.value.id, formData);
     }
     showForm.value = false;
     selectedIngredient.value = null;

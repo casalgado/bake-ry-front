@@ -16,7 +16,9 @@ const authStore = useAuthenticationStore();
       <RouterLink to="/dashboard/update-bakery">Update Bakery</RouterLink>
       <RouterLink to="/dashboard/ingredients">Ingredients</RouterLink>
       <RouterLink to="/dashboard/recipes">Recipes</RouterLink>
-      <RouterLink to="/dashboard/create-recipe">Create Recipe</RouterLink>
+      <RouterLink to="/dashboard/recipes/create">Create Recipe</RouterLink>
+      <RouterLink to="/dashboard/products">Products</RouterLink>
+      <RouterLink to="/dashboard/products/create">Create Product</RouterLink>
       <button @click="authStore.logout">Logout</button>
     </nav>
   </div>
@@ -26,5 +28,6 @@ const authStore = useAuthenticationStore();
 nav {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 </style>
