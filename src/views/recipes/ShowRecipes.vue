@@ -130,41 +130,43 @@ const navigateToCreate = () => {
     <!-- Recipes Table -->
     <div v-if="!recipeStore.loading && filteredRecipes.length > 0">
       <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Ingredients</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="recipe in filteredRecipes" :key="recipe.id">
-            <td>
-              <div>{{ recipe.name }}</div>
-              <div v-if="recipe.description">
-                {{ recipe.description }}
-              </div>
-            </td>
-            <td>{{ recipe.category }}</td>
-            <td>
-              <div
-                v-for="(ingredient, index) in recipe.ingredients"
-                :key="index"
-              >
-                {{ ingredient.name }} - {{ ingredient.quantity }}
-                {{ ingredient.unit }}
-              </div>
-            </td>
-            <td>{{ recipe.isActive ? "Active" : "Inactive" }}</td>
-            <td>
-              <button @click="handleEdit(recipe)">Edit</button>
-              <button @click="handleDelete(recipe.id)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Version</th>
+        <th>Ingredients</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="recipe in filteredRecipes" :key="recipe.id">
+        <td>
+          <div>{{ recipe.name }}</div>
+          <div v-if="recipe.description">
+            {{ recipe.description }}
+          </div>
+        </td>
+        <td>{{ recipe.category }}</td>
+        <td>v{{ recipe.version || '1.0' }}</td>
+        <td>
+          <div
+            v-for="(ingredient, index) in recipe.ingredients"
+            :key="index"
+          >
+            {{ ingredient.name }} - {{ ingredient.quantity }}
+            {{ ingredient.unit }}
+          </div>
+        </td>
+        <td>{{ recipe.isActive ? "Active" : "Inactive" }}</td>
+        <td>
+          <button @click="handleEdit(recipe)">Edit</button>
+          <button @click="handleDelete(recipe.id)">Delete</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
     </div>
 
     <!-- No Results State -->

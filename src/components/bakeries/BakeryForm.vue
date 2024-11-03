@@ -74,18 +74,19 @@ const initialOperatingHours = days.reduce((acc, day) => {
 // Initialize form data with either provided initial data or defaults
 const formData = ref(
   props.initialData || {
-    name: "a",
-    email: "a@a.com",
+    name: "Beto's Bakery",
+    email: "beto@betosbakery.com",
     phone: "1234567890",
     address: "1234567890",
-    description: "a",
+    description:
+      "Beto's Bakery is a bakery that sells bread and pastries. It is the best bakery in the world. It is located in the heart of the city.",
     socialMedia: {
-      facebook: "https://facebook.com/a",
-      instagram: "https://instagram.com/a",
-      tiktok: "https://tiktok.com/a",
-      youtube: "https://youtube.com/a",
-      twitter: "https://twitter.com/a",
-      pinterest: "https://pinterest.com/a",
+      facebook: "https://facebook.com/betosbakery",
+      instagram: "https://instagram.com/betosbakery",
+      tiktok: "https://tiktok.com/betosbakery",
+      youtube: "https://youtube.com/betosbakery",
+      twitter: "https://twitter.com/betosbakery",
+      pinterest: "https://pinterest.com/betosbakery",
     },
     operatingHours: initialOperatingHours,
   }

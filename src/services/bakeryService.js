@@ -65,7 +65,7 @@ export class BakeryService {
    */
   static async updateBakery(bakeryId, bakeryData) {
     try {
-      const response = await api.patch(`/bakeries/${bakeryId}`, bakeryData);
+      const response = await api.put(`/bakeries/${bakeryId}`, bakeryData);
       return response.data;
     } catch (error) {
       throw this.handleError(error, "Failed to update bakery");

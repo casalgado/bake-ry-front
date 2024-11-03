@@ -106,7 +106,7 @@ export class BaseService {
     }
 
     try {
-      const response = await this.api.patch(`${this.getPath()}/${id}`, data);
+      const response = await this.api.put(`${this.getPath()}/${id}`, data);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error);

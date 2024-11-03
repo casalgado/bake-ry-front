@@ -161,8 +161,14 @@ export const createResourceStore = (resourceName, resourceService) => {
     async function update(id, formData) {
       if (!id) throw new Error("ID is required for update");
       if (!formData) throw new Error("Data is required for update");
+      console.log("formData", formData);
 
-      const { data } = formData;
+      const { ...data } = formData;
+
+
+      
+
+      console.log("data", data);
 
       setLoading(true);
       clearError();
