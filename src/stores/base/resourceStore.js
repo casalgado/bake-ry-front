@@ -1,10 +1,10 @@
 // stores/base/resourceStore.js
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
 
 export const createResourceStore = (resourceName, resourceService) => {
   if (!resourceService) {
-    throw new Error("Resource service is required");
+    throw new Error('Resource service is required');
   }
 
   return defineStore(`${resourceName}`, () => {
@@ -13,11 +13,9 @@ export const createResourceStore = (resourceName, resourceService) => {
     const loading = ref(false);
     const error = ref(null);
     const filters = ref({
-      search: "",
-      sortBy: "createdAt",
-      sortDesc: true,
       page: 1,
       perPage: 1000,
+      sort: 'createdAt',
     });
 
     // Getters
@@ -32,8 +30,8 @@ export const createResourceStore = (resourceName, resourceService) => {
         const searchLower = filters.value.search.toLowerCase();
         filtered = filtered.filter((item) =>
           Object.values(item).some((value) =>
-            String(value).toLowerCase().includes(searchLower)
-          )
+            String(value).toLowerCase().includes(searchLower),
+          ),
         );
       }
 
@@ -43,7 +41,7 @@ export const createResourceStore = (resourceName, resourceService) => {
         const modifier = filters.value.sortDesc ? -1 : 1;
 
         // Handle different types
-        if (typeof aValue === "number" && typeof bValue === "number") {
+        if (typeof aValue === 'number' && typeof bValue === 'number') {
           return modifier * (aValue - bValue);
         }
         if (aValue instanceof Date && bValue instanceof Date) {
@@ -94,9 +92,7 @@ export const createResourceStore = (resourceName, resourceService) => {
         const response = await resourceService.getAll({
           page: filters.value.page,
           perPage: filters.value.perPage,
-          sortBy: filters.value.sortBy,
-          sortDesc: filters.value.sortDesc,
-          search: filters.value.search,
+          sort: filters.value.sort,
         });
 
         items.value = Array.isArray(response.data)
@@ -113,7 +109,7 @@ export const createResourceStore = (resourceName, resourceService) => {
     }
 
     async function fetchById(id) {
-      if (!id) throw new Error("ID is required");
+      if (!id) throw new Error('ID is required');
 
       setLoading(true);
       clearError();
@@ -140,7 +136,7 @@ export const createResourceStore = (resourceName, resourceService) => {
     }
 
     async function create(data) {
-      if (!data) throw new Error("Data is required for create");
+      if (!data) throw new Error('Data is required for create');
 
       setLoading(true);
       clearError();
@@ -159,16 +155,13 @@ export const createResourceStore = (resourceName, resourceService) => {
     }
 
     async function update(id, formData) {
-      if (!id) throw new Error("ID is required for update");
-      if (!formData) throw new Error("Data is required for update");
-      console.log("formData", formData);
+      if (!id) throw new Error('ID is required for update');
+      if (!formData) throw new Error('Data is required for update');
+      console.log('formData', formData);
 
       const { ...data } = formData;
 
-
-      
-
-      console.log("data", data);
+      console.log('data', data);
 
       setLoading(true);
       clearError();
@@ -196,7 +189,7 @@ export const createResourceStore = (resourceName, resourceService) => {
     }
 
     async function remove(id) {
-      if (!id) throw new Error("ID is required for delete");
+      if (!id) throw new Error('ID is required for delete');
 
       setLoading(true);
       clearError();
@@ -222,8 +215,8 @@ export const createResourceStore = (resourceName, resourceService) => {
       loading.value = false;
       error.value = null;
       filters.value = {
-        search: "",
-        sortBy: "createdAt",
+        search: '',
+        sortBy: 'createdAt',
         sortDesc: true,
         page: 1,
         perPage: 10,

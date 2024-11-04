@@ -1,13 +1,13 @@
 <script setup>
-import { ref } from "vue";
-import { useAuthenticationStore } from "../../stores/authentication";
-import { useRouter } from "vue-router";
+import { ref } from 'vue';
+import { useAuthenticationStore } from '../../stores/authentication';
+import { useRouter } from 'vue-router';
 
 const authStore = useAuthenticationStore();
 const router = useRouter();
 
-const email = ref("");
-const password = ref("");
+const email = ref('');
+const password = ref('');
 
 const handleLogin = async () => {
   try {
@@ -16,7 +16,7 @@ const handleLogin = async () => {
       password: password.value,
     });
   } catch (error) {
-    console.error("Login failed:", error);
+    console.error('Login failed:', error);
   }
 };
 </script>

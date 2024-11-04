@@ -4,37 +4,37 @@
  * Customer and staff accounts will be created by the bakery_admin user.
  */
 
-import { ref } from "vue";
-import { useAuthenticationStore } from "../../stores/authentication";
-import { useRouter } from "vue-router";
+import { ref } from 'vue';
+import { useAuthenticationStore } from '../../stores/authentication';
+import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const authStore = useAuthenticationStore();
 
 const form = ref({
-  email: "",
-  password: "",
-  confirmPassword: "",
-  name: "",
+  email: '',
+  password: '',
+  confirmPassword: '',
+  name: '',
 });
 
-const error = ref("");
+const error = ref('');
 
 const validateForm = () => {
-  error.value = "";
+  error.value = '';
 
   if (!form.value.email || !form.value.password || !form.value.name) {
-    error.value = "Please fill in all fields";
+    error.value = 'Please fill in all fields';
     return false;
   }
 
   if (form.value.password !== form.value.confirmPassword) {
-    error.value = "Passwords do not match";
+    error.value = 'Passwords do not match';
     return false;
   }
 
   if (form.value.password.length < 6) {
-    error.value = "Password must be at least 6 characters";
+    error.value = 'Password must be at least 6 characters';
     return false;
   }
 
@@ -49,7 +49,7 @@ const handleRegister = async () => {
       email: form.value.email,
       password: form.value.password,
       name: form.value.name,
-      role: "bakery_admin",
+      role: 'bakery_admin',
     });
   } catch (err) {
     error.value = err.message;

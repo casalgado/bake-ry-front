@@ -1,5 +1,5 @@
 // services/base/resourceService.js
-import api from "../api";
+import api from '../api';
 
 /**
  * Base service class for handling common API operations
@@ -11,10 +11,10 @@ export class BaseService {
    */
   constructor(resource, basePath) {
     if (!resource) {
-      throw new Error("Resource name is required");
+      throw new Error('Resource name is required');
     }
     if (!basePath) {
-      throw new Error("Base path is required");
+      throw new Error('Base path is required');
     }
     this.resource = resource;
     this.basePath = basePath;
@@ -40,9 +40,7 @@ export class BaseService {
       const queryParams = {
         page: params.page,
         per_page: params.perPage,
-        sort_by: params.sortBy,
-        sort_desc: params.sortDesc,
-        search: params.search,
+        sort: params.sort,
       };
 
       const response = await this.api.get(this.getPath(), {
@@ -61,7 +59,7 @@ export class BaseService {
    */
   async getById(id) {
     if (!id) {
-      throw new Error("ID is required");
+      throw new Error('ID is required');
     }
 
     try {
@@ -79,7 +77,7 @@ export class BaseService {
    */
   async create(data) {
     if (!data) {
-      throw new Error("Data is required");
+      throw new Error('Data is required');
     }
 
     try {
@@ -98,11 +96,11 @@ export class BaseService {
    */
   async update(id, data) {
     if (!id) {
-      throw new Error("ID is required");
+      throw new Error('ID is required');
     }
 
     if (!data) {
-      throw new Error("Data is required");
+      throw new Error('Data is required');
     }
 
     try {
@@ -120,7 +118,7 @@ export class BaseService {
    */
   async delete(id) {
     if (!id) {
-      throw new Error("ID is required");
+      throw new Error('ID is required');
     }
 
     try {
@@ -138,8 +136,8 @@ export class BaseService {
    * @returns {Object} Formatted response
    */
   handleResponse(response) {
-    if (!response || typeof response !== "object") {
-      throw new Error("Invalid response format");
+    if (!response || typeof response !== 'object') {
+      throw new Error('Invalid response format');
     }
 
     const responseData = response.data;
@@ -171,17 +169,17 @@ export class BaseService {
       const message =
         error.response.data?.message ||
         error.response.data?.error ||
-        "Server error";
+        'Server error';
       const errorObject = new Error(message);
       errorObject.status = error.response.status;
       errorObject.data = error.response.data;
       throw errorObject;
     } else if (error.request) {
       // Request made but no response received
-      throw new Error("No response from server");
+      throw new Error('No response from server');
     } else {
       // Error in request setup
-      throw new Error(error.message || "Request failed");
+      throw new Error(error.message || 'Request failed');
     }
   }
 
