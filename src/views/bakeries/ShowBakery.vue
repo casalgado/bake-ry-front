@@ -1,7 +1,7 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { useBakeryStore } from "@/stores/bakeryStore";
-import { useAuthenticationStore } from "@/stores/authentication";
+import { ref, onMounted } from 'vue';
+import { useBakeryStore } from '@/stores/bakeryStore';
+import { useAuthenticationStore } from '@/stores/authentication';
 
 const authStore = useAuthenticationStore();
 
@@ -11,7 +11,7 @@ const error = ref(null);
 
 onMounted(async () => {
   try {
-    console.log("onMounted fetchBakeryById", authStore.getBakeryId);
+    console.log('onMounted fetchBakeryById', authStore.getBakeryId);
     await bakeryStore.fetchBakeryById(authStore.getBakeryId);
   } catch (err) {
     error.value = err.message;
@@ -21,10 +21,10 @@ onMounted(async () => {
 });
 
 const formatTime = (time) => {
-  if (!time) return "";
+  if (!time) return '';
   return new Date(`2000-01-01T${time}`).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
+    hour: 'numeric',
+    minute: '2-digit',
   });
 };
 </script>

@@ -1,6 +1,6 @@
 <script setup>
-import { ref, defineProps, defineEmits, computed, watch } from "vue";
-import { useRecipeStore } from "@/stores/recipeStore";
+import { ref, defineProps, defineEmits, computed, watch } from 'vue';
+import { useRecipeStore } from '@/stores/recipeStore';
 
 const recipeStore = useRecipeStore();
 
@@ -8,11 +8,11 @@ const props = defineProps({
   initialData: {
     type: Object,
     default: () => ({
-      name: "",
-      description: "",
-      category: "",
-      type: "",
-      recipeId: "",
+      name: '',
+      description: '',
+      category: '',
+      type: '',
+      recipeId: '',
       variations: [],
       hasVariations: false,
       basePrice: 0,
@@ -25,7 +25,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["submit", "cancel"]);
+const emit = defineEmits(['submit', 'cancel']);
 
 const formData = ref({ ...props.initialData });
 
@@ -43,27 +43,27 @@ watch(
       formData.value.recipeMultiplier = formData.value.recipeMultiplier || 1;
       // Remove these fields from variations
       formData.value.variations = formData.value.variations.map(
-        ({ basePrice, recipeMultiplier, ...rest }) => rest
+        ({ basePrice, recipeMultiplier, ...rest }) => rest,
       );
     }
-  }
+  },
 );
 
 const categoryOptions = [
-  "Panaderia de Masa Madre",
-  "Panaderia Tradicional",
-  "Untables",
-  "Tortas",
-  "Pasteleria",
-  "Galletas",
+  'Panaderia de Masa Madre',
+  'Panaderia Tradicional',
+  'Untables',
+  'Tortas',
+  'Pasteleria',
+  'Galletas',
 ];
 
-const typeOptions = ["Fabricado", "Reventa"];
+const typeOptions = ['Fabricado', 'Reventa'];
 
 const newVariation = ref({
-  name: "",
-  size: "",
-  weight: "",
+  name: '',
+  size: '',
+  weight: '',
   basePrice: 0,
   recipeMultiplier: 1,
 });
@@ -77,18 +77,18 @@ const errors = ref({});
 const validate = () => {
   errors.value = {};
 
-  if (!formData.value.name) errors.value.name = "El nombre es requerido";
+  if (!formData.value.name) errors.value.name = 'El nombre es requerido';
   if (!formData.value.category)
-    errors.value.category = "La categoría es requerida";
-  if (!formData.value.type) errors.value.type = "El tipo es requerido";
+    errors.value.category = 'La categoría es requerida';
+  if (!formData.value.type) errors.value.type = 'El tipo es requerido';
   if (!formData.value.recipeId)
-    errors.value.recipeId = "La receta es requerida";
+    errors.value.recipeId = 'La receta es requerida';
 
   if (!formData.value.hasVariations) {
     if (formData.value.basePrice <= 0)
-      errors.value.basePrice = "El precio base debe ser mayor que 0";
+      errors.value.basePrice = 'El precio base debe ser mayor que 0';
   } else if (formData.value.variations.length === 0) {
-    errors.value.variations = "Debe agregar al menos una variación";
+    errors.value.variations = 'Debe agregar al menos una variación';
   }
 
   return Object.keys(errors.value).length === 0;
@@ -120,9 +120,9 @@ const addVariation = () => {
   });
 
   newVariation.value = {
-    name: "",
-    size: "",
-    weight: "",
+    name: '',
+    size: '',
+    weight: '',
     basePrice: 0,
     recipeMultiplier: 1,
   };
@@ -135,7 +135,7 @@ const removeVariation = (index) => {
 const handleSubmit = () => {
   if (!validate()) return;
 
-  emit("submit", {
+  emit('submit', {
     ...formData.value,
     updatedAt: new Date(),
     createdAt: formData.value.createdAt || new Date(),
@@ -143,9 +143,9 @@ const handleSubmit = () => {
 };
 
 const formatCurrency = (value) => {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
     minimumFractionDigits: 0,
   }).format(value);
 };
@@ -159,7 +159,7 @@ const formatCurrency = (value) => {
 
       <div>
         <label>
-          Nombre *
+          Nombre
           <input v-model="formData.name" type="text" required />
           <span v-if="errors.name">{{ errors.name }}</span>
         </label>
@@ -174,7 +174,7 @@ const formatCurrency = (value) => {
 
       <div>
         <label>
-          Categoría *
+          Categoría
           <select v-model="formData.category" required>
             <option value="">Seleccionar categoría</option>
             <option

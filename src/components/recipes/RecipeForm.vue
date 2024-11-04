@@ -1,6 +1,6 @@
 <script setup>
-import { ref, defineProps, defineEmits, onMounted } from "vue";
-import { useIngredientStore } from "@/stores/ingredientStore";
+import { ref, defineProps, defineEmits, onMounted } from 'vue';
+import { useIngredientStore } from '@/stores/ingredientStore';
 
 const ingredientStore = useIngredientStore();
 
@@ -9,40 +9,40 @@ const props = defineProps({
     type: Object,
     default: () => ({
       productIds: [],
-      name: "sparrow",
-      description: "sparrow",
-      category: "Bread",
+      name: 'sparrow',
+      description: 'sparrow',
+      category: 'Bread',
       ingredients: [],
       isActive: true,
-      notes: "sparrow",
+      notes: 'sparrow',
     }),
   },
 });
 
-const emit = defineEmits(["submit", "cancel"]);
+const emit = defineEmits(['submit', 'cancel']);
 
 // Form data
 const formData = ref({ ...props.initialData });
 
 // Category options
 const categoryOptions = [
-  "Bread",
-  "Cake",
-  "Pastry",
-  "Cookie",
-  "Muffin",
-  "Other",
+  'Bread',
+  'Cake',
+  'Pastry',
+  'Cookie',
+  'Muffin',
+  'Other',
 ];
 
 // Ingredient form handling
-const selectedIngredient = ref("");
+const selectedIngredient = ref('');
 const ingredientQuantity = ref(5);
 
 const addIngredient = () => {
   if (!selectedIngredient.value || ingredientQuantity.value <= 0) return;
 
   const ingredient = ingredientStore.items.find(
-    (i) => i.id === selectedIngredient.value
+    (i) => i.id === selectedIngredient.value,
   );
 
   if (!ingredient) return;
@@ -55,11 +55,11 @@ const addIngredient = () => {
     baseQuantity: ingredient.baseQuantity,
     unit: ingredient.unit,
     costPerUnit: ingredient.costPerUnit,
-    notes: "",
+    notes: '',
   });
 
   // Reset selection
-  selectedIngredient.value = "";
+  selectedIngredient.value = '';
   ingredientQuantity.value = 5;
 };
 
@@ -72,8 +72,8 @@ const handleSubmit = () => {
   const submitData = {
     ...formData.value,
   };
-  console.log("submitData", submitData);
-  emit("submit", submitData);
+  console.log('submitData', submitData);
+  emit('submit', submitData);
 };
 
 // Reset form
@@ -133,7 +133,7 @@ onMounted(async () => {
       <div v-if="formData.ingredients.length > 0">
         <div v-for="(ingredient, index) in formData.ingredients" :key="index">
           <span
-            >{{ ingredient.name }} - {{ ingredient.quantity }}
+          >{{ ingredient.name }} - {{ ingredient.quantity }}
             {{ ingredient.unit }}</span
           >
           <button type="button" @click="removeIngredient(index)">Remove</button>

@@ -1,26 +1,26 @@
 // components/recipes/ShowRecipes.vue
 <script setup>
-import { ref, onMounted, computed } from "vue";
-import { useRecipeStore } from "@/stores/recipeStore";
-import { useRouter } from "vue-router";
-import RecipeForm from "@/components/recipes/RecipeForm.vue";
+import { ref, onMounted, computed } from 'vue';
+import { useRecipeStore } from '@/stores/recipeStore';
+import { useRouter } from 'vue-router';
+import RecipeForm from '@/components/recipes/RecipeForm.vue';
 
 const router = useRouter();
 const recipeStore = useRecipeStore();
 
 const showForm = ref(false);
 const selectedRecipe = ref(null);
-const searchQuery = ref("");
-const selectedCategory = ref("");
+const searchQuery = ref('');
+const selectedCategory = ref('');
 
 // Category options matching RecipeForm
 const categoryOptions = [
-  "Bread",
-  "Cake",
-  "Pastry",
-  "Cookie",
-  "Muffin",
-  "Other",
+  'Bread',
+  'Cake',
+  'Pastry',
+  'Cookie',
+  'Muffin',
+  'Other',
 ];
 
 onMounted(async () => {
@@ -48,11 +48,11 @@ const handleEdit = (recipe) => {
 };
 
 const handleDelete = async (recipeId) => {
-  if (confirm("Are you sure you want to delete this recipe?")) {
+  if (confirm('Are you sure you want to delete this recipe?')) {
     try {
       await recipeStore.remove(recipeId);
     } catch (error) {
-      console.error("Failed to delete recipe:", error);
+      console.error('Failed to delete recipe:', error);
     }
   }
 };
@@ -65,7 +65,7 @@ const handleSubmit = async (formData) => {
     showForm.value = false;
     selectedRecipe.value = null;
   } catch (error) {
-    console.error("Failed to update recipe:", error);
+    console.error('Failed to update recipe:', error);
   }
 };
 
@@ -75,7 +75,7 @@ const handleCancel = () => {
 };
 
 const navigateToCreate = () => {
-  router.push("/dashboard/recipes/create");
+  router.push('/dashboard/recipes/create');
 };
 </script>
 
@@ -130,43 +130,43 @@ const navigateToCreate = () => {
     <!-- Recipes Table -->
     <div v-if="!recipeStore.loading && filteredRecipes.length > 0">
       <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Category</th>
-        <th>Version</th>
-        <th>Ingredients</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-for="recipe in filteredRecipes" :key="recipe.id">
-        <td>
-          <div>{{ recipe.name }}</div>
-          <div v-if="recipe.description">
-            {{ recipe.description }}
-          </div>
-        </td>
-        <td>{{ recipe.category }}</td>
-        <td>v{{ recipe.version || '1.0' }}</td>
-        <td>
-          <div
-            v-for="(ingredient, index) in recipe.ingredients"
-            :key="index"
-          >
-            {{ ingredient.name }} - {{ ingredient.quantity }}
-            {{ ingredient.unit }}
-          </div>
-        </td>
-        <td>{{ recipe.isActive ? "Active" : "Inactive" }}</td>
-        <td>
-          <button @click="handleEdit(recipe)">Edit</button>
-          <button @click="handleDelete(recipe.id)">Delete</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Version</th>
+            <th>Ingredients</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="recipe in filteredRecipes" :key="recipe.id">
+            <td>
+              <div>{{ recipe.name }}</div>
+              <div v-if="recipe.description">
+                {{ recipe.description }}
+              </div>
+            </td>
+            <td>{{ recipe.category }}</td>
+            <td>v{{ recipe.version || '1.0' }}</td>
+            <td>
+              <div
+                v-for="(ingredient, index) in recipe.ingredients"
+                :key="index"
+              >
+                {{ ingredient.name }} - {{ ingredient.quantity }}
+                {{ ingredient.unit }}
+              </div>
+            </td>
+            <td>{{ recipe.isActive ? "Active" : "Inactive" }}</td>
+            <td>
+              <button @click="handleEdit(recipe)">Edit</button>
+              <button @click="handleDelete(recipe.id)">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- No Results State -->

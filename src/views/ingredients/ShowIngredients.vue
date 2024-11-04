@@ -1,29 +1,29 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
-import { useIngredientStore } from "@/stores/ingredientStore";
-import { useRouter } from "vue-router";
-import IngredientForm from "@/components/ingredients/IngredientForm.vue";
+import { ref, onMounted, computed } from 'vue';
+import { useIngredientStore } from '@/stores/ingredientStore';
+import { useRouter } from 'vue-router';
+import IngredientForm from '@/components/ingredients/IngredientForm.vue';
 
 const router = useRouter();
 const ingredientStore = useIngredientStore();
 
 const showForm = ref(false);
 const selectedIngredient = ref(null);
-const searchQuery = ref("");
-const selectedCategory = ref("");
-const selectedTemperature = ref("");
+const searchQuery = ref('');
+const selectedCategory = ref('');
+const selectedTemperature = ref('');
 
 // Category options in Spanish (matching IngredientForm)
 const categoryOptions = [
-  "Harinas y Almidones",
-  "Líquidos Base",
-  "Sazonadores Básicos",
-  "Fermentos",
-  "Lácteos y Proteínas",
-  "Semillas y Granos",
-  "Frutas y Vegetales",
-  "Especias y Aromáticos",
-  "Chocolates y Cocoa",
+  'Harinas y Almidones',
+  'Líquidos Base',
+  'Sazonadores Básicos',
+  'Fermentos',
+  'Lácteos y Proteínas',
+  'Semillas y Granos',
+  'Frutas y Vegetales',
+  'Especias y Aromáticos',
+  'Chocolates y Cocoa',
 ];
 
 onMounted(async () => {
@@ -55,11 +55,11 @@ const handleEdit = (ingredient) => {
 };
 
 const handleDelete = async (ingredientId) => {
-  if (confirm("¿Está seguro que desea eliminar este ingrediente?")) {
+  if (confirm('¿Está seguro que desea eliminar este ingrediente?')) {
     try {
       await ingredientStore.remove(ingredientId);
     } catch (error) {
-      console.error("Failed to delete ingredient:", error);
+      console.error('Failed to delete ingredient:', error);
     }
   }
 };
@@ -72,7 +72,7 @@ const handleSubmit = async (formData) => {
     showForm.value = false;
     selectedIngredient.value = null;
   } catch (error) {
-    console.error("Failed to update ingredient:", error);
+    console.error('Failed to update ingredient:', error);
   }
 };
 
@@ -82,13 +82,13 @@ const handleCancel = () => {
 };
 
 const navigateToCreate = () => {
-  router.push("/dashboard/ingredients/create");
+  router.push('/dashboard/ingredients/create');
 };
 
 const formatCurrency = (value) => {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
     minimumFractionDigits: 0,
   }).format(value);
 };
