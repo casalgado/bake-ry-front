@@ -1,7 +1,7 @@
 <script setup>
-import { useRecipeStore } from "@/stores/recipeStore";
-import RecipeForm from "@/components/recipes/RecipeForm.vue";
-import { useRouter } from "vue-router";
+import { useRecipeStore } from '@/stores/recipeStore';
+import RecipeForm from '@/components/forms/RecipeForm.vue';
+import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const recipeStore = useRecipeStore();
@@ -9,14 +9,14 @@ const recipeStore = useRecipeStore();
 const handleSubmit = async (formData) => {
   try {
     await recipeStore.create(formData);
-    router.push("/dashboard/recipes");
+    router.push('/dashboard/recipes');
   } catch (error) {
-    console.error("Failed to create recipe:", error);
+    console.error('Failed to create recipe:', error);
   }
 };
 
 const handleCancel = () => {
-  router.push("/recipes");
+  router.push('/recipes');
 };
 </script>
 

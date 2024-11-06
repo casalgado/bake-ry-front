@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref } from 'vue';
 
 const props = defineProps({
   initialData: {
@@ -13,60 +13,60 @@ const props = defineProps({
 });
 
 const days = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
 ];
 
 const socialPlatforms = [
   {
-    name: "facebook",
-    label: "Facebook",
-    placeholder: "https://facebook.com/yourbakery",
+    name: 'facebook',
+    label: 'Facebook',
+    placeholder: 'https://facebook.com/yourbakery',
   },
   {
-    name: "instagram",
-    label: "Instagram",
-    placeholder: "https://instagram.com/yourbakery",
+    name: 'instagram',
+    label: 'Instagram',
+    placeholder: 'https://instagram.com/yourbakery',
   },
   {
-    name: "tiktok",
-    label: "TikTok",
-    placeholder: "https://tiktok.com/@yourbakery",
+    name: 'tiktok',
+    label: 'TikTok',
+    placeholder: 'https://tiktok.com/@yourbakery',
   },
   {
-    name: "youtube",
-    label: "YouTube",
-    placeholder: "https://youtube.com/@yourbakery",
+    name: 'youtube',
+    label: 'YouTube',
+    placeholder: 'https://youtube.com/@yourbakery',
   },
   {
-    name: "twitter",
-    label: "Twitter/X",
-    placeholder: "https://twitter.com/yourbakery",
+    name: 'twitter',
+    label: 'Twitter/X',
+    placeholder: 'https://twitter.com/yourbakery',
   },
   {
-    name: "pinterest",
-    label: "Pinterest",
-    placeholder: "https://pinterest.com/yourbakery",
+    name: 'pinterest',
+    label: 'Pinterest',
+    placeholder: 'https://pinterest.com/yourbakery',
   },
 ];
 
 // Initialize operating hours with proper structure
 const defaultHours = {
   isOpen: true,
-  open: "09:00",
-  close: "17:00",
+  open: '09:00',
+  close: '17:00',
 };
 
 const initialOperatingHours = days.reduce((acc, day) => {
   // Set Sunday to closed by default
   acc[day.toLowerCase()] =
-    day === "Sunday"
-      ? { ...defaultHours, isOpen: false, open: "", close: "" }
+    day === 'Sunday'
+      ? { ...defaultHours, isOpen: false, open: '', close: '' }
       : { ...defaultHours };
   return acc;
 }, {});
@@ -74,22 +74,22 @@ const initialOperatingHours = days.reduce((acc, day) => {
 // Initialize form data with either provided initial data or defaults
 const formData = ref(
   props.initialData || {
-    name: "Beto's Bakery",
-    email: "beto@betosbakery.com",
-    phone: "1234567890",
-    address: "1234567890",
+    name: 'Beto\'s Bakery',
+    email: 'beto@betosbakery.com',
+    phone: '1234567890',
+    address: '1234567890',
     description:
-      "Beto's Bakery is a bakery that sells bread and pastries. It is the best bakery in the world. It is located in the heart of the city.",
+      'Beto\'s Bakery is a bakery that sells bread and pastries. It is the best bakery in the world. It is located in the heart of the city.',
     socialMedia: {
-      facebook: "https://facebook.com/betosbakery",
-      instagram: "https://instagram.com/betosbakery",
-      tiktok: "https://tiktok.com/betosbakery",
-      youtube: "https://youtube.com/betosbakery",
-      twitter: "https://twitter.com/betosbakery",
-      pinterest: "https://pinterest.com/betosbakery",
+      facebook: 'https://facebook.com/betosbakery',
+      instagram: 'https://instagram.com/betosbakery',
+      tiktok: 'https://tiktok.com/betosbakery',
+      youtube: 'https://youtube.com/betosbakery',
+      twitter: 'https://twitter.com/betosbakery',
+      pinterest: 'https://pinterest.com/betosbakery',
     },
     operatingHours: initialOperatingHours,
-  }
+  },
 );
 
 const errors = ref({});
@@ -97,10 +97,10 @@ const errors = ref({});
 const validate = () => {
   errors.value = {};
 
-  if (!formData.value.name) errors.value.name = "Name is required";
-  if (!formData.value.email) errors.value.email = "Email is required";
-  if (!formData.value.phone) errors.value.phone = "Phone is required";
-  if (!formData.value.address) errors.value.address = "Address is required";
+  if (!formData.value.name) errors.value.name = 'Name is required';
+  if (!formData.value.email) errors.value.email = 'Email is required';
+  if (!formData.value.phone) errors.value.phone = 'Phone is required';
+  if (!formData.value.address) errors.value.address = 'Address is required';
 
   return Object.keys(errors.value).length === 0;
 };
@@ -110,11 +110,11 @@ const handleSubmit = async () => {
   const submitData = {
     ...formData.value,
   };
-  console.log("submitData", submitData);
-  emit("submit", submitData);
+  console.log('submitData', submitData);
+  emit('submit', submitData);
 };
 
-const emit = defineEmits(["submit", "cancel"]);
+const emit = defineEmits(['submit', 'cancel']);
 </script>
 
 <template>

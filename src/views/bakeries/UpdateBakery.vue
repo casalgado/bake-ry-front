@@ -1,8 +1,8 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { useBakeryStore } from "@/stores/bakeryStore";
-import BakeryForm from "@/components/bakeries/BakeryForm.vue";
-import { useAuthenticationStore } from "@/stores/authentication";
+import { ref, onMounted } from 'vue';
+import { useBakeryStore } from '@/stores/bakeryStore';
+import BakeryForm from '@/components/forms/BakeryForm.vue';
+import { useAuthenticationStore } from '@/stores/authentication';
 
 const authStore = useAuthenticationStore();
 
@@ -13,11 +13,11 @@ const isLoading = ref(true);
 
 onMounted(async () => {
   try {
-    console.log("onMounted fetchBakeryById", authStore.getBakeryId);
+    console.log('onMounted fetchBakeryById', authStore.getBakeryId);
     await bakeryStore.fetchBakeryById(authStore.getBakeryId);
     initialData.value = { ...bakeryStore.currentBakery };
   } catch (error) {
-    console.error("Failed to fetch bakery:", error);
+    console.error('Failed to fetch bakery:', error);
   } finally {
     isLoading.value = false;
   }
@@ -26,17 +26,17 @@ onMounted(async () => {
 const handleSubmit = async (formData) => {
   try {
     loading.value = true;
-    console.log("handleSubmit updateBakery", authStore.getBakeryId, formData);
+    console.log('handleSubmit updateBakery', authStore.getBakeryId, formData);
     await bakeryStore.updateBakery(authStore.getBakeryId, formData);
-    emit("success");
+    emit('success');
   } catch (error) {
-    console.error("Failed to update bakery:", error);
+    console.error('Failed to update bakery:', error);
   } finally {
     loading.value = false;
   }
 };
 
-const emit = defineEmits(["success", "cancel"]);
+const emit = defineEmits(['success', 'cancel']);
 </script>
 
 <template>

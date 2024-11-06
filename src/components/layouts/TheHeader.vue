@@ -1,6 +1,6 @@
 <script setup>
-import { RouterLink } from "vue-router";
-import { useAuthenticationStore } from "@/stores/authentication";
+import { RouterLink } from 'vue-router';
+import { useAuthenticationStore } from '@/stores/authentication';
 
 const authStore = useAuthenticationStore();
 </script>
@@ -16,9 +16,8 @@ const authStore = useAuthenticationStore();
       <RouterLink to="/dashboard/update-bakery">Update Bakery</RouterLink>
       <RouterLink to="/dashboard/ingredients">Ingredients</RouterLink>
       <RouterLink to="/dashboard/recipes">Recipes</RouterLink>
-      <RouterLink to="/dashboard/recipes/create">Create Recipe</RouterLink>
       <RouterLink to="/dashboard/products">Products</RouterLink>
-      <RouterLink to="/dashboard/products/create">Create Product</RouterLink>
+      <RouterLink to="/dashboard/users">Show Bakery Users</RouterLink>
       <button @click="authStore.logout">Logout</button>
     </nav>
   </div>

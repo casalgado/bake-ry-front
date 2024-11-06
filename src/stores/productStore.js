@@ -1,6 +1,6 @@
-// stores/recipeStore.js
+// stores/productStore.js
 import { createResourceStore } from './base/resourceStore';
-import { RecipeService } from '../services/recipeService';
+import { ProductService } from '../services/productService';
 import { useAuthenticationStore } from './authentication';
 import { storeToRefs } from 'pinia';
 
@@ -9,6 +9,6 @@ const authStore = useAuthenticationStore();
 const { getBakeryId } = storeToRefs(authStore);
 
 // Create service instance with bakeryId
-const service = new RecipeService(getBakeryId.value);
+const service = new ProductService(getBakeryId.value);
 
-export const useRecipeStore = createResourceStore('recipes', service);
+export const useProductStore = createResourceStore('products', service);

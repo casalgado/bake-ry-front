@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useIngredientStore } from '@/stores/ingredientStore';
 import { useRouter } from 'vue-router';
-import IngredientForm from '@/components/ingredients/IngredientForm.vue';
+import IngredientForm from '@/components/forms/IngredientForm.vue';
 
 const router = useRouter();
 const ingredientStore = useIngredientStore();

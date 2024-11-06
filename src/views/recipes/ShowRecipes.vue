@@ -3,7 +3,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRecipeStore } from '@/stores/recipeStore';
 import { useRouter } from 'vue-router';
-import RecipeForm from '@/components/recipes/RecipeForm.vue';
+import RecipeForm from '@/components/forms/RecipeForm.vue';
 
 const router = useRouter();
 const recipeStore = useRecipeStore();

@@ -1,23 +1,23 @@
 <script setup>
-import { useIngredientStore } from "@/stores/ingredientStore";
-import IngredientForm from "@/components/ingredients/IngredientForm.vue";
-import { useRouter } from "vue-router";
+import { useIngredientStore } from '@/stores/ingredientStore';
+import IngredientForm from '@/components/forms/IngredientForm.vue';
+import { useRouter } from 'vue-router';
 
 const router = useRouter();
 const ingredientStore = useIngredientStore();
-console.log("ingredientStore contents:", ingredientStore);
+console.log('ingredientStore contents:', ingredientStore);
 
 const handleSubmit = async (formData) => {
   try {
     await ingredientStore.create(formData);
-    router.push("/dashboard/ingredients"); // Navigate to ingredients list after creation
+    router.push('/dashboard/ingredients'); // Navigate to ingredients list after creation
   } catch (error) {
-    console.error("Failed to create ingredient:", error);
+    console.error('Failed to create ingredient:', error);
   }
 };
 
 const handleCancel = () => {
-  router.push("/ingredients");
+  router.push('/ingredients');
 };
 </script>
 
