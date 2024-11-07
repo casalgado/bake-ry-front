@@ -1,1 +1,0 @@
-# bake-ry-front

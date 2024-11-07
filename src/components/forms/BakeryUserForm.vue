@@ -9,7 +9,7 @@ const props = defineProps({
       password: '',
       role: 'bakery_customer',
       name: '',
-      category: '',
+      category: 'B2B',
       address: '',
       birthday: '',
       comment: '',
@@ -112,37 +112,35 @@ const handleSubmit = () => {
 
     <div>
       <label>Tipo de Cliente *</label>
-      <select
-        v-model="formData.category"
-        required
-      >
-        <option value="">Seleccionar tipo</option>
-        <option
-          v-for="option in categoryOptions"
-          :key="option.value"
-          :value="option.value"
-        >
-          {{ option.label }}
-        </option>
-      </select>
+      <div>
+        <div v-for="option in categoryOptions" :key="option.value">
+          <input
+            type="radio"
+            :id="option.value"
+            :value="option.value"
+            v-model="formData.category"
+            required
+          />
+          <label :for="option.value">{{ option.label }}</label>
+        </div>
+      </div>
       <span v-if="errors.category">{{ errors.category }}</span>
     </div>
 
     <div>
       <label>Rol *</label>
-      <select
-        v-model="formData.role"
-        required
-      >
-        <option value="">Seleccionar rol</option>
-        <option
-          v-for="option in roleOptions"
-          :key="option.value"
-          :value="option.value"
-        >
-          {{ option.label }}
-        </option>
-      </select>
+      <div>
+        <div v-for="option in roleOptions" :key="option.value">
+          <input
+            type="radio"
+            :id="option.value"
+            :value="option.value"
+            v-model="formData.role"
+            required
+          />
+          <label :for="option.value">{{ option.label }}</label>
+        </div>
+      </div>
       <span v-if="errors.role">{{ errors.role }}</span>
     </div>
 

@@ -1,6 +1,6 @@
 <script setup>
-import { useAuthenticationStore } from "../stores/authentication";
-import { useBakeryStore } from "../stores/bakeryStore";
+import { useAuthenticationStore } from '../stores/authentication';
+import { useBakeryStore } from '../stores/bakeryStore';
 
 const authStore = useAuthenticationStore();
 const bakeryStore = useBakeryStore();

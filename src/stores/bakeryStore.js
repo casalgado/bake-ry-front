@@ -1,12 +1,12 @@
 // stores/bakeryStore.js
-console.log("Initializing store:", "bakery");
-import { defineStore } from "pinia";
-import { BakeryService } from "@/services/bakeryService";
+console.log('Initializing store:', 'bakery');
+import { defineStore } from 'pinia';
+import { BakeryService } from '@/services/bakeryService';
 
 /**
  * Store for managing bakery state
  */
-export const useBakeryStore = defineStore("bakery", {
+export const useBakeryStore = defineStore('bakery', {
   state: () => ({
     /** @type {Object|null} - Currently selected bakery */
     currentBakery: null,
@@ -121,18 +121,18 @@ export const useBakeryStore = defineStore("bakery", {
     async createBakery(bakeryData) {
       this.setLoading(true);
       this.clearError();
-      console.log("store createBakery", bakeryData);
+      console.log('store createBakery', bakeryData);
       // Check authentication first
-      if (!localStorage.getItem("AuthToken")) {
-        console.log("store createBakery no token");
-        const error = new Error("Please log in to create a bakery");
+      if (!localStorage.getItem('AuthToken')) {
+        console.log('store createBakery no token');
+        const error = new Error('Please log in to create a bakery');
         this.setError(error);
         this.setLoading(false);
         throw error;
       }
 
       try {
-        console.log("store createBakery try");
+        console.log('store createBakery try');
         const newBakery = await BakeryService.createBakery(bakeryData);
         this.bakeries.push(newBakery);
         return newBakery;
@@ -152,7 +152,7 @@ export const useBakeryStore = defineStore("bakery", {
     async updateBakery(id, bakeryData) {
       this.setLoading(true);
       this.clearError();
-      console.log("store updateBakery", id, bakeryData);
+      console.log('store updateBakery', id, bakeryData);
 
       try {
         const updatedBakery = await BakeryService.updateBakery(id, bakeryData);

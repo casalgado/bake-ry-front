@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref } from 'vue';
 
 const props = defineProps({
   initialData: {
@@ -14,41 +14,41 @@ const props = defineProps({
 
 // Category options in Spanish
 const categoryOptions = [
-  "Harinas y Almidones",
-  "Líquidos Base",
-  "Sazonadores Básicos",
-  "Fermentos",
-  "Lácteos y Proteínas",
-  "Semillas y Granos",
-  "Frutas y Vegetales",
-  "Especias y Aromáticos",
-  "Chocolates y Cocoa",
+  'Harinas y Almidones',
+  'Líquidos Base',
+  'Sazonadores Básicos',
+  'Fermentos',
+  'Lácteos y Proteínas',
+  'Semillas y Granos',
+  'Frutas y Vegetales',
+  'Especias y Aromáticos',
+  'Chocolates y Cocoa',
 ];
 
 // Unit options in Spanish
-const unitOptions = ["kg", "g", "L", "ml", "unidades", "docena", "paquete"];
+const unitOptions = ['kg', 'g', 'L', 'ml', 'unidades', 'docena', 'paquete'];
 
 // Storage temperature options
-const storageTempOptions = ["Ambiente", "Refrigeracion", "Congelacion"];
+const storageTempOptions = ['Ambiente', 'Refrigeracion', 'Congelacion'];
 
 // Initialize form data
 const formData = ref(
   props.initialData || {
-    name: "test",
-    description: "test_ingredient",
-    category: "",
-    unit: "",
+    name: 'test',
+    description: 'test_ingredient',
+    category: '',
+    unit: '',
     costPerUnit: 10,
     suppliers: [],
-    storageTemp: "",
-  }
+    storageTemp: '',
+  },
 );
 
 // For managing supplier inputs
 const newSupplier = ref({
-  name: "",
-  contact: "",
-  address: "",
+  name: '',
+  contact: '',
+  address: '',
 });
 
 const errors = ref({});
@@ -56,16 +56,16 @@ const errors = ref({});
 const validate = () => {
   errors.value = {};
 
-  if (!formData.value.name) errors.value.name = "El nombre es requerido";
+  if (!formData.value.name) errors.value.name = 'El nombre es requerido';
   if (!formData.value.category)
-    errors.value.category = "La categoría es requerida";
-  if (!formData.value.unit) errors.value.unit = "La unidad es requerida";
+    errors.value.category = 'La categoría es requerida';
+  if (!formData.value.unit) errors.value.unit = 'La unidad es requerida';
   if (!formData.value.costPerUnit)
-    errors.value.costPerUnit = "El costo por unidad es requerido";
+    errors.value.costPerUnit = 'El costo por unidad es requerido';
   if (formData.value.costPerUnit <= 0)
-    errors.value.costPerUnit = "El costo por unidad debe ser mayor que 0";
+    errors.value.costPerUnit = 'El costo por unidad debe ser mayor que 0';
   if (!formData.value.storageTemp)
-    errors.value.storageTemp = "La temperatura de almacenamiento es requerida";
+    errors.value.storageTemp = 'La temperatura de almacenamiento es requerida';
 
   return Object.keys(errors.value).length === 0;
 };
@@ -75,9 +75,9 @@ const addSupplier = () => {
     formData.value.suppliers.push({ ...newSupplier.value });
     // Reset the new supplier form
     newSupplier.value = {
-      name: "",
-      contact: "",
-      address: "",
+      name: '',
+      contact: '',
+      address: '',
     };
   }
 };
@@ -88,10 +88,10 @@ const removeSupplier = (index) => {
 
 const handleSubmit = async () => {
   if (!validate()) return;
-  emit("submit", formData.value);
+  emit('submit', formData.value);
 };
 
-const emit = defineEmits(["submit", "cancel"]);
+const emit = defineEmits(['submit', 'cancel']);
 </script>
 
 <template>

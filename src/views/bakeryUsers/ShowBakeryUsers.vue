@@ -15,15 +15,14 @@ const selectedRole = ref('');
 
 // Category options
 const categoryOptions = [
-  { value: 'B2B', label: 'Empresa' },
-  { value: 'B2C', label: 'Consumidor Final' },
+  { value: 'B2B', label: 'B2B' },
+  { value: 'B2C', label: 'B2C' },
 ];
 
 // Role options
 const roleOptions = [
   { value: 'bakery_customer', label: 'Cliente' },
   { value: 'bakery_staff', label: 'Personal' },
-  { value: 'bakery_admin', label: 'Administrador' },
 ];
 
 onMounted(async () => {

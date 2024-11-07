@@ -1,5 +1,5 @@
 // services/bakeryService.js
-import api from "./api";
+import api from './api';
 
 /**
  * Service for handling bakery-related API calls
@@ -19,11 +19,11 @@ export class BakeryService {
    */
   static async createBakery(bakeryData) {
     try {
-      const response = await api.post("/bakeries", bakeryData);
-      console.log("Bakery created:", response.data);
+      const response = await api.post('/bakeries', bakeryData);
+      console.log('Bakery created:', response.data);
       return response.data;
     } catch (error) {
-      throw this.handleError(error, "Failed to create bakery");
+      throw this.handleError(error, 'Failed to create bakery');
     }
   }
 
@@ -34,10 +34,10 @@ export class BakeryService {
    */
   static async getAllBakeries() {
     try {
-      const response = await api.get("/bakeries");
+      const response = await api.get('/bakeries');
       return response.data;
     } catch (error) {
-      throw this.handleError(error, "Failed to fetch bakeries");
+      throw this.handleError(error, 'Failed to fetch bakeries');
     }
   }
 
@@ -52,7 +52,7 @@ export class BakeryService {
       const response = await api.get(`/bakeries/${bakeryId}`);
       return response.data;
     } catch (error) {
-      throw this.handleError(error, "Failed to fetch bakery");
+      throw this.handleError(error, 'Failed to fetch bakery');
     }
   }
 
@@ -68,7 +68,7 @@ export class BakeryService {
       const response = await api.put(`/bakeries/${bakeryId}`, bakeryData);
       return response.data;
     } catch (error) {
-      throw this.handleError(error, "Failed to update bakery");
+      throw this.handleError(error, 'Failed to update bakery');
     }
   }
 
@@ -82,7 +82,7 @@ export class BakeryService {
     try {
       await api.delete(`/bakeries/${bakeryId}`);
     } catch (error) {
-      throw this.handleError(error, "Failed to delete bakery");
+      throw this.handleError(error, 'Failed to delete bakery');
     }
   }
 
@@ -97,7 +97,7 @@ export class BakeryService {
       const response = await api.get(`/bakeries/${bakeryId}/details`);
       return response.data;
     } catch (error) {
-      throw this.handleError(error, "Failed to fetch bakery details");
+      throw this.handleError(error, 'Failed to fetch bakery details');
     }
   }
 
@@ -108,10 +108,10 @@ export class BakeryService {
    * @param {string} defaultMessage - Default error message
    * @returns {Error} Formatted error object
    */
-  static handleError(error, defaultMessage = "An error occurred") {
+  static handleError(error, defaultMessage = 'An error occurred') {
     // Check for missing token
-    if (!localStorage.getItem("AuthToken")) {
-      return new Error("No token provided - please log in");
+    if (!localStorage.getItem('AuthToken')) {
+      return new Error('No token provided - please log in');
     }
 
     // Handle specific API errors
@@ -121,7 +121,7 @@ export class BakeryService {
       return new Error(message);
     } else if (error.request) {
       // Request made but no response
-      return new Error("No response from server");
+      return new Error('No response from server');
     }
 
     return new Error(defaultMessage);

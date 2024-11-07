@@ -1,7 +1,7 @@
 <script setup>
-import { RouterLink, RouterView } from "vue-router";
-import TheHeader from "./components/layouts/TheHeader.vue";
-console.log("App component initialization");
+import { RouterLink, RouterView } from 'vue-router';
+import TheHeader from './components/layouts/TheHeader.vue';
+console.log('App component initialization');
 </script>
 
 <template>

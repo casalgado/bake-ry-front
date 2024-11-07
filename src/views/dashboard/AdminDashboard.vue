@@ -1,7 +1,7 @@
 <script setup>
-import { onMounted } from "vue";
-import { useAuthenticationStore } from "@/stores/authentication";
-import CreateBakery from "@/views/bakeries/CreateBakery.vue";
+import { onMounted } from 'vue';
+import { useAuthenticationStore } from '@/stores/authentication';
+import CreateBakery from '@/views/bakeries/CreateBakery.vue';
 
 const authStore = useAuthenticationStore();
 
