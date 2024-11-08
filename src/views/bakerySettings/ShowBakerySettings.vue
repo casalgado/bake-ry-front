@@ -10,7 +10,8 @@ const settingsStore = useBakerySettingsStore();
 
 // Track which sections are being edited
 const editingSections = ref({
-  productCategories: false,
+  creatingProductCategory: false, // Changed from productCategories
+  editingProductCategory: false,  // New property to track which category is being edited
   ingredientCategories: false,
   orderStatuses: false,
   theme: false,
@@ -57,34 +58,59 @@ const handleCancel = (section) => {
       <section>
         <div class="section-header">
           <h3>Product Categories</h3>
-          <button @click="toggleEdit('productCategories')">
-            {{ editingSections.productCategories ? 'Cancel' : 'Edit' }}
+          <button @click="() => editingSections.creatingProductCategory = !editingSections.creatingProductCategory">
+            {{ editingSections.creatingProductCategory ? 'Cancel' : 'Create' }}
           </button>
         </div>
 
-        <div v-if="editingSections.productCategories">
+        <div v-if="editingSections.creatingProductCategory">
           <ProductCategoryForm
             @submit="formData => handleSubmit(formData, 'productCategories')"
-            @cancel="() => handleCancel('productCategories')"
-          />
+            @cancel="() => handleCancel('creatingProductCategory')"/>
         </div>
 
-        <table v-else>
+        <div v-if="editingSections.editingProductCategory">
+          <ProductCategoryForm
+            :initial-data="settingsStore.currentItem.productCategories.find(
+              cat => cat.id === editingSections.editingProductCategory
+            )"
+            @submit="formData => handleSubmit(formData, 'productCategories')"
+            @cancel="() => handleCancel('creatingProductCategory')"/>
+        </div>
+
+        <table v-if="!editingSections.creatingProductCategory && !editingSections.editingProductCategory">
           <thead>
             <tr>
               <th>Name</th>
               <th>Display Type</th>
+              <th>Variations</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="category in settingsStore.currentItem.productCategories" :key="category.name">
+            <tr v-for="category in settingsStore.currentItem.productCategories" :key="category.id">
               <td>
                 <div>{{ category.name }}</div>
                 <div v-if="category.description">{{ category.description }}</div>
               </td>
               <td>{{ category.displayType || 'None' }}</td>
+              <td>
+                <div v-if="category.suggestedVariations?.length">
+                  <div v-for="variation in category.suggestedVariations" :key="variation.name">
+                    {{ variation.name }}
+                    ({{ category.displayType === 'weight' ? `${variation.value}g` : `x${variation.value}` }})
+                    - {{ variation.recipeMultiplier }}x
+                  </div>
+                </div>
+                <div v-else>No variations</div>
+              </td>
               <td>{{ category.isActive ? 'Active' : 'Inactive' }}</td>
+              <td>
+                <button @click="() => editingSections.editingProductCategory = category.id">
+                  Edit
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>

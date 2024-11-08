@@ -1,8 +1,10 @@
 <script setup>
 import { ref, defineProps, defineEmits, onMounted } from 'vue';
 import { useRecipeStore } from '@/stores/recipeStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 const recipeStore = useRecipeStore();
+const settingsStore = useBakerySettingsStore();
 
 const props = defineProps({
   initialData: {
@@ -26,24 +28,41 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['submit', 'cancel']);
+const errors = ref({});
 
 const formData = ref({ ...props.initialData });
+const settings = ref(null);
+const selectedCategory = ref(null);
+const variationInputs = ref({});
 
-const categoryOptions = [
-  'Bread',
-  'Pastry',
-  'Cake',
-  'Cookie',
-  'Other',
-];
+const handleCategoryChange = () => {
+  selectedCategory.value = settings.value.productCategories.find(
+    cat => cat.name === formData.value.category,
+  );
 
-const newVariation = ref({
-  name: '',
-  basePrice: 0,
-  recipeMultiplier: 1,
-});
+  if (selectedCategory.value?.suggestedVariations) {
+    variationInputs.value = selectedCategory.value.suggestedVariations.reduce((acc, variation) => {
+      const existingVariation = formData.value.variations.find(v => v.name === variation.name);
 
-const errors = ref({});
+      acc[variation.name] = existingVariation ? {
+        value: existingVariation.value,
+        basePrice: existingVariation.basePrice,
+        recipeMultiplier: existingVariation.recipeMultiplier,
+      } : {
+        value: '',
+        basePrice: 0,
+        recipeMultiplier: 1,
+      };
+
+      return acc;
+    }, {});
+
+    formData.value.hasVariations = true;
+  } else {
+    formData.value.hasVariations = false;
+    variationInputs.value = {};
+  }
+};
 
 const validate = () => {
   errors.value = {};
@@ -53,32 +72,17 @@ const validate = () => {
   if (!formData.value.recipeId) errors.value.recipeId = 'Recipe is required';
 
   if (formData.value.hasVariations) {
-    if (!formData.value.variations.length) {
-      errors.value.variations = 'At least one variation is required';
+    const hasFilledVariations = Object.values(variationInputs.value).some(
+      v => v.value && v.basePrice > 0 && v.recipeMultiplier > 0,
+    );
+
+    if (!hasFilledVariations) {
+      errors.value.variations = 'At least one variation must be completely filled out';
     }
-
-    if (formData.value.basePrice !== undefined) {
-      errors.value.basePrice = 'Products with variations should not have a base price';
-    }
-
-    formData.value.variations.forEach((variation, index) => {
-      if (!variation.name) {
-        errors.value[`variation${index}Name`] = `Variation ${index + 1} requires a name`;
-      }
-
-      if (!variation.basePrice || variation.basePrice <= 0) {
-        errors.value[`variation${index}Price`] = `Variation ${index + 1} requires a price greater than 0`;
-      }
-
-      if (!variation.recipeMultiplier || variation.recipeMultiplier <= 0) {
-        errors.value[`variation${index}Multiplier`] = `Variation ${index + 1} requires a recipe multiplier greater than 0`;
-      }
-    });
   } else {
     if (!formData.value.basePrice || formData.value.basePrice <= 0) {
       errors.value.basePrice = 'Base price must be greater than 0';
     }
-
     if (!formData.value.recipeMultiplier || formData.value.recipeMultiplier <= 0) {
       errors.value.recipeMultiplier = 'Recipe multiplier must be greater than 0';
     }
@@ -87,64 +91,35 @@ const validate = () => {
   return Object.keys(errors.value).length === 0;
 };
 
-const addVariation = () => {
-  if (!newVariation.value.name || newVariation.value.basePrice <= 0 || newVariation.value.recipeMultiplier <= 0) {
-    return;
-  }
-
-  formData.value.variations.push({
-    ...newVariation.value,
-    id: `var_${Date.now()}`,
-  });
-
-  newVariation.value = {
-    name: '',
-    basePrice: 0,
-    recipeMultiplier: 1,
-  };
-};
-
-const removeVariation = (index) => {
-  formData.value.variations.splice(index, 1);
-};
-
-const toggleVariations = () => {
-  formData.value.hasVariations = !formData.value.hasVariations;
-
-  if (formData.value.hasVariations) {
-    delete formData.value.basePrice;
-    delete formData.value.recipeMultiplier;
-  } else {
-    formData.value.basePrice = 0;
-    formData.value.recipeMultiplier = 1;
-    formData.value.variations = [];
-  }
-};
-
 const handleSubmit = () => {
+  console.log('Submitting form data:', formData.value);
   if (!validate()) return;
+  console.log('Form data is valid');
+  if (formData.value.hasVariations) {
+    formData.value.variations = Object.entries(variationInputs.value)
+      .filter(([_, v]) => v.value && v.basePrice > 0 && v.recipeMultiplier > 0)
+      .map(([name, v]) => ({
+        name,
+        value: v.value,
+        basePrice: v.basePrice,
+        recipeMultiplier: v.recipeMultiplier,
+      }));
+  }
 
   emit('submit', {
     ...formData.value,
-    updatedAt: new Date(),
-    createdAt: formData.value.createdAt || new Date(),
   });
 };
 
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  }).format(value);
-};
-
 onMounted(async () => {
-  console.log('Initial recipeStore items:', recipeStore.items);
-
   if (recipeStore.items.length === 0) {
     await recipeStore.fetchAll();
-    console.log('Fetched recipeStore items:', recipeStore.items);
+  }
+
+  settings.value = await settingsStore.fetchById('default');
+
+  if (formData.value.category) {
+    handleCategoryChange();
   }
 });
 </script>
@@ -152,6 +127,7 @@ onMounted(async () => {
 <template>
   <form @submit.prevent="handleSubmit">
     <!-- Basic Information -->
+    {{ errors }}
     <div>
       <h3>Basic Information</h3>
 
@@ -179,26 +155,6 @@ onMounted(async () => {
 
       <div>
         <label>
-          Category *
-          <select
-            v-model="formData.category"
-            required
-          >
-            <option value="">Select category</option>
-            <option
-              v-for="category in categoryOptions"
-              :key="category"
-              :value="category"
-            >
-              {{ category }}
-            </option>
-          </select>
-        </label>
-        <span v-if="errors.category">{{ errors.category }}</span>
-      </div>
-
-      <div>
-        <label>
           Recipe *
           <select
             v-model="formData.recipeId"
@@ -219,6 +175,27 @@ onMounted(async () => {
 
       <div>
         <label>
+          Category *
+          <select
+            v-model="formData.category"
+            @change="handleCategoryChange"
+            required
+          >
+            <option value="">Select category</option>
+            <option
+              v-for="category in settings?.productCategories"
+              :key="category.id"
+              :value="category.name"
+            >
+              {{ category.name }}
+            </option>
+          </select>
+        </label>
+        <span v-if="errors.category">{{ errors.category }}</span>
+      </div>
+
+      <div>
+        <label>
           <input
             type="checkbox"
             v-model="formData.isActive"
@@ -226,125 +203,92 @@ onMounted(async () => {
           Product is active
         </label>
       </div>
-
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            :checked="formData.hasVariations"
-            @change="toggleVariations"
-          />
-          Has variations
-        </label>
-      </div>
     </div>
 
-    <!-- Single Product Price -->
-    <div v-if="!formData.hasVariations">
-      <div>
-        <label>
-          Base Price *
-          <input
-            v-model.number="formData.basePrice"
-            type="number"
-            min="0"
-            step="0.01"
-            required
-          />
-        </label>
-        <span v-if="errors.basePrice">{{ errors.basePrice }}</span>
-      </div>
+    <!-- Show fields only if category is selected -->
+    <template v-if="formData.category">
+      <!-- Variations Section -->
+      <div v-if="selectedCategory?.displayType">
+        <h3>Variations</h3>
+        <p>{{ selectedCategory.displayType === 'weight' ? 'Weight (g)' : 'Quantity' }}</p>
+        <span v-if="errors.variations">{{ errors.variations }}</span>
 
-      <div>
-        <label>
-          Recipe Multiplier *
-          <input
-            v-model.number="formData.recipeMultiplier"
-            type="number"
-            min="0.1"
-            step="0.1"
-            required
-          />
-        </label>
-        <span v-if="errors.recipeMultiplier">{{ errors.recipeMultiplier }}</span>
-      </div>
-    </div>
-
-    <!-- Variations Section -->
-    <div v-if="formData.hasVariations">
-      <h3>Variations</h3>
-      <span v-if="errors.variations">{{ errors.variations }}</span>
-
-      <!-- Existing Variations -->
-      <div v-if="formData.variations.length > 0">
         <div
-          v-for="(variation, index) in formData.variations"
-          :key="variation.id"
+          v-for="variation in selectedCategory.suggestedVariations"
+          :key="variation.name"
+          class="variation-input"
         >
+          <h4>{{ variation.name }}</h4>
+
           <div>
-            <p>Name: {{ variation.name }}</p>
-            <p>Base Price: {{ formatCurrency(variation.basePrice) }}</p>
-            <p>Recipe Multiplier: {{ variation.recipeMultiplier }}</p>
+            <label>
+              {{ selectedCategory.displayType === 'weight' ? 'Weight (g)' : 'Quantity' }}
+              <input
+                v-model.number="variationInputs[variation.name].value"
+                type="number"
+                min="0"
+                step="1"
+              />
+            </label>
           </div>
-          <button
-            type="button"
-            @click="removeVariation(index)"
-          >
-            Remove
-          </button>
-          <span v-if="errors[`variation${index}Name`]">{{ errors[`variation${index}Name`] }}</span>
-          <span v-if="errors[`variation${index}Price`]">{{ errors[`variation${index}Price`] }}</span>
-          <span v-if="errors[`variation${index}Multiplier`]">{{ errors[`variation${index}Multiplier`] }}</span>
+
+          <div>
+            <label>
+              Base Price
+              <input
+                v-model.number="variationInputs[variation.name].basePrice"
+                type="number"
+                min="0"
+                step="1"
+              />
+            </label>
+          </div>
+
+          <div>
+            <label>
+              Recipe Multiplier
+              <input
+                v-model.number="variationInputs[variation.name].recipeMultiplier"
+                type="number"
+                min="0"
+                step="0.1"
+              />
+            </label>
+          </div>
         </div>
       </div>
 
-      <!-- Add New Variation -->
-      <div>
-        <h4>Add New Variation</h4>
-
-        <div>
-          <label>
-            Name *
-            <input
-              v-model="newVariation.name"
-              type="text"
-            />
-          </label>
-        </div>
-
+      <!-- Single Product Price - only show if category selected and has no variations -->
+      <div v-if="!selectedCategory?.displayType">
         <div>
           <label>
             Base Price *
             <input
-              v-model.number="newVariation.basePrice"
+              v-model.number="formData.basePrice"
               type="number"
               min="0"
-              step="0.01"
+              step="1"
+              required
             />
           </label>
+          <span v-if="errors.basePrice">{{ errors.basePrice }}</span>
         </div>
 
         <div>
           <label>
             Recipe Multiplier *
             <input
-              v-model.number="newVariation.recipeMultiplier"
+              v-model.number="formData.recipeMultiplier"
               type="number"
-              min="0.1"
+              min="0"
               step="0.1"
+              required
             />
           </label>
+          <span v-if="errors.recipeMultiplier">{{ errors.recipeMultiplier }}</span>
         </div>
-
-        <button
-          type="button"
-          @click="addVariation"
-          :disabled="!newVariation.name || newVariation.basePrice <= 0 || newVariation.recipeMultiplier <= 0"
-        >
-          Add Variation
-        </button>
       </div>
-    </div>
+    </template>
 
     <!-- Form Actions -->
     <div>

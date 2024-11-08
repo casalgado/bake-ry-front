@@ -8,6 +8,7 @@ const productStore = useProductStore();
 
 const handleSubmit = async (formData) => {
   try {
+    console.log('Creating product:', formData);
     await productStore.create(formData);
     router.push('/dashboard/products');
   } catch (error) {
