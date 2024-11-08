@@ -65,21 +65,39 @@ const handleCategoryChange = () => {
 };
 
 const validate = () => {
-  errors.value = {};
 
+  // Basic validations
   if (!formData.value.name) errors.value.name = 'Name is required';
   if (!formData.value.category) errors.value.category = 'Category is required';
   if (!formData.value.recipeId) errors.value.recipeId = 'Recipe is required';
 
-  if (formData.value.hasVariations) {
-    const hasFilledVariations = Object.values(variationInputs.value).some(
-      v => v.value && v.basePrice > 0 && v.recipeMultiplier > 0,
-    );
+  // Category with variations
+  if (selectedCategory.value?.displayType) {
+    const filledVariations = Object.entries(variationInputs.value)
+      .filter(([_, v]) => v.value && v.basePrice > 0 && v.recipeMultiplier > 0);
 
-    if (!hasFilledVariations) {
+    if (filledVariations.length === 0) {
       errors.value.variations = 'At least one variation must be completely filled out';
+    } else {
+      // Validate individual variations that are filled
+      filledVariations.forEach(([name, variation]) => {
+        if (variation.value || variation.basePrice > 0 || variation.recipeMultiplier > 0) {
+          // Only validate if any field is filled
+          if (!variation.value) {
+            errors.value[`${name}_value`] = `${name}: ${selectedCategory.value.displayType === 'weight' ? 'Weight' : 'Quantity'} is required`;
+          }
+          if (!variation.basePrice || variation.basePrice <= 0) {
+            errors.value[`${name}_price`] = `${name}: Base price must be greater than 0`;
+          }
+          if (!variation.recipeMultiplier || variation.recipeMultiplier <= 0) {
+            errors.value[`${name}_multiplier`] = `${name}: Recipe multiplier must be greater than 0`;
+          }
+        }
+      });
     }
-  } else {
+  }
+  // Category without variations
+  else if (formData.value.category) {
     if (!formData.value.basePrice || formData.value.basePrice <= 0) {
       errors.value.basePrice = 'Base price must be greater than 0';
     }
@@ -88,14 +106,21 @@ const validate = () => {
     }
   }
 
+  console.log('Validation errors:', errors.value);
   return Object.keys(errors.value).length === 0;
 };
 
 const handleSubmit = () => {
   console.log('Submitting form data:', formData.value);
-  if (!validate()) return;
+  if (!validate()) {
+    console.log('Form validation failed:', errors.value);
+    return;
+  }
+
   console.log('Form data is valid');
-  if (formData.value.hasVariations) {
+
+  // Update variations only if category has them
+  if (selectedCategory.value?.displayType) {
     formData.value.variations = Object.entries(variationInputs.value)
       .filter(([_, v]) => v.value && v.basePrice > 0 && v.recipeMultiplier > 0)
       .map(([name, v]) => ({
@@ -104,6 +129,9 @@ const handleSubmit = () => {
         basePrice: v.basePrice,
         recipeMultiplier: v.recipeMultiplier,
       }));
+  } else {
+    // Ensure variations are empty for non-variation categories
+    formData.value.variations = [];
   }
 
   emit('submit', {
