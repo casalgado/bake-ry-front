@@ -188,6 +188,35 @@ export const createResourceStore = (resourceName, resourceService) => {
       }
     }
 
+    async function patch(id, data) {
+      if (!id) throw new Error('ID is required for patch');
+      if (!data) throw new Error('Data is required for patch');
+
+      setLoading(true);
+      clearError();
+
+      try {
+        const response = await resourceService.patch(id, data);
+        const updatedItem = response.data;
+
+        const index = items.value.findIndex((item) => item.id === id);
+        if (index !== -1) {
+          items.value[index] = updatedItem;
+        }
+
+        if (currentItem.value?.id === id) {
+          currentItem.value = updatedItem;
+        }
+
+        return updatedItem;
+      } catch (err) {
+        setError(err);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    }
+
     async function remove(id) {
       if (!id) throw new Error('ID is required for delete');
 
@@ -247,7 +276,7 @@ export const createResourceStore = (resourceName, resourceService) => {
       fetchById,
       create,
       update,
-
+      patch,
       remove,
       resetStore,
     };

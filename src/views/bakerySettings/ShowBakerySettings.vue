@@ -8,31 +8,33 @@ const router = useRouter();
 void router;
 const settingsStore = useBakerySettingsStore();
 
-const showForm = ref(false);
-const selectedSection = ref(null);
+// Track which sections are being edited
+const editingSections = ref({
+  productCategories: false,
+  ingredientCategories: false,
+  orderStatuses: false,
+  theme: false,
+});
 
 onMounted(async () => {
   await settingsStore.fetchById('default');
 });
 
-const handleEdit = (section) => {
-  selectedSection.value = section;
-  showForm.value = true;
+const toggleEdit = (section) => {
+  editingSections.value[section] = !editingSections.value[section];
 };
 
-const handleSubmit = async (formData) => {
+const handleSubmit = async (formData, section) => {
   try {
-    await settingsStore.patch('default', formData);
-    showForm.value = false;
-    selectedSection.value = null;
+    await settingsStore.patch('default', { [section]: formData });
+    editingSections.value[section] = false;
   } catch (error) {
-    console.error('Failed to update settings:', error);
+    console.error(`Failed to update ${section}:`, error);
   }
 };
 
-const handleCancel = () => {
-  showForm.value = false;
-  selectedSection.value = null;
+const handleCancel = (section) => {
+  editingSections.value[section] = false;
 };
 </script>
 
@@ -48,24 +50,26 @@ const handleCancel = () => {
       {{ settingsStore.error }}
     </div>
 
-    <!-- Edit Form Modal -->
-    <div v-if="showForm">
-      <div>
-        <h3>Edit Settings</h3>
-        <ProductCategoryForm
-          @submit="handleSubmit"
-          @cancel="handleCancel"
-        />
-      </div>
-    </div>
-
+    {{ editingSections }}
     <!-- Settings Sections -->
     <div v-if="!settingsStore.loading && settingsStore.currentItem">
       <!-- Product Categories Section -->
       <section>
-        <h3>Product Categories</h3>
-        <button @click="handleEdit('productCategories')">Edit</button>
-        <table>
+        <div class="section-header">
+          <h3>Product Categories</h3>
+          <button @click="toggleEdit('productCategories')">
+            {{ editingSections.productCategories ? 'Cancel' : 'Edit' }}
+          </button>
+        </div>
+
+        <div v-if="editingSections.productCategories">
+          <ProductCategoryForm
+            @submit="formData => handleSubmit(formData, 'productCategories')"
+            @cancel="() => handleCancel('productCategories')"
+          />
+        </div>
+
+        <table v-else>
           <thead>
             <tr>
               <th>Name</th>
@@ -88,9 +92,14 @@ const handleCancel = () => {
 
       <!-- Ingredient Categories Section -->
       <section>
-        <h3>Ingredient Categories</h3>
-        <button @click="handleEdit('ingredientCategories')">Edit</button>
-        <table>
+        <div class="section-header">
+          <h3>Ingredient Categories</h3>
+          <button @click="toggleEdit('ingredientCategories')">
+            {{ editingSections.ingredientCategories ? 'Cancel' : 'Edit' }}
+          </button>
+        </div>
+
+        <table v-if="!editingSections.ingredientCategories">
           <thead>
             <tr>
               <th>Name</th>
@@ -111,9 +120,14 @@ const handleCancel = () => {
 
       <!-- Order Statuses Section -->
       <section>
-        <h3>Order Statuses</h3>
-        <button @click="handleEdit('orderStatuses')">Edit</button>
-        <ul>
+        <div class="section-header">
+          <h3>Order Statuses</h3>
+          <button @click="toggleEdit('orderStatuses')">
+            {{ editingSections.orderStatuses ? 'Cancel' : 'Edit' }}
+          </button>
+        </div>
+
+        <ul v-if="!editingSections.orderStatuses">
           <li v-for="status in settingsStore.currentItem.orderStatuses" :key="status">
             {{ status }}
           </li>
@@ -122,9 +136,14 @@ const handleCancel = () => {
 
       <!-- Theme Settings -->
       <section>
-        <h3>Theme Settings</h3>
-        <button @click="handleEdit('theme')">Edit</button>
-        <pre>{{ JSON.stringify(settingsStore.currentItem.theme, null, 2) }}</pre>
+        <div class="section-header">
+          <h3>Theme Settings</h3>
+          <button @click="toggleEdit('theme')">
+            {{ editingSections.theme ? 'Cancel' : 'Edit' }}
+          </button>
+        </div>
+
+        <pre v-if="!editingSections.theme">{{ JSON.stringify(settingsStore.currentItem.theme, null, 2) }}</pre>
       </section>
     </div>
 
@@ -133,6 +152,7 @@ const handleCancel = () => {
     </div>
   </div>
 </template>
+
 <style scoped lang="scss">
 table {
   width: 100%;
@@ -145,6 +165,16 @@ td {
   padding: 0.5rem;
   text-align: left;
   border: 1px solid #ddd;
+}
+
+section {
+  margin-bottom: 2rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: start;
+  align-items: center;
 }
 
 button + button {

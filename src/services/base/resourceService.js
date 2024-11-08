@@ -112,6 +112,29 @@ export class BaseService {
   }
 
   /**
+   * Partially update a resource
+   * @param {string} id - Resource ID
+   * @param {Object} data - Partial resource data
+   * @returns {Promise<Object>} Updated resource
+   */
+  async patch(id, data) {
+    if (!id) {
+      throw new Error('ID is required');
+    }
+
+    if (!data) {
+      throw new Error('Data is required');
+    }
+
+    try {
+      const response = await this.api.patch(`${this.getPath()}/${id}`, data);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
    * Delete a resource
    * @param {string} id - Resource ID
    * @returns {Promise<void>}
