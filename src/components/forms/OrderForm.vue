@@ -292,11 +292,16 @@ const fulfillmentTypes = [
 
     <div>
       <label>Fulfillment Type</label>
-      <select v-model="formData.fulfillmentType">
-        <option v-for="type in fulfillmentTypes" :key="type.value" :value="type.value">
+      <div>
+        <label v-for="type in fulfillmentTypes" :key="type.value">
+          <input
+            type="radio"
+            :value="type.value"
+            v-model="formData.fulfillmentType"
+          >
           {{ type.label }}
-        </option>
-      </select>
+        </label>
+      </div>
 
       <div>
         <label>Delivery Address</label>
@@ -317,11 +322,16 @@ const fulfillmentTypes = [
 
     <div>
       <label>Payment Method</label>
-      <select v-model="formData.paymentMethod">
-        <option v-for="method in paymentMethods" :key="method.value" :value="method.value">
+      <div>
+        <label v-for="method in paymentMethods" :key="method.value">
+          <input
+            type="radio"
+            :value="method.value"
+            v-model="formData.paymentMethod"
+          >
           {{ method.label }}
-        </option>
-      </select>
+        </label>
+      </div>
     </div>
 
     <div>

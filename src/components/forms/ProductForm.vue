@@ -41,17 +41,20 @@ const handleCategoryChange = () => {
   );
 
   if (selectedCategory.value?.suggestedVariations) {
+    // Updated this section to use the suggested values from settings
     variationInputs.value = selectedCategory.value.suggestedVariations.reduce((acc, variation) => {
       const existingVariation = formData.value.variations.find(v => v.name === variation.name);
 
       acc[variation.name] = existingVariation ? {
+        // If there's an existing variation, use those values
         value: existingVariation.value,
         basePrice: existingVariation.basePrice,
         recipeMultiplier: existingVariation.recipeMultiplier,
       } : {
-        value: '',
+        // Otherwise use the suggested values from settings, with basePrice defaulting to 0
+        value: variation.value || '',
         basePrice: 0,
-        recipeMultiplier: 1,
+        recipeMultiplier: variation.recipeMultiplier || 1,
       };
 
       return acc;

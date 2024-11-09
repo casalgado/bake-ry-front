@@ -9,7 +9,7 @@ const props = defineProps({
       password: '',
       role: 'bakery_customer',
       name: '',
-      category: 'B2B',
+      category: 'B2C',
       address: '',
       birthday: '',
       comment: '',
