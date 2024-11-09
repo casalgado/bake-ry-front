@@ -28,6 +28,8 @@ const tomorrowString = tomorrow.toISOString().split('T')[0];
 const formData = ref(props.initialData || {
   userId: '',
   userName: '',
+  userEmail: '',
+  userPhone: '',
   items: [],
   preparationDate: tomorrowString,
   dueDate: tomorrowString,
@@ -40,7 +42,6 @@ const formData = ref(props.initialData || {
   internalNotes: '',
 });
 
-// Order item being edited
 const currentItem = ref({
   productId: '',
   productName: '',
@@ -50,12 +51,10 @@ const currentItem = ref({
   isComplimentary: false,
 });
 
-// UI state
 const errors = ref({});
 const selectedProduct = ref(null);
 const showAddItem = ref(false);
 
-// Load products and users
 onMounted(async () => {
   await Promise.all([
     productStore.fetchAll(),
@@ -63,12 +62,10 @@ onMounted(async () => {
   ]);
 });
 
-// Computed properties
 const availableVariations = computed(() => {
   if (!selectedProduct.value) return [];
 
   if (!selectedProduct.value.variations?.length) {
-    // Return base product as single option if no variations
     return [{
       id: 'base',
       name: selectedProduct.value.name,
@@ -86,25 +83,68 @@ const subtotal = computed(() => {
 });
 
 const total = computed(() => {
-  return subtotal.value + (formData.value.fulfillmentType === 'delivery' ? formData.value.deliveryFee : 0);
+  return subtotal.value + formData.value.deliveryFee;
 });
 
-// Methods
 const handleProductSelect = (productId) => {
+  if (!productId) {
+    selectedProduct.value = null;
+    currentItem.value.productId = '';
+    currentItem.value.productName = '';
+    currentItem.value.unitPrice = 0;
+    return;
+  }
+
   selectedProduct.value = productStore.getById(productId);
   currentItem.value.productId = productId;
   currentItem.value.productName = selectedProduct.value.name;
 };
 
-const handleVariationSelect = (variation) => {
+const handleVariationSelect = (variationId) => {
+  if (!variationId) {
+    currentItem.value.productVariantId = '';
+    currentItem.value.unitPrice = 0;
+    return;
+  }
+
+  const variation = availableVariations.value.find(v => v.id === variationId);
   currentItem.value.productVariantId = variation.id === 'base' ? null : variation.id;
   currentItem.value.unitPrice = variation.basePrice;
 };
 
+const handleUserSelect = (userId) => {
+  if (!userId) {
+    formData.value.userId = '';
+    formData.value.userName = '';
+    formData.value.userEmail = '';
+    formData.value.userPhone = '';
+    formData.value.deliveryAddress = '';
+    return;
+  }
+
+  const user = userStore.getById(userId);
+  formData.value.userId = userId;
+  formData.value.userName = user.name;
+  formData.value.userEmail = user.email;
+  formData.value.userPhone = user.phone;
+  formData.value.deliveryAddress = user.address;
+};
+
 const addOrderItem = () => {
+  errors.value.currentItem = '';
+
+  if (!currentItem.value.productId) {
+    errors.value.currentItem = 'Please select a product';
+    return;
+  }
+
+  if (!currentItem.value.unitPrice) {
+    errors.value.currentItem = 'Please select a variation';
+    return;
+  }
+
   formData.value.items.push({ ...currentItem.value });
 
-  // Reset current item
   currentItem.value = {
     productId: '',
     productName: '',
@@ -126,12 +166,6 @@ const toggleItemComplimentary = (index) => {
   formData.value.items[index].isComplimentary = !formData.value.items[index].isComplimentary;
 };
 
-const handleUserSelect = (userId) => {
-  const user = userStore.getById(userId);
-  formData.value.userId = userId;
-  formData.value.userName = user.name;
-};
-
 const validate = () => {
   errors.value = {};
 
@@ -139,13 +173,10 @@ const validate = () => {
   if (!formData.value.items.length) errors.value.items = 'At least one item is required';
   if (!formData.value.preparationDate) errors.value.preparationDate = 'Preparation date is required';
   if (!formData.value.dueDate) errors.value.dueDate = 'Due date is required';
+  if (!formData.value.deliveryAddress) errors.value.deliveryAddress = 'Delivery address is required';
 
   if (new Date(formData.value.dueDate) < new Date(formData.value.preparationDate)) {
     errors.value.dueDate = 'Due date cannot be before preparation date';
-  }
-
-  if (formData.value.fulfillmentType === 'delivery' && !formData.value.deliveryAddress) {
-    errors.value.deliveryAddress = 'Delivery address is required for delivery orders';
   }
 
   return Object.keys(errors.value).length === 0;
@@ -170,7 +201,6 @@ const fulfillmentTypes = [
 
 <template>
   <form @submit.prevent="handleSubmit">
-    <!-- Client Selection -->
     <div>
       <label>Client</label>
       <select v-model="formData.userId" @change="handleUserSelect($event.target.value)">
@@ -179,29 +209,26 @@ const fulfillmentTypes = [
           {{ user.name }}
         </option>
       </select>
-      <span v-if="errors.userId" class="error">{{ errors.userId }}</span>
+      <span v-if="errors.userId">{{ errors.userId }}</span>
     </div>
 
-    <!-- Order Items -->
     <div>
       <h3>Order Items</h3>
 
-      <div v-if="formData.items.length" class="items-list">
-        <div v-for="(item, index) in formData.items" :key="index" class="item">
-          <div>
+      <div v-if="formData.items.length">
+        <div v-for="(item, index) in formData.items" :key="index">
+          <span>
             {{ item.productName }}
             {{ item.productVariantId ? '(Variant)' : '' }}
             x {{ item.quantity }}
-          </div>
-          <div v-if="!item.isComplimentary">
+          </span>
+          <span v-if="!item.isComplimentary">
             {{ item.unitPrice * item.quantity }}
-          </div>
-          <div>
-            <button type="button" @click="toggleItemComplimentary(index)">
-              {{ item.isComplimentary ? 'Make Paid' : 'Make Complimentary' }}
-            </button>
-            <button type="button" @click="removeOrderItem(index)">Remove</button>
-          </div>
+          </span>
+          <button type="button" @click="toggleItemComplimentary(index)">
+            {{ item.isComplimentary ? 'Make Paid' : 'Make Complimentary' }}
+          </button>
+          <button type="button" @click="removeOrderItem(index)">Remove</button>
         </div>
       </div>
 
@@ -209,7 +236,7 @@ const fulfillmentTypes = [
         Add Item
       </button>
 
-      <div v-if="showAddItem" class="add-item-form">
+      <div v-if="showAddItem">
         <div>
           <label>Product</label>
           <select v-model="currentItem.productId" @change="handleProductSelect($event.target.value)">
@@ -222,7 +249,10 @@ const fulfillmentTypes = [
 
         <div v-if="selectedProduct">
           <label>Variation</label>
-          <select v-model="currentItem.productVariantId" @change="handleVariationSelect($event.target.value)">
+          <select
+            v-model="currentItem.productVariantId"
+            @change="handleVariationSelect($event.target.value)"
+          >
             <option value="">Select a variation</option>
             <option v-for="variation in availableVariations" :key="variation.id" :value="variation.id">
               {{ variation.name }} - {{ variation.basePrice }}
@@ -235,31 +265,31 @@ const fulfillmentTypes = [
           <input type="number" v-model="currentItem.quantity" min="1" />
         </div>
 
+        <span v-if="errors.currentItem">{{ errors.currentItem }}</span>
+
         <div>
           <button type="button" @click="addOrderItem">Add</button>
           <button type="button" @click="showAddItem = false">Cancel</button>
         </div>
       </div>
 
-      <span v-if="errors.items" class="error">{{ errors.items }}</span>
+      <span v-if="errors.items">{{ errors.items }}</span>
     </div>
 
-    <!-- Dates -->
     <div>
       <div>
         <label>Preparation Date</label>
         <input type="date" v-model="formData.preparationDate" :min="tomorrowString" />
-        <span v-if="errors.preparationDate" class="error">{{ errors.preparationDate }}</span>
+        <span v-if="errors.preparationDate">{{ errors.preparationDate }}</span>
       </div>
 
       <div>
         <label>Due Date</label>
         <input type="date" v-model="formData.dueDate" :min="formData.preparationDate" />
-        <span v-if="errors.dueDate" class="error">{{ errors.dueDate }}</span>
+        <span v-if="errors.dueDate">{{ errors.dueDate }}</span>
       </div>
     </div>
 
-    <!-- Fulfillment -->
     <div>
       <label>Fulfillment Type</label>
       <select v-model="formData.fulfillmentType">
@@ -268,26 +298,23 @@ const fulfillmentTypes = [
         </option>
       </select>
 
-      <template v-if="formData.fulfillmentType === 'delivery'">
-        <div>
-          <label>Delivery Address</label>
-          <input type="text" v-model="formData.deliveryAddress" />
-          <span v-if="errors.deliveryAddress" class="error">{{ errors.deliveryAddress }}</span>
-        </div>
+      <div>
+        <label>Delivery Address</label>
+        <input type="text" v-model="formData.deliveryAddress" />
+        <span v-if="errors.deliveryAddress">{{ errors.deliveryAddress }}</span>
+      </div>
 
-        <div>
-          <label>Delivery Instructions</label>
-          <textarea v-model="formData.deliveryInstructions"></textarea>
-        </div>
+      <div>
+        <label>Delivery Instructions</label>
+        <textarea v-model="formData.deliveryInstructions"></textarea>
+      </div>
 
-        <div>
-          <label>Delivery Fee</label>
-          <input type="number" v-model="formData.deliveryFee" min="0" />
-        </div>
-      </template>
+      <div>
+        <label>Delivery Fee</label>
+        <input type="number" v-model="formData.deliveryFee" min="0" />
+      </div>
     </div>
 
-    <!-- Payment -->
     <div>
       <label>Payment Method</label>
       <select v-model="formData.paymentMethod">
@@ -297,7 +324,6 @@ const fulfillmentTypes = [
       </select>
     </div>
 
-    <!-- Notes -->
     <div>
       <div>
         <label>Customer Notes</label>
@@ -310,15 +336,13 @@ const fulfillmentTypes = [
       </div>
     </div>
 
-    <!-- Totals -->
-    <div class="totals">
+    <div>
       <div>Subtotal: {{ subtotal }}</div>
-      <div v-if="formData.fulfillmentType === 'delivery'">Delivery Fee: {{ formData.deliveryFee }}</div>
+      <div>Delivery Fee: {{ formData.deliveryFee }}</div>
       <div>Total: {{ total }}</div>
     </div>
 
-    <!-- Form Actions -->
-    <div class="actions">
+    <div>
       <button type="button" @click="$emit('cancel')" :disabled="loading">Cancel</button>
       <button type="submit" :disabled="loading">
         {{ loading ? 'Creating...' : 'Create Order' }}
@@ -326,46 +350,3 @@ const fulfillmentTypes = [
     </div>
   </form>
 </template>
-
-<style scoped lang="scss">
-.items-list {
-  margin: 1rem 0;
-
-  .item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem;
-    border-bottom: 1px solid #ddd;
-  }
-}
-
-.add-item-form {
-  margin: 1rem 0;
-  padding: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.totals {
-  margin-top: 1rem;
-  padding: 1rem;
-  background-color: #f5f5f5;
-
-  > div {
-    margin: 0.5rem 0;
-  }
-}
-
-.actions {
-  margin-top: 1rem;
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-}
-
-.error {
-  color: red;
-  font-size: 0.875rem;
-}
-</style>
