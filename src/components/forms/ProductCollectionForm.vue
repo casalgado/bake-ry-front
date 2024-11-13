@@ -264,7 +264,7 @@ const handleSubmit = () => {
 
     <div>
       <button type="button" @click="$emit('cancel')">Cancel</button>
-      <button type="submit">Save Category</button>
+      <button type="submit">Crear Colección</button>
     </div>
   </form>
 </template>

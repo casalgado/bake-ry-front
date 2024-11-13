@@ -1,10 +1,10 @@
 <script setup>
 import { ref, defineProps, defineEmits, onMounted } from 'vue';
 import { useRecipeStore } from '@/stores/recipeStore';
-import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { useProductCollectionStore } from '@/stores/productCollectionStore';
 
 const recipeStore = useRecipeStore();
-const settingsStore = useBakerySettingsStore();
+const productCollectionStore = useProductCollectionStore();
 
 const props = defineProps({
   initialData: {
@@ -12,13 +12,12 @@ const props = defineProps({
     default: () => ({
       name: '',
       description: '',
-      category: '',
+      collection: '',
       recipeId: '',
       variations: [],
       hasVariations: false,
       basePrice: 0,
       recipeMultiplier: 1,
-      isActive: true,
     }),
   },
   loading: {
@@ -31,27 +30,23 @@ const emit = defineEmits(['submit', 'cancel']);
 const errors = ref({});
 
 const formData = ref({ ...props.initialData });
-const settings = ref(null);
-const selectedCategory = ref(null);
+const selectedCollection = ref(null);
 const variationInputs = ref({});
 
-const handleCategoryChange = () => {
-  selectedCategory.value = settings.value.productCategories.find(
-    cat => cat.name === formData.value.category,
+const handleCollectionChange = () => {
+  selectedCollection.value = productCollectionStore.items.find(
+    col => col.name === formData.value.collection,
   );
 
-  if (selectedCategory.value?.suggestedVariations) {
-    // Updated this section to use the suggested values from settings
-    variationInputs.value = selectedCategory.value.suggestedVariations.reduce((acc, variation) => {
+  if (selectedCollection.value?.displayType) {
+    variationInputs.value = selectedCollection.value.suggestedVariations.reduce((acc, variation) => {
       const existingVariation = formData.value.variations.find(v => v.name === variation.name);
 
       acc[variation.name] = existingVariation ? {
-        // If there's an existing variation, use those values
         value: existingVariation.value,
         basePrice: existingVariation.basePrice,
         recipeMultiplier: existingVariation.recipeMultiplier,
       } : {
-        // Otherwise use the suggested values from settings, with basePrice defaulting to 0
         value: variation.value || '',
         basePrice: 0,
         recipeMultiplier: variation.recipeMultiplier || 1,
@@ -68,26 +63,23 @@ const handleCategoryChange = () => {
 };
 
 const validate = () => {
+  errors.value = {};
 
-  // Basic validations
   if (!formData.value.name) errors.value.name = 'Name is required';
-  if (!formData.value.category) errors.value.category = 'Category is required';
+  if (!formData.value.collection) errors.value.collection = 'Collection is required';
   if (!formData.value.recipeId) errors.value.recipeId = 'Recipe is required';
 
-  // Category with variations
-  if (selectedCategory.value?.displayType) {
+  if (selectedCollection.value?.displayType) {
     const filledVariations = Object.entries(variationInputs.value)
       .filter(([_, v]) => v.value && v.basePrice > 0 && v.recipeMultiplier > 0);
 
     if (filledVariations.length === 0) {
       errors.value.variations = 'At least one variation must be completely filled out';
     } else {
-      // Validate individual variations that are filled
       filledVariations.forEach(([name, variation]) => {
         if (variation.value || variation.basePrice > 0 || variation.recipeMultiplier > 0) {
-          // Only validate if any field is filled
           if (!variation.value) {
-            errors.value[`${name}_value`] = `${name}: ${selectedCategory.value.displayType === 'weight' ? 'Weight' : 'Quantity'} is required`;
+            errors.value[`${name}_value`] = `${name}: ${selectedCollection.value.displayType === 'weight' ? 'Weight' : 'Quantity'} is required`;
           }
           if (!variation.basePrice || variation.basePrice <= 0) {
             errors.value[`${name}_price`] = `${name}: Base price must be greater than 0`;
@@ -98,9 +90,7 @@ const validate = () => {
         }
       });
     }
-  }
-  // Category without variations
-  else if (formData.value.category) {
+  } else if (formData.value.collection) {
     if (!formData.value.basePrice || formData.value.basePrice <= 0) {
       errors.value.basePrice = 'Base price must be greater than 0';
     }
@@ -109,21 +99,13 @@ const validate = () => {
     }
   }
 
-  console.log('Validation errors:', errors.value);
   return Object.keys(errors.value).length === 0;
 };
 
 const handleSubmit = () => {
-  console.log('Submitting form data:', formData.value);
-  if (!validate()) {
-    console.log('Form validation failed:', errors.value);
-    return;
-  }
+  if (!validate()) return;
 
-  console.log('Form data is valid');
-
-  // Update variations only if category has them
-  if (selectedCategory.value?.displayType) {
+  if (selectedCollection.value?.displayType) {
     formData.value.variations = Object.entries(variationInputs.value)
       .filter(([_, v]) => v.value && v.basePrice > 0 && v.recipeMultiplier > 0)
       .map(([name, v]) => ({
@@ -133,7 +115,6 @@ const handleSubmit = () => {
         recipeMultiplier: v.recipeMultiplier,
       }));
   } else {
-    // Ensure variations are empty for non-variation categories
     formData.value.variations = [];
   }
 
@@ -147,10 +128,12 @@ onMounted(async () => {
     await recipeStore.fetchAll();
   }
 
-  settings.value = await settingsStore.fetchById('default');
+  if (productCollectionStore.items.length === 0) {
+    await productCollectionStore.fetchAll();
+  }
 
-  if (formData.value.category) {
-    handleCategoryChange();
+  if (formData.value.collection) {
+    handleCollectionChange();
   }
 });
 </script>
@@ -158,7 +141,6 @@ onMounted(async () => {
 <template>
   <form @submit.prevent="handleSubmit">
     <!-- Basic Information -->
-    {{ errors }}
     <div>
       <h3>Basic Information</h3>
 
@@ -171,7 +153,7 @@ onMounted(async () => {
             required
           />
         </label>
-        <span v-if="errors.name">{{ errors.name }}</span>
+        <span v-if="errors.name" class="error">{{ errors.name }}</span>
       </div>
 
       <div>
@@ -201,51 +183,41 @@ onMounted(async () => {
             </option>
           </select>
         </label>
-        <span v-if="errors.recipeId">{{ errors.recipeId }}</span>
+        <span v-if="errors.recipeId" class="error">{{ errors.recipeId }}</span>
       </div>
 
       <div>
         <label>
-          Category *
+          Collection *
           <select
-            v-model="formData.category"
-            @change="handleCategoryChange"
+            v-model="formData.collection"
+            @change="handleCollectionChange"
             required
           >
-            <option value="">Select category</option>
+            <option value="">Select collection</option>
             <option
-              v-for="category in settings?.productCategories"
-              :key="category.id"
-              :value="category.name"
+              v-for="collection in productCollectionStore.items"
+              :key="collection.id"
+              :value="collection.id"
             >
-              {{ category.name }}
+              {{ collection.name }}
             </option>
           </select>
         </label>
-        <span v-if="errors.category">{{ errors.category }}</span>
-      </div>
-
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            v-model="formData.isActive"
-          />
-          Product is active
-        </label>
+        <span v-if="errors.collection" class="error">{{ errors.collection }}</span>
       </div>
     </div>
 
-    <!-- Show fields only if category is selected -->
-    <template v-if="formData.category">
+    <!-- Show fields only if collection is selected -->
+    <template v-if="formData.collection">
       <!-- Variations Section -->
-      <div v-if="selectedCategory?.displayType">
+      <div v-if="selectedCollection?.displayType">
         <h3>Variations</h3>
-        <p>{{ selectedCategory.displayType === 'weight' ? 'Weight (g)' : 'Quantity' }}</p>
-        <span v-if="errors.variations">{{ errors.variations }}</span>
+        <p>{{ selectedCollection.displayType === 'weight' ? 'Weight (g)' : 'Quantity' }}</p>
+        <span v-if="errors.variations" class="error">{{ errors.variations }}</span>
 
         <div
-          v-for="variation in selectedCategory.suggestedVariations"
+          v-for="variation in selectedCollection.suggestedVariations"
           :key="variation.name"
           class="variation-input"
         >
@@ -253,14 +225,17 @@ onMounted(async () => {
 
           <div>
             <label>
-              {{ selectedCategory.displayType === 'weight' ? 'Weight (g)' : 'Quantity' }}
+              {{ selectedCollection.displayType === 'weight' ? 'Weight (g)' : 'Quantity' }}
               <input
                 v-model.number="variationInputs[variation.name].value"
                 type="number"
                 min="0"
-                step="1"
+                :step="selectedCollection.displayType === 'weight' ? '0.1' : '1'"
               />
             </label>
+            <span v-if="errors[`${variation.name}_value`]" class="error">
+              {{ errors[`${variation.name}_value`] }}
+            </span>
           </div>
 
           <div>
@@ -273,6 +248,9 @@ onMounted(async () => {
                 step="1"
               />
             </label>
+            <span v-if="errors[`${variation.name}_price`]" class="error">
+              {{ errors[`${variation.name}_price`] }}
+            </span>
           </div>
 
           <div>
@@ -285,12 +263,15 @@ onMounted(async () => {
                 step="0.1"
               />
             </label>
+            <span v-if="errors[`${variation.name}_multiplier`]" class="error">
+              {{ errors[`${variation.name}_multiplier`] }}
+            </span>
           </div>
         </div>
       </div>
 
-      <!-- Single Product Price - only show if category selected and has no variations -->
-      <div v-if="!selectedCategory?.displayType">
+      <!-- Single Product Price -->
+      <div v-if="!selectedCollection?.displayType">
         <div>
           <label>
             Base Price *
@@ -302,7 +283,7 @@ onMounted(async () => {
               required
             />
           </label>
-          <span v-if="errors.basePrice">{{ errors.basePrice }}</span>
+          <span v-if="errors.basePrice" class="error">{{ errors.basePrice }}</span>
         </div>
 
         <div>
@@ -316,13 +297,13 @@ onMounted(async () => {
               required
             />
           </label>
-          <span v-if="errors.recipeMultiplier">{{ errors.recipeMultiplier }}</span>
+          <span v-if="errors.recipeMultiplier" class="error">{{ errors.recipeMultiplier }}</span>
         </div>
       </div>
     </template>
 
     <!-- Form Actions -->
-    <div>
+    <div class="button-group">
       <button
         type="button"
         @click="$emit('cancel')"
@@ -339,3 +320,24 @@ onMounted(async () => {
     </div>
   </form>
 </template>
+
+<style scoped lang="scss">
+.error {
+  color: red;
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.button-group {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.variation-input {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+</style>

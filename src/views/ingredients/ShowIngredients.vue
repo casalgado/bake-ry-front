@@ -160,7 +160,7 @@ const formatCurrency = (value) => {
             <th>Unidad</th>
             <th>Costo por Unidad</th>
             <th>Temperatura</th>
-            <th>Proveedores</th>
+            <th>Usado En:</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -178,10 +178,10 @@ const formatCurrency = (value) => {
             <td>{{ ingredient.storageTemp }}</td>
             <td>
               <div
-                v-for="(supplier, index) in ingredient.suppliers"
+                v-for="(recipe, index) in ingredient.usedInRecipes"
                 :key="index"
               >
-                {{ supplier.name }}
+                {{ recipe }}
               </div>
             </td>
             <td>

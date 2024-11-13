@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useRouter } from 'vue-router';
-import ProductCategoryForm from '@/components/forms/ProductCategoryForm.vue';
 
 const router = useRouter();
 void router;
@@ -10,8 +9,6 @@ const settingsStore = useBakerySettingsStore();
 
 // Track which sections are being edited
 const editingSections = ref({
-  creatingProductCategory: false, // Changed from productCategories
-  editingProductCategory: false,  // New property to track which category is being edited
   ingredientCategories: false,
   orderStatuses: false,
   theme: false,
@@ -25,18 +22,18 @@ const toggleEdit = (section) => {
   editingSections.value[section] = !editingSections.value[section];
 };
 
-const handleSubmit = async (formData, section) => {
-  try {
-    await settingsStore.patch('default', { [section]: formData });
-    editingSections.value[section] = false;
-  } catch (error) {
-    console.error(`Failed to update ${section}:`, error);
-  }
-};
+// const handleSubmit = async (formData, section) => {
+//   try {
+//     await settingsStore.patch('default', { [section]: formData });
+//     editingSections.value[section] = false;
+//   } catch (error) {
+//     console.error(`Failed to update ${section}:`, error);
+//   }
+// };
 
-const handleCancel = (section) => {
-  editingSections.value[section] = false;
-};
+// const handleCancel = (section) => {
+//   editingSections.value[section] = false;
+// };
 </script>
 
 <template>
@@ -51,71 +48,8 @@ const handleCancel = (section) => {
       {{ settingsStore.error }}
     </div>
 
-    {{ editingSections }}
     <!-- Settings Sections -->
     <div v-if="!settingsStore.loading && settingsStore.currentItem">
-      <!-- Product Categories Section -->
-      <section>
-        <div class="section-header">
-          <h3>Product Categories</h3>
-          <button @click="() => editingSections.creatingProductCategory = !editingSections.creatingProductCategory">
-            {{ editingSections.creatingProductCategory ? 'Cancel' : 'Create' }}
-          </button>
-        </div>
-
-        <div v-if="editingSections.creatingProductCategory">
-          <ProductCategoryForm
-            @submit="formData => handleSubmit(formData, 'productCategories')"
-            @cancel="() => handleCancel('creatingProductCategory')"/>
-        </div>
-
-        <div v-if="editingSections.editingProductCategory">
-          <ProductCategoryForm
-            :initial-data="settingsStore.currentItem.productCategories.find(
-              cat => cat.id === editingSections.editingProductCategory
-            )"
-            @submit="formData => handleSubmit(formData, 'productCategories')"
-            @cancel="() => handleCancel('creatingProductCategory')"/>
-        </div>
-
-        <table v-if="!editingSections.creatingProductCategory && !editingSections.editingProductCategory">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Display Type</th>
-              <th>Variations</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="category in settingsStore.currentItem.productCategories" :key="category.id">
-              <td>
-                <div>{{ category.name }}</div>
-                <div v-if="category.description">{{ category.description }}</div>
-              </td>
-              <td>{{ category.displayType || 'None' }}</td>
-              <td>
-                <div v-if="category.suggestedVariations?.length">
-                  <div v-for="variation in category.suggestedVariations" :key="variation.name">
-                    {{ variation.name }}
-                    ({{ category.displayType === 'weight' ? `${variation.value}g` : `x${variation.value}` }})
-                    - {{ variation.recipeMultiplier }}x
-                  </div>
-                </div>
-                <div v-else>No variations</div>
-              </td>
-              <td>{{ category.isActive ? 'Active' : 'Inactive' }}</td>
-              <td>
-                <button @click="() => editingSections.editingProductCategory = category.id">
-                  Edit
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
       <!-- Ingredient Categories Section -->
       <section>
         <div class="section-header">
