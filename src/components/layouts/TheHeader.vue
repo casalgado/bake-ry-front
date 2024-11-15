@@ -7,7 +7,7 @@ const authStore = useAuthenticationStore();
 
 <template>
   <div>
-    <nav>
+    <nav class="bg-white border-b border-primary-dark">
       <RouterLink to="/">Home</RouterLink>
       <RouterLink to="/login">Login</RouterLink>
       <RouterLink to="/signup">Signup</RouterLink>

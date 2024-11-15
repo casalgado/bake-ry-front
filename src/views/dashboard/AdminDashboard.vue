@@ -5,7 +5,9 @@ import CreateBakery from '@/views/bakeries/CreateBakery.vue';
 
 const authStore = useAuthenticationStore();
 
-const handleSuccess = () => {};
+const handleSuccess = () => {
+
+};
 
 onMounted(async () => {
   await authStore.refreshToken();
@@ -17,11 +19,12 @@ onMounted(async () => {
     <h2>Welcome! Get Started with Your Bakery</h2>
     <CreateBakery @success="handleSuccess" />
   </section>
-  <section v-else>
-    <h1>Dashboard</h1>
-    <nav></nav>
-    <RouterView />
+  <section class="grid grid-cols-custom-200-1fr  transition-all" v-else>
+    <aside class="bg-neutral-200"></aside>
+    <RouterView class="bg-neutral-100" />
   </section>
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+
+</style>
