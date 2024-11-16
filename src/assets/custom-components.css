@@ -48,7 +48,7 @@
     }
 
     .form-container button {
-        @apply border-neutral-600 bg-primary text-white rounded-md p-2 mr-2 font-semibold;
+        @apply border-neutral-600 bg-primary text-white rounded-md p-2 mr-2 my-2 font-semibold;
     }
 
     .form-container button:hover {
