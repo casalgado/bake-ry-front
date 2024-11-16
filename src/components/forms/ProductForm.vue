@@ -5,12 +5,14 @@ import RecipeSelector from "./RecipeSelector.vue";
 
 const collectionStore = useProductCollectionStore();
 
-// Form state
-const productName = ref("");
-const selectedCollection = ref("");
-const hasVariations = ref(false);
-const basePrice = ref(0);
-const recipeData = ref(null);
+// Single form state object
+const formData = ref({
+  name: "",
+  collection: "",
+  hasVariations: false,
+  basePrice: 0,
+  recipe: null,
+});
 
 onMounted(async () => {
   if (collectionStore.items.length === 0) {
@@ -20,24 +22,18 @@ onMounted(async () => {
 });
 
 const resetForm = () => {
-  productName.value = "";
-  selectedCollection.value = "";
-  hasVariations.value = false;
-  basePrice.value = 0;
-  recipeData.value = null;
+  formData.value = {
+    name: "",
+    collection: "",
+    hasVariations: false,
+    basePrice: 0,
+    recipe: null,
+  };
 };
 
 const handleSubmit = () => {
-  const formData = {
-    name: productName.value,
-    collection: selectedCollection.value,
-    hasVariations: hasVariations.value,
-    basePrice: basePrice.value,
-    recipe: recipeData.value,
-  };
-
-  console.log("Form submission data:", formData);
-  // emit('submit', formData);
+  console.log("Form submission data:", formData.value);
+  // emit('submit', formData.value);
 };
 </script>
 
@@ -49,12 +45,12 @@ const handleSubmit = () => {
 
       <div>
         <label for="productName">Nombre del Producto</label>
-        <input id="productName" type="text" v-model="productName" required />
+        <input id="productName" type="text" v-model="formData.name" required />
       </div>
 
       <div>
         <label for="collection">Colección</label>
-        <select id="collection" v-model="selectedCollection">
+        <select id="collection" v-model="formData.collection">
           <option value="">Seleccionar colección</option>
           <option
             v-for="collection in collectionStore.items"
@@ -68,12 +64,16 @@ const handleSubmit = () => {
 
       <div>
         <label for="hasVariations">¿Tiene variaciones?</label>
-        <input id="hasVariations" type="checkbox" v-model="hasVariations" />
+        <input
+          id="hasVariations"
+          type="checkbox"
+          v-model="formData.hasVariations"
+        />
       </div>
     </div>
 
     <!-- Non-variation product details -->
-    <div v-if="!hasVariations">
+    <div v-if="!formData.hasVariations">
       <h2>Detalles del Producto</h2>
 
       <div>
@@ -81,14 +81,14 @@ const handleSubmit = () => {
         <input
           id="basePrice"
           type="number"
-          v-model="basePrice"
+          v-model="formData.basePrice"
           min="0"
           step="1"
         />
       </div>
 
       <!-- Recipe Selection -->
-      <RecipeSelector v-model:recipeData="recipeData" :disabled="false" />
+      <RecipeSelector v-model:recipeData="formData.recipe" :disabled="false" />
     </div>
 
     <!-- Variation section placeholder -->
