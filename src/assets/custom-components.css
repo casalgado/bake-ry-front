@@ -1,0 +1,37 @@
+@layer components {
+
+    /* Button Styles */
+    .btn-base {}
+
+    .btn-primary {}
+
+    .btn-secondary {}
+
+    .btn-danger {}
+
+    /* Form Input Styles */
+    .input-base {}
+
+    .input-error {}
+
+    /* Card Styles */
+    .card-base {
+        @apply rounded-md border border-neutral-300 bg-white p-3 px-4 shadow-sm;
+    }
+
+
+    /* Form Styles */
+    .form-container {
+        @apply max-w-[1000px] w-full mx-auto;
+    }
+
+    .form-container label {
+        @apply text-sm font-normal;
+    }
+
+    .form-container input,
+    .form-container select,
+    .form-container textarea {
+        @apply w-full border border-neutral-600 bg-gray-200 rounded-md p-2;
+    }
+}

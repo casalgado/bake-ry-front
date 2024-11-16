@@ -141,8 +141,8 @@ onMounted(async () => {
 <template>
   <form @submit.prevent="handleSubmit">
     <!-- Basic Information -->
-    <div>
-      <h3>Basic Information</h3>
+    <div class="card-base">
+      <h2>Basic Information</h2>
 
       <div>
         <label>

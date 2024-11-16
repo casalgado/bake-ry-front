@@ -27,17 +27,32 @@ export default {
           dark: '#FFFFFF',
         },
         neutral: {
-          100: '#FBF8F4',
-          200: '#F0EDEA',
-          300: '#ECE7E2',
-          900: '#000000',
+          50: '#FFFFFE', // Almost pure white with barely perceptible warmth
+          100: '#FDF8F6',
+          200: '#FAF6F3',
+          300: '#F1EDE9',
+          400: '#EBE7E3',
+          500: '#DDD8D4',
+          600: '#C5C0BB', // Getting darker with warm undertone
+          700: '#ABA5A0', // Medium-dark warm gray
+          800: '#8C8681', // Dark warm gray
+          900: '#6E6A66', // Very dark warm gray
+          950: '#403E3C',
+        },
+        gray: {
+          100: '#FFFFFF',
+          200: '#FDFDFD',
+          300: '#FAFAFA',
+          400: '#F1F1F1',
+          500: '#EBEBEB',
+          600: '#DDDDDD',
         },
         success: '#10B981',
         warning: '#F59E0B',
         error: '#EF4444',
         accent: '#EC4899',
-        black: '#040003',
-        white: '#FFFFFF',
+        black: '#303030',
+        white: '#FFFFFE',
       },
     },
   },

@@ -22,8 +22,8 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <div>
-    <h2>Create New Product</h2>
+  <div class="form-container">
+    <h1>Crear Producto</h1>
     <ProductForm
       :loading="productStore.loading"
       @submit="handleSubmit"
