@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import { useRecipeStore } from "@/stores/recipeStore";
 import { useIngredientStore } from "@/stores/ingredientStore";
 import IngredientModal from "./IngredientModal.vue";
@@ -15,102 +15,88 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["update:recipeData"]);
+const emit = defineEmits(["update"]);
 
 const recipeStore = useRecipeStore();
 const ingredientStore = useIngredientStore();
 
-// Local state that reflects props
-const recipeSource = ref(props.recipeData.recipeSource);
-const selectedRecipe = ref(props.recipeData.recipeId);
-const recipeIngredients = ref(props.recipeData.ingredients || []);
+// Keep only essential local state
 const showIngredientModal = ref(false);
 
 onMounted(async () => {
-  if (recipeStore.items.length === 0) {
-    await recipeStore.fetchAll();
-  }
-  if (ingredientStore.items.length === 0) {
-    await ingredientStore.fetchAll();
-  }
+  if (recipeStore.items.length === 0) await recipeStore.fetchAll();
+  if (ingredientStore.items.length === 0) await ingredientStore.fetchAll();
 });
 
-// Single watcher for prop changes
-watch(
-  () => props.recipeData,
-  (newValue) => {
-    if (newValue) {
-      recipeSource.value = newValue.recipeSource;
-      selectedRecipe.value = newValue.recipeId;
-      recipeIngredients.value = [...(newValue.ingredients || [])];
-    }
-  },
-  { deep: true }
-);
+const emitUpdate = (updates) => {
+  emit("update", {
+    ...props.recipeData,
+    ...updates,
+  });
+};
 
-// Handle recipe selection
 const handleRecipeSelect = async (newRecipeId) => {
-  selectedRecipe.value = newRecipeId;
   if (newRecipeId) {
     try {
       const recipe = await recipeStore.getById(newRecipeId);
-      if (recipe) {
-        recipeIngredients.value = [...recipe.ingredients];
-        emitUpdate();
-      }
+      emitUpdate({
+        recipeId: newRecipeId,
+        ingredients: recipe ? [...recipe.ingredients] : [],
+      });
     } catch (error) {
       console.error("Error fetching recipe:", error);
-      recipeIngredients.value = [];
-      emitUpdate();
+      emitUpdate({
+        recipeId: newRecipeId,
+        ingredients: [],
+      });
     }
   } else {
-    recipeIngredients.value = [];
-    emitUpdate();
+    emitUpdate({
+      recipeId: null,
+      ingredients: [],
+    });
   }
 };
 
-const emitUpdate = () => {
-  emit("update:recipeData", {
-    recipeSource: recipeSource.value,
-    recipeId: selectedRecipe.value,
-    ingredients: recipeIngredients.value,
-  });
-};
-
 const handleRecipeSourceChange = (source) => {
-  recipeSource.value = source;
-  selectedRecipe.value = null;
-  recipeIngredients.value = [];
-  emitUpdate();
+  emitUpdate({
+    recipeSource: source,
+    recipeId: null,
+    ingredients: [],
+  });
 };
 
 const handleIngredientAdd = (ingredientData) => {
-  recipeIngredients.value.push({
-    ...ingredientData,
-    quantity: ingredientData.quantity,
+  emitUpdate({
+    ingredients: [...props.recipeData.ingredients, ingredientData],
   });
-  emitUpdate();
 };
 
 const updateIngredientQuantity = (index, newQuantity) => {
-  recipeIngredients.value[index].quantity = Number(newQuantity);
-  emitUpdate();
+  const updatedIngredients = [...props.recipeData.ingredients];
+  updatedIngredients[index] = {
+    ...updatedIngredients[index],
+    quantity: Number(newQuantity),
+  };
+  emitUpdate({ ingredients: updatedIngredients });
 };
 
 const removeIngredient = (index) => {
-  recipeIngredients.value.splice(index, 1);
-  emitUpdate();
+  emitUpdate({
+    ingredients: props.recipeData.ingredients.filter((_, i) => i !== index),
+  });
 };
 </script>
+
 <template>
-  <div class="recipe-selector" :class="{ disabled }">
+  <div>
     <h3>Selección de Receta</h3>
 
-    <div class="recipe-source-buttons">
+    <div>
       <button
         type="button"
         @click="handleRecipeSourceChange('base')"
-        :class="{ active: recipeSource === 'base' }"
+        :class="{ active: props.recipeData.recipeSource === 'base' }"
         :disabled="disabled"
       >
         Comenzar con Receta Base
@@ -118,7 +104,7 @@ const removeIngredient = (index) => {
       <button
         type="button"
         @click="handleRecipeSourceChange('existing')"
-        :class="{ active: recipeSource === 'existing' }"
+        :class="{ active: props.recipeData.recipeSource === 'existing' }"
         :disabled="disabled"
       >
         Usar Receta Existente
@@ -126,7 +112,7 @@ const removeIngredient = (index) => {
       <button
         type="button"
         @click="handleRecipeSourceChange('new')"
-        :class="{ active: recipeSource === 'new' }"
+        :class="{ active: props.recipeData.recipeSource === 'new' }"
         :disabled="disabled"
       >
         Crear Nueva Receta
@@ -134,12 +120,12 @@ const removeIngredient = (index) => {
     </div>
 
     <!-- Base Recipe Selection -->
-    <div v-if="recipeSource === 'base'">
+    <div v-if="props.recipeData.recipeSource === 'base'">
       <p>
         Selecciona una receta base para comenzar. Podrás personalizarla después.
       </p>
       <select
-        v-model="selectedRecipe"
+        :value="props.recipeData.recipeId"
         @change="handleRecipeSelect($event.target.value)"
         :disabled="disabled"
       >
@@ -155,13 +141,13 @@ const removeIngredient = (index) => {
     </div>
 
     <!-- Existing Recipe Selection -->
-    <div v-if="recipeSource === 'existing'">
+    <div v-if="props.recipeData.recipeSource === 'existing'">
       <p>
         Selecciona una de tus recetas existentes. Podrás modificarla si lo
         necesitas.
       </p>
       <select
-        v-model="selectedRecipe"
+        :value="props.recipeData.recipeId"
         @change="handleRecipeSelect($event.target.value)"
         :disabled="disabled"
       >
@@ -177,20 +163,24 @@ const removeIngredient = (index) => {
     </div>
 
     <!-- New Recipe Creation -->
-    <div v-if="recipeSource === 'new'">
+    <div v-if="props.recipeData.recipeSource === 'new'">
       <p>Crea una nueva receta desde cero para este producto.</p>
     </div>
 
     <!-- Ingredients Section -->
-    <div v-if="recipeSource === 'new' || selectedRecipe">
+    <div
+      v-if="
+        props.recipeData.recipeSource === 'new' || props.recipeData.recipeId
+      "
+    >
       <h4>Ingredientes de la Receta</h4>
 
       <!-- Current Ingredients List -->
-      <div v-if="recipeIngredients.length > 0" class="ingredients-list">
+      <div v-if="props.recipeData.ingredients.length > 0">
         <div
-          v-for="(ingredient, index) in recipeIngredients"
+          v-for="(ingredient, index) in props.recipeData.ingredients"
           :key="index"
-          class="ingredient-item"
+          class="flex items-center gap-4 justify-between"
         >
           <span>{{ ingredient.name }}</span>
           <input
@@ -198,6 +188,7 @@ const removeIngredient = (index) => {
             :value="ingredient.quantity"
             @input="updateIngredientQuantity(index, $event.target.value)"
             :disabled="disabled"
+            class="basis-1/3"
           />
           <span>{{ ingredient.unit }}</span>
           <button

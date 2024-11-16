@@ -101,7 +101,7 @@ const handleRecipeUpdate = (newRecipeData) => {
       <!-- Recipe Selection -->
       <RecipeSelector
         :recipe-data="formData.recipe"
-        @update:recipe-data="handleRecipeUpdate"
+        @update="handleRecipeUpdate"
         :disabled="false"
       />
     </div>
