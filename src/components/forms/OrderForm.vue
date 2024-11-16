@@ -201,18 +201,115 @@ const fulfillmentTypes = [
 
 <template>
   <form @submit.prevent="handleSubmit">
-    <div>
-      <label>Client</label>
-      <select v-model="formData.userId" @change="handleUserSelect($event.target.value)">
-        <option value="">Select a client</option>
-        <option v-for="user in userStore.items" :key="user.id" :value="user.id">
-          {{ user.name }}
-        </option>
-      </select>
-      <span v-if="errors.userId">{{ errors.userId }}</span>
+
+    <div class="card-base">
+      <div>
+        <label for="client-select">Client</label>
+        <select
+          id="client-select"
+          v-model="formData.userId"
+          @change="handleUserSelect($event.target.value)"
+        >
+          <option value="">Select a client</option>
+          <option v-for="user in userStore.items" :key="user.id" :value="user.id">
+            {{ user.name }}
+          </option>
+        </select>
+        <span v-if="errors.userId">{{ errors.userId }}</span>
+      </div>
+      <div>
+        <label for="preparation-date">Preparation Date</label>
+        <input
+          id="preparation-date"
+          type="date"
+          v-model="formData.preparationDate"
+          :min="tomorrowString"
+        />
+        <span v-if="errors.preparationDate">{{ errors.preparationDate }}</span>
+      </div>
+
+      <div>
+        <label for="due-date">Due Date</label>
+        <input
+          id="due-date"
+          type="date"
+          v-model="formData.dueDate"
+          :min="formData.preparationDate"
+        />
+        <span v-if="errors.dueDate">{{ errors.dueDate }}</span>
+      </div>
     </div>
 
-    <div>
+    <div class="card-base">
+      <legend>Fulfillment Type</legend>
+      <div>
+        <div v-for="type in fulfillmentTypes" :key="type.value">
+          <input
+            type="radio"
+            :id="'fulfillment-' + type.value"
+            :value="type.value"
+            v-model="formData.fulfillmentType"
+          >
+          <label :for="'fulfillment-' + type.value">{{ type.label }}</label>
+        </div>
+      </div>
+
+      <div>
+        <label for="delivery-address">Delivery Address</label>
+        <input
+          id="delivery-address"
+          type="text"
+          v-model="formData.deliveryAddress"
+        />
+        <span v-if="errors.deliveryAddress">{{ errors.deliveryAddress }}</span>
+      </div>
+
+      <div>
+        <label for="delivery-instructions">Delivery Instructions</label>
+        <textarea
+          id="delivery-instructions"
+          v-model="formData.deliveryInstructions"
+        ></textarea>
+      </div>
+
+      <div>
+        <label for="delivery-fee">Delivery Fee</label>
+        <input
+          id="delivery-fee"
+          type="number"
+          v-model="formData.deliveryFee"
+          min="0"
+        />
+      </div>
+    </div>
+
+    <div class="card-base">
+      <legend>Payment Method</legend>
+      <div>
+        <div v-for="method in paymentMethods" :key="method.value">
+          <input
+            type="radio"
+            :id="'payment-' + method.value"
+            :value="method.value"
+            v-model="formData.paymentMethod"
+          >
+          <label :for="'payment-' + method.value">{{ method.label }}</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-base">
+
+      <div>
+        <label for="internal-notes">Comentarios</label>
+        <textarea
+          id="internal-notes"
+          v-model="formData.internalNotes"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="card-base">
       <h3>Order Items</h3>
 
       <div v-if="formData.items.length">
@@ -225,21 +322,37 @@ const fulfillmentTypes = [
           <span v-if="!item.isComplimentary">
             {{ item.unitPrice * item.quantity }}
           </span>
-          <button type="button" @click="toggleItemComplimentary(index)">
+          <button
+            type="button"
+            @click="toggleItemComplimentary(index)"
+          >
             {{ item.isComplimentary ? 'Make Paid' : 'Make Complimentary' }}
           </button>
-          <button type="button" @click="removeOrderItem(index)">Remove</button>
+          <button
+            type="button"
+            @click="removeOrderItem(index)"
+          >
+            Remove
+          </button>
         </div>
       </div>
 
-      <button type="button" @click="showAddItem = true" v-if="!showAddItem">
+      <button
+        type="button"
+        @click="showAddItem = true"
+        v-if="!showAddItem"
+      >
         Add Item
       </button>
 
       <div v-if="showAddItem">
         <div>
-          <label>Product</label>
-          <select v-model="currentItem.productId" @change="handleProductSelect($event.target.value)">
+          <label for="product-select">Product</label>
+          <select
+            id="product-select"
+            v-model="currentItem.productId"
+            @change="handleProductSelect($event.target.value)"
+          >
             <option value="">Select a product</option>
             <option v-for="product in productStore.items" :key="product.id" :value="product.id">
               {{ product.name }}
@@ -248,8 +361,9 @@ const fulfillmentTypes = [
         </div>
 
         <div v-if="selectedProduct">
-          <label>Variation</label>
+          <label for="variation-select">Variation</label>
           <select
+            id="variation-select"
             v-model="currentItem.productVariantId"
             @change="handleVariationSelect($event.target.value)"
           >
@@ -261,8 +375,13 @@ const fulfillmentTypes = [
         </div>
 
         <div>
-          <label>Quantity</label>
-          <input type="number" v-model="currentItem.quantity" min="1" />
+          <label for="quantity-input">Quantity</label>
+          <input
+            id="quantity-input"
+            type="number"
+            v-model="currentItem.quantity"
+            min="1"
+          />
         </div>
 
         <span v-if="errors.currentItem">{{ errors.currentItem }}</span>
@@ -276,87 +395,22 @@ const fulfillmentTypes = [
       <span v-if="errors.items">{{ errors.items }}</span>
     </div>
 
-    <div>
+    <div class="card-base">
       <div>
-        <label>Preparation Date</label>
-        <input type="date" v-model="formData.preparationDate" :min="tomorrowString" />
-        <span v-if="errors.preparationDate">{{ errors.preparationDate }}</span>
+        <div>Subtotal: {{ subtotal }}</div>
+        <div>Delivery Fee: {{ formData.deliveryFee }}</div>
+        <div>Total: {{ total }}</div>
       </div>
 
       <div>
-        <label>Due Date</label>
-        <input type="date" v-model="formData.dueDate" :min="formData.preparationDate" />
-        <span v-if="errors.dueDate">{{ errors.dueDate }}</span>
+        <button type="submit" :disabled="loading">
+          {{ loading ? 'Creating...' : 'Create Order' }}
+        </button>
+        <button type="button" @click="$emit('cancel')" :disabled="loading">Cancel</button>
+
       </div>
+
     </div>
 
-    <div>
-      <label>Fulfillment Type</label>
-      <div>
-        <label v-for="type in fulfillmentTypes" :key="type.value">
-          <input
-            type="radio"
-            :value="type.value"
-            v-model="formData.fulfillmentType"
-          >
-          {{ type.label }}
-        </label>
-      </div>
-
-      <div>
-        <label>Delivery Address</label>
-        <input type="text" v-model="formData.deliveryAddress" />
-        <span v-if="errors.deliveryAddress">{{ errors.deliveryAddress }}</span>
-      </div>
-
-      <div>
-        <label>Delivery Instructions</label>
-        <textarea v-model="formData.deliveryInstructions"></textarea>
-      </div>
-
-      <div>
-        <label>Delivery Fee</label>
-        <input type="number" v-model="formData.deliveryFee" min="0" />
-      </div>
-    </div>
-
-    <div>
-      <label>Payment Method</label>
-      <div>
-        <label v-for="method in paymentMethods" :key="method.value">
-          <input
-            type="radio"
-            :value="method.value"
-            v-model="formData.paymentMethod"
-          >
-          {{ method.label }}
-        </label>
-      </div>
-    </div>
-
-    <div>
-      <div>
-        <label>Customer Notes</label>
-        <textarea v-model="formData.customerNotes"></textarea>
-      </div>
-
-      <div>
-        <label>Internal Notes</label>
-        <textarea v-model="formData.internalNotes"></textarea>
-      </div>
-    </div>
-
-    <div>
-      <div>Subtotal: {{ subtotal }}</div>
-      <div>Delivery Fee: {{ formData.deliveryFee }}</div>
-      <div>Total: {{ total }}</div>
-    </div>
-
-    <div>
-      <button type="button" @click="$emit('cancel')" :disabled="loading">Cancel</button>
-      <button type="submit" :disabled="loading">
-        {{ loading ? 'Creating...' : 'Create Order' }}
-      </button>
-    </div>
   </form>
 </template>

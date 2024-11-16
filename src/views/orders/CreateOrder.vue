@@ -21,7 +21,7 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <div>
+  <div class="form-container">
     <h2>Create New Order</h2>
     <OrderForm
       :loading="orderStore.loading"

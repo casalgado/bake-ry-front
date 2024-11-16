@@ -20,7 +20,7 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <div>
+  <div class="form-container">
     <h2>Create Product Collection</h2>
     <ProductCollectionForm
       :loading="productCollectionStore.loading"
