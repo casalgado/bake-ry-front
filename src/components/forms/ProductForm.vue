@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from "vue";
 import { useRecipeStore } from "@/stores/recipeStore";
 import { useProductCollectionStore } from "@/stores/productCollectionStore";
 import { useIngredientStore } from "@/stores/ingredientStore";
+import IngredientModal from "./IngredientModal.vue";
 
 const recipeStore = useRecipeStore();
 const collectionStore = useProductCollectionStore();
@@ -21,8 +22,6 @@ const selectedRecipe = ref(null);
 // Ingredient management
 const recipeIngredients = ref([]);
 const showIngredientModal = ref(false);
-const selectedIngredient = ref(null);
-const newIngredientQuantity = ref(0);
 
 // Watch for recipe selection changes
 watch(selectedRecipe, async (newValue) => {
@@ -67,25 +66,15 @@ const handleRecipeSourceChange = (source) => {
   selectedRecipe.value = null;
 };
 
-// Ingredient management functions
-const addIngredient = () => {
-  if (selectedIngredient.value && newIngredientQuantity.value > 0) {
-    const ingredient = ingredientStore.items.find(
-      (i) => i.id === selectedIngredient.value
-    );
+const handleIngredientAdd = ({ ingredientId, quantity }) => {
+  const ingredient = ingredientStore.items.find((i) => i.id === ingredientId);
 
-    recipeIngredients.value.push({
-      ingredientId: ingredient.id,
-      name: ingredient.name,
-      quantity: newIngredientQuantity.value,
-      unit: ingredient.unit,
-    });
-
-    // Reset modal state
-    selectedIngredient.value = null;
-    newIngredientQuantity.value = 0;
-    showIngredientModal.value = false;
-  }
+  recipeIngredients.value.push({
+    ingredientId: ingredient.id,
+    name: ingredient.name,
+    quantity: quantity,
+    unit: ingredient.unit,
+  });
 };
 
 const updateIngredientQuantity = (index, newQuantity) => {
@@ -95,10 +84,22 @@ const updateIngredientQuantity = (index, newQuantity) => {
 const removeIngredient = (index) => {
   recipeIngredients.value.splice(index, 1);
 };
+
+const handleSubmit = () => {
+  console.log({
+    productName: productName.value,
+    collection: selectedCollection.value,
+    hasVariations: hasVariations.value,
+    basePrice: basePrice.value,
+    recipeSource: recipeSource.value,
+    selectedRecipe: selectedRecipe.value,
+    recipeIngredients: recipeIngredients.value,
+  });
+};
 </script>
 
 <template>
-  <form>
+  <form @submit.prevent="handleSubmit">
     <!-- Basic Information -->
     <div>
       <h2>Información Básica</h2>
@@ -303,49 +304,12 @@ const removeIngredient = (index) => {
       <p>Sección de variaciones (próximamente)</p>
     </div>
 
-    <!-- Ingredient Modal -->
-    <div v-if="showIngredientModal" class="modal">
-      <div class="modal-content">
-        <h3>Agregar Ingrediente</h3>
-
-        <div>
-          <label for="ingredient-select">Seleccionar Ingrediente</label>
-          <select id="ingredient-select" v-model="selectedIngredient">
-            <option value="">Seleccionar ingrediente</option>
-            <option
-              v-for="ingredient in ingredientStore.items"
-              :key="ingredient.id"
-              :value="ingredient.id"
-            >
-              {{ ingredient.name }} ({{ ingredient.unit }})
-            </option>
-          </select>
-        </div>
-
-        <div>
-          <label for="ingredient-quantity">Cantidad</label>
-          <input
-            id="ingredient-quantity"
-            type="number"
-            v-model="newIngredientQuantity"
-            min="0"
-          />
-        </div>
-
-        <div>
-          <button type="button" @click="showIngredientModal = false">
-            Cancelar
-          </button>
-          <button
-            type="button"
-            @click="addIngredient"
-            :disabled="!selectedIngredient || newIngredientQuantity <= 0"
-          >
-            Agregar
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Ingredient Modal Component -->
+    <IngredientModal
+      :show="showIngredientModal"
+      @close="showIngredientModal = false"
+      @add="handleIngredientAdd"
+    />
 
     <div>
       <button type="submit">Guardar Producto</button>

@@ -1,0 +1,172 @@
+<script setup>
+import { ref } from "vue";
+import { useIngredientStore } from "@/stores/ingredientStore";
+
+const ingredientStore = useIngredientStore();
+
+const props = defineProps({
+  show: {
+    type: Boolean,
+    required: true,
+  },
+});
+
+const emit = defineEmits(["close", "add"]);
+
+// Modal state
+const mode = ref("select"); // 'select' or 'create'
+const selectedIngredient = ref(null);
+const quantity = ref(0);
+
+// New ingredient state
+const newIngredient = ref({
+  name: "",
+  unit: "",
+});
+
+const resetForm = () => {
+  mode.value = "select";
+  selectedIngredient.value = null;
+  quantity.value = 0;
+  newIngredient.value = {
+    name: "",
+    unit: "",
+  };
+};
+
+const handleAdd = async () => {
+  if (mode.value === "select") {
+    if (selectedIngredient.value && quantity.value > 0) {
+      emit("add", {
+        ingredientId: selectedIngredient.value,
+        quantity: quantity.value,
+      });
+      resetForm();
+      emit("close");
+    }
+  } else {
+    // Create new ingredient
+    try {
+      const createdIngredient = await ingredientStore.create(
+        newIngredient.value
+      );
+      emit("add", {
+        ingredientId: createdIngredient.id,
+        quantity: quantity.value,
+      });
+      resetForm();
+      emit("close");
+    } catch (error) {
+      console.error("Error creating ingredient:", error);
+    }
+  }
+};
+
+const handleClose = () => {
+  resetForm();
+  emit("close");
+};
+</script>
+
+<template>
+  <div v-if="show" class="modal">
+    <div class="modal-content">
+      <h3>Agregar Ingrediente</h3>
+
+      <!-- Mode Selection -->
+      <div>
+        <button
+          type="button"
+          @click="mode = 'select'"
+          :class="{ active: mode === 'select' }"
+        >
+          Seleccionar Existente
+        </button>
+        <button
+          type="button"
+          @click="mode = 'create'"
+          :class="{ active: mode === 'create' }"
+        >
+          Crear Nuevo
+        </button>
+      </div>
+
+      <!-- Select Existing Ingredient -->
+      <div v-if="mode === 'select'">
+        <div>
+          <label for="ingredient-select">Seleccionar Ingrediente</label>
+          <select id="ingredient-select" v-model="selectedIngredient">
+            <option value="">Seleccionar ingrediente</option>
+            <option
+              v-for="ingredient in ingredientStore.items"
+              :key="ingredient.id"
+              :value="ingredient.id"
+            >
+              {{ ingredient.name }} ({{ ingredient.unit }})
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label for="ingredient-quantity">Cantidad</label>
+          <input
+            id="ingredient-quantity"
+            type="number"
+            v-model="quantity"
+            min="0"
+          />
+        </div>
+      </div>
+
+      <!-- Create New Ingredient -->
+      <div v-else>
+        <div>
+          <label for="new-ingredient-name">Nombre</label>
+          <input
+            id="new-ingredient-name"
+            type="text"
+            v-model="newIngredient.name"
+          />
+        </div>
+
+        <div>
+          <label for="new-ingredient-unit">Unidad</label>
+          <select id="new-ingredient-unit" v-model="newIngredient.unit">
+            <option value="">Seleccionar unidad</option>
+            <option value="g">Gramos (g)</option>
+            <option value="kg">Kilogramos (kg)</option>
+            <option value="ml">Mililitros (ml)</option>
+            <option value="l">Litros (l)</option>
+            <option value="units">Unidades</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="new-ingredient-quantity">Cantidad</label>
+          <input
+            id="new-ingredient-quantity"
+            type="number"
+            v-model="quantity"
+            min="0"
+          />
+        </div>
+      </div>
+
+      <!-- Modal Actions -->
+      <div>
+        <button type="button" @click="handleClose">Cancelar</button>
+        <button
+          type="button"
+          @click="handleAdd"
+          :disabled="
+            (mode === 'select' && (!selectedIngredient || quantity <= 0)) ||
+            (mode === 'create' &&
+              (!newIngredient.name || !newIngredient.unit || quantity <= 0))
+          "
+        >
+          Agregar
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
