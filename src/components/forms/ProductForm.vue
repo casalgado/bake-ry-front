@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useRecipeStore } from "@/stores/recipeStore";
 import { useProductCollectionStore } from "@/stores/productCollectionStore";
+import { useIngredientStore } from "@/stores/ingredientStore";
 
 const recipeStore = useRecipeStore();
 const collectionStore = useProductCollectionStore();
+const ingredientStore = useIngredientStore();
 
 // Form state
 const productName = ref("");
@@ -16,6 +18,24 @@ const basePrice = ref(0);
 const recipeSource = ref("base"); // 'base', 'existing', 'new'
 const selectedRecipe = ref(null);
 
+// Ingredient management
+const recipeIngredients = ref([]);
+const showIngredientModal = ref(false);
+const selectedIngredient = ref(null);
+const newIngredientQuantity = ref(0);
+
+// Watch for recipe selection changes
+watch(selectedRecipe, async (newValue) => {
+  if (newValue) {
+    const recipe = recipeStore.items.find((r) => r.id === newValue);
+    if (recipe) {
+      recipeIngredients.value = [...recipe.ingredients];
+    }
+  } else {
+    recipeIngredients.value = [];
+  }
+});
+
 const resetForm = () => {
   productName.value = "";
   selectedCollection.value = "";
@@ -23,17 +43,20 @@ const resetForm = () => {
   basePrice.value = 0;
   recipeSource.value = "base";
   selectedRecipe.value = null;
+  recipeIngredients.value = [];
 };
 
 onMounted(async () => {
-  // Fetch collections if not already loaded
   if (collectionStore.items.length === 0) {
     await collectionStore.fetchAll();
   }
 
-  // Fetch recipes if not already loaded
   if (recipeStore.items.length === 0) {
     await recipeStore.fetchAll();
+  }
+
+  if (ingredientStore.items.length === 0) {
+    await ingredientStore.fetchAll();
   }
 
   resetForm();
@@ -42,6 +65,35 @@ onMounted(async () => {
 const handleRecipeSourceChange = (source) => {
   recipeSource.value = source;
   selectedRecipe.value = null;
+};
+
+// Ingredient management functions
+const addIngredient = () => {
+  if (selectedIngredient.value && newIngredientQuantity.value > 0) {
+    const ingredient = ingredientStore.items.find(
+      (i) => i.id === selectedIngredient.value
+    );
+
+    recipeIngredients.value.push({
+      ingredientId: ingredient.id,
+      name: ingredient.name,
+      quantity: newIngredientQuantity.value,
+      unit: ingredient.unit,
+    });
+
+    // Reset modal state
+    selectedIngredient.value = null;
+    newIngredientQuantity.value = 0;
+    showIngredientModal.value = false;
+  }
+};
+
+const updateIngredientQuantity = (index, newQuantity) => {
+  recipeIngredients.value[index].quantity = newQuantity;
+};
+
+const removeIngredient = (index) => {
+  recipeIngredients.value.splice(index, 1);
 };
 </script>
 
@@ -135,6 +187,34 @@ const handleRecipeSourceChange = (source) => {
               {{ recipe.name }}
             </option>
           </select>
+
+          <!-- Ingredients Section after base recipe selection -->
+          <div v-if="selectedRecipe">
+            <h4>Ingredientes de la Receta</h4>
+
+            <!-- Current Ingredients List -->
+            <div v-if="recipeIngredients.length > 0">
+              <div
+                v-for="(ingredient, index) in recipeIngredients"
+                :key="ingredient.ingredientId"
+              >
+                <span>{{ ingredient.name }}</span>
+                <input
+                  type="number"
+                  :value="ingredient.quantity"
+                  @input="updateIngredientQuantity(index, $event.target.value)"
+                />
+                <span>{{ ingredient.unit }}</span>
+                <button type="button" @click="removeIngredient(index)">
+                  Eliminar
+                </button>
+              </div>
+            </div>
+
+            <button type="button" @click="showIngredientModal = true">
+              Agregar Ingrediente
+            </button>
+          </div>
         </div>
 
         <!-- Existing Recipe Selection -->
@@ -153,20 +233,118 @@ const handleRecipeSourceChange = (source) => {
               {{ recipe.name }}
             </option>
           </select>
+
+          <!-- Ingredients Section after existing recipe selection -->
+          <div v-if="selectedRecipe">
+            <h4>Ingredientes de la Receta</h4>
+
+            <!-- Current Ingredients List -->
+            <div v-if="recipeIngredients.length > 0">
+              <div
+                v-for="(ingredient, index) in recipeIngredients"
+                :key="ingredient.ingredientId"
+              >
+                <span>{{ ingredient.name }}</span>
+                <input
+                  type="number"
+                  :value="ingredient.quantity"
+                  @input="updateIngredientQuantity(index, $event.target.value)"
+                />
+                <span>{{ ingredient.unit }}</span>
+                <button type="button" @click="removeIngredient(index)">
+                  Eliminar
+                </button>
+              </div>
+            </div>
+
+            <button type="button" @click="showIngredientModal = true">
+              Agregar Ingrediente
+            </button>
+          </div>
         </div>
 
         <!-- New Recipe Creation -->
         <div v-if="recipeSource === 'new'">
           <p>Crea una nueva receta desde cero para este producto.</p>
-          <button type="button">Comenzar a Crear Receta</button>
+
+          <!-- New Recipe Ingredients Section -->
+          <div>
+            <h4>Ingredientes de la Receta</h4>
+
+            <!-- Current Ingredients List -->
+            <div v-if="recipeIngredients.length > 0">
+              <div
+                v-for="(ingredient, index) in recipeIngredients"
+                :key="ingredient.ingredientId"
+              >
+                <span>{{ ingredient.name }}</span>
+                <input
+                  type="number"
+                  :value="ingredient.quantity"
+                  @input="updateIngredientQuantity(index, $event.target.value)"
+                />
+                <span>{{ ingredient.unit }}</span>
+                <button type="button" @click="removeIngredient(index)">
+                  Eliminar
+                </button>
+              </div>
+            </div>
+
+            <button type="button" @click="showIngredientModal = true">
+              Agregar Ingrediente
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Variation section placeholder -->
     <div v-else>
-      <!-- We'll implement this next -->
       <p>Sección de variaciones (próximamente)</p>
+    </div>
+
+    <!-- Ingredient Modal -->
+    <div v-if="showIngredientModal" class="modal">
+      <div class="modal-content">
+        <h3>Agregar Ingrediente</h3>
+
+        <div>
+          <label for="ingredient-select">Seleccionar Ingrediente</label>
+          <select id="ingredient-select" v-model="selectedIngredient">
+            <option value="">Seleccionar ingrediente</option>
+            <option
+              v-for="ingredient in ingredientStore.items"
+              :key="ingredient.id"
+              :value="ingredient.id"
+            >
+              {{ ingredient.name }} ({{ ingredient.unit }})
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label for="ingredient-quantity">Cantidad</label>
+          <input
+            id="ingredient-quantity"
+            type="number"
+            v-model="newIngredientQuantity"
+            min="0"
+          />
+        </div>
+
+        <div>
+          <button type="button" @click="showIngredientModal = false">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            @click="addIngredient"
+            :disabled="!selectedIngredient || newIngredientQuantity <= 0"
+          >
+            Agregar
+          </button>
+        </div>
+      </div>
     </div>
 
     <div>
