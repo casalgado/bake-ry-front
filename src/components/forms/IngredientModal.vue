@@ -1,4 +1,5 @@
 <script setup>
+// IngredientModal.vue
 import { ref } from "vue";
 import { useIngredientStore } from "@/stores/ingredientStore";
 
@@ -34,32 +35,40 @@ const resetForm = () => {
   };
 };
 
-const handleAdd = async () => {
-  if (mode.value === "select") {
-    if (selectedIngredient.value && quantity.value > 0) {
-      emit("add", {
-        ingredientId: selectedIngredient.value,
-        quantity: quantity.value,
-      });
-      resetForm();
-      emit("close");
-    }
-  } else {
-    // Create new ingredient
-    try {
-      const createdIngredient = await ingredientStore.create(
-        newIngredient.value
-      );
-      emit("add", {
-        ingredientId: createdIngredient.id,
-        quantity: quantity.value,
-      });
-      resetForm();
-      emit("close");
-    } catch (error) {
-      console.error("Error creating ingredient:", error);
-    }
+const handleAdd = () => {
+  if (
+    mode.value === "select" &&
+    selectedIngredient.value &&
+    quantity.value > 0
+  ) {
+    // Get the selected ingredient data
+    const ingredient = ingredientStore.items.find(
+      (i) => i.id === selectedIngredient.value
+    );
+
+    emit("add", {
+      type: "existing",
+      ingredientId: selectedIngredient.value,
+      name: ingredient.name,
+      unit: ingredient.unit,
+      quantity: quantity.value,
+    });
+  } else if (
+    mode.value === "create" &&
+    newIngredient.value.name &&
+    newIngredient.value.unit &&
+    quantity.value > 0
+  ) {
+    emit("add", {
+      type: "new",
+      name: newIngredient.value.name,
+      unit: newIngredient.value.unit,
+      quantity: quantity.value,
+    });
   }
+
+  resetForm();
+  emit("close");
 };
 
 const handleClose = () => {

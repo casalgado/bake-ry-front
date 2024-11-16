@@ -66,14 +66,11 @@ const handleRecipeSourceChange = (source) => {
   selectedRecipe.value = null;
 };
 
-const handleIngredientAdd = ({ ingredientId, quantity }) => {
-  const ingredient = ingredientStore.items.find((i) => i.id === ingredientId);
-
+const handleIngredientAdd = (ingredientData) => {
+  // Simply add the ingredient data as received from the modal
   recipeIngredients.value.push({
-    ingredientId: ingredient.id,
-    name: ingredient.name,
-    quantity: quantity,
-    unit: ingredient.unit,
+    ...ingredientData,
+    quantity: ingredientData.quantity,
   });
 };
 
@@ -86,15 +83,20 @@ const removeIngredient = (index) => {
 };
 
 const handleSubmit = () => {
-  console.log({
-    productName: productName.value,
+  // Prepare the form data without any ingredient creation logic
+  const formData = {
+    name: productName.value,
     collection: selectedCollection.value,
     hasVariations: hasVariations.value,
     basePrice: basePrice.value,
     recipeSource: recipeSource.value,
     selectedRecipe: selectedRecipe.value,
-    recipeIngredients: recipeIngredients.value,
-  });
+    ingredients: recipeIngredients.value,
+  };
+
+  console.log("Form submission data:", formData);
+  // Emit the form data to parent or handle submission
+  // emit('submit', formData);
 };
 </script>
 
@@ -106,7 +108,7 @@ const handleSubmit = () => {
 
       <div>
         <label for="productName">Nombre del Producto</label>
-        <input id="productName" type="text" v-model="productName" />
+        <input id="productName" type="text" v-model="productName" required />
       </div>
 
       <div>
@@ -140,7 +142,7 @@ const handleSubmit = () => {
           type="number"
           v-model="basePrice"
           min="0"
-          step="100"
+          step="1"
         />
       </div>
 
@@ -188,34 +190,6 @@ const handleSubmit = () => {
               {{ recipe.name }}
             </option>
           </select>
-
-          <!-- Ingredients Section after base recipe selection -->
-          <div v-if="selectedRecipe">
-            <h4>Ingredientes de la Receta</h4>
-
-            <!-- Current Ingredients List -->
-            <div v-if="recipeIngredients.length > 0">
-              <div
-                v-for="(ingredient, index) in recipeIngredients"
-                :key="ingredient.ingredientId"
-              >
-                <span>{{ ingredient.name }}</span>
-                <input
-                  type="number"
-                  :value="ingredient.quantity"
-                  @input="updateIngredientQuantity(index, $event.target.value)"
-                />
-                <span>{{ ingredient.unit }}</span>
-                <button type="button" @click="removeIngredient(index)">
-                  Eliminar
-                </button>
-              </div>
-            </div>
-
-            <button type="button" @click="showIngredientModal = true">
-              Agregar Ingrediente
-            </button>
-          </div>
         </div>
 
         <!-- Existing Recipe Selection -->
@@ -234,67 +208,36 @@ const handleSubmit = () => {
               {{ recipe.name }}
             </option>
           </select>
-
-          <!-- Ingredients Section after existing recipe selection -->
-          <div v-if="selectedRecipe">
-            <h4>Ingredientes de la Receta</h4>
-
-            <!-- Current Ingredients List -->
-            <div v-if="recipeIngredients.length > 0">
-              <div
-                v-for="(ingredient, index) in recipeIngredients"
-                :key="ingredient.ingredientId"
-              >
-                <span>{{ ingredient.name }}</span>
-                <input
-                  type="number"
-                  :value="ingredient.quantity"
-                  @input="updateIngredientQuantity(index, $event.target.value)"
-                />
-                <span>{{ ingredient.unit }}</span>
-                <button type="button" @click="removeIngredient(index)">
-                  Eliminar
-                </button>
-              </div>
-            </div>
-
-            <button type="button" @click="showIngredientModal = true">
-              Agregar Ingrediente
-            </button>
-          </div>
         </div>
 
         <!-- New Recipe Creation -->
         <div v-if="recipeSource === 'new'">
           <p>Crea una nueva receta desde cero para este producto.</p>
+        </div>
 
-          <!-- New Recipe Ingredients Section -->
-          <div>
-            <h4>Ingredientes de la Receta</h4>
+        <!-- Ingredients Section (shown for all recipe types when appropriate) -->
+        <div v-if="recipeSource === 'new' || selectedRecipe">
+          <h4>Ingredientes de la Receta</h4>
 
-            <!-- Current Ingredients List -->
-            <div v-if="recipeIngredients.length > 0">
-              <div
-                v-for="(ingredient, index) in recipeIngredients"
-                :key="ingredient.ingredientId"
-              >
-                <span>{{ ingredient.name }}</span>
-                <input
-                  type="number"
-                  :value="ingredient.quantity"
-                  @input="updateIngredientQuantity(index, $event.target.value)"
-                />
-                <span>{{ ingredient.unit }}</span>
-                <button type="button" @click="removeIngredient(index)">
-                  Eliminar
-                </button>
-              </div>
+          <!-- Current Ingredients List -->
+          <div v-if="recipeIngredients.length > 0">
+            <div v-for="(ingredient, index) in recipeIngredients" :key="index">
+              <span>{{ ingredient.name }}</span>
+              <input
+                type="number"
+                :value="ingredient.quantity"
+                @input="updateIngredientQuantity(index, $event.target.value)"
+              />
+              <span>{{ ingredient.unit }}</span>
+              <button type="button" @click="removeIngredient(index)">
+                Eliminar
+              </button>
             </div>
-
-            <button type="button" @click="showIngredientModal = true">
-              Agregar Ingrediente
-            </button>
           </div>
+
+          <button type="button" @click="showIngredientModal = true">
+            Agregar Ingrediente
+          </button>
         </div>
       </div>
     </div>
@@ -311,8 +254,10 @@ const handleSubmit = () => {
       @add="handleIngredientAdd"
     />
 
+    <!-- Form Actions -->
     <div>
       <button type="submit">Guardar Producto</button>
+      <button type="button" @click="resetForm">Resetear</button>
     </div>
   </form>
 </template>
