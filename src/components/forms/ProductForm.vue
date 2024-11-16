@@ -11,14 +11,17 @@ const formData = ref({
   collection: "",
   hasVariations: false,
   basePrice: 0,
-  recipe: null,
+  recipe: {
+    recipeSource: "base",
+    recipeId: null,
+    ingredients: [],
+  },
 });
 
 onMounted(async () => {
   if (collectionStore.items.length === 0) {
     await collectionStore.fetchAll();
   }
-  resetForm();
 });
 
 const resetForm = () => {
@@ -27,13 +30,21 @@ const resetForm = () => {
     collection: "",
     hasVariations: false,
     basePrice: 0,
-    recipe: null,
+    recipe: {
+      recipeSource: "base",
+      recipeId: null,
+      ingredients: [],
+    },
   };
 };
 
 const handleSubmit = () => {
   console.log("Form submission data:", formData.value);
   // emit('submit', formData.value);
+};
+
+const handleRecipeUpdate = (newRecipeData) => {
+  formData.value.recipe = newRecipeData;
 };
 </script>
 
@@ -88,12 +99,11 @@ const handleSubmit = () => {
       </div>
 
       <!-- Recipe Selection -->
-      <RecipeSelector v-model:recipeData="formData.recipe" :disabled="false" />
-    </div>
-
-    <!-- Variation section placeholder -->
-    <div v-else>
-      <p>Sección de variaciones (próximamente)</p>
+      <RecipeSelector
+        :recipe-data="formData.recipe"
+        @update:recipe-data="handleRecipeUpdate"
+        :disabled="false"
+      />
     </div>
 
     <!-- Form Actions -->

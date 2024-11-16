@@ -1,13 +1,13 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, onMounted } from "vue";
 import { useRecipeStore } from "@/stores/recipeStore";
 import { useIngredientStore } from "@/stores/ingredientStore";
 import IngredientModal from "./IngredientModal.vue";
 
 const props = defineProps({
-  initialRecipe: {
+  recipeData: {
     type: Object,
-    default: null,
+    required: true,
   },
   disabled: {
     type: Boolean,
@@ -20,53 +20,68 @@ const emit = defineEmits(["update:recipeData"]);
 const recipeStore = useRecipeStore();
 const ingredientStore = useIngredientStore();
 
-// Recipe selection state
-const recipeSource = ref("base"); // 'base', 'existing', 'new'
-const selectedRecipe = ref(null);
-const recipeIngredients = ref([]);
+// Local state that reflects props
+const recipeSource = ref(props.recipeData.recipeSource);
+const selectedRecipe = ref(props.recipeData.recipeId);
+const recipeIngredients = ref(props.recipeData.ingredients || []);
 const showIngredientModal = ref(false);
 
-// Initialize with initial recipe if provided
+onMounted(async () => {
+  if (recipeStore.items.length === 0) {
+    await recipeStore.fetchAll();
+  }
+  if (ingredientStore.items.length === 0) {
+    await ingredientStore.fetchAll();
+  }
+});
+
+// Single watcher for prop changes
 watch(
-  () => props.initialRecipe,
+  () => props.recipeData,
   (newValue) => {
     if (newValue) {
       recipeSource.value = newValue.recipeSource;
       selectedRecipe.value = newValue.recipeId;
-      recipeIngredients.value = [...newValue.ingredients];
+      recipeIngredients.value = [...(newValue.ingredients || [])];
     }
-  },
-  { immediate: true }
-);
-
-// Watch for recipe selection changes
-watch(selectedRecipe, async (newValue) => {
-  if (newValue) {
-    const recipe = recipeStore.items.find((r) => r.id === newValue);
-    if (recipe) {
-      recipeIngredients.value = [...recipe.ingredients];
-    }
-  } else {
-    recipeIngredients.value = [];
-  }
-});
-
-// Watch for changes to emit updates
-watch(
-  [recipeSource, selectedRecipe, recipeIngredients],
-  () => {
-    emit("update:recipeData", {
-      recipeSource: recipeSource.value,
-      recipeId: selectedRecipe.value,
-      ingredients: recipeIngredients.value,
-    });
   },
   { deep: true }
 );
 
+// Handle recipe selection
+const handleRecipeSelect = async (newRecipeId) => {
+  selectedRecipe.value = newRecipeId;
+  if (newRecipeId) {
+    try {
+      const recipe = await recipeStore.getById(newRecipeId);
+      if (recipe) {
+        recipeIngredients.value = [...recipe.ingredients];
+        emitUpdate();
+      }
+    } catch (error) {
+      console.error("Error fetching recipe:", error);
+      recipeIngredients.value = [];
+      emitUpdate();
+    }
+  } else {
+    recipeIngredients.value = [];
+    emitUpdate();
+  }
+};
+
+const emitUpdate = () => {
+  emit("update:recipeData", {
+    recipeSource: recipeSource.value,
+    recipeId: selectedRecipe.value,
+    ingredients: recipeIngredients.value,
+  });
+};
+
 const handleRecipeSourceChange = (source) => {
   recipeSource.value = source;
   selectedRecipe.value = null;
+  recipeIngredients.value = [];
+  emitUpdate();
 };
 
 const handleIngredientAdd = (ingredientData) => {
@@ -74,23 +89,19 @@ const handleIngredientAdd = (ingredientData) => {
     ...ingredientData,
     quantity: ingredientData.quantity,
   });
+  emitUpdate();
 };
 
 const updateIngredientQuantity = (index, newQuantity) => {
-  recipeIngredients.value[index].quantity = newQuantity;
+  recipeIngredients.value[index].quantity = Number(newQuantity);
+  emitUpdate();
 };
 
 const removeIngredient = (index) => {
   recipeIngredients.value.splice(index, 1);
-};
-
-const reset = () => {
-  recipeSource.value = "base";
-  selectedRecipe.value = null;
-  recipeIngredients.value = [];
+  emitUpdate();
 };
 </script>
-
 <template>
   <div class="recipe-selector" :class="{ disabled }">
     <h3>Selección de Receta</h3>
@@ -127,7 +138,11 @@ const reset = () => {
       <p>
         Selecciona una receta base para comenzar. Podrás personalizarla después.
       </p>
-      <select v-model="selectedRecipe" :disabled="disabled">
+      <select
+        v-model="selectedRecipe"
+        @change="handleRecipeSelect($event.target.value)"
+        :disabled="disabled"
+      >
         <option value="">Seleccionar receta base</option>
         <option
           v-for="recipe in recipeStore.items.filter((r) => r.isBase)"
@@ -145,7 +160,11 @@ const reset = () => {
         Selecciona una de tus recetas existentes. Podrás modificarla si lo
         necesitas.
       </p>
-      <select v-model="selectedRecipe" :disabled="disabled">
+      <select
+        v-model="selectedRecipe"
+        @change="handleRecipeSelect($event.target.value)"
+        :disabled="disabled"
+      >
         <option value="">Seleccionar receta existente</option>
         <option
           v-for="recipe in recipeStore.items.filter((r) => !r.isBase)"
