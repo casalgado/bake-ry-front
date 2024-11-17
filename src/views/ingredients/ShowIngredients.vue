@@ -5,20 +5,20 @@ import {
   getSortedRowModel,
 } from '@tanstack/vue-table';
 import { useIngredientStore } from '@/stores/ingredientStore';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 
-// Initialize store
 const ingredientStore = useIngredientStore();
-
-// Initialize sorting state
 const sorting = ref([]);
+const table = ref(null);
 
-// Define columns with sorting configuration
+// Create a computed property for the data to ensure reactivity
+const tableData = computed(() => ingredientStore.items);
+
 const columns = [
   {
     accessorKey: 'name',
     header: 'Name',
-    sortingFn: 'text', // Basic text sorting
+    sortingFn: 'text',
   },
   {
     accessorKey: 'category',
@@ -33,7 +33,7 @@ const columns = [
   {
     accessorKey: 'costPerUnit',
     header: 'Cost per Unit',
-    sortingFn: 'basic', // Basic numeric sorting
+    sortingFn: 'basic',
     cell: props => new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
@@ -48,50 +48,52 @@ const columns = [
   {
     accessorKey: 'usedInRecipes',
     header: 'Used In',
-    enableSorting: false, // Disable sorting for this column
+    enableSorting: false,
     cell: props => props.getValue()?.length || 0,
   },
 ];
 
-// Initialize table with sorting configuration
-const table = useVueTable({
-  get data() {
-    return ingredientStore.items;
-  },
-  columns,
-  state: {
-    sorting: sorting.value,
-  },
-  onSortingChange: updater => {
-    sorting.value = updater(sorting.value);
-  },
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-  // Optional: configure multi-sort behavior
-  enableMultiSort: true,
-  maxMultiSortColCount: 3, // Max number of columns that can be sorted simultaneously
-});
-
-// Fetch data on mount
 onMounted(async () => {
   await ingredientStore.fetchAll();
+  initTable();
 });
+
+// Separate function to initialize table
+const initTable = () => {
+  table.value = useVueTable({
+    data: tableData.value,
+    columns,
+    state: {
+      sorting: sorting.value,
+    },
+    onSortingChange: updater => {
+      if (typeof updater === 'function') {
+        sorting.value = updater(sorting.value);
+      } else {
+        sorting.value = updater;
+      }
+      // Re-initialize table with new sorting
+      initTable();
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    enableMultiSort: true,
+    maxMultiSortColCount: 3,
+  });
+};
 </script>
 
 <template>
   <div>
-    <!-- Loading state -->
     <div v-if="ingredientStore.loading">
       Loading...
     </div>
 
-    <!-- Error state -->
     <div v-if="ingredientStore.error">
       {{ ingredientStore.error }}
     </div>
 
-    <!-- Table -->
-    <table v-if="!ingredientStore.loading && ingredientStore.items.length">
+    <table v-if="!ingredientStore.loading && tableData.length && table">
       <thead>
         <tr>
           <th
@@ -100,14 +102,11 @@ onMounted(async () => {
             @click="header.column.getCanSort() && header.column.toggleSorting()"
             :style="{
               cursor: header.column.getCanSort() ? 'pointer' : 'default',
-              userSelect: 'none' // Prevent text selection when clicking
+              userSelect: 'none'
             }"
           >
-            <!-- Header content with sort indicators -->
             <div class="flex items-center gap-1">
               {{ header.column.columnDef.header }}
-
-              <!-- Sort indicator -->
               <span v-if="header.column.getCanSort()">
                 {{ !header.column.getIsSorted()
                   ? ' ↕️'
@@ -116,8 +115,6 @@ onMounted(async () => {
                     : ' 🔼'
                 }}
               </span>
-
-              <!-- Multi-sort index indicator -->
               <span v-if="header.column.getSortIndex() > -1">
                 {{ header.column.getSortIndex() + 1 }}
               </span>
@@ -134,12 +131,10 @@ onMounted(async () => {
       </tbody>
     </table>
 
-    <!-- Empty state -->
-    <div v-if="!ingredientStore.loading && !ingredientStore.items.length">
+    <div v-if="!ingredientStore.loading && !tableData.length">
       No ingredients found
     </div>
 
-    <!-- Debug: Show current sorting state -->
     <pre v-if="sorting.length">
       Current Sort: {{ sorting }}
     </pre>
