@@ -53,12 +53,18 @@ const columns = [
   },
 ];
 
-onMounted(async () => {
-  await ingredientStore.fetchAll();
-  initTable();
-});
+const handleSort = (header, event) => {
+  if (header.column.getCanSort()) {
+    // Pass true as second argument when shift is pressed to enable multi-sort
+    header.column.toggleSorting(undefined, event.shiftKey);
+  }
+};
 
-// Separate function to initialize table
+const clearSort = () => {
+  sorting.value = [];
+  initTable();
+};
+
 const initTable = () => {
   table.value = useVueTable({
     data: tableData.value,
@@ -72,15 +78,20 @@ const initTable = () => {
       } else {
         sorting.value = updater;
       }
-      // Re-initialize table with new sorting
       initTable();
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     enableMultiSort: true,
     maxMultiSortColCount: 3,
+    isMultiSortEvent: (e) => e.shiftKey,
   });
 };
+
+onMounted(async () => {
+  await ingredientStore.fetchAll();
+  initTable();
+});
 </script>
 
 <template>
@@ -93,50 +104,76 @@ const initTable = () => {
       {{ ingredientStore.error }}
     </div>
 
-    <table v-if="!ingredientStore.loading && tableData.length && table">
-      <thead>
-        <tr>
-          <th
-            v-for="header in table.getHeaderGroups()[0].headers"
-            :key="header.id"
-            @click="header.column.getCanSort() && header.column.toggleSorting()"
-            :style="{
-              cursor: header.column.getCanSort() ? 'pointer' : 'default',
-              userSelect: 'none'
-            }"
-          >
-            <div class="flex items-center gap-1">
-              {{ header.column.columnDef.header }}
-              <span v-if="header.column.getCanSort()">
-                {{ !header.column.getIsSorted()
-                  ? ' ↕️'
-                  : header.column.getIsSorted() === 'desc'
-                    ? ' 🔽'
-                    : ' 🔼'
-                }}
-              </span>
-              <span v-if="header.column.getSortIndex() > -1">
-                {{ header.column.getSortIndex() + 1 }}
-              </span>
-            </div>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="row in table.getRowModel().rows" :key="row.id">
-          <td v-for="cell in row.getVisibleCells()" :key="cell.id">
-            {{ cell.getValue() }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div v-if="!ingredientStore.loading && tableData.length && table">
+      <!-- Sorting information and controls -->
+      <div class="mb-4">
+        <button
+          v-if="sorting.length"
+          @click="clearSort"
+          class="px-2 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200"
+        >
+          Clear Sorting
+        </button>
+        <div v-if="sorting.length" class="text-sm text-gray-500 mt-1">
+          <span>Current sort: </span>
+          <span v-for="(sort, index) in sorting" :key="sort.id">
+            {{ sort.id }}{{ sort.desc ? ' (desc)' : ' (asc)' }}
+            {{ index < sorting.length - 1 ? ',' : '' }}
+          </span>
+        </div>
+        <div v-if="!sorting.length" class="text-sm text-gray-500">
+          Click column headers to sort. Hold Shift to sort by multiple columns.
+        </div>
+      </div>
+
+      <!-- Table -->
+      <table>
+        <thead>
+          <tr>
+            <th
+              v-for="header in table.getHeaderGroups()[0].headers"
+              :key="header.id"
+              @click="(e) => handleSort(header, e)"
+              :style="{
+                cursor: header.column.getCanSort() ? 'pointer' : 'default',
+                userSelect: 'none'
+              }"
+            >
+              <div class="flex items-center gap-1">
+                {{ header.column.columnDef.header }}
+                <span
+                  v-if="header.column.getCanSort()"
+                  title="Hold Shift to sort by multiple columns"
+                >
+                  {{ !header.column.getIsSorted()
+                    ? ' ↕️'
+                    : header.column.getIsSorted() === 'desc'
+                      ? ' 🔽'
+                      : ' 🔼'
+                  }}
+                </span>
+                <span
+                  v-if="header.column.getSortIndex() > -1"
+                  class="text-xs bg-blue-100 px-1 rounded"
+                >
+                  {{ header.column.getSortIndex() + 1 }}
+                </span>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in table.getRowModel().rows" :key="row.id">
+            <td v-for="cell in row.getVisibleCells()" :key="cell.id">
+              {{ cell.getValue() }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <div v-if="!ingredientStore.loading && !tableData.length">
       No ingredients found
     </div>
-
-    <pre v-if="sorting.length">
-      Current Sort: {{ sorting }}
-    </pre>
   </div>
 </template>
