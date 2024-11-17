@@ -12,9 +12,15 @@ export default {
       },
       colors: {
         primary: {
-          light: '#EBA052',
-          DEFAULT: '#D9842A',
-          dark: '#6D4D34',
+          100: '#FFF1E4',  /* Very light peachy */
+          200: '#FFE0C4',  /* Light peachy */
+          300: '#F5C9A4',  /* Soft peach */
+          400: '#EBB084',  /* Light orange */
+          DEFAULT: '#D9842A',  /* BASE COLOR - DEFAULT */
+          600: '#B86D1F',  /* Darker orange */
+          700: '#965716',  /* Deep orange-brown */
+          800: '#744210',  /* Dark brown */
+          900: '#522D09',  /* Very dark brown */
         },
         secondary: {
           light: '#425E9D',

@@ -25,15 +25,15 @@
     }
 
     h4 {
-        @apply text-xl font-medium mb-2;
+        @apply text-sm font-medium mb-2;
     }
 
     h5 {
-        @apply text-lg font-medium mb-2;
+        @apply text-sm font-medium mb-2;
     }
 
     h6 {
-        @apply text-base font-medium mb-2;
+        @apply text-xs font-medium mb-2;
     }
 
 }
