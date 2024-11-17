@@ -26,7 +26,7 @@ const handleClick = () => {
     type="button"
     @click="handleClick"
     :class="{
-      'flex items-center w-full gap-2 px-3 py-1  rounded-md transition-colors mb-0.5': true,
+      'flex items-center w-full gap-2 px-3 py-1 bg-neutral-200 rounded-md transition-colors mb-0.5': true,
       'bg-primary-200 text-black': isActive,
       'hover:bg-primary-100 text-gray-700 hover:text-black': !isActive
     }"
