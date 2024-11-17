@@ -226,6 +226,7 @@ onMounted(async () => {
                   type="checkbox"
                   :checked="row.getIsSelected()"
                   @change="row.toggleSelected()"
+                  class="cursor-pointer"
                 />
               </template>
               <!-- Clickable span for 'name' column -->
@@ -251,3 +252,21 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+<style scoped>
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+th,
+td {
+
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+button + button {
+  margin-left: 0.5rem;
+}
+</style>

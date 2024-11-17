@@ -11,18 +11,10 @@ const authStore = useAuthenticationStore();
       <RouterLink to="/">Home</RouterLink>
       <RouterLink to="/login">Login</RouterLink>
       <RouterLink to="/signup">Signup</RouterLink>
-      <RouterLink to="/dashboard">Dashboard</RouterLink>
       <RouterLink to="/dashboard/show-bakery">Show Bakery</RouterLink>
       <RouterLink to="/dashboard/update-bakery">Update Bakery</RouterLink>
-      <RouterLink to="/dashboard/ingredients">Ingredients</RouterLink>
-      <RouterLink to="/dashboard/recipes">Recipes</RouterLink>
-      <RouterLink to="/dashboard/products">Products</RouterLink>
-      <RouterLink to="/dashboard/users">Show Bakery Users</RouterLink>
       <RouterLink to="/dashboard/settings">Settings</RouterLink>
-      <RouterLink to="/dashboard/orders">Orders</RouterLink>
-      <RouterLink to="/dashboard/orders/create">Create Order</RouterLink>
-      <RouterLink to="/dashboard/product-collections/create">Create Product Collection</RouterLink>
-      <button @click="authStore.logout">Logout</button>
+      <button @click="authStore.logout" class="py-0 my-0.5">Logout</button>
     </nav>
   </div>
 </template>
