@@ -7,6 +7,7 @@ const router = useRouter();
 const productCollectionStore = useProductCollectionStore();
 
 const handleSubmit = async (formData) => {
+  console.log('formData', formData);
   try {
     await productCollectionStore.create(formData);
   } catch (error) {
@@ -21,7 +22,7 @@ const handleCancel = () => {
 
 <template>
   <div class="form-container">
-    <h2>Create Product Collection</h2>
+    <h2>Crear Colección</h2>
     <ProductCollectionForm
       :loading="productCollectionStore.loading"
       @submit="handleSubmit"

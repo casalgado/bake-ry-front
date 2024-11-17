@@ -40,9 +40,9 @@ const links = [
   },
 
   {
-    id: 'colecciones',
+    id: 'crear_coleccion',
     icon: PhDresser,
-    text: 'Colecciones',
+    text: 'Crear Colección',
     path: '/dashboard/product-collections/create',
   },
   {

@@ -1,27 +1,21 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useProductStore } from '@/stores/productStore';
+import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import { useRouter } from 'vue-router';
 import ProductForm from '@/components/forms/ProductForm.vue';
 
 const router = useRouter();
 const productStore = useProductStore();
-
+const productCollectionStore = useProductCollectionStore();
 const showForm = ref(false);
 const selectedProduct = ref(null);
 const searchQuery = ref('');
-const selectedCategory = ref('');
-
-const categoryOptions = [
-  'Bread',
-  'Pastry',
-  'Cake',
-  'Cookie',
-  'Other',
-];
+const selectedCollection = ref('');
 
 onMounted(async () => {
   await productStore.fetchAll();
+  await productCollectionStore.fetchAll();
 });
 
 const filteredProducts = computed(() => {
@@ -32,10 +26,10 @@ const filteredProducts = computed(() => {
         ?.toLowerCase()
         .includes(searchQuery.value.toLowerCase());
 
-    const matchesCategory =
-      !selectedCategory.value || product.category === selectedCategory.value;
+    const matchesCollection =
+      !selectedCollection.value || product.collectionId === selectedCollection.value;
 
-    return matchesSearch && matchesCategory;
+    return matchesSearch && matchesCollection;
   });
 });
 
@@ -101,14 +95,14 @@ const navigateToCreate = () => {
         placeholder="Search products..."
       />
 
-      <select v-model="selectedCategory">
-        <option value="">All categories</option>
+      <select v-model="selectedCollection">
+        <option value="">All collections</option>
         <option
-          v-for="category in categoryOptions"
-          :key="category"
-          :value="category"
+          v-for="collection in productCollectionStore.items"
+          :key="collection.id"
+          :value="collection.id"
         >
-          {{ category }}
+          {{ collection.name }}
         </option>
       </select>
 

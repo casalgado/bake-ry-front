@@ -9,8 +9,6 @@ const fetchCollections = async () => {
 
 // Form state
 const productName = ref('');
-const selectedCollection = ref('');
-const hasVariations = ref(false);
 const collections = ref([]);
 
 // Collection loading
@@ -28,21 +26,19 @@ onMounted(() => {
 });
 
 // Will emit when form needs to proceed to next step
-const emit = defineEmits(['proceed']);
+const emit = defineEmits(['submit']);
 
-const handleProceed = () => {
-  emit('proceed', {
+const handleSubmit = () => {
+  emit('submit', {
     name: productName.value,
-    collectionId: selectedCollection.value,
-    hasVariations: hasVariations.value,
   });
 };
 </script>
 
 <template>
-  <form @submit.prevent="handleProceed">
+  <form @submit.prevent="handleSubmit">
     <div>
-      <label for="productName">Nombre del Producto</label>
+      <label for="productName">Nombre de la Colección</label>
       <input
         id="productName"
         type="text"
@@ -51,34 +47,8 @@ const handleProceed = () => {
     </div>
 
     <div>
-      <label for="collection">Colección</label>
-      <select
-        id="collection"
-        v-model="selectedCollection"
-      >
-        <option value="">Seleccionar colección</option>
-        <option
-          v-for="collection in collections"
-          :key="collection.id"
-          :value="collection.id"
-        >
-          {{ collection.name }}
-        </option>
-      </select>
-    </div>
-
-    <div>
-      <label for="hasVariations">¿Tiene variaciones?</label>
-      <input
-        id="hasVariations"
-        type="checkbox"
-        v-model="hasVariations"
-      />
-    </div>
-
-    <div>
       <button type="submit">
-        Continuar
+        Crear
       </button>
     </div>
   </form>
