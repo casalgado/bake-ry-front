@@ -201,7 +201,7 @@ const fulfillmentTypes = [
 
 <template>
   <form @submit.prevent="handleSubmit">
-    <div class="card-base">
+    <div class="base-card">
       <div>
         <label for="client-select">Cliente</label>
         <select
@@ -240,7 +240,7 @@ const fulfillmentTypes = [
       </div>
     </div>
 
-    <div class="card-base">
+    <div class="base-card">
       <legend>Tipo de Entrega</legend>
       <div>
         <div v-for="type in fulfillmentTypes" :key="type.value">
@@ -283,7 +283,7 @@ const fulfillmentTypes = [
       </div>
     </div>
 
-    <div class="card-base">
+    <div class="base-card">
       <legend>Método de Pago</legend>
       <div>
         <div v-for="method in paymentMethods" :key="method.value">
@@ -298,7 +298,7 @@ const fulfillmentTypes = [
       </div>
     </div>
 
-    <div class="card-base">
+    <div class="base-card">
       <div>
         <label for="internal-notes">Notas Internas</label>
         <textarea
@@ -308,7 +308,7 @@ const fulfillmentTypes = [
       </div>
     </div>
 
-    <div class="card-base">
+    <div class="base-card">
       <h3>Productos</h3>
 
       <div v-if="formData.items.length">
@@ -394,7 +394,7 @@ const fulfillmentTypes = [
       <span v-if="errors.items">{{ errors.items }}</span>
     </div>
 
-    <div class="card-base">
+    <div class="base-card">
       <div>
         <div>Subtotal: {{ subtotal }}</div>
         <div>Envío: {{ formData.deliveryFee }}</div>

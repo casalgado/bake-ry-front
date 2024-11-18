@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import RecipeSelector from './RecipeSelector.vue';
+import ProductVariationEditor from './ProductVariationEditor.vue';
 
 const emit = defineEmits(['submit', 'cancel']);
 
@@ -129,7 +130,7 @@ onMounted(async () => {
     await collectionStore.fetchAll();
   }
   if (bakerySettingsStore.items.length === 0) {
-    await bakerySettingsStore.fetchAll();
+    await bakerySettingsStore.fetchById('default');
   }
   initializeForm();
 });
@@ -138,7 +139,7 @@ onMounted(async () => {
 <template>
   <form @submit.prevent="handleSubmit">
     <!-- Basic Information -->
-    <div>
+    <div class="base-card">
       <h2>Información Básica</h2>
 
       <div>
@@ -188,7 +189,7 @@ onMounted(async () => {
     </div>
 
     <!-- Variations Section -->
-    <div v-if="formData.hasVariations">
+    <div v-if="formData.hasVariations" class="base-card" >
       <h2>Variaciones del Producto</h2>
 
       <!-- Variation Type Selection -->
@@ -209,50 +210,15 @@ onMounted(async () => {
       <!-- Variations List -->
       <div v-if="formData.variationType">
         <div v-for="(variation, index) in formData.variations" :key="index">
-          <div>
-            <h3>Variación {{ index + 1 }}</h3>
-
-            <div>
-              <label>Nombre</label>
-              <input type="text" v-model="variation.name" />
-            </div>
-
-            <div>
-              <label>
-                {{ formData.variationType === 'WEIGHT'
-                  ? 'Peso (g)'
-                  : formData.variationType === 'QUANTITY'
-                    ? 'Cantidad'
-                    : 'Valor'
-                }}
-              </label>
-              <input
-                type="number"
-                v-model="variation.value"
-                :step="formData.variationType === 'WEIGHT' ? '50' : '1'"
-              />
-            </div>
-
-            <div>
-              <label>Precio Base</label>
-              <input
-                type="number"
-                v-model="variation.basePrice"
-                step="100"
-              />
-            </div>
-
-            <!-- Recipe Selector for each variation -->
-            <RecipeSelector
-              :recipe-data="variation.recipe"
-              @update="(newData) => handleVariationRecipeUpdate(index, newData)"
-              :disabled="false"
-            />
-
-            <button type="button" @click="() => removeVariation(index)">
-              Eliminar Variación
-            </button>
-          </div>
+          <ProductVariationEditor
+            :variation="variation"
+            :variation-type="formData.variationType"
+            :index="index"
+            :disabled="loading"
+            @update:variation="updateVariation(index, $event)"
+            @remove="removeVariation(index)"
+            @recipe-update="(newData) => handleVariationRecipeUpdate(index, newData)"
+          />
         </div>
 
         <button type="button" @click="addVariation">
@@ -262,7 +228,7 @@ onMounted(async () => {
     </div>
 
     <!-- Non-variation product details -->
-    <div v-if="!formData.hasVariations">
+    <div v-if="!formData.hasVariations" class="base-card">
       <h2>Detalles del Producto</h2>
 
       <div>
@@ -285,7 +251,7 @@ onMounted(async () => {
     </div>
 
     <!-- Form Actions -->
-    <div>
+    <div class="base-card">
       <button type="button" @click="emit('cancel')" :disabled="loading">
         Cancelar
       </button>
