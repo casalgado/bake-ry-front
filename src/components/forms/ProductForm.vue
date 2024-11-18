@@ -315,13 +315,11 @@ onMounted(async () => {
 
     <!-- Form Actions -->
     <div class="base-card">
-      <button type="button" @click="emit('cancel')" :disabled="loading">
-        Cancelar
-      </button>
-      <button type="submit" :disabled="loading">
+
+      <button class="action-btn" type="submit" :disabled="loading">
         {{ loading ? 'Guardando...' : 'Guardar Producto' }}
       </button>
-      <button type="button" @click="resetForm" :disabled="loading">
+      <button class="action-btn" type="button" @click="resetForm" :disabled="loading">
         Resetear
       </button>
     </div>

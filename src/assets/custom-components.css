@@ -9,24 +9,23 @@
 
     .btn-danger {}
 
+    /* Base button styles that all buttons share */
     .form-container button {
-        @apply border-neutral-850 bg-primary text-white text-[13px] rounded-md p-2 mr-2 my-2 font-semibold;
+        @apply rounded-md font-medium text-[13px] my-2 px-2 py-1;
     }
 
-    .form-container button:hover {
-        @apply bg-primary/80;
-    }
-
+    /* Action button - primary actions */
     .form-container .action-btn {
-        @apply border-neutral-850 bg-primary text-white text-[13px] rounded-md p-2 mr-2 my-2 font-semibold;
+        @apply bg-primary text-white border-neutral-850;
     }
 
     .form-container .action-btn:hover {
         @apply bg-primary/80;
     }
 
+    /* Utility button - toggles, tools, minor actions */
     .form-container .utility-btn {
-        @apply px-3 py-1 font-medium rounded-md hover:bg-neutral-500 mx-0 w-10 text-center px-0;
+        @apply text-center bg-neutral-500 text-white;
     }
 
     .form-container .utility-btn-active {

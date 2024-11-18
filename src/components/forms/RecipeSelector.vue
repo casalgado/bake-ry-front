@@ -113,6 +113,7 @@ const removeIngredient = (index) => {
       type="button"
       @click="showRecipeModal = true"
       :disabled="disabled"
+      class="utility-btn"
     >
       Elegir Receta
     </button>
@@ -131,6 +132,7 @@ const removeIngredient = (index) => {
             @click="handleRecipeSourceChange('base')"
             :class="{ active: recipeData.recipeSource === 'base' }"
             :disabled="disabled"
+            class="utility-btn"
           >
             Comenzar con Receta Base
           </button>
@@ -139,6 +141,7 @@ const removeIngredient = (index) => {
             @click="handleRecipeSourceChange('existing')"
             :class="{ active: recipeData.recipeSource === 'existing' }"
             :disabled="disabled"
+            class="utility-btn"
           >
             Usar Receta Existente
           </button>
@@ -147,6 +150,7 @@ const removeIngredient = (index) => {
             @click="handleRecipeSourceChange('new')"
             :class="{ active: recipeData.recipeSource === 'new' }"
             :disabled="disabled"
+            class="utility-btn"
           >
             Crear Nueva Receta
           </button>
@@ -236,6 +240,7 @@ const removeIngredient = (index) => {
             type="button"
             @click="showIngredientModal = true"
             :disabled="disabled"
+            class="utility-btn"
           >
             Agregar Ingrediente
           </button>
@@ -246,6 +251,7 @@ const removeIngredient = (index) => {
           <button
             type="button"
             @click="showRecipeModal = false"
+            class="action-btn"
           >
             Cancelar
           </button>
@@ -253,6 +259,7 @@ const removeIngredient = (index) => {
             type="button"
             @click="showRecipeModal = false"
             :disabled="!recipeData.recipeId"
+            class="action-btn"
           >
             Guardar Receta
           </button>
