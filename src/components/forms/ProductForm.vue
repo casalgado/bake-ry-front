@@ -272,7 +272,7 @@ onMounted(async () => {
       </div>
 
       <!-- Variations List -->
-      <div v-if="formData.variationType">
+      <div v-if="formData.variationType" class="grid grid-cols-4 gap-4">
 
         <div v-for="(variation, index) in formData.variations" :key="index">
           <ProductVariationEditor

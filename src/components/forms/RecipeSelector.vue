@@ -246,7 +246,7 @@ const removeIngredient = (index) => {
       @click="isExpanded = false"
       :disabled="disabled"
     >
-      Guardar Receta
+      {{ recipeData.ingredients.length > 0 ? 'Guardar Receta' : 'Cancelar' }}
     </button>
 
     <!-- Ingredient Modal Component -->
