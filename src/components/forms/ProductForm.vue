@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import RecipeSelector from './RecipeSelector.vue';
@@ -26,11 +26,12 @@ const formData = ref({
   collection: '',
   description: '',
   hasVariations: false,
+  hasWholeGrain: false,
   variationType: '', // 'WEIGHT', 'QUANTITY', or 'CUSTOM'
   variations: [],
   basePrice: 0,
   recipe: {
-    recipeSource: 'base',
+    recipeSource: null,
     recipeId: null,
     ingredients: [],
   },
@@ -48,13 +49,12 @@ const handleVariationTypeChange = (type) => {
   formData.value.variations = [];
 
   if (type === 'CUSTOM') {
-    addVariation(); // Add one empty variation for custom type
+    addVariation();
     return;
   }
 
   if (type && suggestedVariations.value[type]) {
-    // Initialize variations with defaults but add a recipe object for each
-    formData.value.variations = suggestedVariations.value[type].defaults.map(v => ({
+    const baseVariations = suggestedVariations.value[type].defaults.map(v => ({
       ...v,
       recipe: {
         recipeSource: 'base',
@@ -62,12 +62,35 @@ const handleVariationTypeChange = (type) => {
         ingredients: [],
       },
     }));
+
+    if (formData.value.hasWholeGrain) {
+      const wholeGrainVariations = baseVariations.map(v => ({
+        ...v,
+        name: `${v.name} integral`,
+        isWholeGrain: true,
+        recipe: {
+          recipeSource: 'base',
+          recipeId: null,
+          ingredients: [],
+        },
+      }));
+      formData.value.variations = [...baseVariations, ...wholeGrainVariations];
+    } else {
+      formData.value.variations = baseVariations;
+    }
   }
 };
 
+// Watch for whole grain changes
+watch(() => formData.value.hasWholeGrain, (newValue) => {
+  if (formData.value.variationType && formData.value.variationType !== 'CUSTOM') {
+    handleVariationTypeChange(formData.value.variationType);
+  }
+});
+
 // Add new variation
 const addVariation = () => {
-  formData.value.variations.push({
+  const newVariation = {
     name: '',
     value: 0,
     basePrice: 0,
@@ -76,12 +99,42 @@ const addVariation = () => {
       recipeId: null,
       ingredients: [],
     },
-  });
+  };
+
+  if (formData.value.hasWholeGrain) {
+    formData.value.variations.push(
+      { ...newVariation, isWholeGrain: false },
+      { ...newVariation, name: 'integral', isWholeGrain: true },
+    );
+  } else {
+    formData.value.variations.push(newVariation);
+  }
 };
 
 // Remove variation
 const removeVariation = (index) => {
-  formData.value.variations.splice(index, 1);
+  if (formData.value.hasWholeGrain && formData.value.variationType !== 'CUSTOM') {
+    // If it's a regular variation, remove both regular and whole grain version
+    const isWholeGrain = formData.value.variations[index].isWholeGrain;
+    const baseIndex = isWholeGrain ?
+      index - formData.value.variations.filter(v => !v.isWholeGrain).length :
+      index;
+
+    // Remove both versions
+    formData.value.variations = formData.value.variations.filter((v, i) => {
+      if (isWholeGrain) {
+        return i !== index && i !== baseIndex;
+      }
+      return i !== index && i !== (baseIndex + formData.value.variations.filter(v => !v.isWholeGrain).length);
+    });
+  } else {
+    formData.value.variations.splice(index, 1);
+  }
+};
+
+// Update variation
+const updateVariation = (index, updatedVariation) => {
+  formData.value.variations[index] = updatedVariation;
 };
 
 // Update variation recipe
@@ -101,11 +154,12 @@ const resetForm = () => {
     collection: '',
     description: '',
     hasVariations: false,
+    hasWholeGrain: false,
     variationType: '',
     variations: [],
     basePrice: 0,
     recipe: {
-      recipeSource: 'base',
+      recipeSource: null,
       recipeId: null,
       ingredients: [],
     },
@@ -207,8 +261,19 @@ onMounted(async () => {
         </select>
       </div>
 
+      <!-- Whole Grain Toggle -->
+      <div v-if="formData.variationType">
+        <label for="hasWholeGrain">¿Incluir versión integral?</label>
+        <input
+          id="hasWholeGrain"
+          type="checkbox"
+          v-model="formData.hasWholeGrain"
+        />
+      </div>
+
       <!-- Variations List -->
       <div v-if="formData.variationType">
+
         <div v-for="(variation, index) in formData.variations" :key="index">
           <ProductVariationEditor
             :variation="variation"
@@ -221,7 +286,7 @@ onMounted(async () => {
           />
         </div>
 
-        <button type="button" @click="addVariation">
+        <button type="button" @click="addVariation" :disabled="loading">
           Agregar Variación
         </button>
       </div>
@@ -246,7 +311,7 @@ onMounted(async () => {
       <RecipeSelector
         :recipe-data="formData.recipe"
         @update="handleRecipeUpdate"
-        :disabled="false"
+        :disabled="loading"
       />
     </div>
 

@@ -1,8 +1,8 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRecipeStore } from "@/stores/recipeStore";
-import { useIngredientStore } from "@/stores/ingredientStore";
-import IngredientModal from "./IngredientModal.vue";
+import { ref, onMounted } from 'vue';
+import { useRecipeStore } from '@/stores/recipeStore';
+import { useIngredientStore } from '@/stores/ingredientStore';
+import IngredientModal from './IngredientModal.vue';
 
 const props = defineProps({
   recipeData: {
@@ -15,12 +15,13 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["update"]);
+const emit = defineEmits(['update']);
 
 const recipeStore = useRecipeStore();
 const ingredientStore = useIngredientStore();
 
-// Keep only essential local state
+// Add isExpanded state
+const isExpanded = ref(false);
 const showIngredientModal = ref(false);
 
 onMounted(async () => {
@@ -29,7 +30,7 @@ onMounted(async () => {
 });
 
 const emitUpdate = (updates) => {
-  emit("update", {
+  emit('update', {
     ...props.recipeData,
     ...updates,
   });
@@ -43,8 +44,9 @@ const handleRecipeSelect = async (newRecipeId) => {
         recipeId: newRecipeId,
         ingredients: recipe ? [...recipe.ingredients] : [],
       });
+
     } catch (error) {
-      console.error("Error fetching recipe:", error);
+      console.error('Error fetching recipe:', error);
       emitUpdate({
         recipeId: newRecipeId,
         ingredients: [],
@@ -59,6 +61,7 @@ const handleRecipeSelect = async (newRecipeId) => {
 };
 
 const handleRecipeSourceChange = (source) => {
+  if (props.recipeData.ingredients.length > 0 && !window.confirm('¿Estás seguro de querer cambiar origen y comenzar de nuevo?')) return;
   emitUpdate({
     recipeSource: source,
     recipeId: null,
@@ -89,9 +92,36 @@ const removeIngredient = (index) => {
 </script>
 
 <template>
-  <div>
-    <h3>Selección de Receta</h3>
+  <!-- Show compact view when recipe is selected and not expanded -->
+  <div v-if="props.recipeData.recipeId && !isExpanded">
 
+    <div>
+      <span>{{ recipeStore.items.find(r => r.id === props.recipeData.recipeId)?.ingredients.map(i =>`${i.name} (${i.quantity} ${i.unit})`).join(', ') }}</span>
+      <button
+        type="button"
+        @click="isExpanded = true"
+        :disabled="disabled"
+      >
+        Modificar Receta
+      </button>
+    </div>
+  </div>
+
+  <!-- Show initial button when no recipe selected and not expanded -->
+  <div v-else-if="!isExpanded">
+
+    <button
+      type="button"
+      @click="isExpanded = true"
+      :disabled="disabled"
+    >
+      Elegir Receta
+    </button>
+  </div>
+
+  <!-- Show full component when expanded -->
+  <div v-else class="flat-card">
+    <h3>Selección de Receta</h3>
     <div>
       <button
         type="button"
@@ -209,6 +239,15 @@ const removeIngredient = (index) => {
         Agregar Ingrediente
       </button>
     </div>
+
+    <!-- Cancel button to collapse the component -->
+    <button
+      type="button"
+      @click="isExpanded = false"
+      :disabled="disabled"
+    >
+      Guardar Receta
+    </button>
 
     <!-- Ingredient Modal Component -->
     <IngredientModal

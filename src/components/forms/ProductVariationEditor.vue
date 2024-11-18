@@ -51,8 +51,7 @@ const getValueStep = () => props.variationType === 'WEIGHT' ? '50' : '1';
 </script>
 
 <template>
-  <div>
-    <h3>Variación {{ index + 1 }}</h3>
+  <div class="flat-card">
 
     <div>
       <label>Nombre</label>
