@@ -23,7 +23,7 @@ onMounted(async () => {
   <section v-else class="grid grid-cols-[200px_1fr] transition-all" >
     <AdminSidebar />
     <div class="grid justify-items-center grid-cols-1 bg-neutral-150 py-5">
-
+      <RouterView />
     </div>
 
   </section>
