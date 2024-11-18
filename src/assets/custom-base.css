@@ -1,6 +1,6 @@
 @layer base {
     html {
-        @apply text-black bg-neutral-100;
+        @apply text-neutral-850 bg-neutral-100;
     }
 
     header {
