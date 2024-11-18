@@ -9,6 +9,36 @@
 
     .btn-danger {}
 
+    .form-container button {
+        @apply border-neutral-850 bg-primary text-white text-[13px] rounded-md p-2 mr-2 my-2 font-semibold;
+    }
+
+    .form-container button:hover {
+        @apply bg-primary/80;
+    }
+
+    .form-container .action-btn {
+        @apply border-neutral-850 bg-primary text-white text-[13px] rounded-md p-2 mr-2 my-2 font-semibold;
+    }
+
+    .form-container .action-btn:hover {
+        @apply bg-primary/80;
+    }
+
+    .form-container .utility-btn {
+        @apply px-3 py-1 font-medium rounded-md hover:bg-neutral-500 mx-0 w-10 text-center px-0;
+    }
+
+    .form-container .utility-btn-active {
+        @apply bg-neutral-500 text-white;
+    }
+
+    .form-container .utility-btn-inactive {
+        @apply bg-neutral-50 border border-neutral-500 hover:bg-neutral-100 text-neutral-850;
+    }
+
+
+
     /* Form Input Styles */
     .input-base {}
 
@@ -30,13 +60,13 @@
     }
 
     .form-container label {
-        @apply text-sm font-normal;
+        @apply text-[13px] font-normal;
     }
 
     .form-container input,
     .form-container select,
     .form-container textarea {
-        @apply w-full border text-sm border-neutral-850 bg-gray-200 rounded-md p-2;
+        @apply w-full border text-[13px] border-neutral-850 bg-gray-200 rounded-md p-2;
     }
 
     /* Target div containing checkbox/radio */
@@ -51,13 +81,7 @@
         @apply w-auto;
     }
 
-    .form-container button {
-        @apply border-neutral-850 bg-primary text-white rounded-md p-2 mr-2 my-2 font-semibold;
-    }
 
-    .form-container button:hover {
-        @apply bg-primary/80;
-    }
 
     .modal-overlay {
         @apply fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center w-full h-full;

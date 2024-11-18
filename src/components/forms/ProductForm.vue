@@ -4,6 +4,7 @@ import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import RecipeSelector from './RecipeSelector.vue';
 import ProductVariationEditor from './ProductVariationEditor.vue';
+import YesNoToggle from './YesNoToggle.vue';
 
 const emit = defineEmits(['submit', 'cancel']);
 
@@ -233,11 +234,9 @@ onMounted(async () => {
       </div>
 
       <div>
-        <label for="hasVariations">¿Tiene variaciones?</label>
-        <input
-          id="hasVariations"
-          type="checkbox"
+        <YesNoToggle
           v-model="formData.hasVariations"
+          label="¿Tiene variaciones?"
         />
       </div>
     </div>
@@ -263,11 +262,10 @@ onMounted(async () => {
 
       <!-- Whole Grain Toggle -->
       <div v-if="formData.variationType">
-        <label for="hasWholeGrain">¿Incluir versión integral?</label>
-        <input
-          id="hasWholeGrain"
-          type="checkbox"
+
+        <YesNoToggle
           v-model="formData.hasWholeGrain"
+          label="¿Incluir versión integral?"
         />
       </div>
 
