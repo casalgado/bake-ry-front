@@ -122,7 +122,7 @@ const removeIngredient = (index) => {
   <Teleport to="#app">
     <div v-if="showRecipeModal" class="form-container max-w-full  max-h-full modal-overlay">
       <div class="modal-content flat-card max-h-dvh overflow-y-auto" style="overscroll-behavior: none;">
-        <h2>Selección de Receta</h2>
+        <h4>Selección de Receta</h4>
 
         <!-- Recipe Source Selection -->
         <div>

@@ -194,7 +194,7 @@ onMounted(async () => {
   <form @submit.prevent="handleSubmit">
     <!-- Basic Information -->
     <div class="base-card">
-      <h2>Información Básica</h2>
+      <h4>Información Básica</h4>
 
       <div>
         <label for="productName">Nombre del Producto</label>
@@ -244,7 +244,7 @@ onMounted(async () => {
 
     <!-- Variations Section -->
     <div v-if="formData.hasVariations" class="base-card" >
-      <h2>Variaciones del Producto</h2>
+      <h4>Variaciones del Producto</h4>
 
       <!-- Variation Type Selection -->
       <div>
@@ -294,7 +294,7 @@ onMounted(async () => {
 
     <!-- Non-variation product details -->
     <div v-if="!formData.hasVariations" class="base-card">
-      <h2>Detalles del Producto</h2>
+      <h4>Detalles del Producto</h4>
 
       <div>
         <label for="basePrice">Precio Base</label>

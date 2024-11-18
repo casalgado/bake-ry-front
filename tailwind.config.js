@@ -68,6 +68,9 @@ export default {
         black: '#303030',
         white: '#FFFFFE',
       },
+      fontFamily: {
+        sans: ['Inter'],
+      },
     },
   },
   plugins: [],

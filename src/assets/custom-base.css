@@ -23,7 +23,7 @@
     }
 
     h1 {
-        @apply text-xl font-semibold mb-3;
+        @apply text-xl font-bold mb-3;
     }
 
     h2 {
@@ -31,19 +31,19 @@
     }
 
     h3 {
-        @apply text-base font-medium mb-2;
+        @apply text-base font-semibold mb-2;
     }
 
     h4 {
-        @apply text-sm font-medium mb-2;
+        @apply text-sm font-semibold mb-2;
     }
 
     h5 {
-        @apply text-sm font-medium mb-2;
+        @apply text-sm font-medium mb-1;
     }
 
     h6 {
-        @apply text-xs font-medium mb-2;
+        @apply text-xs font-medium mb-1;
     }
 
 }

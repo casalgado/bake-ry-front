@@ -36,7 +36,7 @@
     .form-container input,
     .form-container select,
     .form-container textarea {
-        @apply w-full border border-neutral-850 bg-gray-200 rounded-md p-2;
+        @apply w-full border text-sm border-neutral-850 bg-gray-200 rounded-md p-2;
     }
 
     /* Target div containing checkbox/radio */

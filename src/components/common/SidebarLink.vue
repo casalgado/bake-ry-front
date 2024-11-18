@@ -32,6 +32,6 @@ const handleClick = () => {
     }"
   >
     <component :is="icon" :size="20" :weight="isActive ? 'regular' : 'regular'" />
-    <h5 class="m-0 text-neutral-850">{{ text }}</h5>
+    <h4 class="m-0 ">{{ text }}</h4>
   </button>
 </template>
