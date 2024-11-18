@@ -33,17 +33,15 @@ export default {
           dark: '#FFFFFF',
         },
         neutral: {
-          50: '#FFFFFE', // Almost pure white with barely perceptible warmth
-          100: '#FDF8F6',
-          200: '#FAF6F3',
-          300: '#F1EDE9',
-          400: '#EBE7E3',
-          500: '#DDD8D4',
-          600: '#C5C0BB', // Getting darker with warm undertone
-          700: '#ABA5A0', // Medium-dark warm gray
-          800: '#8C8681', // Dark warm gray
-          900: '#6E6A66', // Very dark warm gray
-          950: '#403E3C',
+          100: '#F5F0EB',  // Very light brown
+          200: '#E6DFD8',  // Light brown
+          300: '#D4C8BC',  // Soft brown
+          400: '#B7A99A',  // Medium light brown
+          DEFAULT: '#8B7355', // BASE COLOR - DEFAULT
+          600: '#725F46',  // Darker brown
+          700: '#5A4A37',  // Deep brown
+          800: '#423628',  // Very dark brown
+          900: '#2A231A',  // Almost black brown
         },
         gray: {
           100: '#FFFFFF',
