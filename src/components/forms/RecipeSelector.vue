@@ -92,17 +92,20 @@ const removeIngredient = (index) => {
 
 <template>
   <!-- Show compact view when recipe is selected and not expanded -->
+
   <div v-if="props.recipeData.recipeId && !showRecipeModal">
 
     <div>
-      <span>{{ recipeStore.items.find(r => r.id === props.recipeData.recipeId)?.ingredients.map(i =>`${i.name} (${i.quantity} ${i.unit})`).join(', ') }}</span>
       <button
         type="button"
         @click="showRecipeModal = true"
         :disabled="disabled"
+        class="utility-btn"
       >
         Modificar Receta
       </button>
+      <h6>{{ recipeStore.items.find(r => r.id === props.recipeData.recipeId)?.ingredients.map(i =>`${i.name} (${i.quantity} ${i.unit})`).join(', ') }}</h6>
+
     </div>
   </div>
 
@@ -122,35 +125,41 @@ const removeIngredient = (index) => {
   <!-- Recipe Modal -->
   <Teleport to="#app">
     <div v-if="showRecipeModal" class="form-container max-w-full  max-h-full modal-overlay">
-      <div class="modal-content flat-card max-h-dvh overflow-y-auto" style="overscroll-behavior: none;">
+      <div class="modal-content flat-card max-h-dvh overflow-y-auto min-h-[300px]" style="overscroll-behavior: none;">
         <h4>Selección de Receta</h4>
 
         <!-- Recipe Source Selection -->
-        <div>
+        <div class="grid grid-cols-3 gap-x-3">
           <button
             type="button"
             @click="handleRecipeSourceChange('base')"
-            :class="{ active: recipeData.recipeSource === 'base' }"
+            :class="[
+              'utility-btn',
+              recipeData.recipeSource === null || recipeData.recipeSource === 'base'  ? 'utility-btn-active' : 'utility-btn-inactive'
+            ]"
             :disabled="disabled"
-            class="utility-btn"
           >
             Comenzar con Receta Base
           </button>
           <button
             type="button"
             @click="handleRecipeSourceChange('existing')"
-            :class="{ active: recipeData.recipeSource === 'existing' }"
+            :class="[
+              'utility-btn',
+              recipeData.recipeSource === null || recipeData.recipeSource === 'existing' ? 'utility-btn-active' : 'utility-btn-inactive'
+            ]"
             :disabled="disabled"
-            class="utility-btn"
           >
             Usar Receta Existente
           </button>
           <button
             type="button"
             @click="handleRecipeSourceChange('new')"
-            :class="{ active: recipeData.recipeSource === 'new' }"
+            :class="[
+              'utility-btn',
+              recipeData.recipeSource === null || recipeData.recipeSource === 'new' ? 'utility-btn-active' : 'utility-btn-inactive'
+            ]"
             :disabled="disabled"
-            class="utility-btn"
           >
             Crear Nueva Receta
           </button>
@@ -268,7 +277,6 @@ const removeIngredient = (index) => {
       </div>
       <!-- Ingredient Modal -->
       <IngredientModal
-        class="flat-card"
         :show="showIngredientModal"
         @close="showIngredientModal = false"
         @add="handleIngredientAdd"

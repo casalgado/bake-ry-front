@@ -114,23 +114,7 @@ const addVariation = () => {
 
 // Remove variation
 const removeVariation = (index) => {
-  if (formData.value.hasWholeGrain && formData.value.variationType !== 'CUSTOM') {
-    // If it's a regular variation, remove both regular and whole grain version
-    const isWholeGrain = formData.value.variations[index].isWholeGrain;
-    const baseIndex = isWholeGrain ?
-      index - formData.value.variations.filter(v => !v.isWholeGrain).length :
-      index;
-
-    // Remove both versions
-    formData.value.variations = formData.value.variations.filter((v, i) => {
-      if (isWholeGrain) {
-        return i !== index && i !== baseIndex;
-      }
-      return i !== index && i !== (baseIndex + formData.value.variations.filter(v => !v.isWholeGrain).length);
-    });
-  } else {
-    formData.value.variations.splice(index, 1);
-  }
+  formData.value.variations.splice(index, 1);
 };
 
 // Update variation
@@ -270,7 +254,7 @@ onMounted(async () => {
       </div>
 
       <!-- Variations List -->
-      <div v-if="formData.variationType" class="grid grid-cols-4 gap-4">
+      <div v-if="formData.variationType" class="grid grid-cols-4 gap-4 auto-rows-fr">
 
         <div v-for="(variation, index) in formData.variations" :key="index">
           <ProductVariationEditor
@@ -284,7 +268,7 @@ onMounted(async () => {
           />
         </div>
 
-        <button type="button" @click="addVariation" :disabled="loading">
+        <button type="button" @click="addVariation" :disabled="loading" class="utility-btn !m-0 !mb-4">
           Agregar Variación
         </button>
       </div>

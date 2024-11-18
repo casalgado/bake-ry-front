@@ -63,7 +63,7 @@ export default {
         },
         success: '#10B981',
         warning: '#F59E0B',
-        error: '#EF4444',
+        danger: '#7f1d1d',
         accent: '#EC4899',
         black: '#303030',
         white: '#FFFFFE',

@@ -23,6 +23,14 @@
         @apply bg-primary/80;
     }
 
+    .form-container .danger-btn {
+        @apply bg-danger text-white border-neutral-850;
+    }
+
+    .form-container .danger-btn:hover {
+        @apply bg-danger/80;
+    }
+
     /* Utility button - toggles, tools, minor actions */
     .form-container .utility-btn {
         @apply text-center bg-neutral-500 text-white;
@@ -55,7 +63,7 @@
 
     /* Form Styles */
     .form-container {
-        @apply max-w-[1000px] w-full mx-auto;
+        @apply max-w-[1000px] w-10/12;
     }
 
     .form-container label {
@@ -65,7 +73,7 @@
     .form-container input,
     .form-container select,
     .form-container textarea {
-        @apply w-full border text-[13px] border-neutral-850 bg-gray-200 rounded-md p-2;
+        @apply w-full border text-[13px] border-neutral-850 bg-gray-200 rounded-md p-2 py-1;
     }
 
     /* Target div containing checkbox/radio */

@@ -1,66 +1,66 @@
 <script setup>
 // IngredientModal.vue
-import { ref } from "vue";
-import { useIngredientStore } from "@/stores/ingredientStore";
+import { ref } from 'vue';
+import { useIngredientStore } from '@/stores/ingredientStore';
 
 const ingredientStore = useIngredientStore();
 
-const props = defineProps({
+defineProps({
   show: {
     type: Boolean,
     required: true,
   },
 });
 
-const emit = defineEmits(["close", "add"]);
+const emit = defineEmits(['close', 'add']);
 
 // Modal state
-const mode = ref("select"); // 'select' or 'create'
+const mode = ref('select'); // 'select' or 'create'
 const selectedIngredient = ref(null);
 const quantity = ref(0);
 
 // New ingredient state
 const newIngredient = ref({
-  name: "",
-  unit: "",
+  name: '',
+  unit: '',
 });
 
 const resetForm = () => {
-  mode.value = "select";
+  mode.value = 'select';
   selectedIngredient.value = null;
   quantity.value = 0;
   newIngredient.value = {
-    name: "",
-    unit: "",
+    name: '',
+    unit: '',
   };
 };
 
 const handleAdd = () => {
   if (
-    mode.value === "select" &&
+    mode.value === 'select' &&
     selectedIngredient.value &&
     quantity.value > 0
   ) {
     // Get the selected ingredient data
     const ingredient = ingredientStore.items.find(
-      (i) => i.id === selectedIngredient.value
+      (i) => i.id === selectedIngredient.value,
     );
 
-    emit("add", {
-      type: "existing",
+    emit('add', {
+      type: 'existing',
       ingredientId: selectedIngredient.value,
       name: ingredient.name,
       unit: ingredient.unit,
       quantity: quantity.value,
     });
   } else if (
-    mode.value === "create" &&
+    mode.value === 'create' &&
     newIngredient.value.name &&
     newIngredient.value.unit &&
     quantity.value > 0
   ) {
-    emit("add", {
-      type: "new",
+    emit('add', {
+      type: 'new',
       name: newIngredient.value.name,
       unit: newIngredient.value.unit,
       quantity: quantity.value,
@@ -68,33 +68,39 @@ const handleAdd = () => {
   }
 
   resetForm();
-  emit("close");
+  emit('close');
 };
 
 const handleClose = () => {
   resetForm();
-  emit("close");
+  emit('close');
 };
 </script>
 
 <template>
   <div v-if="show" class="modal">
-    <div class="modal-content">
+    <div class="modal-content flat-card min-h-[300px]">
       <h3>Agregar Ingrediente</h3>
 
       <!-- Mode Selection -->
-      <div>
+      <div class="grid grid-cols-2 gap-x-3">
         <button
           type="button"
           @click="mode = 'select'"
-          :class="{ active: mode === 'select' }"
+          :class="[
+            'utility-btn',
+            mode === 'select' ||  mode === ''  ? 'utility-btn-active' : 'utility-btn-inactive'
+          ]"
         >
           Seleccionar Existente
         </button>
         <button
           type="button"
           @click="mode = 'create'"
-          :class="{ active: mode === 'create' }"
+          :class="[
+            'utility-btn',
+            mode === 'create' ||  mode === ''  ? 'utility-btn-active' : 'utility-btn-inactive'
+          ]"
         >
           Crear Nuevo
         </button>
@@ -169,8 +175,8 @@ const handleClose = () => {
           @click="handleAdd"
           :disabled="
             (mode === 'select' && (!selectedIngredient || quantity <= 0)) ||
-            (mode === 'create' &&
-              (!newIngredient.name || !newIngredient.unit || quantity <= 0))
+              (mode === 'create' &&
+                (!newIngredient.name || !newIngredient.unit || quantity <= 0))
           "
         >
           Agregar

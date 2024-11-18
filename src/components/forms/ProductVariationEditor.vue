@@ -95,6 +95,7 @@ const getValueStep = () => props.variationType === 'WEIGHT' ? '50' : '1';
       type="button"
       @click="emit('remove')"
       :disabled="disabled"
+      class="danger-btn"
     >
       Eliminar Variación
     </button>

@@ -20,10 +20,10 @@ onMounted(async () => {
     <h2>Welcome! Get Started with Your Bakery</h2>
     <CreateBakery @success="handleSuccess" />
   </section>
-  <section class="grid grid-cols-[200px_1fr] transition-all" v-else>
+  <section v-else class="grid grid-cols-[200px_1fr] transition-all" >
     <AdminSidebar />
-    <div class="flex justify-center bg-neutral-150 p-5">
-      <RouterView class="w-full" />
+    <div class="grid justify-items-center grid-cols-1 bg-neutral-150 py-5">
+
     </div>
 
   </section>
