@@ -31,7 +31,7 @@ const formatTime = (time) => {
 
 <template>
   <article v-if="!loading && bakeryStore.currentBakery">
-    <header>
+    <div>
       <h1>{{ bakeryStore.currentBakery.name }}</h1>
       <address>
         {{ bakeryStore.currentBakery.address }}<br />
@@ -43,14 +43,14 @@ const formatTime = (time) => {
           bakeryStore.currentBakery.email
         }}</a>
       </address>
-    </header>
+    </div>
 
-    <section v-if="bakeryStore.currentBakery.description">
+    <div v-if="bakeryStore.currentBakery.description">
       <h2>About</h2>
       <p>{{ bakeryStore.currentBakery.description }}</p>
-    </section>
+    </div>
 
-    <section>
+    <div>
       <h2>Operating Hours</h2>
       <dl>
         <template
@@ -67,9 +67,9 @@ const formatTime = (time) => {
           </dd>
         </template>
       </dl>
-    </section>
+    </div>
 
-    <section v-if="bakeryStore.currentBakery.socialMedia">
+    <div v-if="bakeryStore.currentBakery.socialMedia">
       <h2>Social Media</h2>
       <ul>
         <li
@@ -81,7 +81,7 @@ const formatTime = (time) => {
           </a>
         </li>
       </ul>
-    </section>
+    </div>
   </article>
 
   <p v-else-if="error">{{ error }}</p>

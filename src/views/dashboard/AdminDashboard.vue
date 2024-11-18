@@ -22,7 +22,7 @@ onMounted(async () => {
   </section>
   <section class="grid grid-cols-[200px_1fr] transition-all" v-else>
     <AdminSidebar />
-    <div class="flex justify-center bg-neutral-200 p-5">
+    <div class="flex justify-center bg-neutral-150 p-5">
       <RouterView class="w-full" />
     </div>
 
