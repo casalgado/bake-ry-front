@@ -43,7 +43,7 @@ const handleRecipeSelect = async (newRecipeId) => {
         recipeId: newRecipeId,
         ingredients: recipe ? [...recipe.ingredients] : [],
       });
-      showRecipeModal.value = false;
+
     } catch (error) {
       console.error('Error fetching recipe:', error);
       emitUpdate({
@@ -120,8 +120,8 @@ const removeIngredient = (index) => {
 
   <!-- Recipe Modal -->
   <Teleport to="#app">
-    <div v-if="showRecipeModal" class="form-container max-w-full  modal-overlay">
-      <div class="modal-content flat-card">
+    <div v-if="showRecipeModal" class="form-container max-w-full  max-h-full modal-overlay">
+      <div class="modal-content flat-card max-h-dvh overflow-y-auto" style="overscroll-behavior: none;">
         <h2>Selección de Receta</h2>
 
         <!-- Recipe Source Selection -->
@@ -211,6 +211,7 @@ const removeIngredient = (index) => {
             <div
               v-for="(ingredient, index) in recipeData.ingredients"
               :key="index"
+              class="flex items-center justify-between"
             >
               <span>{{ ingredient.name }}</span>
               <input
@@ -256,14 +257,17 @@ const removeIngredient = (index) => {
             Guardar Receta
           </button>
         </div>
+
       </div>
+      <!-- Ingredient Modal -->
+      <IngredientModal
+        class="flat-card"
+        :show="showIngredientModal"
+        @close="showIngredientModal = false"
+        @add="handleIngredientAdd"
+      />
+
     </div>
   </Teleport>
 
-  <!-- Ingredient Modal -->
-  <IngredientModal
-    :show="showIngredientModal"
-    @close="showIngredientModal = false"
-    @add="handleIngredientAdd"
-  />
 </template>
