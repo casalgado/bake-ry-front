@@ -63,7 +63,7 @@
 
     /* Form Styles */
     .form-container {
-        @apply max-w-[1000px] w-10/12;
+        @apply max-w-[800px] w-10/12;
     }
 
     .form-container label {
