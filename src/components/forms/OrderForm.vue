@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useProductStore } from '@/stores/productStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
+import UserCombox from '@/components/forms/UserCombox.vue';
 
 const props = defineProps({
   initialData: {
@@ -112,18 +113,8 @@ const handleVariationSelect = (variationId) => {
   currentItem.value.unitPrice = variation.basePrice;
 };
 
-const handleUserSelect = (userId) => {
-  if (!userId) {
-    formData.value.userId = '';
-    formData.value.userName = '';
-    formData.value.userEmail = '';
-    formData.value.userPhone = '';
-    formData.value.deliveryAddress = '';
-    return;
-  }
-
-  const user = userStore.getById(userId);
-  formData.value.userId = userId;
+const handleUserChange = (user) => {
+  formData.value.userId = user.id;
   formData.value.userName = user.name;
   formData.value.userEmail = user.email;
   formData.value.userPhone = user.phone;
@@ -204,16 +195,13 @@ const fulfillmentTypes = [
     <div class="base-card">
       <div>
         <label for="client-select">Cliente</label>
-        <select
-          id="client-select"
+        <UserCombox
           v-model="formData.userId"
-          @change="handleUserSelect($event.target.value)"
-        >
-          <option value="">Seleccionar cliente</option>
-          <option v-for="user in userStore.items" :key="user.id" :value="user.id">
-            {{ user.name }}
-          </option>
-        </select>
+          :users="userStore.items"
+          :error="errors.userId"
+          :required="true"
+          @change="handleUserChange"
+        />
         <span v-if="errors.userId">{{ errors.userId }}</span>
       </div>
 
