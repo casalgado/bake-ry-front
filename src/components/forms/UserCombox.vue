@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import {
   Combobox,
   ComboboxInput,
@@ -50,6 +50,15 @@ const handleSelect = (userId) => {
   const user = props.users.find(u => u.id === userId);
   emit('change', user);
 };
+
+const inputRef = ref(null);
+
+onMounted(async () => {
+  await nextTick();
+  // Find the actual input element
+  const input = document.querySelector('[role="combobox"]');
+  input?.focus();
+});
 </script>
 <template>
   <div>
@@ -60,6 +69,7 @@ const handleSelect = (userId) => {
       <div class="relative">
         <div class="relative w-full">
           <ComboboxInput
+            ref="inputRef"
             @change="query = $event.target.value"
             :displayValue="(userId) => props.users.find(u => u.id === userId)?.name || ''"
           />
