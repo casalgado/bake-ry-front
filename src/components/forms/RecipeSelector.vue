@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue';
 import { useRecipeStore } from '@/stores/recipeStore';
 import { useIngredientStore } from '@/stores/ingredientStore';
 import IngredientSelector from './IngredientSelector.vue';
@@ -62,7 +63,7 @@ const handleRecipeSourceChange = (source) => {
   if (
     props.recipeData.ingredients.length > 0 &&
     !window.confirm(
-      '¿Estás seguro de querer cambiar origen y comenzar de nuevo?'
+      '¿Estás seguro de querer cambiar origen y comenzar de nuevo?',
     )
   )
     return;
@@ -97,7 +98,6 @@ const removeIngredient = (index) => {
 
 <template>
   <!-- Show compact view when recipe is selected and not expanded -->
-
   <div v-if="props.recipeData.recipeId && !showRecipeModal">
     <div>
       <button
@@ -138,105 +138,111 @@ const removeIngredient = (index) => {
       class="form-container max-w-full max-h-full modal-overlay"
     >
       <div
-        class="modal-content flat-card max-h-dvh overflow-y-auto min-h-[300px] min-w-[620px]"
+        class="modal-content flat-card max-h-dvh overflow-y-auto min-h-[300px] w-[620px]"
         style="overscroll-behavior: none"
       >
         <h4>Selección de Receta</h4>
 
-        <!-- Recipe Source Selection -->
-        <div class="grid grid-cols-3 gap-x-3">
-          <button
-            type="button"
-            @click="handleRecipeSourceChange('base')"
-            :class="[
-              'utility-btn',
-              recipeData.recipeSource === null ||
-              recipeData.recipeSource === 'base'
-                ? 'utility-btn-active'
-                : 'utility-btn-inactive',
-            ]"
-            :disabled="disabled"
-          >
-            Comenzar con Receta Base
-          </button>
-          <button
-            type="button"
-            @click="handleRecipeSourceChange('existing')"
-            :class="[
-              'utility-btn',
-              recipeData.recipeSource === null ||
-              recipeData.recipeSource === 'existing'
-                ? 'utility-btn-active'
-                : 'utility-btn-inactive',
-            ]"
-            :disabled="disabled"
-          >
-            Usar Receta Existente
-          </button>
-          <button
-            type="button"
-            @click="handleRecipeSourceChange('new')"
-            :class="[
-              'utility-btn',
-              recipeData.recipeSource === null ||
-              recipeData.recipeSource === 'new'
-                ? 'utility-btn-active'
-                : 'utility-btn-inactive',
-            ]"
-            :disabled="disabled"
-          >
-            Crear Nueva Receta
-          </button>
-        </div>
-
-        <!-- Base Recipe Selection -->
-        <div v-if="recipeData.recipeSource === 'base'">
-          <label>
-            Selecciona una receta base para comenzar. Podrás personalizarla
-            después.
-          </label>
-          <select
-            :value="recipeData.recipeId"
-            @change="handleRecipeSelect($event.target.value)"
-            :disabled="disabled"
-          >
-            <option value="">Seleccionar receta base</option>
-            <option
-              v-for="recipe in recipeStore.items.filter((r) => r.isBase)"
-              :key="recipe.id"
-              :value="recipe.id"
+        <TabGroup
+          @change="(index) => handleRecipeSourceChange(['base', 'existing', 'new'][index])"
+          :defaultIndex="['base', 'existing', 'new'].indexOf(props.recipeData.recipeSource)"
+        >
+          <TabList class="grid grid-cols-3 gap-x-3">
+            <Tab
+              v-slot="{ selected }"
+              :disabled="disabled"
             >
-              {{ recipe.name }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Existing Recipe Selection -->
-        <div v-if="recipeData.recipeSource === 'existing'">
-          <label>
-            Selecciona una de tus recetas existentes. Podrás modificarla si lo
-            necesitas.
-          </label>
-          <select
-            :value="recipeData.recipeId"
-            @change="handleRecipeSelect($event.target.value)"
-            :disabled="disabled"
-          >
-            <option value="">Seleccionar receta existente</option>
-            <option
-              v-for="recipe in recipeStore.items.filter((r) => !r.isBase)"
-              :key="recipe.id"
-              :value="recipe.id"
+              <button
+                type="button"
+                :class="[
+                  'utility-btn',
+                  selected ? 'utility-btn-active' : 'utility-btn-inactive',
+                ]"
+              >
+                Comenzar con Receta Base
+              </button>
+            </Tab>
+            <Tab
+              v-slot="{ selected }"
+              :disabled="disabled"
             >
-              {{ recipe.name }}
-            </option>
-          </select>
-        </div>
+              <button
+                type="button"
+                :class="[
+                  'utility-btn',
+                  selected ? 'utility-btn-active' : 'utility-btn-inactive',
+                ]"
+              >
+                Usar Receta Existente
+              </button>
+            </Tab>
+            <Tab
+              v-slot="{ selected }"
+              :disabled="disabled"
+            >
+              <button
+                type="button"
+                :class="[
+                  'utility-btn',
+                  selected ? 'utility-btn-active' : 'utility-btn-inactive',
+                ]"
+              >
+                Crear Nueva Receta
+              </button>
+            </Tab>
+          </TabList>
 
-        <!-- New Recipe Creation -->
-        <div v-if="recipeData.recipeSource === 'new'">
-          <label>Crea una nueva receta desde cero para este producto.</label>
-        </div>
+          <TabPanels>
+            <!-- Base Recipe Selection -->
+            <TabPanel>
+              <label>
+                Selecciona una receta base para comenzar. Podrás personalizarla
+                después.
+              </label>
+              <select
+                :value="recipeData.recipeId"
+                @change="handleRecipeSelect($event.target.value)"
+                :disabled="disabled"
+              >
+                <option value="">Seleccionar receta base</option>
+                <option
+                  v-for="recipe in recipeStore.items.filter((r) => r.isBase)"
+                  :key="recipe.id"
+                  :value="recipe.id"
+                >
+                  {{ recipe.name }}
+                </option>
+              </select>
+            </TabPanel>
+
+            <!-- Existing Recipe Selection -->
+            <TabPanel>
+              <label>
+                Selecciona una de tus recetas existentes. Podrás modificarla si lo
+                necesitas.
+              </label>
+              <select
+                :value="recipeData.recipeId"
+                @change="handleRecipeSelect($event.target.value)"
+                :disabled="disabled"
+              >
+                <option value="">Seleccionar receta existente</option>
+                <option
+                  v-for="recipe in recipeStore.items.filter((r) => !r.isBase)"
+                  :key="recipe.id"
+                  :value="recipe.id"
+                >
+                  {{ recipe.name }}
+                </option>
+              </select>
+            </TabPanel>
+
+            <!-- New Recipe Creation -->
+            <TabPanel>
+              <label>Crea una nueva receta desde cero para este producto.</label>
+            </TabPanel>
+          </TabPanels>
+        </TabGroup>
 
         <!-- Ingredients Section -->
         <div v-if="recipeData.recipeSource === 'new' || recipeData.recipeId">
@@ -297,6 +303,7 @@ const removeIngredient = (index) => {
           </button>
         </div>
       </div>
+
       <!-- Ingredient Modal -->
       <IngredientSelector
         :show="showIngredientSelector"

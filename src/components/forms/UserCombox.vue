@@ -39,10 +39,10 @@ const filteredUsers = computed(() => {
     query.value === ''
       ? props.users
       : props.users.filter((user) => {
-          const searchQuery = query.value.toLowerCase();
-          const userName = user.name.toLowerCase();
-          return userName.includes(searchQuery); // Using startsWith instead of includes
-        });
+        const searchQuery = query.value.toLowerCase();
+        const userName = user.name.toLowerCase();
+        return userName.includes(searchQuery); // Using startsWith instead of includes
+      });
 
   return filtered.slice(0, 50); // Only show first 50 results
 });
@@ -61,7 +61,7 @@ watch(
       handleSelect(users[0].id);
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 const inputRef = ref(null);

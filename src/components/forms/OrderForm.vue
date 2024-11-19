@@ -42,7 +42,7 @@ const formData = ref(
     paymentMethod: 'cash',
     customerNotes: '',
     internalNotes: '',
-  }
+  },
 );
 
 const currentItem = ref({
