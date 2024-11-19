@@ -43,7 +43,7 @@ const handleAdd = () => {
   ) {
     // Get the selected ingredient data
     const ingredient = ingredientStore.items.find(
-      (i) => i.id === selectedIngredient.value,
+      (i) => i.id === selectedIngredient.value
     );
 
     emit('add', {
@@ -89,7 +89,9 @@ const handleClose = () => {
           @click="mode = 'select'"
           :class="[
             'utility-btn',
-            mode === 'select' ||  mode === ''  ? 'utility-btn-active' : 'utility-btn-inactive'
+            mode === 'select' || mode === ''
+              ? 'utility-btn-active'
+              : 'utility-btn-inactive',
           ]"
         >
           Seleccionar Existente
@@ -99,7 +101,9 @@ const handleClose = () => {
           @click="mode = 'create'"
           :class="[
             'utility-btn',
-            mode === 'create' ||  mode === ''  ? 'utility-btn-active' : 'utility-btn-inactive'
+            mode === 'create' || mode === ''
+              ? 'utility-btn-active'
+              : 'utility-btn-inactive',
           ]"
         >
           Crear Nuevo
@@ -175,8 +179,8 @@ const handleClose = () => {
           @click="handleAdd"
           :disabled="
             (mode === 'select' && (!selectedIngredient || quantity <= 0)) ||
-              (mode === 'create' &&
-                (!newIngredient.name || !newIngredient.unit || quantity <= 0))
+            (mode === 'create' &&
+              (!newIngredient.name || !newIngredient.unit || quantity <= 0))
           "
         >
           Agregar
