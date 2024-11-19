@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useProductStore } from '@/stores/productStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
@@ -26,22 +26,24 @@ tomorrow.setDate(tomorrow.getDate() + 1);
 const tomorrowString = tomorrow.toISOString().split('T')[0];
 
 // Form state
-const formData = ref(props.initialData || {
-  userId: '',
-  userName: '',
-  userEmail: '',
-  userPhone: '',
-  items: [],
-  preparationDate: tomorrowString,
-  dueDate: tomorrowString,
-  fulfillmentType: 'delivery',
-  deliveryAddress: '',
-  deliveryInstructions: '',
-  deliveryFee: 0,
-  paymentMethod: 'cash',
-  customerNotes: '',
-  internalNotes: '',
-});
+const formData = ref(
+  props.initialData || {
+    userId: '',
+    userName: '',
+    userEmail: '',
+    userPhone: '',
+    items: [],
+    preparationDate: tomorrowString,
+    dueDate: tomorrowString,
+    fulfillmentType: 'delivery',
+    deliveryAddress: '',
+    deliveryInstructions: '',
+    deliveryFee: 0,
+    paymentMethod: 'cash',
+    customerNotes: '',
+    internalNotes: '',
+  }
+);
 
 const currentItem = ref({
   productId: '',
@@ -57,21 +59,20 @@ const selectedProduct = ref(null);
 const showAddItem = ref(false);
 
 onMounted(async () => {
-  await Promise.all([
-    productStore.fetchAll(),
-    userStore.fetchAll(),
-  ]);
+  await Promise.all([productStore.fetchAll(), userStore.fetchAll()]);
 });
 
 const availableVariations = computed(() => {
   if (!selectedProduct.value) return [];
 
   if (!selectedProduct.value.variations?.length) {
-    return [{
-      id: 'base',
-      name: selectedProduct.value.name,
-      basePrice: selectedProduct.value.basePrice,
-    }];
+    return [
+      {
+        id: 'base',
+        name: selectedProduct.value.name,
+        basePrice: selectedProduct.value.basePrice,
+      },
+    ];
   }
 
   return selectedProduct.value.variations;
@@ -108,17 +109,25 @@ const handleVariationSelect = (variationId) => {
     return;
   }
 
-  const variation = availableVariations.value.find(v => v.id === variationId);
-  currentItem.value.productVariantId = variation.id === 'base' ? null : variation.id;
+  const variation = availableVariations.value.find((v) => v.id === variationId);
+  currentItem.value.productVariantId =
+    variation.id === 'base' ? null : variation.id;
   currentItem.value.unitPrice = variation.basePrice;
 };
 
-const handleUserChange = (user) => {
+const fulfillmentTypeInput = ref(null);
+
+const handleUserChange = async (user) => {
   formData.value.userId = user.id;
   formData.value.userName = user.name;
   formData.value.userEmail = user.email;
   formData.value.userPhone = user.phone;
   formData.value.deliveryAddress = user.address;
+  await nextTick();
+  setTimeout(() => {
+    console.log(fulfillmentTypeInput);
+    fulfillmentTypeInput.value[0].focus();
+  }, 0);
 };
 
 const addOrderItem = () => {
@@ -154,20 +163,28 @@ const removeOrderItem = (index) => {
 };
 
 const toggleItemComplimentary = (index) => {
-  formData.value.items[index].isComplimentary = !formData.value.items[index].isComplimentary;
+  formData.value.items[index].isComplimentary =
+    !formData.value.items[index].isComplimentary;
 };
 
 const validate = () => {
   errors.value = {};
 
   if (!formData.value.userId) errors.value.userId = 'Cliente es requerido';
-  if (!formData.value.items.length) errors.value.items = 'Se requiere al menos un producto';
-  if (!formData.value.preparationDate) errors.value.preparationDate = 'Fecha de preparación es requerida';
-  if (!formData.value.dueDate) errors.value.dueDate = 'Fecha de entrega es requerida';
-  if (!formData.value.deliveryAddress) errors.value.deliveryAddress = 'Dirección de entrega es requerida';
+  if (!formData.value.items.length)
+    errors.value.items = 'Se requiere al menos un producto';
+  if (!formData.value.preparationDate)
+    errors.value.preparationDate = 'Fecha de preparación es requerida';
+  if (!formData.value.dueDate)
+    errors.value.dueDate = 'Fecha de entrega es requerida';
+  if (!formData.value.deliveryAddress)
+    errors.value.deliveryAddress = 'Dirección de entrega es requerida';
 
-  if (new Date(formData.value.dueDate) < new Date(formData.value.preparationDate)) {
-    errors.value.dueDate = 'La fecha de entrega no puede ser anterior a la fecha de preparación';
+  if (
+    new Date(formData.value.dueDate) < new Date(formData.value.preparationDate)
+  ) {
+    errors.value.dueDate =
+      'La fecha de entrega no puede ser anterior a la fecha de preparación';
   }
 
   return Object.keys(errors.value).length === 0;
@@ -229,7 +246,7 @@ const fulfillmentTypes = [
     </div>
 
     <div class="base-card">
-      <legend>Tipo de Entrega</legend>
+      <legend>Envio</legend>
       <div>
         <div v-for="type in fulfillmentTypes" :key="type.value">
           <input
@@ -237,30 +254,23 @@ const fulfillmentTypes = [
             :id="'fulfillment-' + type.value"
             :value="type.value"
             v-model="formData.fulfillmentType"
-          >
+            ref="fulfillmentTypeInput"
+          />
           <label :for="'fulfillment-' + type.value">{{ type.label }}</label>
         </div>
       </div>
-
-      <div>
+      <div v-if="formData.fulfillmentType == 'delivery'">
         <label for="delivery-address">Dirección de Entrega</label>
         <input
           id="delivery-address"
           type="text"
           v-model="formData.deliveryAddress"
+          ref="deliveryAddressInput"
         />
         <span v-if="errors.deliveryAddress">{{ errors.deliveryAddress }}</span>
       </div>
 
-      <div>
-        <label for="delivery-instructions">Instrucciones de Entrega</label>
-        <textarea
-          id="delivery-instructions"
-          v-model="formData.deliveryInstructions"
-        ></textarea>
-      </div>
-
-      <div>
+      <div v-if="formData.fulfillmentType == 'delivery'">
         <label for="delivery-fee">Costo de Envío</label>
         <input
           id="delivery-fee"
@@ -269,10 +279,18 @@ const fulfillmentTypes = [
           min="0"
         />
       </div>
+
+      <!-- <div>
+        <label for="delivery-instructions">Instrucciones de Entrega</label>
+        <textarea
+          id="delivery-instructions"
+          v-model="formData.deliveryInstructions"
+        ></textarea>
+      </div> -->
     </div>
 
     <div class="base-card">
-      <legend>Método de Pago</legend>
+      <legend>Pago</legend>
       <div>
         <div v-for="method in paymentMethods" :key="method.value">
           <input
@@ -280,7 +298,7 @@ const fulfillmentTypes = [
             :id="'payment-' + method.value"
             :value="method.value"
             v-model="formData.paymentMethod"
-          >
+          />
           <label :for="'payment-' + method.value">{{ method.label }}</label>
         </div>
       </div>
@@ -288,7 +306,7 @@ const fulfillmentTypes = [
 
     <div class="base-card">
       <div>
-        <label for="internal-notes">Notas Internas</label>
+        <label for="internal-notes">Comentarios</label>
         <textarea
           id="internal-notes"
           v-model="formData.internalNotes"
@@ -309,26 +327,16 @@ const fulfillmentTypes = [
           <span v-if="!item.isComplimentary">
             {{ item.unitPrice * item.quantity }}
           </span>
-          <button
-            type="button"
-            @click="toggleItemComplimentary(index)"
-          >
+          <button type="button" @click="toggleItemComplimentary(index)">
             {{ item.isComplimentary ? 'Hacer Pagado' : 'Hacer Cortesía' }}
           </button>
-          <button
-            type="button"
-            @click="removeOrderItem(index)"
-          >
+          <button type="button" @click="removeOrderItem(index)">
             Eliminar
           </button>
         </div>
       </div>
 
-      <button
-        type="button"
-        @click="showAddItem = true"
-        v-if="!showAddItem"
-      >
+      <button type="button" @click="showAddItem = true" v-if="!showAddItem">
         Agregar Producto
       </button>
 
@@ -341,7 +349,11 @@ const fulfillmentTypes = [
             @change="handleProductSelect($event.target.value)"
           >
             <option value="">Seleccionar producto</option>
-            <option v-for="product in productStore.items" :key="product.id" :value="product.id">
+            <option
+              v-for="product in productStore.items"
+              :key="product.id"
+              :value="product.id"
+            >
               {{ product.name }}
             </option>
           </select>
@@ -355,7 +367,11 @@ const fulfillmentTypes = [
             @change="handleVariationSelect($event.target.value)"
           >
             <option value="">Seleccionar variación</option>
-            <option v-for="variation in availableVariations" :key="variation.id" :value="variation.id">
+            <option
+              v-for="variation in availableVariations"
+              :key="variation.id"
+              :value="variation.id"
+            >
               {{ variation.name }} - {{ variation.basePrice }}
             </option>
           </select>

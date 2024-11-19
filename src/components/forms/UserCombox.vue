@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import {
   Combobox,
   ComboboxInput,
@@ -15,7 +15,8 @@ const props = defineProps({
     type: String,
     default: '',
   },
-  users: {  // Parent just passes the users array
+  users: {
+    // Parent just passes the users array
     type: Array,
     required: true,
   },
@@ -34,22 +35,34 @@ const emit = defineEmits(['update:modelValue', 'change']);
 // Keep search/filter logic in the component
 const query = ref('');
 const filteredUsers = computed(() => {
-  const filtered = query.value === ''
-    ? props.users
-    : props.users.filter(user => {
-      const searchQuery = query.value.toLowerCase();
-      const userName = user.name.toLowerCase();
-      return userName.includes(searchQuery); // Using startsWith instead of includes
-    });
+  const filtered =
+    query.value === ''
+      ? props.users
+      : props.users.filter((user) => {
+          const searchQuery = query.value.toLowerCase();
+          const userName = user.name.toLowerCase();
+          return userName.includes(searchQuery); // Using startsWith instead of includes
+        });
 
   return filtered.slice(0, 50); // Only show first 50 results
 });
 
 const handleSelect = (userId) => {
   emit('update:modelValue', userId);
-  const user = props.users.find(u => u.id === userId);
+  const user = props.users.find((u) => u.id === userId);
   emit('change', user);
 };
+
+// Watch filteredUsers for single result
+watch(
+  filteredUsers,
+  (users) => {
+    if (users.length === 1 && query.value) {
+      handleSelect(users[0].id);
+    }
+  },
+  { immediate: true }
+);
 
 const inputRef = ref(null);
 
@@ -62,18 +75,19 @@ onMounted(async () => {
 </script>
 <template>
   <div>
-    <Combobox
-      :modelValue="modelValue"
-      @update:modelValue="handleSelect"
-    >
+    <Combobox :modelValue="modelValue" @update:modelValue="handleSelect">
       <div class="relative">
         <div class="relative w-full">
           <ComboboxInput
             ref="inputRef"
             @change="query = $event.target.value"
-            :displayValue="(userId) => props.users.find(u => u.id === userId)?.name || ''"
+            :displayValue="
+              (userId) => props.users.find((u) => u.id === userId)?.name || ''
+            "
           />
-          <ComboboxButton class="absolute inset-y-0 right-0 flex items-center pr-2">
+          <ComboboxButton
+            class="absolute inset-y-0 right-0 flex items-center pr-2"
+          >
             <PhCaretUpDown />
           </ComboboxButton>
         </div>
@@ -83,20 +97,22 @@ onMounted(async () => {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <ComboboxOptions class="absolute mt-1 w-full  rounded-md bg-white py-1  shadow-lg text-[13px] z-10">
+          <ComboboxOptions
+            class="absolute mt-1 w-full rounded-md bg-white py-1 shadow-lg text-[13px] z-10"
+          >
             <ComboboxOption
               v-for="user in filteredUsers"
               :key="user.id"
               :value="user.id"
               v-slot="{ selected, active }"
-
             >
               <div
-                class="cursor-default select-none  pl-2 py-1"
+                class="cursor-default select-none pl-2 py-1"
                 :class="{
                   'bg-blue-500 text-white': active,
-                  'font-bold': selected
-                }">
+                  'font-bold': selected,
+                }"
+              >
                 {{ user.name }}
               </div>
             </ComboboxOption>
