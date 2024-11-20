@@ -3,6 +3,7 @@ import { ref, computed, onMounted, nextTick } from 'vue';
 import { useProductStore } from '@/stores/productStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
+import ProductWizard from '@/components/forms/ProductWizard.vue';
 
 const props = defineProps({
   initialData: {
@@ -205,10 +206,15 @@ const fulfillmentTypes = [
   { value: 'pickup', label: 'Recoger' },
   { value: 'delivery', label: 'Domicilio' },
 ];
+
+const handleWizardSelect = (selection) => {
+  console.log(selection);
+};
 </script>
 
 <template>
   <form @submit.prevent="handleSubmit">
+    <ProductWizard @select="handleWizardSelect" :products="productStore.items" />
     <div class="base-card">
       <div>
         <label for="client-select">Cliente</label>
