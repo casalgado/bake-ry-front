@@ -11,6 +11,13 @@ const props = defineProps({
 
 const emit = defineEmits(['select']);
 
+// Key mapping object
+const keyMap = {
+  'z': 1, 'x': 2, 'c': 3,
+  'a': 4, 's': 5, 'd': 6,
+  'q': 7, 'w': 8, 'e': 9,
+};
+
 const currentStep = ref('category');
 const selectedCategory = ref(null);
 const selectedProduct = ref(null);
@@ -110,27 +117,38 @@ const handleBackKey = () => {
     currentStep.value = 'product';
     break;
   }
-  highlightedIndex.value = null; //
+  highlightedIndex.value = null;
+};
+
+const getKeyIndex = (key) => {
+  if (/^[1-9]$/.test(key)) {
+    return parseInt(key) - 1;
+  }
+  return keyMap[key.toLowerCase()] ? keyMap[key.toLowerCase()] - 1 : null;
 };
 
 const handleKeydown = (event) => {
-  if (/^[1-9]$/.test(event.key)) {
+  const index = getKeyIndex(event.key);
+
+  if (index !== null) {
     event.preventDefault();
-    highlightedIndex.value = parseInt(event.key) - 1;
-  } else if (event.key === '0') {
+    highlightedIndex.value = index;
+  } else if (event.key === '0' || event.key === ' ') {
     event.preventDefault();
     highlightedIndex.value = null;
   }
 };
 
 const handleKeyup = (event) => {
-  if (/^[1-9]$/.test(event.key)) {
+  const index = getKeyIndex(event.key);
+
+  if (index !== null) {
     event.preventDefault();
-    if (highlightedIndex.value === parseInt(event.key) - 1) {
-      handleSelection(highlightedIndex.value);
+    if (highlightedIndex.value === index) {
+      handleSelection(index);
     }
     highlightedIndex.value = null;
-  } else if (event.key === '0') {
+  } else if (event.key === '0' || event.key === ' ') {
     event.preventDefault();
     handleBackKey();
   }
@@ -211,6 +229,7 @@ const getOptionDisplay = (option, index) => {
     </div>
   </div>
 </template>
+
 <style scoped lang="scss">
 .grid-button {
   @apply relative flex items-center justify-center border rounded p-2 text-center;
