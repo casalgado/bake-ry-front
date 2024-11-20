@@ -15,6 +15,7 @@ const currentStep = ref('category');
 const selectedCategory = ref(null);
 const selectedProduct = ref(null);
 const selectedVariation = ref(null);
+const highlightedIndex = ref(null);
 
 // Get unique categories
 const categories = computed(() =>
@@ -95,6 +96,7 @@ const resetSelection = () => {
   selectedCategory.value = null;
   selectedProduct.value = null;
   selectedVariation.value = null;
+  highlightedIndex.value = null;
 };
 
 const handleBackKey = () => {
@@ -108,18 +110,29 @@ const handleBackKey = () => {
     currentStep.value = 'product';
     break;
   }
+  highlightedIndex.value = null; //
 };
 
 const handleKeydown = (event) => {
-  // Prevent default behavior for number keys
-  if (/^[0-9]$/.test(event.key)) {
+  if (/^[1-9]$/.test(event.key)) {
     event.preventDefault();
+    highlightedIndex.value = parseInt(event.key) - 1;
+  } else if (event.key === '0') {
+    event.preventDefault();
+    highlightedIndex.value = null;
+  }
+};
 
-    if (event.key === '0') {
-      handleBackKey();
-    } else {
-      handleSelection(parseInt(event.key) - 1);
+const handleKeyup = (event) => {
+  if (/^[1-9]$/.test(event.key)) {
+    event.preventDefault();
+    if (highlightedIndex.value === parseInt(event.key) - 1) {
+      handleSelection(highlightedIndex.value);
     }
+    highlightedIndex.value = null;
+  } else if (event.key === '0') {
+    event.preventDefault();
+    handleBackKey();
   }
 };
 
@@ -148,6 +161,7 @@ const getOptionDisplay = (option, index) => {
     class="relative w-80 aspect-square"
     tabindex="0"
     @keydown="handleKeydown"
+    @keyup="handleKeyup"
   >
 
     <!-- Grid with numpad layout -->
@@ -156,7 +170,7 @@ const getOptionDisplay = (option, index) => {
         v-for="i in [7,8,9]"
         :key="i"
         class="grid-button"
-        :class="{'invisible': !currentOptions[i-1]}"
+        :class="{'invisible': !currentOptions[i-1], 'highlighted': highlightedIndex === i-1}"
         @click="handleOptionClick(i-1)"
       >
         <span class="button-number">{{ i }}</span>
@@ -167,7 +181,7 @@ const getOptionDisplay = (option, index) => {
         v-for="i in [4,5,6]"
         :key="i"
         class="grid-button"
-        :class="{'invisible': !currentOptions[i-1]}"
+        :class="{'invisible': !currentOptions[i-1], 'highlighted': highlightedIndex === i-1}"
         @click="handleOptionClick(i-1)"
       >
         <span class="button-number">{{ i }}</span>
@@ -178,7 +192,7 @@ const getOptionDisplay = (option, index) => {
         v-for="i in [1,2,3]"
         :key="i"
         class="grid-button"
-        :class="{'invisible': !currentOptions[i-1]}"
+        :class="{'invisible': !currentOptions[i-1], 'highlighted': highlightedIndex === i-1}"
         @click="handleOptionClick(i-1)"
       >
         <span class="button-number">{{ i }}</span>
@@ -204,5 +218,9 @@ const getOptionDisplay = (option, index) => {
 
 .button-number {
   @apply absolute top-1 left-1 text-xs opacity-50;
+}
+
+.highlighted {
+  @apply bg-neutral-800 text-white;
 }
 </style>
