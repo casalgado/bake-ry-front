@@ -149,6 +149,42 @@ const getOptionDisplay = (option, index) => {
     tabindex="0"
     @keydown="handleKeydown"
   >
+
+    <!-- Grid with numpad layout -->
+    <div class="grid grid-cols-3 grid-rows-3 gap-2 h-full">
+      <button
+        v-for="i in [7,8,9]"
+        :key="i"
+        class="grid-button"
+        :class="{'invisible': !currentOptions[i-1]}"
+        @click="handleOptionClick(i-1)"
+      >
+        <span class="button-number">{{ i }}</span>
+        <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
+      </button>
+
+      <button
+        v-for="i in [4,5,6]"
+        :key="i"
+        class="grid-button"
+        :class="{'invisible': !currentOptions[i-1]}"
+        @click="handleOptionClick(i-1)"
+      >
+        <span class="button-number">{{ i }}</span>
+        <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
+      </button>
+
+      <button
+        v-for="i in [1,2,3]"
+        :key="i"
+        class="grid-button"
+        :class="{'invisible': !currentOptions[i-1]}"
+        @click="handleOptionClick(i-1)"
+      >
+        <span class="button-number">{{ i }}</span>
+        <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
+      </button>
+    </div>
     <!-- Breadcrumb -->
     <div class="mb-2 text-sm">
       <span>{{ selectedCategory || 'Category' }}</span>
@@ -159,42 +195,14 @@ const getOptionDisplay = (option, index) => {
         {{ selectedVariation?.name || 'Variation' }}
       </span>
     </div>
-
-    <!-- Grid with numpad layout -->
-    <div class="grid grid-cols-3 grid-rows-3 gap-2 h-full">
-      <button
-        v-for="i in [7,8,9]"
-        :key="i"
-        class="relative flex items-center justify-center border rounded p-2 text-center"
-        :class="{'invisible': !currentOptions[i-1]}"
-        @click="handleOptionClick(i-1)"
-      >
-        <span class="absolute top-1 left-1 text-xs opacity-50">{{ i }}</span>
-        <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
-      </button>
-
-      <button
-        v-for="i in [4,5,6]"
-        :key="i"
-        class="relative flex items-center justify-center border rounded p-2 text-center"
-        :class="{'invisible': !currentOptions[i-1]}"
-        @click="handleOptionClick(i-1)"
-      >
-        <span class="absolute top-1 left-1 text-xs opacity-50">{{ i }}</span>
-        <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
-      </button>
-
-      <button
-        v-for="i in [1,2,3]"
-        :key="i"
-        class="relative flex items-center justify-center border rounded p-2 text-center"
-        :class="{'invisible': !currentOptions[i-1]}"
-        @click="handleOptionClick(i-1)"
-      >
-        <span class="absolute top-1 left-1 text-xs opacity-50">{{ i }}</span>
-        <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
-      </button>
-    </div>
   </div>
 </template>
-<style scoped></style>
+<style scoped lang="scss">
+.grid-button {
+  @apply relative flex items-center justify-center border rounded p-2 text-center;
+}
+
+.button-number {
+  @apply absolute top-1 left-1 text-xs opacity-50;
+}
+</style>
