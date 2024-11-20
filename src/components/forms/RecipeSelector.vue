@@ -149,46 +149,25 @@ const removeIngredient = (index) => {
         >
           <TabList class="grid grid-cols-3 gap-x-3">
             <Tab
-              v-slot="{ selected }"
+
               :disabled="disabled"
+              class="utility-btn [&[data-headlessui-state='selected']]:utility-btn-active [&:not([data-headlessui-state='selected'])]:utility-btn-inactive"
             >
-              <button
-                type="button"
-                :class="[
-                  'utility-btn',
-                  selected ? 'utility-btn-active' : 'utility-btn-inactive',
-                ]"
-              >
-                Comenzar con Receta Base
-              </button>
+              Comenzar con Receta Base
             </Tab>
             <Tab
-              v-slot="{ selected }"
+
               :disabled="disabled"
+              class="utility-btn [&[data-headlessui-state='selected']]:utility-btn-active [&:not([data-headlessui-state='selected'])]:utility-btn-inactive"
             >
-              <button
-                type="button"
-                :class="[
-                  'utility-btn',
-                  selected ? 'utility-btn-active' : 'utility-btn-inactive',
-                ]"
-              >
-                Usar Receta Existente
-              </button>
+              Usar Receta Existente
             </Tab>
             <Tab
-              v-slot="{ selected }"
+
               :disabled="disabled"
+              class="utility-btn [&[data-headlessui-state='selected']]:utility-btn-active [&:not([data-headlessui-state='selected'])]:utility-btn-inactive"
             >
-              <button
-                type="button"
-                :class="[
-                  'utility-btn',
-                  selected ? 'utility-btn-active' : 'utility-btn-inactive',
-                ]"
-              >
-                Crear Nueva Receta
-              </button>
+              Crear Nueva Receta
             </Tab>
           </TabList>
 
