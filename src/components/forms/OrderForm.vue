@@ -3,7 +3,7 @@ import { ref, computed, onMounted, nextTick } from 'vue';
 import { useProductStore } from '@/stores/productStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
-import ProductWizard from '@/components/forms/ProductWizard.vue';
+import OrderItemsManager from './OrderItemsManager.vue';
 
 const props = defineProps({
   initialData: {
@@ -38,45 +38,15 @@ const formData = ref(
     dueDate: tomorrowString,
     fulfillmentType: 'delivery',
     deliveryAddress: '',
-    deliveryInstructions: '',
     deliveryFee: 0,
     paymentMethod: 'cash',
-    customerNotes: '',
     internalNotes: '',
   },
 );
 
-const currentItem = ref({
-  productId: '',
-  productName: '',
-  productVariantId: '',
-  quantity: 1,
-  unitPrice: 0,
-  isComplimentary: false,
-});
-
 const errors = ref({});
-const selectedProduct = ref(null);
-const showAddItem = ref(false);
-
 onMounted(async () => {
   await Promise.all([productStore.fetchAll(), userStore.fetchAll()]);
-});
-
-const availableVariations = computed(() => {
-  if (!selectedProduct.value) return [];
-
-  if (!selectedProduct.value.variations?.length) {
-    return [
-      {
-        id: 'base',
-        name: selectedProduct.value.name,
-        basePrice: selectedProduct.value.basePrice,
-      },
-    ];
-  }
-
-  return selectedProduct.value.variations;
 });
 
 const subtotal = computed(() => {
@@ -88,33 +58,6 @@ const subtotal = computed(() => {
 const total = computed(() => {
   return subtotal.value + formData.value.deliveryFee;
 });
-
-const handleProductSelect = (productId) => {
-  if (!productId) {
-    selectedProduct.value = null;
-    currentItem.value.productId = '';
-    currentItem.value.productName = '';
-    currentItem.value.unitPrice = 0;
-    return;
-  }
-
-  selectedProduct.value = productStore.getById(productId);
-  currentItem.value.productId = productId;
-  currentItem.value.productName = selectedProduct.value.name;
-};
-
-const handleVariationSelect = (variationId) => {
-  if (!variationId) {
-    currentItem.value.productVariantId = '';
-    currentItem.value.unitPrice = 0;
-    return;
-  }
-
-  const variation = availableVariations.value.find((v) => v.id === variationId);
-  currentItem.value.productVariantId =
-    variation.id === 'base' ? null : variation.id;
-  currentItem.value.unitPrice = variation.basePrice;
-};
 
 const fulfillmentTypeInput = ref(null);
 
@@ -131,61 +74,19 @@ const handleUserChange = async (user) => {
   }, 0);
 };
 
-const addOrderItem = () => {
-  errors.value.currentItem = '';
-
-  if (!currentItem.value.productId) {
-    errors.value.currentItem = 'Por favor seleccione un producto';
-    return;
-  }
-
-  if (!currentItem.value.unitPrice) {
-    errors.value.currentItem = 'Por favor seleccione una variación';
-    return;
-  }
-
-  formData.value.items.push({ ...currentItem.value });
-
-  currentItem.value = {
-    productId: '',
-    productName: '',
-    productVariantId: '',
-    quantity: 1,
-    unitPrice: 0,
-    isComplimentary: false,
-  };
-
-  selectedProduct.value = null;
-  showAddItem.value = false;
-};
-
-const removeOrderItem = (index) => {
-  formData.value.items.splice(index, 1);
-};
-
-const toggleItemComplimentary = (index) => {
-  formData.value.items[index].isComplimentary =
-    !formData.value.items[index].isComplimentary;
-};
-
 const validate = () => {
   errors.value = {};
 
   if (!formData.value.userId) errors.value.userId = 'Cliente es requerido';
-  if (!formData.value.items.length)
-    errors.value.items = 'Se requiere al menos un producto';
-  if (!formData.value.preparationDate)
-    errors.value.preparationDate = 'Fecha de preparación es requerida';
-  if (!formData.value.dueDate)
-    errors.value.dueDate = 'Fecha de entrega es requerida';
-  if (!formData.value.deliveryAddress)
+  if (!formData.value.items.length) errors.value.items = 'Se requiere al menos un producto';
+  if (!formData.value.preparationDate) errors.value.preparationDate = 'Fecha de preparación es requerida';
+  if (!formData.value.dueDate) errors.value.dueDate = 'Fecha de entrega es requerida';
+  if (formData.value.fulfillmentType === 'delivery' && !formData.value.deliveryAddress) {
     errors.value.deliveryAddress = 'Dirección de entrega es requerida';
+  }
 
-  if (
-    new Date(formData.value.dueDate) < new Date(formData.value.preparationDate)
-  ) {
-    errors.value.dueDate =
-      'La fecha de entrega no puede ser anterior a la fecha de preparación';
+  if (new Date(formData.value.dueDate) < new Date(formData.value.preparationDate)) {
+    errors.value.dueDate = 'La fecha de entrega no puede ser anterior a la fecha de preparación';
   }
 
   return Object.keys(errors.value).length === 0;
@@ -206,15 +107,10 @@ const fulfillmentTypes = [
   { value: 'pickup', label: 'Recoger' },
   { value: 'delivery', label: 'Domicilio' },
 ];
-
-const handleWizardSelect = (selection) => {
-  console.log(selection);
-};
 </script>
 
 <template>
   <form @submit.prevent="handleSubmit">
-    <ProductWizard @select="handleWizardSelect" :products="productStore.items" />
     <div class="base-card">
       <div>
         <label for="client-select">Cliente</label>
@@ -265,7 +161,8 @@ const handleWizardSelect = (selection) => {
           <label :for="'fulfillment-' + type.value">{{ type.label }}</label>
         </div>
       </div>
-      <div v-if="formData.fulfillmentType == 'delivery'">
+
+      <div v-if="formData.fulfillmentType === 'delivery'">
         <label for="delivery-address">Dirección de Entrega</label>
         <input
           id="delivery-address"
@@ -276,7 +173,7 @@ const handleWizardSelect = (selection) => {
         <span v-if="errors.deliveryAddress">{{ errors.deliveryAddress }}</span>
       </div>
 
-      <div v-if="formData.fulfillmentType == 'delivery'">
+      <div v-if="formData.fulfillmentType === 'delivery'">
         <label for="delivery-fee">Costo de Envío</label>
         <input
           id="delivery-fee"
@@ -285,14 +182,6 @@ const handleWizardSelect = (selection) => {
           min="0"
         />
       </div>
-
-      <!-- <div>
-        <label for="delivery-instructions">Instrucciones de Entrega</label>
-        <textarea
-          id="delivery-instructions"
-          v-model="formData.deliveryInstructions"
-        ></textarea>
-      </div> -->
     </div>
 
     <div class="base-card">
@@ -320,90 +209,12 @@ const handleWizardSelect = (selection) => {
       </div>
     </div>
 
-    <div class="base-card">
-      <h3>Productos</h3>
+    <OrderItemsManager
+      v-model="formData.items"
+      :products="productStore.items"
+    />
 
-      <div v-if="formData.items.length">
-        <div v-for="(item, index) in formData.items" :key="index">
-          <span>
-            {{ item.productName }}
-            {{ item.productVariantId ? '(Variante)' : '' }}
-            x {{ item.quantity }}
-          </span>
-          <span v-if="!item.isComplimentary">
-            {{ item.unitPrice * item.quantity }}
-          </span>
-          <button type="button" @click="toggleItemComplimentary(index)">
-            {{ item.isComplimentary ? 'Hacer Pagado' : 'Hacer Cortesía' }}
-          </button>
-          <button type="button" @click="removeOrderItem(index)">
-            Eliminar
-          </button>
-        </div>
-      </div>
-
-      <button type="button" @click="showAddItem = true" v-if="!showAddItem">
-        Agregar Producto
-      </button>
-
-      <div v-if="showAddItem">
-        <div>
-          <label for="product-select">Producto</label>
-          <select
-            id="product-select"
-            v-model="currentItem.productId"
-            @change="handleProductSelect($event.target.value)"
-          >
-            <option value="">Seleccionar producto</option>
-            <option
-              v-for="product in productStore.items"
-              :key="product.id"
-              :value="product.id"
-            >
-              {{ product.name }}
-            </option>
-          </select>
-        </div>
-
-        <div v-if="selectedProduct">
-          <label for="variation-select">Variación</label>
-          <select
-            id="variation-select"
-            v-model="currentItem.productVariantId"
-            @change="handleVariationSelect($event.target.value)"
-          >
-            <option value="">Seleccionar variación</option>
-            <option
-              v-for="variation in availableVariations"
-              :key="variation.id"
-              :value="variation.id"
-            >
-              {{ variation.name }} - {{ variation.basePrice }}
-            </option>
-          </select>
-        </div>
-
-        <div>
-          <label for="quantity-input">Cantidad</label>
-          <input
-            id="quantity-input"
-            type="number"
-            v-model="currentItem.quantity"
-            min="1"
-          />
-        </div>
-
-        <span v-if="errors.currentItem">{{ errors.currentItem }}</span>
-
-        <div>
-          <button type="button" @click="addOrderItem">Agregar</button>
-          <button type="button" @click="showAddItem = false">Cancelar</button>
-        </div>
-      </div>
-
-      <span v-if="errors.items">{{ errors.items }}</span>
-    </div>
-
+    {{ formData.items }}
     <div class="base-card">
       <div>
         <div>Subtotal: {{ subtotal }}</div>

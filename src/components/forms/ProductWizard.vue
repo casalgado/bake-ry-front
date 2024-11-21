@@ -72,6 +72,7 @@ const handleSelection = (index) => {
 
   case 'product':
     selectedProduct.value = selected.id;
+
     if (selected.variations?.length) {
       currentStep.value = 'variation';
     } else {
@@ -176,19 +177,19 @@ const getOptionDisplay = (option, index) => {
 
 <template>
   <div
-    class="relative w-80 aspect-square"
+    class="relative w-full aspect-square flat-card mb-0"
     tabindex="0"
     @keydown="handleKeydown"
     @keyup="handleKeyup"
   >
 
     <!-- Grid with numpad layout -->
-    <div class="grid grid-cols-3 grid-rows-3 gap-2 h-full">
+    <div class="grid grid-cols-3 grid-rows-3 gap-2 h-full p-1">
       <button
         v-for="i in [7,8,9]"
         :key="i"
-        class="grid-button"
-        :class="{'invisible': !currentOptions[i-1], 'highlighted': highlightedIndex === i-1}"
+        class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
+        :class="{'invisible': !currentOptions[i-1], 'utility-btn-active': highlightedIndex === i-1}"
         @click="handleOptionClick(i-1)"
       >
         <span class="button-number">{{ i }}</span>
@@ -198,8 +199,8 @@ const getOptionDisplay = (option, index) => {
       <button
         v-for="i in [4,5,6]"
         :key="i"
-        class="grid-button"
-        :class="{'invisible': !currentOptions[i-1], 'highlighted': highlightedIndex === i-1}"
+        class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
+        :class="{'invisible': !currentOptions[i-1], 'utility-btn-active': highlightedIndex === i-1}"
         @click="handleOptionClick(i-1)"
       >
         <span class="button-number">{{ i }}</span>
@@ -209,8 +210,8 @@ const getOptionDisplay = (option, index) => {
       <button
         v-for="i in [1,2,3]"
         :key="i"
-        class="grid-button"
-        :class="{'invisible': !currentOptions[i-1], 'highlighted': highlightedIndex === i-1}"
+        class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
+        :class="{'invisible': !currentOptions[i-1], 'utility-btn-active': highlightedIndex === i-1}"
         @click="handleOptionClick(i-1)"
       >
         <span class="button-number">{{ i }}</span>
@@ -218,28 +219,22 @@ const getOptionDisplay = (option, index) => {
       </button>
     </div>
     <!-- Breadcrumb -->
-    <div class="mb-2 text-sm">
-      <span>{{ selectedCategory || 'Category' }}</span>
+    <div class="flat-card m-2 mt-0 py-0 text-xs flex items-center justify-center gap-1">
+      <span>{{ selectedCategory || 'colecciones' }}</span>
       <span v-if="selectedCategory"> > </span>
-      <span v-if="selectedCategory">{{ productName || 'Product' }}</span>
+      <span v-if="selectedCategory">{{ productName || 'productos' }}</span>
       <span v-if="selectedProduct && currentOptions.length > 0"> > </span>
       <span v-if="selectedProduct && currentOptions.length > 0">
-        {{ selectedVariation?.name || 'Variation' }}
+        {{ selectedVariation?.name || 'variaciones' }}
       </span>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-.grid-button {
-  @apply relative flex items-center justify-center border rounded p-2 text-center;
-}
 
 .button-number {
-  @apply absolute top-1 left-1 text-xs opacity-50;
+  @apply absolute top-1 left-1 text-xs opacity-60;
 }
 
-.highlighted {
-  @apply bg-neutral-800 text-white;
-}
 </style>
