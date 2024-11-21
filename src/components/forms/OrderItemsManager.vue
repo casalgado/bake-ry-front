@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import ProductWizard from '@/components/forms/ProductWizard.vue';
 
 const props = defineProps({
@@ -19,12 +19,6 @@ const emit = defineEmits(['update:modelValue']);
 
 const errors = ref({});
 
-const subtotal = computed(() => {
-  return props.modelValue.reduce((sum, item) => {
-    return sum + (item.isComplimentary ? 0 : item.quantity * item.unitPrice);
-  }, 0);
-});
-
 const handleWizardSelect = (selection) => {
   const product = props.products.find(p => p.id === selection.product);
   if (!product) return;
@@ -38,7 +32,7 @@ const handleWizardSelect = (selection) => {
     category: selection.category,
     variation: selection.variation ? selection.variation.name : null,
   };
-
+  console.log('errors', errors.value);
   emit('update:modelValue', [...props.modelValue, newItem]);
 };
 
@@ -70,14 +64,14 @@ const toggleItemComplimentary = (index) => {
       <div
         v-for="(item, index) in modelValue"
         :key="`${item.productId}-${index}`"
-        class="flex justify-between items-center p-2 border-b last:border-b-0"
+        class="flex justify-between items-center p-2 border-black-500 border-b last:border-b-0"
       >
         <div>
-          <div class="font-medium">{{ item.productName }}</div>
-          <div class="text-sm text-gray-600">
+          <div class="text-pill">
             {{ item.category }}
-            {{ item.variation ? `- ${item.variation}` : '' }}
           </div>
+          <div class="text-sm">{{ item.productName }} {{ item.variation ? `- ${item.variation}` : '' }}</div>
+
           <div class="text-sm">
             {{ item.quantity }} x {{ item.unitPrice }}
           </div>

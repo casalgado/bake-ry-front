@@ -214,7 +214,6 @@ const fulfillmentTypes = [
       :products="productStore.items"
     />
 
-    {{ formData.items }}
     <div class="base-card">
       <div>
         <div>Subtotal: {{ subtotal }}</div>

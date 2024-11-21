@@ -46,10 +46,10 @@
 
 
 
-    /* Form Input Styles */
-    .input-base {}
-
-    .input-error {}
+    /* Text Styles */
+    .text-pill {
+        @apply text-[13px] uppercase text-neutral-400 font-semibold text-[10px];
+    }
 
     /* Card Styles */
     .base-card {

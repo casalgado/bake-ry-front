@@ -22,6 +22,7 @@ const currentStep = ref('category');
 const selectedCategory = ref(null);
 const selectedProduct = ref(null);
 const selectedVariation = ref(null);
+const selectedQuantity = ref(null);
 const highlightedIndex = ref(null);
 
 // Get unique categories
@@ -49,6 +50,11 @@ const currentOptions = computed(() => {
     return categoryProducts.value;
   case 'variation':
     return productVariations.value;
+  case 'quantity':
+    return Array.from({ length: 9 }, (_, i) => ({
+      name: `${i + 1}`,
+      value: i + 1,
+    }));
   default:
     return [];
   }
@@ -72,28 +78,32 @@ const handleSelection = (index) => {
 
   case 'product':
     selectedProduct.value = selected.id;
-
     if (selected.variations?.length) {
       currentStep.value = 'variation';
     } else {
-      emit('select', {
-        category: selectedCategory.value,
-        product: selected.id,
-        variation: null,
-      });
-      // Reset after selection
-      resetSelection();
+      currentStep.value = 'quantity';
     }
     break;
 
   case 'variation':
     selectedVariation.value = selected;
+    currentStep.value = 'quantity';
+    break;
+
+  case 'quantity':
+    selectedQuantity.value = selected.value;
+    console.log({
+      category: selectedCategory.value,
+      product: selectedProduct.value,
+      variation: selectedVariation.value,
+      quantity: selected.value,
+    });
     emit('select', {
       category: selectedCategory.value,
       product: selectedProduct.value,
-      variation: selected,
+      variation: selectedVariation.value,
+      quantity: selected.value,
     });
-    // Reset after selection
     resetSelection();
     break;
   }
@@ -104,6 +114,7 @@ const resetSelection = () => {
   selectedCategory.value = null;
   selectedProduct.value = null;
   selectedVariation.value = null;
+  selectedQuantity.value = null;
   highlightedIndex.value = null;
 };
 
@@ -116,6 +127,15 @@ const handleBackKey = () => {
   case 'variation':
     selectedProduct.value = null;
     currentStep.value = 'product';
+    break;
+  case 'quantity':
+    if (selectedVariation.value) {
+      selectedVariation.value = null;
+      currentStep.value = 'variation';
+    } else {
+      selectedProduct.value = null;
+      currentStep.value = 'product';
+    }
     break;
   }
   highlightedIndex.value = null;
@@ -169,6 +189,8 @@ const getOptionDisplay = (option, index) => {
   case 'product':
   case 'variation':
     return option.name;
+  case 'quantity':
+    return `${option.value}`;
   default:
     return '';
   }
@@ -192,7 +214,7 @@ const getOptionDisplay = (option, index) => {
         :class="{'invisible': !currentOptions[i-1], 'utility-btn-active': highlightedIndex === i-1}"
         @click="handleOptionClick(i-1)"
       >
-        <span class="button-number">{{ i }}</span>
+        <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>
         <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
       </button>
 
@@ -203,7 +225,7 @@ const getOptionDisplay = (option, index) => {
         :class="{'invisible': !currentOptions[i-1], 'utility-btn-active': highlightedIndex === i-1}"
         @click="handleOptionClick(i-1)"
       >
-        <span class="button-number">{{ i }}</span>
+        <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>
         <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
       </button>
 
@@ -214,7 +236,7 @@ const getOptionDisplay = (option, index) => {
         :class="{'invisible': !currentOptions[i-1], 'utility-btn-active': highlightedIndex === i-1}"
         @click="handleOptionClick(i-1)"
       >
-        <span class="button-number">{{ i }}</span>
+        <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>
         <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
       </button>
     </div>
@@ -227,14 +249,16 @@ const getOptionDisplay = (option, index) => {
       <span v-if="selectedProduct && currentOptions.length > 0">
         {{ selectedVariation?.name || 'variaciones' }}
       </span>
+      <span v-if="currentStep === 'quantity'"> > </span>
+      <span v-if="currentStep === 'quantity'">
+        {{ selectedQuantity || '#' }}
+      </span>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-
 .button-number {
   @apply absolute top-1 left-1 text-xs opacity-60;
 }
-
 </style>
