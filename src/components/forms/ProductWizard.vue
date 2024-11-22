@@ -97,14 +97,14 @@ const handleSelection = (index) => {
     selectedQuantity.value = selected.value;
     console.log({
       category: selectedCategory.value,
-      product: selectedProduct.value.id,
-      variation: selectedVariation.value ? selectedVariation.value.id : null,
+      product: selectedProduct.value,
+      variation: selectedVariation.value,
       quantity: selected.value,
     });
     emit('select', {
       category: selectedCategory.value,
       product: selectedProduct.value,
-      variation: selectedVariation.value ? selectedVariation.value.id : null,
+      variation: selectedVariation.value,
       quantity: selected.value,
     });
     resetSelection();

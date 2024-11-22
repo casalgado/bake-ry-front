@@ -32,27 +32,43 @@ const handleWizardSelect = (selection) => {
   const product = props.products.find(p => p.id === selection.product.id);
   if (!product) return;
 
+  // For products with variations, prices come from the variation
+  // For products without variations, prices come from the product
+  const prices = selection.variation ?
+    {
+      basePrice: selection.variation.basePrice,
+      currentPrice: selection.variation.currentPrice,
+    } :
+    {
+      basePrice: product.basePrice,
+      currentPrice: product.currentPrice || product.basePrice,
+    };
+
   const newItem = {
     // Product Info
     productId: product.id,
     productName: product.name,
     collectionId: product.collectionId,
     collectionName: product.collectionName,
-
-    // Quantity and Price
     quantity: selection.quantity,
-    unitPrice: selection.unitPrice,
 
-    // Variation Info (if exists)
+    // Prices
+    basePrice: prices.basePrice,
+    currentPrice: prices.currentPrice,
+
+    // Variation (if exists)
     variation: selection.variation ? {
       id: selection.variation.id,
       name: selection.variation.name,
       value: selection.variation.value,
+      basePrice: selection.variation.basePrice,
+      currentPrice: selection.variation.currentPrice,
       recipeId: selection.variation.recipeId,
+      isWholeGrain: selection.variation.isWholeGrain,
     } : null,
 
-    // Recipe ID (from variation or product)
-    recipeId: selection.recipeId,
+    // Recipe ID
+    recipeId: selection.variation?.recipeId || product.recipeId,
 
     // Status
     isComplimentary: false,
@@ -114,7 +130,7 @@ const updateItemQuantity = (index, newQuantity) => {
                 {{ item.variation ? `- ${item.variation.name}` : '' }}
               </div>
               <div class="text-sm text-gray-600">
-                {{ formatPrice(item.unitPrice) }} x
+                {{ formatPrice(item.currentPrice) }} x
                 <button
                   @click="updateItemQuantity(index, item.quantity - 1)"
                   class="px-2 py-1 text-xs bg-gray-100 rounded"
@@ -125,9 +141,6 @@ const updateItemQuantity = (index, newQuantity) => {
                   @click="updateItemQuantity(index, item.quantity + 1)"
                   class="px-2 py-1 text-xs bg-gray-100 rounded"
                 >+</button>
-              </div>
-              <div class="text-xs text-gray-500" v-if="item.recipeId">
-                Recipe ID: {{ item.recipeId }}
               </div>
             </div>
 
