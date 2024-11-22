@@ -32,12 +32,15 @@ const categories = computed(() =>
 
 // Get products for selected category
 const categoryProducts = computed(() =>
-  props.products.filter(p => p.collectionName === selectedCategory.value),
+  props.products.filter(p =>
+    p.collectionName === selectedCategory.value &&
+    p.isActive !== false,
+  ),
 );
 
 // Get variations for selected product
 const productVariations = computed(() => {
-  const product = props.products.find(p => p.id === selectedProduct.value);
+  const product = props.products.find(p => p.id === selectedProduct.value?.id);
   return product?.variations || [];
 });
 
@@ -63,7 +66,7 @@ const currentOptions = computed(() => {
 // Breadcrumb computed properties
 const productName = computed(() => {
   if (!selectedProduct.value) return '';
-  return props.products.find(p => p.id === selectedProduct.value)?.name || '';
+  return selectedProduct.value.name || '';
 });
 
 const handleSelection = (index) => {
@@ -77,8 +80,8 @@ const handleSelection = (index) => {
     break;
 
   case 'product':
-    selectedProduct.value = selected.id;
-    if (selected.variations?.length) {
+    selectedProduct.value = selected;
+    if (selected.variations?.length > 0) {
       currentStep.value = 'variation';
     } else {
       currentStep.value = 'quantity';
@@ -94,14 +97,14 @@ const handleSelection = (index) => {
     selectedQuantity.value = selected.value;
     console.log({
       category: selectedCategory.value,
-      product: selectedProduct.value,
-      variation: selectedVariation.value,
+      product: selectedProduct.value.id,
+      variation: selectedVariation.value ? selectedVariation.value.id : null,
       quantity: selected.value,
     });
     emit('select', {
       category: selectedCategory.value,
       product: selectedProduct.value,
-      variation: selectedVariation.value,
+      variation: selectedVariation.value ? selectedVariation.value.id : null,
       quantity: selected.value,
     });
     resetSelection();
@@ -179,7 +182,6 @@ const handleOptionClick = (index) => {
   handleSelection(index);
 };
 
-// Display name for options based on current step
 const getOptionDisplay = (option, index) => {
   if (!option) return '';
 
@@ -204,14 +206,16 @@ const getOptionDisplay = (option, index) => {
     @keydown="handleKeydown"
     @keyup="handleKeyup"
   >
-
     <!-- Grid with numpad layout -->
     <div class="grid grid-cols-3 grid-rows-3 gap-2 h-full p-1">
       <button
         v-for="i in [7,8,9]"
         :key="i"
         class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
-        :class="{'invisible': !currentOptions[i-1], 'utility-btn-active': highlightedIndex === i-1}"
+        :class="{
+          'invisible': !currentOptions[i-1],
+          'utility-btn-active': highlightedIndex === i-1
+        }"
         @click="handleOptionClick(i-1)"
       >
         <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>
@@ -222,7 +226,10 @@ const getOptionDisplay = (option, index) => {
         v-for="i in [4,5,6]"
         :key="i"
         class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
-        :class="{'invisible': !currentOptions[i-1], 'utility-btn-active': highlightedIndex === i-1}"
+        :class="{
+          'invisible': !currentOptions[i-1],
+          'utility-btn-active': highlightedIndex === i-1
+        }"
         @click="handleOptionClick(i-1)"
       >
         <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>
@@ -233,26 +240,28 @@ const getOptionDisplay = (option, index) => {
         v-for="i in [1,2,3]"
         :key="i"
         class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
-        :class="{'invisible': !currentOptions[i-1], 'utility-btn-active': highlightedIndex === i-1}"
+        :class="{
+          'invisible': !currentOptions[i-1],
+          'utility-btn-active': highlightedIndex === i-1
+        }"
         @click="handleOptionClick(i-1)"
       >
         <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>
         <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
       </button>
     </div>
+
     <!-- Breadcrumb -->
     <div class="flat-card m-2 mt-0 py-0 text-xs flex items-center justify-center gap-1">
       <span>{{ selectedCategory || 'colecciones' }}</span>
       <span v-if="selectedCategory"> > </span>
       <span v-if="selectedCategory">{{ productName || 'productos' }}</span>
-      <span v-if="selectedProduct && currentOptions.length > 0"> > </span>
-      <span v-if="selectedProduct && currentOptions.length > 0">
+      <span v-if="selectedProduct && productVariations.length > 0"> > </span>
+      <span v-if="selectedProduct && productVariations.length > 0">
         {{ selectedVariation?.name || 'variaciones' }}
       </span>
       <span v-if="currentStep === 'quantity'"> > </span>
-      <span v-if="currentStep === 'quantity'">
-        {{ selectedQuantity || '#' }}
-      </span>
+      <span v-if="currentStep === 'quantity'">{{ selectedQuantity || '#' }}</span>
     </div>
   </div>
 </template>
