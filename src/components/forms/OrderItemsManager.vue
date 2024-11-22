@@ -96,6 +96,21 @@ const updateItemQuantity = (index, newQuantity) => {
   newItems[index].quantity = newQuantity;
   emit('update:modelValue', newItems);
 };
+
+const updateItemPrice = (index, newPrice) => {
+  const newItems = [...props.modelValue];
+  const numericPrice = Number(newPrice);
+
+  // Update main item price
+  newItems[index].currentPrice = numericPrice;
+
+  // If it's a variation, update variation price too
+  if (newItems[index].variation) {
+    newItems[index].variation.currentPrice = numericPrice;
+  }
+
+  emit('update:modelValue', newItems);
+};
 </script>
 
 <template>
@@ -106,7 +121,7 @@ const updateItemQuantity = (index, newQuantity) => {
     />
 
     <div class="flat-card col-span-2 mb-0">
-      <div v-if="modelValue.length === 0" class="text-gray-500 p-4">
+      <div v-if="modelValue.length === 0" class=" p-4">
         No hay productos seleccionados
       </div>
 
@@ -129,8 +144,21 @@ const updateItemQuantity = (index, newQuantity) => {
                 {{ item.productName }}
                 {{ item.variation ? `- ${item.variation.name}` : '' }}
               </div>
-              <div class="text-sm text-gray-600">
-                {{ formatPrice(item.currentPrice) }} x
+              <div class="text-sm  flex items-center gap-2">
+                <div class="price-group flex items-center gap-1">
+                  <span class="base-price text-xs ">
+                    base: {{ formatPrice(item.basePrice) }}
+                  </span>
+                  <input
+                    type="number"
+                    :value="item.currentPrice"
+                    @input="updateItemPrice(index, $event.target.value)"
+                    class="price-input w-24 px-2 py-1 text-right border rounded"
+                    :class="{ 'price-modified': item.currentPrice !== item.basePrice }"
+                    step="1000"
+                  >
+                </div>
+                x
                 <button
                   @click="updateItemQuantity(index, item.quantity - 1)"
                   class="px-2 py-1 text-xs bg-gray-100 rounded"
@@ -170,3 +198,23 @@ const updateItemQuantity = (index, newQuantity) => {
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+
+.price-input {
+  &:focus {
+    @apply outline-none ring-2 ring-blue-500;
+  }
+
+  &.price-modified {
+    @apply bg-yellow-50 border-yellow-300;
+  }
+}
+
+.price-group {
+
+  .base-price {
+    @apply transition-opacity duration-150;
+  }
+}
+</style>
