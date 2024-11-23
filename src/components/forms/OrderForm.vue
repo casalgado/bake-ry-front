@@ -45,6 +45,7 @@ const formData = ref(
 );
 
 const errors = ref({});
+
 onMounted(async () => {
   await Promise.all([productStore.fetchAll(), userStore.fetchAll()]);
 
@@ -59,16 +60,6 @@ onMounted(async () => {
   }
 });
 
-const subtotal = computed(() => {
-  return formData.value.items.reduce((sum, item) => {
-    return sum + (item.isComplimentary ? 0 : item.quantity * item.unitPrice);
-  }, 0);
-});
-
-const total = computed(() => {
-  return subtotal.value + formData.value.deliveryFee;
-});
-
 const handleUserChange = async (user) => {
   formData.value.userId = user.id;
   formData.value.userName = user.name;
@@ -77,10 +68,27 @@ const handleUserChange = async (user) => {
   formData.value.deliveryAddress = user.address;
   await nextTick();
   setTimeout(() => {
-    console.log('focus');
+    const firstFulfillmentRadio = document.querySelector('input[name="fulfillment-type"]');
+    if (firstFulfillmentRadio) {
+      firstFulfillmentRadio.focus();
+    }
   }, 0);
 };
 
+const handleRadioGroupKeydown = (event, options, modelKey) => {
+  const num = parseInt(event.key);
+  if (!isNaN(num) && num > 0 && num <= options.length) {
+    const selectedOption = options[num - 1];
+    if (modelKey === 'selectedFeeType') {
+      selectedFeeType.value = selectedOption.value;
+    } else {
+      formData.value[modelKey] = selectedOption.value;
+    }
+    event.preventDefault();
+  }
+};
+
+// Rest of your existing functions...
 const validate = () => {
   errors.value = {};
 
@@ -104,6 +112,16 @@ const handleSubmit = () => {
   emit('submit', formData.value);
 };
 
+const subtotal = computed(() => {
+  return formData.value.items.reduce((sum, item) => {
+    return sum + (item.isComplimentary ? 0 : item.quantity * item.unitPrice);
+  }, 0);
+});
+
+const total = computed(() => {
+  return subtotal.value + formData.value.deliveryFee;
+});
+
 const paymentMethods = [
   { value: 'cash', label: 'Efectivo' },
   { value: 'transfer', label: 'Transferencia' },
@@ -115,7 +133,6 @@ const fulfillmentTypes = [
   { value: 'delivery', label: 'Domicilio' },
 ];
 
-// Delivery fee options and handling
 const deliveryFeeOptions = [
   { value: 7000, label: '7,000' },
   { value: 8000, label: '8,000' },
@@ -174,7 +191,11 @@ watch(selectedFeeType, (newValue) => {
     <div class="base-card">
       <legend>Envio</legend>
       <!-- Fulfillment Type Section -->
-      <div role="radiogroup" aria-labelledby="fulfillment-type-group">
+      <div
+        role="radiogroup"
+        aria-labelledby="fulfillment-type-group"
+        @keydown="handleRadioGroupKeydown($event, fulfillmentTypes, 'fulfillmentType')"
+      >
         <label id="fulfillment-type-group" class="sr-only">Tipo de Envío</label>
         <div class="flex gap-1">
           <div
@@ -213,7 +234,12 @@ watch(selectedFeeType, (newValue) => {
       <!-- Delivery Fee Section -->
       <div v-if="formData.fulfillmentType === 'delivery'">
         <label id="delivery-fee-group">Costo de Envío</label>
-        <div class="flex gap-1" role="radiogroup" aria-labelledby="delivery-fee-group">
+        <div
+          class="flex gap-1"
+          role="radiogroup"
+          aria-labelledby="delivery-fee-group"
+          @keydown="handleRadioGroupKeydown($event, deliveryFeeOptions, 'selectedFeeType')"
+        >
           <div
             v-for="option in deliveryFeeOptions"
             :key="option.value"
@@ -236,7 +262,6 @@ watch(selectedFeeType, (newValue) => {
           </div>
         </div>
 
-        <!-- Custom fee input appears when 'custom' is selected -->
         <div v-if="selectedFeeType === 'custom'" class="mt-2">
           <input
             type="number"
@@ -252,7 +277,11 @@ watch(selectedFeeType, (newValue) => {
     <div class="base-card">
       <legend>Pago</legend>
       <!-- Payment Methods Section -->
-      <div role="radiogroup" aria-labelledby="payment-method-group">
+      <div
+        role="radiogroup"
+        aria-labelledby="payment-method-group"
+        @keydown="handleRadioGroupKeydown($event, paymentMethods, 'paymentMethod')"
+      >
         <label id="payment-method-group" class="sr-only">Método de Pago</label>
         <div class="flex gap-1">
           <div
