@@ -60,7 +60,7 @@ const total = computed(() => {
   return subtotal.value + formData.value.deliveryFee;
 });
 
-const firstTab = ref(null);
+const tabList = ref(null);
 
 const handleUserChange = async (user) => {
   formData.value.userId = user.id;
@@ -70,11 +70,10 @@ const handleUserChange = async (user) => {
   formData.value.deliveryAddress = user.address;
   await nextTick();
   setTimeout(() => {
-    // Focus the first tab button
-    console.log(firstTab.value);
-    const tabButtons = firstTab.value?.$el?.querySelectorAll('[role="tab"]');
-    if (tabButtons?.length) {
-      tabButtons[0].focus();
+    console.log(tabList.value);
+    const firstTabButton = tabList.value?.$el?.querySelector('[role="tab"]');
+    if (firstTabButton) {
+      firstTabButton.focus();
     }
   }, 0);
 };
@@ -113,7 +112,6 @@ const fulfillmentTypes = [
   { value: 'delivery', label: 'Domicilio' },
 ];
 
-// Add these computed properties for the Tabs
 const selectedFulfillmentIndex = computed(() =>
   fulfillmentTypes.findIndex(type => type.value === formData.value.fulfillmentType),
 );
@@ -163,18 +161,15 @@ const handleFulfillmentChange = (index) => {
 
     <div class="base-card">
       <legend>Envio</legend>
-      <!-- Replace radio buttons with TabGroup -->
       <TabGroup
         :selectedIndex="selectedFulfillmentIndex"
         @change="handleFulfillmentChange"
-        ref="firstTab"
       >
-        <TabList ref="fulfillmentTypeInput">
+        <TabList ref="tabList">
           <Tab
             v-for="type in fulfillmentTypes"
             :key="type.value"
             class="utility-btn [&[data-headlessui-state='selected']]:utility-btn-active [&:not([data-headlessui-state='selected'])]:utility-btn-inactive"
-
           >
             {{ type.label }}
           </Tab>
@@ -218,6 +213,11 @@ const handleFulfillmentChange = (index) => {
       </div>
     </div>
 
+    <OrderItemsManager
+      v-model="formData.items"
+      :products="productStore.items"
+    />
+
     <div class="base-card">
       <div>
         <label for="internal-notes">Comentarios</label>
@@ -227,11 +227,6 @@ const handleFulfillmentChange = (index) => {
         ></textarea>
       </div>
     </div>
-
-    <OrderItemsManager
-      v-model="formData.items"
-      :products="productStore.items"
-    />
 
     <div class="base-card">
       <div>
