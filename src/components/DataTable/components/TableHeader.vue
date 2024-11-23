@@ -1,7 +1,7 @@
 <!-- components/DataTable/components/TableHeader.vue -->
 <script setup>
 import { computed } from 'vue';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { PhCaretUp, PhCaretDown } from '@phosphor-icons/vue';
 
 const props = defineProps({
   columns: {
@@ -29,7 +29,7 @@ const getSortIcon = (column) => {
   if (!column.sortable) return null;
   const direction = props.getSortDirection(column.id);
   if (!direction) return null;
-  return direction === 'asc' ? ChevronUp : ChevronDown;
+  return direction === 'asc' ? PhCaretUp : PhCaretDown;
 };
 </script>
 
