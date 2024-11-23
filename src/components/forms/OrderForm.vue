@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { useProductStore } from '@/stores/productStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
@@ -48,6 +48,16 @@ const formData = ref(
 const errors = ref({});
 onMounted(async () => {
   await Promise.all([productStore.fetchAll(), userStore.fetchAll()]);
+
+  // Initialize selected fee type if there's an initial value
+  const matchingOption = deliveryFeeOptions.find(
+    option => option.value === formData.value.deliveryFee,
+  );
+  if (matchingOption) {
+    selectedFeeType.value = matchingOption.value;
+  } else if (formData.value.deliveryFee) {
+    selectedFeeType.value = 'custom';
+  }
 });
 
 const subtotal = computed(() => {
@@ -70,7 +80,6 @@ const handleUserChange = async (user) => {
   formData.value.deliveryAddress = user.address;
   await nextTick();
   setTimeout(() => {
-    console.log(tabList.value);
     const firstTabButton = tabList.value?.$el?.querySelector('[role="tab"]');
     if (firstTabButton) {
       firstTabButton.focus();
@@ -119,6 +128,23 @@ const selectedFulfillmentIndex = computed(() =>
 const handleFulfillmentChange = (index) => {
   formData.value.fulfillmentType = fulfillmentTypes[index].value;
 };
+
+// Delivery fee options and handling
+const deliveryFeeOptions = [
+  { value: 7000, label: '7,000' },
+  { value: 8000, label: '8,000' },
+  { value: 9000, label: '9,000' },
+  { value: 10000, label: '10,000' },
+  { value: 'custom', label: 'Otro' },
+];
+
+const selectedFeeType = ref(deliveryFeeOptions[0].value);
+
+watch(selectedFeeType, (newValue) => {
+  if (newValue !== 'custom') {
+    formData.value.deliveryFee = newValue;
+  }
+});
 </script>
 
 <template>
@@ -187,28 +213,71 @@ const handleFulfillmentChange = (index) => {
         <span v-if="errors.deliveryAddress">{{ errors.deliveryAddress }}</span>
       </div>
 
+      <!-- Delivery Fee Section -->
       <div v-if="formData.fulfillmentType === 'delivery'">
-        <label for="delivery-fee">Costo de Envío</label>
-        <input
-          id="delivery-fee"
-          type="number"
-          v-model="formData.deliveryFee"
-          min="0"
-        />
+        <label id="delivery-fee-group">Costo de Envío</label>
+        <div class="flex gap-1" role="radiogroup" aria-labelledby="delivery-fee-group">
+          <div
+            v-for="option in deliveryFeeOptions"
+            :key="option.value"
+            class="relative"
+          >
+            <input
+              type="radio"
+              :id="'fee-' + option.value"
+              :value="option.value"
+              v-model="selectedFeeType"
+              :name="'delivery-fee'"
+              class="sr-only peer"
+            />
+            <label
+              :for="'fee-' + option.value"
+              class="utility-btn-inactive cursor-pointer py-1 px-2 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black"
+            >
+              {{ option.label }}
+            </label>
+          </div>
+        </div>
+
+        <!-- Custom fee input appears when 'custom' is selected -->
+        <div v-if="selectedFeeType === 'custom'" class="mt-2">
+          <input
+            type="number"
+            v-model="formData.deliveryFee"
+            min="0"
+            step="100"
+            placeholder="Ingrese valor personalizado"
+          />
+        </div>
       </div>
     </div>
 
     <div class="base-card">
       <legend>Pago</legend>
-      <div>
-        <div v-for="method in paymentMethods" :key="method.value">
-          <input
-            type="radio"
-            :id="'payment-' + method.value"
-            :value="method.value"
-            v-model="formData.paymentMethod"
-          />
-          <label :for="'payment-' + method.value">{{ method.label }}</label>
+      <!-- Payment Methods Section -->
+      <div role="radiogroup" aria-labelledby="payment-method-group">
+        <label id="payment-method-group">Método de Pago</label>
+        <div class="flex gap-1">
+          <div
+            v-for="method in paymentMethods"
+            :key="method.value"
+            class="relative"
+          >
+            <input
+              type="radio"
+              :id="'payment-' + method.value"
+              :value="method.value"
+              v-model="formData.paymentMethod"
+              :name="'payment-method'"
+              class="sr-only peer"
+            />
+            <label
+              :for="'payment-' + method.value"
+              class="utility-btn-inactive cursor-pointer py-1 px-2 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black"
+            >
+              {{ method.label }}
+            </label>
+          </div>
         </div>
       </div>
     </div>
