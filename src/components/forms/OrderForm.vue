@@ -4,6 +4,7 @@ import { useProductStore } from '@/stores/productStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
 import OrderItemsManager from './OrderItemsManager.vue';
+import { TabList, TabGroup, Tab } from '@headlessui/vue';
 
 const props = defineProps({
   initialData: {
@@ -59,7 +60,7 @@ const total = computed(() => {
   return subtotal.value + formData.value.deliveryFee;
 });
 
-const fulfillmentTypeInput = ref(null);
+const firstTab = ref(null);
 
 const handleUserChange = async (user) => {
   formData.value.userId = user.id;
@@ -69,8 +70,12 @@ const handleUserChange = async (user) => {
   formData.value.deliveryAddress = user.address;
   await nextTick();
   setTimeout(() => {
-    console.log(fulfillmentTypeInput);
-    fulfillmentTypeInput.value[0].focus();
+    // Focus the first tab button
+    console.log(firstTab.value);
+    const tabButtons = firstTab.value?.$el?.querySelectorAll('[role="tab"]');
+    if (tabButtons?.length) {
+      tabButtons[0].focus();
+    }
   }, 0);
 };
 
@@ -107,6 +112,15 @@ const fulfillmentTypes = [
   { value: 'pickup', label: 'Recoger' },
   { value: 'delivery', label: 'Domicilio' },
 ];
+
+// Add these computed properties for the Tabs
+const selectedFulfillmentIndex = computed(() =>
+  fulfillmentTypes.findIndex(type => type.value === formData.value.fulfillmentType),
+);
+
+const handleFulfillmentChange = (index) => {
+  formData.value.fulfillmentType = fulfillmentTypes[index].value;
+};
 </script>
 
 <template>
@@ -149,18 +163,23 @@ const fulfillmentTypes = [
 
     <div class="base-card">
       <legend>Envio</legend>
-      <div>
-        <div v-for="type in fulfillmentTypes" :key="type.value">
-          <input
-            type="radio"
-            :id="'fulfillment-' + type.value"
-            :value="type.value"
-            v-model="formData.fulfillmentType"
-            ref="fulfillmentTypeInput"
-          />
-          <label :for="'fulfillment-' + type.value">{{ type.label }}</label>
-        </div>
-      </div>
+      <!-- Replace radio buttons with TabGroup -->
+      <TabGroup
+        :selectedIndex="selectedFulfillmentIndex"
+        @change="handleFulfillmentChange"
+        ref="firstTab"
+      >
+        <TabList ref="fulfillmentTypeInput">
+          <Tab
+            v-for="type in fulfillmentTypes"
+            :key="type.value"
+            class="utility-btn [&[data-headlessui-state='selected']]:utility-btn-active [&:not([data-headlessui-state='selected'])]:utility-btn-inactive"
+
+          >
+            {{ type.label }}
+          </Tab>
+        </TabList>
+      </TabGroup>
 
       <div v-if="formData.fulfillmentType === 'delivery'">
         <label for="delivery-address">Dirección de Entrega</label>
