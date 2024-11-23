@@ -216,6 +216,7 @@ const getOptionDisplay = (option, index) => {
           'invisible': !currentOptions[i-1],
           'utility-btn-active': highlightedIndex === i-1
         }"
+        tabindex="-1"
         @click="handleOptionClick(i-1)"
       >
         <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>
@@ -230,6 +231,7 @@ const getOptionDisplay = (option, index) => {
           'invisible': !currentOptions[i-1],
           'utility-btn-active': highlightedIndex === i-1
         }"
+        tabindex="-1"
         @click="handleOptionClick(i-1)"
       >
         <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>
@@ -244,6 +246,7 @@ const getOptionDisplay = (option, index) => {
           'invisible': !currentOptions[i-1],
           'utility-btn-active': highlightedIndex === i-1
         }"
+        tabindex="-1"
         @click="handleOptionClick(i-1)"
       >
         <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>

@@ -38,7 +38,7 @@ const formData = ref(
     dueDate: tomorrowString,
     fulfillmentType: 'delivery',
     deliveryAddress: '',
-    deliveryFee: 0,
+    deliveryFee: 7000,
     paymentMethod: 'cash',
     internalNotes: '',
   },
@@ -81,14 +81,18 @@ const handleRadioGroupKeydown = (event, options, modelKey) => {
     const selectedOption = options[num - 1];
     if (modelKey === 'selectedFeeType') {
       selectedFeeType.value = selectedOption.value;
+      // Focus the selected radio input
+      document.querySelector(`input[value="${selectedOption.value}"][name="delivery-fee"]`)?.focus();
     } else {
       formData.value[modelKey] = selectedOption.value;
+      // Focus the selected radio input based on the modelKey
+      const inputName = modelKey === 'fulfillmentType' ? 'fulfillment-type' : 'payment-method';
+      document.querySelector(`input[value="${selectedOption.value}"][name="${inputName}"]`)?.focus();
     }
     event.preventDefault();
   }
 };
 
-// Rest of your existing functions...
 const validate = () => {
   errors.value = {};
 
@@ -114,7 +118,7 @@ const handleSubmit = () => {
 
 const subtotal = computed(() => {
   return formData.value.items.reduce((sum, item) => {
-    return sum + (item.isComplimentary ? 0 : item.quantity * item.unitPrice);
+    return sum + (item.isComplimentary ? 0 : item.quantity * item.currentPrice);
   }, 0);
 });
 
@@ -330,11 +334,11 @@ watch(selectedFeeType, (newValue) => {
         <div>Total: {{ total }}</div>
       </div>
 
-      <div>
-        <button type="submit" :disabled="loading">
+      <div class="flex gap-2">
+        <button type="submit" :disabled="loading" class="action-btn">
           {{ loading ? 'Creando...' : 'Crear Pedido' }}
         </button>
-        <button type="button" @click="$emit('cancel')" :disabled="loading">
+        <button type="button" @click="$emit('cancel')" :disabled="loading" class="danger-btn">
           Cancelar
         </button>
       </div>
