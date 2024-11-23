@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue';
 import ProductWizard from './ProductWizard.vue';
+import OrderLineItem from './OrderLineItem.vue';
 
 const props = defineProps({
   modelValue: {
@@ -17,23 +17,10 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
-const errors = ref({});
-void errors.value;
-
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(price);
-};
-
 const handleWizardSelect = (selection) => {
   const product = props.products.find(p => p.id === selection.product.id);
   if (!product) return;
 
-  // For products with variations, prices come from the variation
-  // For products without variations, prices come from the product
   const prices = selection.variation ?
     {
       basePrice: selection.variation.basePrice,
@@ -45,18 +32,13 @@ const handleWizardSelect = (selection) => {
     };
 
   const newItem = {
-    // Product Info
     productId: product.id,
     productName: product.name,
     collectionId: product.collectionId,
     collectionName: product.collectionName,
     quantity: selection.quantity,
-
-    // Prices
     basePrice: prices.basePrice,
     currentPrice: prices.currentPrice,
-
-    // Variation (if exists)
     variation: selection.variation ? {
       id: selection.variation.id,
       name: selection.variation.name,
@@ -66,20 +48,26 @@ const handleWizardSelect = (selection) => {
       recipeId: selection.variation.recipeId,
       isWholeGrain: selection.variation.isWholeGrain,
     } : null,
-
-    // Recipe ID
     recipeId: selection.variation?.recipeId || product.recipeId,
-
-    // Status
     isComplimentary: false,
   };
 
   emit('update:modelValue', [...props.modelValue, newItem]);
 };
 
-const removeItem = (index) => {
+const updateItemQuantity = (index, newQuantity) => {
+  if (newQuantity < 1) return;
   const newItems = [...props.modelValue];
-  newItems.splice(index, 1);
+  newItems[index].quantity = newQuantity;
+  emit('update:modelValue', newItems);
+};
+
+const updateItemPrice = (index, newPrice) => {
+  const newItems = [...props.modelValue];
+  newItems[index].currentPrice = newPrice;
+  if (newItems[index].variation) {
+    newItems[index].variation.currentPrice = newPrice;
+  }
   emit('update:modelValue', newItems);
 };
 
@@ -89,26 +77,9 @@ const toggleItemComplimentary = (index) => {
   emit('update:modelValue', newItems);
 };
 
-const updateItemQuantity = (index, newQuantity) => {
-  if (newQuantity < 1) return;
-
+const removeItem = (index) => {
   const newItems = [...props.modelValue];
-  newItems[index].quantity = newQuantity;
-  emit('update:modelValue', newItems);
-};
-
-const updateItemPrice = (index, newPrice) => {
-  const newItems = [...props.modelValue];
-  const numericPrice = Number(newPrice);
-
-  // Update main item price
-  newItems[index].currentPrice = numericPrice;
-
-  // If it's a variation, update variation price too
-  if (newItems[index].variation) {
-    newItems[index].variation.currentPrice = numericPrice;
-  }
-
+  newItems.splice(index, 1);
   emit('update:modelValue', newItems);
 };
 </script>
@@ -121,100 +92,24 @@ const updateItemPrice = (index, newPrice) => {
     />
 
     <div class="flat-card col-span-2 mb-0">
-      <div v-if="modelValue.length === 0" class=" p-4">
+      <div v-if="modelValue.length === 0" class="p-4">
         No hay productos seleccionados
       </div>
 
-      <div
-        v-else
-        class="flex flex-col h-full"
-      >
-        <!-- Order Items List -->
+      <div v-else class="flex flex-col h-full">
         <div class="flex-grow overflow-y-auto">
-          <div
+          <OrderLineItem
             v-for="(item, index) in modelValue"
             :key="`${item.productId}-${index}`"
-            class="flex justify-between items-center p-2 border-b border-gray-200 last:border-b-0"
-          >
-            <div class="flex-grow">
-              <div class="text-pill">
-                {{ item.collectionName }}
-              </div>
-              <div class="text-sm font-medium">
-                {{ item.productName }}
-                {{ item.variation ? `- ${item.variation.name}` : '' }}
-              </div>
-              <div class="text-sm  flex items-center gap-2">
-                <div class="price-group flex items-center gap-1">
-                  <span class="base-price text-xs ">
-                    base: {{ formatPrice(item.basePrice) }}
-                  </span>
-                  <input
-                    type="number"
-                    :value="item.currentPrice"
-                    @input="updateItemPrice(index, $event.target.value)"
-                    class="price-input w-24 px-2 py-1 text-right border rounded"
-                    :class="{ 'price-modified': item.currentPrice !== item.basePrice }"
-                    step="1000"
-                  >
-                </div>
-                x
-                <button
-                  @click="updateItemQuantity(index, item.quantity - 1)"
-                  class="px-2 py-1 text-xs bg-gray-100 rounded"
-                  :disabled="item.quantity <= 1"
-                >-</button>
-                {{ item.quantity }}
-                <button
-                  @click="updateItemQuantity(index, item.quantity + 1)"
-                  class="px-2 py-1 text-xs bg-gray-100 rounded"
-                >+</button>
-              </div>
-            </div>
-
-            <div class="flex gap-2 items-center">
-              <button
-                type="button"
-                @click="toggleItemComplimentary(index)"
-                class="px-2 py-1 text-sm rounded"
-                :class="{
-                  'bg-gray-200': item.isComplimentary,
-                  'bg-gray-100': !item.isComplimentary
-                }"
-              >
-                {{ item.isComplimentary ? 'Cortesía' : 'Cobrar' }}
-              </button>
-              <button
-                type="button"
-                @click="removeItem(index)"
-                class="px-2 py-1 text-sm text-red-500 hover:bg-red-50 rounded"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
+            :item="item"
+            :index="index"
+            @update:quantity="updateItemQuantity"
+            @update:price="updateItemPrice"
+            @toggle-complimentary="toggleItemComplimentary"
+            @remove="removeItem"
+          />
         </div>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped lang="scss">
-
-.price-input {
-  &:focus {
-    @apply outline-none ring-2 ring-blue-500;
-  }
-
-  &.price-modified {
-    @apply bg-yellow-50 border-yellow-300;
-  }
-}
-
-.price-group {
-
-  .base-price {
-    @apply transition-opacity duration-150;
-  }
-}
-</style>
