@@ -3,19 +3,27 @@ import js from '@eslint/js';
 import vue from 'eslint-plugin-vue';
 import jest from 'eslint-plugin-jest';
 
+// First, extend the base configurations
+const baseConfig = [
+  js.configs.recommended,
+  ...vue.configs['flat/essential'],
+];
+
 export default [
+  ...baseConfig,  // Put base configs first
   {
     files: ['**/*.{js,mjs,cjs,vue}'],
     ignores: ['node_modules/**', 'dist/**'],
+    plugins: {
+      vue,  // Add Vue plugin here
+    },
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
       globals: {
-        ...globals.browser,  // This is good for browser environment
-        // Removed globals.node since this is a browser Vue project
+        ...globals.browser,
       },
       parserOptions: {
-        // Add Vue-specific parser options
         parser: 'espree',
         ecmaFeatures: {
           jsx: true,
@@ -63,6 +71,7 @@ export default [
       'vue/html-indent': ['error', 2],
       'vue/html-quotes': ['error', 'double'],
       'vue/component-name-in-template-casing': ['error', 'PascalCase'],
+      'vue/multi-word-component-names': 'off',  // This should now take precedence
     },
   },
   {
@@ -86,6 +95,4 @@ export default [
     },
     processor: vue.processors['.vue'],
   },
-  js.configs.recommended,
-  ...vue.configs['flat/essential'],
 ];
