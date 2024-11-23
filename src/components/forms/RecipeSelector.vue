@@ -261,14 +261,7 @@ const removeIngredient = (index) => {
         </div>
 
         <!-- Modal Actions -->
-        <div>
-          <button
-            type="button"
-            @click="showRecipeModal = false"
-            class="action-btn"
-          >
-            Cancelar
-          </button>
+        <div class="flex gap-2">
           <button
             type="button"
             @click="showRecipeModal = false"
@@ -277,6 +270,14 @@ const removeIngredient = (index) => {
           >
             Guardar Receta
           </button>
+          <button
+            type="button"
+            @click="showRecipeModal = false"
+            class="danger-btn"
+          >
+            Cancelar
+          </button>
+
         </div>
       </div>
 

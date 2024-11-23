@@ -51,7 +51,7 @@ const getValueStep = () => props.variationType === 'WEIGHT' ? '50' : '1';
 </script>
 
 <template>
-  <div class="flat-card">
+  <div class="flat-card flex gap-4" :class="props.variation.isWholeGrain ? 'bg-neutral-200' : ''">
 
     <div>
       <label>Nombre</label>
