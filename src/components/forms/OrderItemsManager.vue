@@ -43,8 +43,6 @@ const handleWizardSelect = (selection) => {
       id: selection.variation.id,
       name: selection.variation.name,
       value: selection.variation.value,
-      basePrice: selection.variation.basePrice,
-      currentPrice: selection.variation.currentPrice,
       recipeId: selection.variation.recipeId,
       isWholeGrain: selection.variation.isWholeGrain,
     } : null,

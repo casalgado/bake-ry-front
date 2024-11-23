@@ -130,6 +130,7 @@ const paymentMethods = [
   { value: 'cash', label: 'Efectivo' },
   { value: 'transfer', label: 'Transferencia' },
   { value: 'card', label: 'Tarjeta' },
+  { value: 'regalo', label: 'Regalo' },
 ];
 
 const fulfillmentTypes = [
@@ -326,6 +327,8 @@ watch(selectedFeeType, (newValue) => {
         ></textarea>
       </div>
     </div>
+
+    <pre>{{ JSON.stringify(formData, null, 2) }}</pre>
 
     <div class="base-card">
       <div>

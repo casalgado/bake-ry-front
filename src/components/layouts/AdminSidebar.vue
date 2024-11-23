@@ -1,13 +1,25 @@
 <script setup>
 
 import { useRouter, useRoute } from 'vue-router';
-import { PhChartDonut, PhOven, PhPersonArmsSpread, PhCashRegister, PhDresser, PhChefHat, PhBasket, PhBarcode, PhShoppingBagOpen } from '@phosphor-icons/vue';
+import { PhChartDonut, PhOven, PhPersonArmsSpread, PhCashRegister, PhDresser, PhChefHat, PhBasket, PhBarcode, PhShoppingBagOpen, PhMopedFront } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 
 const router = useRouter();
 const route = useRoute();
 
 const links = [
+  {
+    id: 'pedidos',
+    icon: PhCashRegister,
+    text: 'Pedidos',
+    path: '/dashboard/orders',
+  },
+  {
+    id: 'nuevo_pedido',
+    icon: PhShoppingBagOpen,
+    text: 'Nuevo Pedido',
+    path: '/dashboard/orders/create',
+  },
   {
     id: 'venta',
     icon: PhChartDonut,
@@ -18,25 +30,19 @@ const links = [
     id: 'produccion',
     icon: PhOven,
     text: 'Produccion',
-    path: '/dashboard/update-bakery',
+    path: '/dashboard/show-production',
+  },
+  {
+    id: 'entrega',
+    icon: PhMopedFront,
+    text: 'Entrega',
+    path: '/dashboard/show-delivery',
   },
   {
     id: 'clientes',
     icon: PhPersonArmsSpread,
     text: 'Clientes',
     path: '/dashboard/users',
-  },
-  {
-    id: 'nuevo_pedido',
-    icon: PhShoppingBagOpen,
-    text: 'Nuevo Pedido',
-    path: '/dashboard/orders/create',
-  },
-  {
-    id: 'pedidos',
-    icon: PhCashRegister,
-    text: 'Pedidos',
-    path: '/dashboard/orders',
   },
 
   {
