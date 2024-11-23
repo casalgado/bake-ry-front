@@ -4,7 +4,6 @@ import { useProductStore } from '@/stores/productStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
 import OrderItemsManager from './OrderItemsManager.vue';
-import { TabList, TabGroup, Tab } from '@headlessui/vue';
 
 const props = defineProps({
   initialData: {
@@ -70,8 +69,6 @@ const total = computed(() => {
   return subtotal.value + formData.value.deliveryFee;
 });
 
-const tabList = ref(null);
-
 const handleUserChange = async (user) => {
   formData.value.userId = user.id;
   formData.value.userName = user.name;
@@ -80,10 +77,7 @@ const handleUserChange = async (user) => {
   formData.value.deliveryAddress = user.address;
   await nextTick();
   setTimeout(() => {
-    const firstTabButton = tabList.value?.$el?.querySelector('[role="tab"]');
-    if (firstTabButton) {
-      firstTabButton.focus();
-    }
+    console.log('focus');
   }, 0);
 };
 
@@ -120,14 +114,6 @@ const fulfillmentTypes = [
   { value: 'pickup', label: 'Recoger' },
   { value: 'delivery', label: 'Domicilio' },
 ];
-
-const selectedFulfillmentIndex = computed(() =>
-  fulfillmentTypes.findIndex(type => type.value === formData.value.fulfillmentType),
-);
-
-const handleFulfillmentChange = (index) => {
-  formData.value.fulfillmentType = fulfillmentTypes[index].value;
-};
 
 // Delivery fee options and handling
 const deliveryFeeOptions = [
@@ -187,20 +173,32 @@ watch(selectedFeeType, (newValue) => {
 
     <div class="base-card">
       <legend>Envio</legend>
-      <TabGroup
-        :selectedIndex="selectedFulfillmentIndex"
-        @change="handleFulfillmentChange"
-      >
-        <TabList ref="tabList">
-          <Tab
+      <!-- Fulfillment Type Section -->
+      <div role="radiogroup" aria-labelledby="fulfillment-type-group">
+        <label id="fulfillment-type-group" class="sr-only">Tipo de Envío</label>
+        <div class="flex gap-1">
+          <div
             v-for="type in fulfillmentTypes"
             :key="type.value"
-            class="utility-btn [&[data-headlessui-state='selected']]:utility-btn-active [&:not([data-headlessui-state='selected'])]:utility-btn-inactive"
+            class="relative"
           >
-            {{ type.label }}
-          </Tab>
-        </TabList>
-      </TabGroup>
+            <input
+              type="radio"
+              :id="'fulfillment-' + type.value"
+              :value="type.value"
+              v-model="formData.fulfillmentType"
+              :name="'fulfillment-type'"
+              class="sr-only peer"
+            />
+            <label
+              :for="'fulfillment-' + type.value"
+              class="utility-btn-inactive cursor-pointer py-1 px-2 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black"
+            >
+              {{ type.label }}
+            </label>
+          </div>
+        </div>
+      </div>
 
       <div v-if="formData.fulfillmentType === 'delivery'">
         <label for="delivery-address">Dirección de Entrega</label>
@@ -208,7 +206,6 @@ watch(selectedFeeType, (newValue) => {
           id="delivery-address"
           type="text"
           v-model="formData.deliveryAddress"
-          ref="deliveryAddressInput"
         />
         <span v-if="errors.deliveryAddress">{{ errors.deliveryAddress }}</span>
       </div>
@@ -256,7 +253,7 @@ watch(selectedFeeType, (newValue) => {
       <legend>Pago</legend>
       <!-- Payment Methods Section -->
       <div role="radiogroup" aria-labelledby="payment-method-group">
-        <label id="payment-method-group">Método de Pago</label>
+        <label id="payment-method-group" class="sr-only">Método de Pago</label>
         <div class="flex gap-1">
           <div
             v-for="method in paymentMethods"
