@@ -8,23 +8,35 @@ export const useTableSort = () => {
   // Add or update sort
   const toggleSort = (columnId, isMulti = false) => {
     const existingSort = sortState.value.find(sort => sort.columnId === columnId);
-    const newSortState = isMulti ? [...sortState.value] : [];
 
-    if (!existingSort) {
-      // Add new sort
-      newSortState.push({ columnId, direction: 'asc' });
-    } else {
-      if (existingSort.direction === 'asc') {
-        // Toggle to descending
-        existingSort.direction = 'desc';
+    // If not holding shift, clear other sorts unless it's the same column
+    if (!isMulti) {
+      // If it's the same column, just toggle direction
+      if (existingSort) {
+        if (existingSort.direction === 'asc') {
+          sortState.value = [{ columnId, direction: 'desc' }];
+        } else {
+          sortState.value = [];
+        }
       } else {
-        // Remove sort if already descending
-        const index = sortState.value.indexOf(existingSort);
-        newSortState.splice(index, 1);
+        // New sort on a different column
+        sortState.value = [{ columnId, direction: 'asc' }];
       }
+      return;
     }
 
-    sortState.value = newSortState;
+    // Multi-sort logic (when shift is pressed)
+    if (existingSort) {
+      if (existingSort.direction === 'asc') {
+        existingSort.direction = 'desc';
+      } else if (existingSort.direction === 'desc') {
+        // Remove this sort
+        sortState.value = sortState.value.filter(s => s.columnId !== columnId);
+      }
+    } else {
+      // Add new sort while keeping existing ones
+      sortState.value = [...sortState.value, { columnId, direction: 'asc' }];
+    }
   };
 
   // Get sort direction for a column

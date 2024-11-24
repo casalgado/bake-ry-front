@@ -60,19 +60,10 @@ const getCellValue = (row, column) => {
 
 <template>
   <div :class="['relative overflow-x-auto shadow-md rounded-lg', wrapperClass]">
-    <div v-if="sortState.length" class="px-6 py-2 bg-neutral-50 border-b text-sm">
-      <span class="text-neutral-600">Sorted by:</span>
-      <span
-        v-for="(sort, index) in sortState"
-        :key="sort.columnId"
-        class="ml-2"
-      >
-        {{ columns.find(col => col.id === sort.columnId)?.label }}
-        ({{ sort.direction }}){{ index < sortState.length - 1 ? ',' : '' }}
-      </span>
+    <div v-if="sortState.length" class="absolute rounded-bl-md right-0 z-10 px-4 py-2 bg-neutral-50 border-b text-sm">
       <button
         @click="clearSort"
-        class="ml-4 text-primary-600 hover:text-primary-700 text-sm"
+        class="text-primary-600 hover:text-primary-700 text-sm"
       >
         Clear sort
       </button>

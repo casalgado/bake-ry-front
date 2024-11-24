@@ -1,19 +1,17 @@
-// components/recipes/ShowRecipes.vue
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRecipeStore } from '@/stores/recipeStore';
 import { useRouter } from 'vue-router';
 import RecipeForm from '@/components/forms/RecipeForm.vue';
+import DataTable from '@/components/DataTable/index.vue';
 
 const router = useRouter();
 const recipeStore = useRecipeStore();
-
 const showForm = ref(false);
 const selectedRecipe = ref(null);
 const searchQuery = ref('');
 const selectedCategory = ref('');
 
-// Category options matching RecipeForm
 const categoryOptions = [
   'Bread',
   'Cake',
@@ -27,13 +25,11 @@ onMounted(async () => {
   await recipeStore.fetchAll();
 });
 
-const filteredRecipes = computed(() => {
+const tableData = computed(() => {
   return recipeStore.items.filter((recipe) => {
     const matchesSearch =
       recipe.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      recipe.description
-        ?.toLowerCase()
-        .includes(searchQuery.value.toLowerCase());
+      recipe.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
 
     const matchesCategory =
       !selectedCategory.value || recipe.category === selectedCategory.value;
@@ -42,19 +38,56 @@ const filteredRecipes = computed(() => {
   });
 });
 
-const handleEdit = (recipe) => {
-  selectedRecipe.value = recipe;
-  showForm.value = true;
-};
+const columns = [
+  {
+    id: 'name',
+    label: 'Name',
+    field: 'name',
+    sortable: true,
+    customRender: (value, row) => {
+      if (row.description) {
+        return `<div>${value}</div><div class="text-sm text-gray-500">${row.description}</div>`;
+      }
+      return value;
+    },
+  },
+  {
+    id: 'category',
+    label: 'Category',
+    field: 'category',
+    sortable: true,
+  },
+  {
+    id: 'version',
+    label: 'Version',
+    field: 'version',
+    sortable: true,
+    customRender: (value) => `v${value || '1.0'}`,
+  },
+  {
+    id: 'ingredients',
+    label: 'Ingredients',
+    field: 'ingredients',
+    sortable: false,
+    customRender: (ingredients) => {
+      if (!ingredients || ingredients.length === 0) return '-';
+      return ingredients.map(ing =>
+        `${ing.name} - ${ing.quantity} ${ing.unit}`,
+      ).join(', ');
+    },
+  },
+  {
+    id: 'isActive',
+    label: 'Status',
+    field: 'isActive',
+    sortable: true,
+    customRender: (value) => value ? 'Active' : 'Inactive',
+  },
+];
 
-const handleDelete = async (recipeId) => {
-  if (confirm('Are you sure you want to delete this recipe?')) {
-    try {
-      await recipeStore.remove(recipeId);
-    } catch (error) {
-      console.error('Failed to delete recipe:', error);
-    }
-  }
+const handleRowClick = ({ row }) => {
+  selectedRecipe.value = row;
+  showForm.value = true;
 };
 
 const handleSubmit = async (formData) => {
@@ -74,24 +107,38 @@ const handleCancel = () => {
   selectedRecipe.value = null;
 };
 
+const handleDelete = async (recipeId) => {
+  if (confirm('Are you sure you want to delete this recipe?')) {
+    try {
+      await recipeStore.remove(recipeId);
+    } catch (error) {
+      console.error('Failed to delete recipe:', error);
+    }
+  }
+};
+
 const navigateToCreate = () => {
   router.push('/dashboard/recipes/create');
 };
 </script>
 
 <template>
-  <div>
-    <h2>Recipe Management</h2>
+  <div class="container p-4">
+    <h2 class="text-2xl font-bold mb-4">Recipe Management</h2>
 
     <!-- Search and Filter Controls -->
-    <div>
+    <div class="flex gap-4 mb-4">
       <input
         type="text"
         v-model="searchQuery"
         placeholder="Search recipes..."
+        class="px-4 py-2 border rounded"
       />
 
-      <select v-model="selectedCategory">
+      <select
+        v-model="selectedCategory"
+        class="px-4 py-2 border rounded"
+      >
         <option value="">All categories</option>
         <option
           v-for="category in categoryOptions"
@@ -102,21 +149,28 @@ const navigateToCreate = () => {
         </option>
       </select>
 
-      <button @click="navigateToCreate">New Recipe</button>
+      <button
+        @click="navigateToCreate"
+        class="px-4 py-2 action-btn"
+      >
+        New Recipe
+      </button>
     </div>
 
     <!-- Loading State -->
-    <div v-if="recipeStore.loading">Loading recipes...</div>
+    <div v-if="recipeStore.loading" class="text-neutral-600 text-center py-4">
+      Loading recipes...
+    </div>
 
     <!-- Error State -->
-    <div v-if="recipeStore.error">
+    <div v-if="recipeStore.error" class="text-red-500 text-center py-4">
       {{ recipeStore.error }}
     </div>
 
     <!-- Edit Form Modal -->
-    <div v-if="showForm">
-      <div>
-        <h3>Edit Recipe</h3>
+    <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg p-6 max-w-2xl w-full">
+        <h3 class="text-xl font-bold mb-4">Edit Recipe</h3>
         <RecipeForm
           :key="selectedRecipe.id"
           :initial-data="selectedRecipe"
@@ -127,70 +181,14 @@ const navigateToCreate = () => {
       </div>
     </div>
 
-    <!-- Recipes Table -->
-    <div v-if="!recipeStore.loading && filteredRecipes.length > 0">
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Version</th>
-            <th>Ingredients</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="recipe in filteredRecipes" :key="recipe.id">
-            <td>
-              <div>{{ recipe.name }}</div>
-              <div v-if="recipe.description">
-                {{ recipe.description }}
-              </div>
-            </td>
-            <td>{{ recipe.category }}</td>
-            <td>v{{ recipe.version || '1.0' }}</td>
-            <td>
-              <div
-                v-for="(ingredient, index) in recipe.ingredients"
-                :key="index"
-              >
-                {{ ingredient.name }} - {{ ingredient.quantity }}
-                {{ ingredient.unit }}
-              </div>
-            </td>
-            <td>{{ recipe.isActive ? "Active" : "Inactive" }}</td>
-            <td>
-              <button @click="handleEdit(recipe)">Edit</button>
-              <button @click="handleDelete(recipe.id)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- No Results State -->
-    <div v-else-if="!recipeStore.loading && filteredRecipes.length === 0">
-      No recipes found.
+    <!-- Table -->
+    <div v-if="!recipeStore.loading">
+      <DataTable
+        :data="tableData"
+        :columns="columns"
+        @row-click="handleRowClick"
+        class="bg-white shadow-lg rounded-lg"
+      />
     </div>
   </div>
 </template>
-
-<style scoped lang="scss">
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
-th,
-td {
-  padding: 0.5rem;
-  text-align: left;
-  border: 1px solid #ddd;
-}
-
-button + button {
-  margin-left: 0.5rem;
-}
-</style>

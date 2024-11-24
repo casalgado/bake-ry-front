@@ -10,24 +10,24 @@
     .btn-danger {}
 
     /* Base button styles that all buttons share */
-    .form-container button {
+    button {
         @apply rounded-md font-medium text-[13px] my-2 px-2 py-1;
     }
 
     /* Action button - primary actions */
-    .form-container .action-btn {
+    .action-btn {
         @apply bg-primary text-white border-neutral-850;
     }
 
-    .form-container .action-btn:hover {
+    .action-btn:hover {
         @apply bg-primary/80;
     }
 
-    .form-container .danger-btn {
+    .danger-btn {
         @apply bg-danger text-white border-neutral-850;
     }
 
-    .form-container .danger-btn:hover {
+    .danger-btn:hover {
         @apply bg-danger/80;
     }
 

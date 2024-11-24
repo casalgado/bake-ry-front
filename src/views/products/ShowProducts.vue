@@ -4,6 +4,7 @@ import { useProductStore } from '@/stores/productStore';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import { useRouter } from 'vue-router';
 import ProductForm from '@/components/forms/ProductForm.vue';
+import DataTable from '@/components/DataTable/index.vue';
 
 const router = useRouter();
 const productStore = useProductStore();
@@ -18,13 +19,11 @@ onMounted(async () => {
   await productCollectionStore.fetchAll();
 });
 
-const filteredProducts = computed(() => {
+const tableData = computed(() => {
   return productStore.items.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      product.description
-        ?.toLowerCase()
-        .includes(searchQuery.value.toLowerCase());
+      product.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
 
     const matchesCollection =
       !selectedCollection.value || product.collectionId === selectedCollection.value;
@@ -33,32 +32,61 @@ const filteredProducts = computed(() => {
   });
 });
 
-const hasVariations = (product) => {
-  return product.variations && product.variations.length > 0;
-};
-
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
   }).format(value);
 };
 
-const handleEdit = (product) => {
-  selectedProduct.value = product;
-  showForm.value = true;
-};
+const columns = [
+  {
+    id: 'name',
+    label: 'Name',
+    field: 'name',
+    sortable: true,
+  },
+  {
+    id: 'collectionName',
+    label: 'Collection',
+    field: 'collectionName',
+    sortable: true,
+  },
+  {
+    id: 'variations',
+    label: 'Variaciones',
+    field: 'variations',
+    sortable: false,
+    customRender: (variations) => {
+      if (!variations || variations.length === 0) return '-';
+      return variations.map(v => `${v.name} (${v.value}g)`).join(', ');
+    },
+  },
+  {
+    id: 'basePrice',
+    label: 'Precio Base',
+    field: 'basePrice',
+    sortable: false,
+  },
+  {
+    id: 'recipes',
+    label: 'Receta',
+    field: 'recipeId',
+    sortable: false,
+  },
+  {
+    id: 'isActive',
+    label: 'Status',
+    field: 'isActive',
+    sortable: true,
+    customRender: (value) => value ? 'Active' : 'Inactive',
+  },
+];
 
-const handleDelete = async (productId) => {
-  if (confirm('Are you sure you want to delete this product?')) {
-    try {
-      await productStore.remove(productId);
-    } catch (error) {
-      console.error('Failed to delete product:', error);
-    }
-  }
+const handleRowClick = ({ row }) => {
+  selectedProduct.value = row;
+  showForm.value = true;
 };
 
 const handleSubmit = async (formData) => {
@@ -84,18 +112,22 @@ const navigateToCreate = () => {
 </script>
 
 <template>
-  <div>
-    <h2>Product Management</h2>
+  <div class="container p-4">
+    <h2 class="text-2xl font-bold mb-4">Product Management</h2>
 
     <!-- Search and Filter Controls -->
-    <div>
+    <div class="flex gap-4 mb-4">
       <input
         type="text"
         v-model="searchQuery"
         placeholder="Search products..."
+        class="px-4 py-2 border rounded"
       />
 
-      <select v-model="selectedCollection">
+      <select
+        v-model="selectedCollection"
+        class="px-4 py-2 border rounded"
+      >
         <option value="">All collections</option>
         <option
           v-for="collection in productCollectionStore.items"
@@ -106,21 +138,28 @@ const navigateToCreate = () => {
         </option>
       </select>
 
-      <button @click="navigateToCreate">New Product</button>
+      <button
+        @click="navigateToCreate"
+        class="px-4 py-2 action-btn"
+      >
+        New Product
+      </button>
     </div>
 
     <!-- Loading State -->
-    <div v-if="productStore.loading">Loading products...</div>
+    <div v-if="productStore.loading" class="text-neutral-600 text-center py-4">
+      Loading products...
+    </div>
 
     <!-- Error State -->
-    <div v-if="productStore.error">
+    <div v-if="productStore.error" class="text-red-500 text-center py-4">
       {{ productStore.error }}
     </div>
 
     <!-- Edit Form Modal -->
-    <div v-if="showForm">
-      <div>
-        <h3>Edit Product</h3>
+    <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg p-6 max-w-2xl w-full">
+        <h3 class="text-xl font-bold mb-4">Edit Product</h3>
         <ProductForm
           :key="selectedProduct.id"
           :initial-data="selectedProduct"
@@ -131,91 +170,14 @@ const navigateToCreate = () => {
       </div>
     </div>
 
-    <!-- Products Table -->
-    <div v-if="!productStore.loading && filteredProducts.length > 0">
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Recipe</th>
-            <th>Base Price</th>
-            <th>Multiplier</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="product in filteredProducts" :key="product.id">
-            <!-- Name Column -->
-            <td>
-              <div>{{ product.name }}</div>
-              <div v-if="product.description">
-                {{ product.description }}
-              </div>
-            </td>
-
-            <!-- Recipe Column -->
-            <td>{{ product.recipeId }}</td>
-
-            <!-- Price Column -->
-            <td>
-              <div v-if="!hasVariations(product)">
-                {{ formatCurrency(product.basePrice) }}
-              </div>
-              <div v-else>
-                <div v-for="(variation, index) in product.variations" :key="index">
-                  {{ variation.name }}: {{ formatCurrency(variation.basePrice) }}
-                </div>
-              </div>
-            </td>
-
-            <!-- Multiplier Column -->
-            <td>
-              <div v-if="!hasVariations(product)">
-                {{ product.recipeMultiplier }}x
-              </div>
-              <div v-else>
-                <div v-for="(variation, index) in product.variations" :key="index">
-                  {{ variation.name }}: {{ variation.recipeMultiplier }}x
-                </div>
-              </div>
-            </td>
-
-            <!-- Status Column -->
-            <td>{{ product.isActive ? "Active" : "Inactive" }}</td>
-
-            <!-- Actions Column -->
-            <td>
-              <button @click="handleEdit(product)">Edit</button>
-              <button @click="handleDelete(product.id)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- No Results State -->
-    <div v-else-if="!productStore.loading && filteredProducts.length === 0">
-      No products found.
+    <!-- Table -->
+    <div v-if="!productStore.loading">
+      <DataTable
+        :data="tableData"
+        :columns="columns"
+        @row-click="handleRowClick"
+        class="bg-white shadow-lg rounded-lg"
+      />
     </div>
   </div>
 </template>
-
-<style scoped lang="scss">
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
-th,
-td {
-  padding: 0.5rem;
-  text-align: left;
-  border: 1px solid #ddd;
-}
-
-button + button {
-  margin-left: 0.5rem;
-}
-</style>
