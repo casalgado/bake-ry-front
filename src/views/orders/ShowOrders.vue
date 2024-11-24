@@ -3,54 +3,157 @@ import { ref, onMounted, computed } from 'vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useRouter } from 'vue-router';
 import OrderForm from '@/components/forms/OrderForm.vue';
+import DataTable from '@/components/DataTable/index.vue';
+import { PhPen, PhExport } from '@phosphor-icons/vue';
 
 const router = useRouter();
 const orderStore = useOrderStore();
-
 const showForm = ref(false);
 const selectedOrder = ref(null);
+const actionLoading = ref({});
+
+// Column definitions
+const columns = [
+  {
+    id: 'client',
+    label: 'Client',
+    field: 'userName',
+    sortable: true,
+    renderer: (row) => ({
+      content: `
+        <div>${row.userName}</div>
+        ${row.userPhone ? `<div class="text-sm text-neutral-500">${row.userPhone}</div>` : ''}
+      `,
+    }),
+  },
+  {
+    id: 'dueDate',
+    label: 'Due Date',
+    field: 'dueDate',
+    sortable: true,
+    renderer: (row) => new Date(row.dueDate).toLocaleDateString(),
+  },
+  {
+    id: 'items',
+    label: 'Items',
+    field: 'items',
+    sortable: false,
+    renderer: (row) => row.items.map(item =>
+      `${item.productName} (${item.quantity}${item.isComplimentary ? ' - Complimentary' : ''})`,
+    ).join(', '),
+  },
+  {
+    id: 'paymentMethod',
+    label: 'Payment',
+    field: 'paymentMethod',
+    sortable: true,
+    type: 'toggle',
+    options: ['cash', 'card', 'transfer'],
+  },
+  {
+    id: 'fulfillmentType',
+    label: 'Fulfillment',
+    field: 'fulfillmentType',
+    sortable: true,
+    type: 'toggle',
+    options: ['pickup', 'delivery'],
+  },
+  {
+    id: 'total',
+    label: 'Total',
+    field: 'total',
+    sortable: true,
+    renderer: (row) => new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(row.total),
+  },
+];
+
+// Table actions
+const tableActions = [
+  {
+    id: 'edit',
+    label: 'Edit',
+    icon: PhPen,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'secondary',
+  },
+  {
+    id: 'export',
+    label: 'Export',
+    icon: PhExport,
+    minSelected: 1,
+    variant: 'primary',
+  },
+];
+
+// Search filters
 const searchQuery = ref('');
 const dateFilter = ref('');
 
-onMounted(async () => {
-  await orderStore.fetchAll();
+// Filtered data
+const filteredData = computed(() => {
+  let filtered = orderStore.items;
+
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(order =>
+      order.userName?.toLowerCase().includes(query) ||
+      order.items.some(item => item.productName.toLowerCase().includes(query)),
+    );
+  }
+
+  if (dateFilter.value) {
+    filtered = filtered.filter(order =>
+      order.dueDate.startsWith(dateFilter.value),
+    );
+  }
+
+  return filtered;
 });
 
-const filteredOrders = computed(() => {
-  return orderStore.items.filter((order) => {
-    const matchesSearch =
-      order.userName?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      order.items.some(item =>
-        item.productName.toLowerCase().includes(searchQuery.value.toLowerCase()),
-      );
-
-    const matchesDate = !dateFilter.value || order.dueDate === dateFilter.value;
-
-    return matchesSearch && matchesDate;
-  });
-});
-
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+// Handlers
+const handleSelectionChange = (selectedIds) => {
+  if (selectedIds.length === 1) {
+    selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
+  } else {
+    selectedOrder.value = null;
+  }
 };
 
-const handleEdit = (order) => {
-  selectedOrder.value = order;
-  showForm.value = true;
+const handleToggleUpdate = async ({ rowIds, field, value }) => {
+  try {
+    // Update each selected order
+    rowIds.map(id =>
+      console.log(id, field, value),
+    );
+  } catch (error) {
+    console.error('Failed to update orders:', error);
+  }
 };
 
-const handleDelete = async (orderId) => {
-  if (confirm('Are you sure you want to delete this order?')) {
-    try {
-      await orderStore.remove(orderId);
-    } catch (error) {
-      console.error('Failed to delete order:', error);
+const handleAction = async ({ actionId, selectedIds }) => {
+  actionLoading.value[actionId] = true;
+
+  try {
+    switch (actionId) {
+    case 'edit':
+      selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
+      showForm.value = true;
+      break;
+
+    case 'export':
+      console.log('Exporting orders:', selectedIds);
+      break;
     }
+  } catch (error) {
+    console.error('Action failed:', error);
+  } finally {
+    actionLoading.value[actionId] = false;
   }
 };
 
@@ -71,50 +174,70 @@ const handleCancel = () => {
   selectedOrder.value = null;
 };
 
-const navigateToCreate = () => {
-  router.push('/dashboard/orders/create');
-};
-
-const getItemsSummary = (items) => {
-  return items.map(item =>
-    `${item.productName} (${item.quantity}${item.isComplimentary ? ' - Complimentary' : ''})`,
-  ).join(', ');
-};
+onMounted(async () => {
+  await orderStore.fetchAll();
+});
 </script>
 
 <template>
-  <div>
-    <h2>Order Management</h2>
+  <div class="container p-4">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold">Order Management</h2>
+      <button
+        @click="() => router.push('/dashboard/orders/create')"
+        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+      >
+        New Order
+      </button>
+    </div>
 
-    <!-- Search and Filter Controls -->
-    <div>
-      <input
-        type="text"
-        v-model="searchQuery"
-        placeholder="Search orders..."
-      />
+    <!-- Filters Section -->
+    <div class="bg-white p-4 rounded-lg shadow-sm mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Search -->
+        <div>
+          <label class="block text-sm font-medium text-neutral-700 mb-1">
+            Search
+          </label>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search orders..."
+            class="w-full px-3 py-2 border rounded-lg focus:ring-primary-500 focus:border-primary-500"
+          />
+        </div>
 
-      <input
-        type="date"
-        v-model="dateFilter"
-        placeholder="Filter by due date"
-      />
-
-      <button @click="navigateToCreate">New Order</button>
+        <!-- Date Filter -->
+        <div>
+          <label class="block text-sm font-medium text-neutral-700 mb-1">
+            Due Date
+          </label>
+          <input
+            v-model="dateFilter"
+            type="date"
+            class="w-full px-3 py-2 border rounded-lg focus:ring-primary-500 focus:border-primary-500"
+          />
+        </div>
+      </div>
     </div>
 
     <!-- Loading State -->
-    <div v-if="orderStore.loading">Loading orders...</div>
+    <div v-if="orderStore.loading" class="text-neutral-600 text-center py-4">
+      Loading orders...
+    </div>
 
     <!-- Error State -->
-    <div v-if="orderStore.error">
+    <div v-if="orderStore.error" class="text-danger text-center py-4">
       {{ orderStore.error }}
     </div>
 
     <!-- Edit Form Modal -->
-    <div v-if="showForm">
-      <div>
-        <h3>Edit Order</h3>
+    <div
+      v-if="showForm"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+    >
+      <div class="bg-white rounded-lg p-6 max-w-2xl w-full">
+        <h3 class="text-xl font-bold mb-4">Edit Order</h3>
         <OrderForm
           :key="selectedOrder.id"
           :initial-data="selectedOrder"
@@ -125,39 +248,18 @@ const getItemsSummary = (items) => {
       </div>
     </div>
 
-    <!-- Orders Table -->
-    <div v-if="!orderStore.loading && filteredOrders.length > 0">
-      <table>
-        <thead>
-          <tr>
-            <th>Client</th>
-            <th>Due Date</th>
-            <th>Items</th>
-            <th>Total</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="order in filteredOrders" :key="order.id">
-            <td>
-              <div>{{ order.userName }}</div>
-              <div>{{ order.userPhone }}</div>
-            </td>
-            <td>{{ order.dueDate }}</td>
-            <td>{{ getItemsSummary(order.items) }}</td>
-            <td>{{ formatCurrency(order.total) }}</td>
-            <td>
-              <button @click="handleEdit(order)">Edit</button>
-              <button @click="handleDelete(order.id)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- No Results State -->
-    <div v-else-if="!orderStore.loading && filteredOrders.length === 0">
-      No orders found.
+    <!-- Table -->
+    <div v-if="!orderStore.loading">
+      <DataTable
+        :data="filteredData"
+        :columns="columns"
+        :actions="tableActions"
+        :loading="actionLoading"
+        @selection-change="handleSelectionChange"
+        @toggle-update="handleToggleUpdate"
+        @action="handleAction"
+        class="bg-white shadow-lg rounded-lg"
+      />
     </div>
   </div>
 </template>
