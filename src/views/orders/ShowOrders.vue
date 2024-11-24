@@ -4,6 +4,7 @@ import { useOrderStore } from '@/stores/orderStore';
 import { useRouter } from 'vue-router';
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
+import { MoneyRenderer, DateRenderer, ItemsRenderer, ClientRenderer } from '@/components/DataTable/renderers/CellRenderers';
 import { PhPen, PhExport } from '@phosphor-icons/vue';
 
 const router = useRouter();
@@ -19,11 +20,12 @@ const columns = [
     label: 'Client',
     field: 'userName',
     sortable: true,
-    renderer: (row) => ({
-      content: `
-        <div>${row.userName}</div>
-        ${row.userPhone ? `<div class="text-sm text-neutral-500">${row.userPhone}</div>` : ''}
-      `,
+    customRender: (row) => ({
+      component: ClientRenderer,
+      props: {
+        name: row.userName,
+        phone: row.userPhone,
+      },
     }),
   },
   {
@@ -31,16 +33,26 @@ const columns = [
     label: 'Due Date',
     field: 'dueDate',
     sortable: true,
-    renderer: (row) => new Date(row.dueDate).toLocaleDateString(),
+    customRender: (row) => ({
+      component: DateRenderer,
+      props: {
+        value: row.dueDate,
+        showTime: true,
+      },
+    }),
   },
   {
     id: 'items',
     label: 'Items',
     field: 'items',
     sortable: false,
-    renderer: (row) => row.items.map(item =>
-      `${item.productName} (${item.quantity}${item.isComplimentary ? ' - Complimentary' : ''})`,
-    ).join(', '),
+    customRender: (row) => ({
+      component: ItemsRenderer,
+      props: {
+        items: row.items,
+        maxDisplay: 2,
+      },
+    }),
   },
   {
     id: 'paymentMethod',
@@ -63,12 +75,12 @@ const columns = [
     label: 'Total',
     field: 'total',
     sortable: true,
-    renderer: (row) => new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(row.total),
+    customRender: (row) => ({
+      component: MoneyRenderer,
+      props: {
+        value: row.total,
+      },
+    }),
   },
 ];
 

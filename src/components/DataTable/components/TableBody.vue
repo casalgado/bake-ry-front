@@ -1,6 +1,7 @@
 <!-- components/DataTable/components/TableBody.vue -->
 <script setup>
 import { computed } from 'vue';
+import TableCell from './TableCell.vue';
 
 const props = defineProps({
   data: {
@@ -47,26 +48,13 @@ const isEmpty = computed(() => props.data.length === 0);
             : 'hover:bg-neutral-50'
         ]"
       >
-        <td
+        <TableCell
           v-for="column in columns"
           :key="column.id"
+          :column="column"
+          :row="row"
           @click="(event) => handleCellClick(event, row, column)"
-          class="px-4 py-2"
-        >
-          <template v-if="column.type === 'toggle'">
-            <div
-              class="cursor-pointer inline-flex items-center gap-2"
-              :class="{
-                'opacity-50': selectedRows.size > 1 && !selectedRows.has(row.id)
-              }"
-            >
-              {{ row[column.field] }}
-            </div>
-          </template>
-          <template v-else>
-            {{ row[column.field] }}
-          </template>
-        </td>
+        />
       </tr>
     </template>
     <tr v-else>
