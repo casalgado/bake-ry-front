@@ -1,6 +1,8 @@
+<!-- components/DataTable/index.vue -->
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import TableHeader from './components/TableHeader.vue';
+import TableBody from './components/TableBody.vue';
 import { useTableSort } from './composables/useTableSort';
 
 const props = defineProps({
@@ -21,7 +23,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['row-click', 'sort-change']);
+const emit = defineEmits(['toggle-update', 'selection-change']);
 
 // Initialize sorting
 const {
@@ -33,40 +35,136 @@ const {
   clearSort,
 } = useTableSort();
 
-// Watch sort changes
-watch(sortState, (newSort) => {
-  emit('sort-change', newSort);
-});
+// Selection state
+const selectedRows = ref(new Set());
 
-// Computed sorted data
-const sortedData = computed(() => {
-  return sortData(props.data);
-});
+// Computed
+const hasSelection = computed(() => selectedRows.value.size > 0);
+const allSelected = computed(() => selectedRows.value.size === props.data.length);
+const sortedData = computed(() => sortData(props.data));
 
-const isEmpty = computed(() => props.data.length === 0);
+// Selection handlers
+const handleRowSelect = ({ row, shift }) => {
+  if (shift && selectedRows.value.size > 0) {
+    // Handle range selection
+    const lastSelected = [...selectedRows.value].pop();
+    const startIdx = props.data.findIndex(r => r.id === lastSelected);
+    const endIdx = props.data.findIndex(r => r.id === row.id);
 
-const handleRowClick = (row, index) => {
-  emit('row-click', { row, index });
+    const [start, end] = [startIdx, endIdx].sort((a, b) => a - b);
+
+    for (let i = start; i <= end; i++) {
+      selectedRows.value.add(props.data[i].id);
+    }
+  } else {
+    // Toggle single selection
+    if (selectedRows.value.has(row.id)) {
+      selectedRows.value.delete(row.id);
+    } else {
+      selectedRows.value.add(row.id);
+    }
+  }
+
+  emitSelectionChange();
 };
 
+const handleToggleUpdate = ({ row, column }) => {
+  const rowsToUpdate = selectedRows.value.has(row.id)
+    ? props.data.filter(r => selectedRows.value.has(r.id))
+    : [row];
+
+  // Get next value in toggle sequence
+  const currentValue = row[column.field];
+  const nextValue = getNextToggleValue(currentValue, column.options);
+
+  emit('toggle-update', {
+    rowIds: rowsToUpdate.map(r => r.id),
+    field: column.field,
+    value: nextValue,
+  });
+};
+
+const selectAll = () => {
+  if (allSelected.value) {
+    selectedRows.value.clear();
+  } else {
+    sortedData.value.forEach(row => selectedRows.value.add(row.id));
+  }
+  emitSelectionChange();
+};
+
+const clearSelection = () => {
+  selectedRows.value.clear();
+  emitSelectionChange();
+};
+
+const emitSelectionChange = () => {
+  emit('selection-change', [...selectedRows.value]);
+};
+
+// Helper to get next value in toggle sequence
+const getNextToggleValue = (currentValue, options) => {
+  const currentIndex = options.indexOf(currentValue);
+  return options[(currentIndex + 1) % options.length];
+};
+
+// Handle sort
 const handleSort = (columnId, isMulti) => {
   toggleSort(columnId, isMulti);
-};
-
-const getCellValue = (row, column) => {
-  return row[column.field];
 };
 </script>
 
 <template>
   <div :class="['relative overflow-x-auto shadow-md rounded-lg', wrapperClass]">
-    <div v-if="sortState.length" class="absolute rounded-bl-md right-0 z-10 px-4 py-2 bg-neutral-50 border-b text-sm">
-      <button
-        @click="clearSort"
-        class="text-primary-600 hover:text-primary-700 text-sm"
-      >
-        Clear sort
-      </button>
+    <!-- Selection controls -->
+    <div
+      class="bg-neutral-50 px-4 py-2 flex items-center justify-between border-b"
+    >
+      <div class="flex items-center gap-4">
+        <button
+          @click="selectAll"
+          class="text-sm font-medium text-neutral-700 hover:text-neutral-900"
+        >
+          {{ allSelected ? 'Deselect All' : 'Select All' }}
+        </button>
+
+        <button
+          v-if="hasSelection"
+          @click="clearSelection"
+          class="text-sm font-medium text-neutral-700 hover:text-neutral-900"
+        >
+          Clear Selection
+        </button>
+
+        <span
+          v-if="hasSelection"
+          class="text-sm text-neutral-600"
+        >
+          {{ selectedRows.size }} selected
+        </span>
+      </div>
+
+      <!-- Sort info -->
+      <div v-if="sortState.length" class="flex items-center gap-2">
+        <span class="text-sm text-neutral-600">Sorted by:</span>
+        <div class="flex items-center gap-1">
+          <span
+            v-for="(sort, index) in sortState"
+            :key="sort.columnId"
+            class="text-sm"
+          >
+            {{ columns.find(col => col.id === sort.columnId)?.label }}
+            ({{ sort.direction }})
+            <span v-if="index < sortState.length - 1">,</span>
+          </span>
+        </div>
+        <button
+          @click="clearSort"
+          class="text-sm text-primary-600 hover:text-primary-700 ml-2"
+        >
+          Clear sort
+        </button>
+      </div>
     </div>
 
     <table class="w-full text-sm text-left text-neutral-700">
@@ -77,32 +175,13 @@ const getCellValue = (row, column) => {
         @sort="handleSort"
       />
 
-      <tbody>
-        <template v-if="!isEmpty">
-          <tr
-            v-for="(row, index) in sortedData"
-            :key="index"
-            @click="handleRowClick(row, index)"
-            class="bg-white border-b hover:bg-neutral-50 cursor-pointer"
-          >
-            <td
-              v-for="column in columns"
-              :key="column.id"
-              class="px-6 py-4"
-            >
-              {{ getCellValue(row, column) }}
-            </td>
-          </tr>
-        </template>
-        <tr v-else>
-          <td
-            :colspan="columns.length"
-            class="px-6 py-4 text-center text-neutral-500"
-          >
-            No data available
-          </td>
-        </tr>
-      </tbody>
+      <TableBody
+        :data="sortedData"
+        :columns="columns"
+        :selected-rows="selectedRows"
+        @row-select="handleRowSelect"
+        @toggle-update="handleToggleUpdate"
+      />
     </table>
   </div>
 </template>

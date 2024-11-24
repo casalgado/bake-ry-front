@@ -42,6 +42,8 @@ const columns = [
     id: 'storageTemp',
     label: 'Temperature',
     field: 'storageTemp',
+    type: 'toggle',
+    options: ['Refrigeracion', 'Ambiente'],
     sortable: true,
   },
   {
