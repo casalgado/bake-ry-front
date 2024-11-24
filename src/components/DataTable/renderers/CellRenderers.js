@@ -1,6 +1,22 @@
-import { h, computed } from 'vue';
+// components/DataTable/renderers/CellRenderers.js
+import { h } from 'vue';
+
+export const ClientRenderer = {
+  name: 'ClientRenderer',
+  props: {
+    name: String,
+    phone: String,
+  },
+  render() {
+    return h('div', { class: 'flex flex-col' }, [
+      h('span', { class: 'font-medium' }, this.name),
+      this.phone && h('span', { class: 'text-sm text-neutral-500' }, this.phone),
+    ]);
+  },
+};
 
 export const MoneyRenderer = {
+  name: 'MoneyRenderer',
   props: {
     value: Number,
     currency: {
@@ -8,50 +24,28 @@ export const MoneyRenderer = {
       default: 'COP',
     },
   },
-  setup(props) {
-    const formatted = computed(() =>
-      new Intl.NumberFormat('es-CO', {
-        style: 'currency',
-        currency: props.currency,
-        minimumFractionDigits: 0,
-      }).format(props.value),
-    );
-
-    return () => h('span', {}, formatted.value);
+  render() {
+    return h('span', {}, new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: this.currency,
+      minimumFractionDigits: 0,
+    }).format(this.value));
   },
 };
 
 export const DateRenderer = {
+  name: 'DateRenderer',
   props: {
     value: String,
     showTime: Boolean,
   },
-  setup(props) {
-    const formatted = computed(() => {
-      const date = new Date(props.value);
-      return props.showTime
-        ? date.toLocaleString()
-        : date.toLocaleDateString();
-    });
-
-    return () => h('span', {}, formatted.value);
-  },
-};
-
-export const ClientRenderer = {
-  props: {
-    name: String,
-    phone: String,
-  },
-  setup(props) {
-    return () => h('div', { class: 'flex flex-col' }, [
-      h('span', { class: 'font-medium' }, props.name),
-      props.phone && h('span', { class: 'text-sm text-neutral-500' }, props.phone),
-    ]);
+  render() {
+    return h('span', {}, new Date(this.value).toLocaleDateString());
   },
 };
 
 export const ItemsRenderer = {
+  name: 'ItemsRenderer',
   props: {
     items: Array,
     maxDisplay: {
@@ -59,27 +53,17 @@ export const ItemsRenderer = {
       default: 2,
     },
   },
-  setup(props) {
-    const displayInfo = computed(() => {
-      const shownItems = props.items.slice(0, props.maxDisplay);
-      const remaining = props.items.length - props.maxDisplay;
-
-      return {
-        shown: shownItems,
-        remaining: remaining > 0 ? remaining : 0,
-      };
-    });
-
-    return () => h('div', { class: 'space-y-1' }, [
-      ...displayInfo.value.shown.map(item =>
+  render() {
+    return h('div', { class: 'space-y-1' }, [
+      ...this.items.slice(0, this.maxDisplay).map(item =>
         h('div', { class: 'flex items-center gap-1' }, [
           h('span', {}, item.productName),
           h('span', { class: 'text-neutral-500 text-sm' }, `×${item.quantity}`),
         ]),
       ),
-      displayInfo.value.remaining > 0 && h('div', {
+      this.items.length > this.maxDisplay && h('div', {
         class: 'text-sm text-neutral-500',
-      }, `+${displayInfo.value.remaining} more items`),
+      }, `+${this.items.length - this.maxDisplay} more items`),
     ]);
   },
 };

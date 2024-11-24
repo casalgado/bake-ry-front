@@ -13,30 +13,43 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits(['click']);
+
+const handleClick = (event) => {
+  emit('click', event);
+};
+
 const renderCell = () => {
-  if (!props.column.customRender) {
-    return props.row[props.column.field];
-  }
+  // For toggle cells
 
-  const rendered = props.column.customRender(props.row);
+  // For custom rendered cells
+  if (props.column.customRender) {
+    const rendered = props.column.customRender(props.row);
 
-  // If renderer returns a VNode or Component
-  if (rendered && rendered.__v_isVNode) {
+    // If renderer returns a VNode or Component
+    if (rendered && rendered.__v_isVNode) {
+      return rendered;
+    }
+
+    // If renderer returns a component definition
+    if (rendered && rendered.component) {
+      return h(rendered.component, rendered.props || {});
+    }
+
+    // For simple value transformations
     return rendered;
   }
 
-  // If renderer returns a component definition
-  if (rendered && rendered.component) {
-    return h(rendered.component, rendered.props || {});
-  }
-
-  // For simple value transformations
-  return rendered;
+  // Default case: just return the field value
+  return props.row[props.column.field];
 };
 </script>
 
 <template>
-  <td class="px-4 py-2">
+  <td
+    class="px-4 py-2"
+    @click="handleClick"
+  >
     <component
       :is="renderCell()"
       v-if="renderCell()?.__v_isVNode"
