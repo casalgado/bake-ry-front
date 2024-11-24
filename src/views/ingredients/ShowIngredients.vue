@@ -2,9 +2,11 @@
 import { onMounted, ref, computed } from 'vue';
 import { useIngredientStore } from '@/stores/ingredientStore';
 import DataTable from '@/components/DataTable/index.vue';
+import { PhPen, PhExport } from '@phosphor-icons/vue';
 
 const ingredientStore = useIngredientStore();
 const tableData = computed(() => ingredientStore.items);
+const actionLoading = ref({});
 
 // Column definitions updated to match our new format
 const columns = [
@@ -31,7 +33,6 @@ const columns = [
     label: 'Cost per Unit',
     field: 'costPerUnit',
     sortable: true,
-    // We'll implement custom renderers later
     customRender: (value) => new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
@@ -51,14 +52,42 @@ const columns = [
     label: 'Used In',
     field: 'usedInRecipes',
     sortable: false,
-    // We'll implement custom renderers later
     customRender: (value) => value?.length || 0,
   },
 ];
 
-const handleRowClick = ({ row, index }) => {
-  console.log('Row clicked:', row);
-  // We'll implement selection logic later
+// Table actions
+const tableActions = [
+  {
+    id: 'edit',
+    label: 'Edit',
+    icon: PhPen,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'secondary',
+  },
+  {
+    id: 'PhExport',
+    label: 'PhExport Selected',
+    icon: PhExport,
+    minSelected: 2, // Only for multiple selection
+    variant: 'primary',
+  },
+];
+
+// Handle selection change
+const handleSelectionChange = (selectedIds) => {
+  console.log('Selection changed:', selectedIds);
+};
+
+// Handle toggle update
+const handleToggleUpdate = ({ rowIds, field, value }) => {
+  console.log('Toggle update:', { rowIds, field, value });
+};
+
+// Handle actions
+const handleAction = ({ actionId, selectedIds }) => {
+  console.log('Action triggered:', actionId, 'for rows:', selectedIds);
 };
 
 onMounted(async () => {
@@ -86,10 +115,13 @@ onMounted(async () => {
       <DataTable
         :data="tableData"
         :columns="columns"
-        @row-click="handleRowClick"
+        :actions="tableActions"
+        :loading="actionLoading"
+        @selection-change="handleSelectionChange"
+        @toggle-update="handleToggleUpdate"
+        @action="handleAction"
         class="bg-white shadow-lg rounded-lg"
       />
     </div>
-    <pre>{{ JSON.stringify(tableData, null, 2) }}</pre>
   </div>
 </template>

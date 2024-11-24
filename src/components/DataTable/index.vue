@@ -3,6 +3,7 @@
 import { ref, computed } from 'vue';
 import TableHeader from './components/TableHeader.vue';
 import TableBody from './components/TableBody.vue';
+import ActionBar from './components/ActionBar.vue';
 import { useTableSort } from './composables/useTableSort';
 
 const props = defineProps({
@@ -17,13 +18,25 @@ const props = defineProps({
     default: () => [],
     validator: (cols) => cols.every(col => col.id && col.label),
   },
+  actions: {
+    type: Array,
+    default: () => [],
+  },
+  loading: {
+    type: Object,
+    default: () => ({}),
+  },
   wrapperClass: {
     type: String,
     default: '',
   },
 });
 
-const emit = defineEmits(['toggle-update', 'selection-change']);
+const emit = defineEmits([
+  'selection-change',
+  'toggle-update',
+  'action',
+]);
 
 // Initialize sorting
 const {
@@ -73,7 +86,6 @@ const handleToggleUpdate = ({ row, column }) => {
     ? props.data.filter(r => selectedRows.value.has(r.id))
     : [row];
 
-  // Get next value in toggle sequence
   const currentValue = row[column.field];
   const nextValue = getNextToggleValue(currentValue, column.options);
 
@@ -100,6 +112,13 @@ const clearSelection = () => {
 
 const emitSelectionChange = () => {
   emit('selection-change', [...selectedRows.value]);
+};
+
+const handleAction = (actionId) => {
+  emit('action', {
+    actionId,
+    selectedIds: [...selectedRows.value],
+  });
 };
 
 // Helper to get next value in toggle sequence
@@ -135,13 +154,6 @@ const handleSort = (columnId, isMulti) => {
         >
           Clear Selection
         </button>
-
-        <span
-          v-if="hasSelection"
-          class="text-sm text-neutral-600"
-        >
-          {{ selectedRows.size }} selected
-        </span>
       </div>
 
       <!-- Sort info -->
@@ -183,5 +195,13 @@ const handleSort = (columnId, isMulti) => {
         @toggle-update="handleToggleUpdate"
       />
     </table>
+
+    <!-- Action Bar -->
+    <ActionBar
+      :selected-count="selectedRows.size"
+      :actions="actions"
+      :loading="loading"
+      @action="handleAction"
+    />
   </div>
 </template>

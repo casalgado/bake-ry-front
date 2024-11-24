@@ -52,7 +52,7 @@ const handleCancel = () => {
 <template>
   <div
     v-if="selectedCount > 0"
-    class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-40"
+    class="fixed bottom-10 left-0 right-0 bg-white border-t shadow-lg z-40"
   >
     <div class="container mx-auto px-4 py-3">
       <div class="flex items-center justify-between">
