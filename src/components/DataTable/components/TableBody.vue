@@ -44,8 +44,8 @@ const isEmpty = computed(() => props.data.length === 0);
         :class="[
           'cursor-pointer border-b transition-colors',
           selectedRows.has(row.id)
-            ? 'bg-primary-100 hover:bg-primary-200'
-            : 'hover:bg-neutral-50'
+            ? 'bg-neutral-300 hover:bg-neutral-400'
+            : 'hover:bg-neutral-100'
         ]"
       >
         <TableCell

@@ -10,7 +10,6 @@ export const ClientRenderer = {
   render() {
     return h('div', { class: 'flex flex-col' }, [
       h('span', { class: 'font-medium' }, this.name),
-      this.phone && h('span', { class: 'text-sm text-neutral-500' }, this.phone),
     ]);
   },
 };
