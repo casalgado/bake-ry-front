@@ -28,7 +28,10 @@ const handleRowClick = (event, row) => {
 };
 
 const handleCellClick = (event, row, column) => {
-  if (column.type === 'toggle') {
+  // Only allow toggle if:
+  // - No rows are selected, or
+  // - This row is part of the selection
+  if (column.type === 'toggle' && (!props.selectedRows.size || props.selectedRows.has(row.id))) {
     event.stopPropagation();
     emit('toggle-update', { row, column });
   }
@@ -43,7 +46,7 @@ const isCellHighlighted = (row, column) => {
 
   // If hovering over a toggle cell
   if (hoveredCell.value.columnId === column.id) {
-    // If there are selected rows, highlight all selected toggle cells
+    // If there are selected rows, only highlight selected toggle cells
     if (props.selectedRows.size > 0) {
       return props.selectedRows.has(row.id);
     }

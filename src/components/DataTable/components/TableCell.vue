@@ -20,20 +20,30 @@ const props = defineProps({
 const emit = defineEmits(['click', 'hover-change']);
 
 const handleClick = (event) => {
+  // Only emit click for toggle cells if either:
+  // - No rows are selected
+  // - This row is part of the selection
+  if (props.column.type === 'toggle' && !isToggleEnabled.value) {
+    event.stopPropagation();
+    return;
+  }
   emit('click', event);
 };
 
+// Determine if toggle is enabled for this cell
+const isToggleEnabled = computed(() => {
+  if (props.column.type !== 'toggle') return false;
+  return !props.selectedRows.size || props.selectedRows.has(props.row.id);
+});
+
 // Determine if this cell will be affected by a toggle action
 const isAffectedByToggle = computed(() => {
-  return props.column.type === 'toggle' && (
-    !props.selectedRows.size || // No selection - only this cell affected
-    props.selectedRows.has(props.row.id) // Row is part of selection
-  );
+  return props.column.type === 'toggle' && isToggleEnabled.value;
 });
 
 // Handle hover events
 const handleMouseEnter = () => {
-  if (props.column.type === 'toggle') {
+  if (props.column.type === 'toggle' && isToggleEnabled.value) {
     emit('hover-change', {
       hovering: true,
       rowId: props.row.id,
@@ -43,7 +53,7 @@ const handleMouseEnter = () => {
 };
 
 const handleMouseLeave = () => {
-  if (props.column.type === 'toggle') {
+  if (props.column.type === 'toggle' && isToggleEnabled.value) {
     emit('hover-change', {
       hovering: false,
       rowId: props.row.id,
@@ -84,6 +94,7 @@ const renderCell = () => {
     @mouseleave="handleMouseLeave"
     :class="{
       'hover:bg-neutral-500 transition-colors': isAffectedByToggle,
+      'cursor-not-allowed opacity-50': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id)
     }"
   >
     <component
