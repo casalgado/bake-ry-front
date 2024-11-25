@@ -136,11 +136,10 @@ export const createResourceStore = (resourceName, resourceService) => {
       });
     }
 
-    async function subscribeToChanges(bakeryId) {
+    async function subscribeToChanges() {
       if (isSubscribed.value) return;
 
       const unsubscribe = resourceService.subscribeToChanges(
-        bakeryId,
         handleRealtimeUpdate,
       );
 
@@ -148,9 +147,9 @@ export const createResourceStore = (resourceName, resourceService) => {
       return unsubscribe;
     }
 
-    function unsubscribe(bakeryId) {
+    function unsubscribe() {
       if (isSubscribed.value) {
-        resourceService.unsubscribeFromChanges(bakeryId);
+        resourceService.unsubscribeFromChanges();
         isSubscribed.value = false;
       }
     }

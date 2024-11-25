@@ -1,7 +1,7 @@
 // services/base/resourceService.js
 import api from '../api';
 import { db } from '@/config/firebase';
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 /**
  * Base service class for handling common API operations
@@ -20,6 +20,7 @@ export class BaseService {
     }
     this.resource = resource;
     this.basePath = basePath;
+    this.bakeryId = this.extractBakeryId(basePath);
     this.api = api;
     this.listeners = new Map();
   }
@@ -31,6 +32,27 @@ export class BaseService {
    */
   getPath() {
     return `${this.basePath}/${this.resource}`;
+  }
+
+  /**
+   * Safely extract bakeryId from basePath
+   * @private
+   * @param {string} path - Base path string
+   * @returns {string|null} Extracted bakeryId or null
+   */
+  extractBakeryId(path) {
+    if (!path) return null;
+
+    try {
+      const segments = path.split('/');
+      const bakeryIndex = segments.indexOf('bakeries');
+      return bakeryIndex !== -1 && segments[bakeryIndex + 1]
+        ? segments[bakeryIndex + 1]
+        : null;
+    } catch (error) {
+      console.warn('Failed to extract bakeryId from path:', path);
+      return null;
+    }
   }
 
   /**
@@ -196,13 +218,13 @@ export class BaseService {
    * @param {Function} onUpdate - Callback for updates
    * @returns {Function} Unsubscribe function
    */
-  subscribeToChanges(bakeryId, onUpdate) {
+  subscribeToChanges(onUpdate) {
 
     // Create reference to the subcollection
     const collectionRef = collection(
       db,
       'bakeries',
-      bakeryId,
+      this.bakeryId,
       this.resource,
     );
 
@@ -220,7 +242,7 @@ export class BaseService {
           const data = {
             id: change.doc.id,
             ...change.doc.data(),
-            bakeryId,
+            bakeryId: this.bakeryId,
           };
           changes.push({ type: change.type, data });
         });
@@ -231,7 +253,7 @@ export class BaseService {
       },
     );
 
-    const listenerId = `${this.resource}-${bakeryId}`;
+    const listenerId = `${this.resource}-${this.bakeryId}`;
     this.listeners.set(listenerId, unsubscribe);
 
     return unsubscribe;
@@ -241,8 +263,8 @@ export class BaseService {
    * Unsubscribe from changes
    * @param {string} bakeryId - Bakery ID
    */
-  unsubscribeFromChanges(bakeryId) {
-    const listenerId = `${this.resource}-${bakeryId}`;
+  unsubscribeFromChanges() {
+    const listenerId = `${this.resource}-${this.bakeryId}`;
     const unsubscribe = this.listeners.get(listenerId);
     if (unsubscribe) {
       unsubscribe();

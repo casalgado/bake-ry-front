@@ -1,24 +1,18 @@
 <script setup>
 import { ref, onMounted, computed, nextTick, onUnmounted, watch, onBeforeUnmount, onBeforeUpdate, onUpdated } from 'vue';
-import { useRouter } from 'vue-router';
 
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import { MoneyRenderer, DateRenderer, ItemsRenderer, ClientRenderer } from '@/components/DataTable/renderers/CellRenderers';
 import { PhPen, PhExport } from '@phosphor-icons/vue';
 
-import { storeToRefs } from 'pinia';
 import { useOrderStore } from '@/stores/orderStore';
-import { useAuthenticationStore } from '@/stores/authentication';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 
 const periodStore = usePeriodStore();
 
-const router = useRouter();
 const orderStore = useOrderStore();
-const authStore = useAuthenticationStore();
-const { getBakeryId } = storeToRefs(authStore);
 const unsubscribeRef = ref(null);
 
 const showForm = ref(false);
@@ -233,15 +227,8 @@ onMounted(async () => {
 
     await orderStore.fetchAll();
 
-    const bakeryId = getBakeryId.value;
-    console.log('Using bakeryId:', bakeryId);
-
-    if (!bakeryId) {
-      throw new Error('No bakery ID available');
-    }
-
     // Store the unsubscribe function
-    unsubscribeRef.value = await orderStore.subscribeToChanges(bakeryId);
+    unsubscribeRef.value = await orderStore.subscribeToChanges();
 
     console.log('🔄 Real-time updates enabled for orders');
   } catch (error) {
@@ -253,7 +240,7 @@ onMounted(async () => {
 onUnmounted(() => {
   if (unsubscribeRef.value) {
     unsubscribeRef.value();
-    orderStore.unsubscribe(getBakeryId.value);
+    orderStore.unsubscribe();
   }
 });
 </script>
@@ -262,12 +249,12 @@ onUnmounted(() => {
   <div class="container p-4">
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold">Pedidos</h2>
-      <PeriodSelector />
+      <PeriodSelector  />
 
     </div>
 
     <!-- Filters Section -->
-    <div class="bg-white p-4 rounded-lg shadow-sm mb-4">
+    <div class="bg-white p-4 rounded-lg shadow-sm mb-4 hidden">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Search -->
         <div>
@@ -278,18 +265,6 @@ onUnmounted(() => {
             v-model="searchQuery"
             type="text"
             placeholder="Search orders..."
-            class="w-full px-3 py-2 border rounded-lg focus:ring-primary-500 focus:border-primary-500"
-          />
-        </div>
-
-        <!-- Date Filter -->
-        <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">
-            Due Date
-          </label>
-          <input
-            v-model="dateFilter"
-            type="date"
             class="w-full px-3 py-2 border rounded-lg focus:ring-primary-500 focus:border-primary-500"
           />
         </div>
