@@ -1,6 +1,6 @@
 <!-- components/DataTable/components/TableBody.vue -->
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import TableCell from './TableCell.vue';
 
 const props = defineProps({
@@ -20,6 +20,9 @@ const props = defineProps({
 
 const emit = defineEmits(['row-select', 'toggle-update']);
 
+// Track hover state for toggle cells
+const hoveredCell = ref(null);
+
 const handleRowClick = (event, row) => {
   emit('row-select', { row, shift: event.shiftKey });
 };
@@ -29,6 +32,26 @@ const handleCellClick = (event, row, column) => {
     event.stopPropagation();
     emit('toggle-update', { row, column });
   }
+};
+
+const handleCellHover = ({ hovering, rowId, columnId }) => {
+  hoveredCell.value = hovering ? { rowId, columnId } : null;
+};
+
+const isCellHighlighted = (row, column) => {
+  if (!hoveredCell.value || column.type !== 'toggle') return false;
+
+  // If hovering over a toggle cell
+  if (hoveredCell.value.columnId === column.id) {
+    // If there are selected rows, highlight all selected toggle cells
+    if (props.selectedRows.size > 0) {
+      return props.selectedRows.has(row.id);
+    }
+    // If no selection, only highlight the hovered cell
+    return row.id === hoveredCell.value.rowId;
+  }
+
+  return false;
 };
 
 const isEmpty = computed(() => props.data.length === 0);
@@ -53,7 +76,12 @@ const isEmpty = computed(() => props.data.length === 0);
           :key="column.id"
           :column="column"
           :row="row"
+          :selected-rows="selectedRows"
           @click="(event) => handleCellClick(event, row, column)"
+          @hover-change="handleCellHover"
+          :class="{
+            'bg-neutral-500': isCellHighlighted(row, column)
+          }"
         />
       </tr>
     </template>
