@@ -30,6 +30,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  toggleLoading: {
+    type: Object,
+    default: () => ({}),
+  },
 });
 
 const emit = defineEmits([
@@ -191,6 +195,7 @@ const handleSort = (columnId, isMulti) => {
         :data="sortedData"
         :columns="columns"
         :selected-rows="selectedRows"
+        :toggle-loading="toggleLoading"
         @row-select="handleRowSelect"
         @toggle-update="handleToggleUpdate"
       />

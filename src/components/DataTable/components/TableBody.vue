@@ -16,6 +16,10 @@ const props = defineProps({
     type: Set,
     required: true,
   },
+  toggleLoading: {
+    type: Object,
+    default: () => ({}),
+  },
 });
 
 const emit = defineEmits(['row-select', 'toggle-update']);
@@ -68,6 +72,7 @@ const isEmpty = computed(() => props.data.length === 0);
             : 'hover:bg-neutral-100'
         ]"
       >
+
         <TableCell
           v-for="column in columns"
           :key="column.id"
@@ -75,6 +80,7 @@ const isEmpty = computed(() => props.data.length === 0);
           :row="row"
           :selected-rows="selectedRows"
           :hovering="isCellHighlighted(row, column)"
+          :toggle-loading="toggleLoading"
           @click="(event) => handleCellClick(event, row, column)"
           @hover-change="handleCellHover"
         />

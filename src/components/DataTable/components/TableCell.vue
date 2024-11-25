@@ -1,7 +1,7 @@
 <!-- components/DataTable/components/TableCell.vue -->
 <script setup>
 import { h, computed, ref } from 'vue';
-import { PhArrowRight } from '@phosphor-icons/vue';
+import { PhArrowRight, PhSpinner } from '@phosphor-icons/vue';
 
 const props = defineProps({
   column: {
@@ -19,6 +19,10 @@ const props = defineProps({
   hovering: {
     type: Boolean,
     required: true,
+  },
+  toggleLoading: {
+    type: Object,
+    default: () => ({}),
   },
 });
 
@@ -43,9 +47,17 @@ const isAffectedByToggle = computed(() => {
   return props.column.type === 'toggle' && isToggleEnabled.value;
 });
 
+// Determine if this cell is in loading state
+const isLoading = computed(() => {
+  console.log('toggleLoading', props.toggleLoading);
+  console.log('row', props.row.id);
+  console.log('column', props.column.field);
+  return props.toggleLoading[`${props.row.id}-${props.column.field}`];
+});
+
 // Get next toggle value
 const getNextToggleValue = computed(() => {
-  if (props.column.type !== 'toggle' || !props.column.options) return null;  // Fixed the condition
+  if (props.column.type !== 'toggle' || !props.column.options) return null;
   const currentValue = props.row[props.column.field];
   const currentIndex = props.column.options.indexOf(currentValue);
   return props.column.options[(currentIndex + 1) % props.column.options.length];
@@ -90,6 +102,7 @@ const handleMouseLeave = () => {
 };
 
 const renderCell = () => {
+
   // For custom rendered cells
   if (props.column.customRender) {
     const rendered = props.column.customRender(props.row);
@@ -122,9 +135,11 @@ const renderCell = () => {
     <div
       class="inline-block px-3 py-1 rounded-2xl transition-colors"
       :class="{
-        'hover:bg-neutral-800 hover:text-white': isAffectedByToggle,
-        'bg-neutral-800 text-white': props.column.type === 'toggle' && props.hovering,
-        'opacity-50': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id)
+        'hover:bg-neutral-800 hover:text-white': isAffectedByToggle && !isLoading,
+
+        'bg-neutral-800 text-white': (props.column.type === 'toggle' && props.hovering) || isLoading,
+        'opacity-50': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id),
+        '!text-neutral-800': isLoading && props.column.type,
       }"
     >
       <component
@@ -136,7 +151,7 @@ const renderCell = () => {
       </template>
       <!-- Tooltip -->
       <div
-        v-if="tooltipContent && showTooltip"
+        v-if="tooltipContent && showTooltip && !isLoading"
         class="absolute z-50 px-2 py-1 text-xs text-white bg-primary rounded shadow-lg whitespace-nowrap left-full ml-2 top-1/2 -translate-y-1/2"
       >
         <div class="flex items-center gap-1">
@@ -150,6 +165,5 @@ const renderCell = () => {
         </div>
       </div>
     </div>
-
   </td>
 </template>

@@ -137,11 +137,15 @@ const handleSelectionChange = (selectedIds) => {
   }
 };
 
+const toggleLoading = ref({});
+
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
+
   try {
     // Update each selected order
     let promises = [];
     rowIds.forEach(id => {
+      toggleLoading.value[`${id}-${field}`] = true;
       console.log('patching', id, field, value);
       promises.push(orderStore.patch(id, { [field]: value }));
     });
@@ -149,6 +153,10 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
     await nextTick();
   } catch (error) {
     console.error('Failed to update orders:', error);
+  } finally {
+    rowIds.forEach(id => {
+      toggleLoading.value[`${id}-${field}`] = false;
+    });
   }
 };
 
@@ -266,11 +274,13 @@ onMounted(async () => {
 
     <!-- Table -->
     <div v-if="!orderStore.loading">
+
       <DataTable
         :data="filteredData"
         :columns="columns"
         :actions="tableActions"
         :loading="actionLoading"
+        :toggle-loading="toggleLoading"
         @selection-change="handleSelectionChange"
         @toggle-update="handleToggleUpdate"
         @action="handleAction"
