@@ -1,6 +1,7 @@
 <!-- components/DataTable/components/TableCell.vue -->
 <script setup>
-import { h, computed } from 'vue';
+import { h, computed, ref } from 'vue';
+import { PhArrowRight } from '@phosphor-icons/vue';
 
 const props = defineProps({
   column: {
@@ -44,7 +45,7 @@ const isAffectedByToggle = computed(() => {
 
 // Get next toggle value
 const getNextToggleValue = computed(() => {
-  if (!props.column.type === 'toggle' || !props.column.options) return null;
+  if (props.column.type !== 'toggle' || !props.column.options) return null;  // Fixed the condition
   const currentValue = props.row[props.column.field];
   const currentIndex = props.column.options.indexOf(currentValue);
   return props.column.options[(currentIndex + 1) % props.column.options.length];
@@ -52,15 +53,18 @@ const getNextToggleValue = computed(() => {
 
 // Get tooltip content
 const tooltipContent = computed(() => {
-  if (!isToggleEnabled.value || !props.column.type === 'toggle') return null;
+  if (!isToggleEnabled.value || props.column.type !== 'toggle') return null;
 
   const nextValue = getNextToggleValue.value;
   const affectedCount = props.selectedRows.size || 1;
 
-  return affectedCount > 1
-    ? `Cambiar ${affectedCount} a ${nextValue}`
-    : `Cambiar a ${nextValue}`;
+  return {
+    prefix: affectedCount > 1 ? `${affectedCount}` : '',
+    value: nextValue,
+  };
 });
+
+const showTooltip = ref(false);
 
 // Handle hover events
 const handleMouseEnter = () => {
@@ -71,6 +75,7 @@ const handleMouseEnter = () => {
       columnId: props.column.id,
     });
   }
+  showTooltip.value = true;
 };
 
 const handleMouseLeave = () => {
@@ -81,6 +86,7 @@ const handleMouseLeave = () => {
       columnId: props.column.id,
     });
   }
+  showTooltip.value = false;
 };
 
 const renderCell = () => {
@@ -128,18 +134,23 @@ const renderCell = () => {
       <template v-else>
         {{ renderCell() }}
       </template>
-    </div>
+      <!-- Tooltip -->
+      <div
+        v-if="tooltipContent && showTooltip"
+        class="absolute z-50 px-2 py-1 text-xs text-white bg-primary rounded shadow-lg whitespace-nowrap -translate-y-full -translate-x-1/2 left-1/2 -top-3"
+      >
+        <span class="flex items-center gap-1">
+          {{ tooltipContent.prefix }}
+          <PhArrowRight class="w-3 h-3" />
+          {{ tooltipContent.value }}
+        </span>
 
-    <!-- Tooltip -->
-    <div
-      v-if="tooltipContent && isAffectedByToggle && hovering"
-      class="absolute z-50 px-2 py-1 text-xs text-white bg-neutral-800 rounded shadow-lg whitespace-nowrap -translate-y-full -translate-x-1/2 left-1/2 -top-1"
-    >
-      {{ tooltipContent }}
-      <!-- Triangle pointer -->
-      <div class="absolute left-1/2 top-full -translate-x-1/2 -translate-y-px">
-        <div class="border-4 border-transparent border-t-neutral-800"></div>
+        <!-- Triangle pointer -->
+        <div class="absolute left-1/2 top-full -translate-x-1/2 -translate-y-px">
+          <div class="border-4 border-transparent border-t-primary"></div>
+        </div>
       </div>
     </div>
+
   </td>
 </template>
