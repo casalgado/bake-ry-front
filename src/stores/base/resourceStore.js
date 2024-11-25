@@ -90,7 +90,7 @@ export const createResourceStore = (resourceName, resourceService) => {
       changes.forEach((change) => {
         switch (change.type) {
         case 'added': {
-          console.log('ADDED REALTIME NOT IMPLEMENTED YET', change.data);
+          // console.log('ADDED REALTIME NOT IMPLEMENTED YET', change.data);
           // const index = items.value.findIndex(item => item.id === change.data.id);
           // if (index === -1) {
           //   items.value.push(change.data);

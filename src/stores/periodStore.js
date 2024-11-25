@@ -13,28 +13,30 @@ import {
   endOfMonth,
   startOfYear,
   endOfYear,
+  addQuarters,
+  subQuarters,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 // Constants
 const PERIOD_TYPES = ['day', 'week', 'month', 'quarter', 'year', 'custom'];
-const WEEK_OPTIONS = { locale: es, weekStartsOn: 1 }; // 1 = Monday
+const WEEK_OPTIONS = { locale: es, weekStartsOn: 1 };
 
 export const usePeriodStore = defineStore('period', () => {
-  // State
-  const periodType = ref('week'); // Default to week view
+  // State remains the same
+  const periodType = ref('week');
   const currentDate = ref(new Date());
   const customStartDate = ref(null);
   const customEndDate = ref(null);
 
-  // Helper functions
   function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
-
   function getQuarterRange(date) {
-    const quarterStart = new Date(date.getFullYear(), Math.floor(date.getMonth() / 3) * 3, 1);
-    const quarterEnd = new Date(date.getFullYear(), quarterStart.getMonth() + 3, 0);
+    const month = date.getMonth();
+    const quarterStartMonth = Math.floor(month / 3) * 3;
+    const quarterStart = new Date(date.getFullYear(), quarterStartMonth, 1);
+    const quarterEnd = new Date(date.getFullYear(), quarterStartMonth + 3, 0);
     return {
       start: startOfDay(quarterStart),
       end: endOfDay(quarterEnd),
@@ -69,6 +71,10 @@ export const usePeriodStore = defineStore('period', () => {
         start: startOfYear(date),
         end: endOfYear(date),
       };
+    }
+    case 'custom': {
+      console.log('not implemented yet');
+      break;
     }
     default: {
       throw new Error(`Invalid period type: ${type}`);
@@ -143,17 +149,26 @@ export const usePeriodStore = defineStore('period', () => {
   function next() {
     if (periodType.value === 'custom') return;
 
-    currentDate.value = add(currentDate.value, {
-      [periodType.value + 's']: 1,
-    });
+    if (periodType.value === 'quarter') {
+      currentDate.value = addQuarters(currentDate.value, 1);
+    } else {
+      currentDate.value = add(currentDate.value, {
+        [periodType.value + 's']: 1,
+      });
+    }
   }
 
+  // Modified previous function
   function previous() {
     if (periodType.value === 'custom') return;
 
-    currentDate.value = sub(currentDate.value, {
-      [periodType.value + 's']: 1,
-    });
+    if (periodType.value === 'quarter') {
+      currentDate.value = subQuarters(currentDate.value, 1);
+    } else {
+      currentDate.value = sub(currentDate.value, {
+        [periodType.value + 's']: 1,
+      });
+    }
   }
 
   return {
@@ -172,5 +187,6 @@ export const usePeriodStore = defineStore('period', () => {
     setCustomRange,
     next,
     previous,
+
   };
 });

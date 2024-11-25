@@ -254,12 +254,7 @@ onUnmounted(() => {
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold">Pedidos</h2>
       <PeriodSelector />
-      <button
-        @click="() => router.push('/dashboard/orders/create')"
-        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-      >
-        New Order
-      </button>
+
     </div>
 
     <!-- Filters Section -->
