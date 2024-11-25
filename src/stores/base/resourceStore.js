@@ -155,17 +155,22 @@ export const createResourceStore = (resourceName, resourceService) => {
       }
     }
 
-    async function fetchAll() {
+    async function fetchAll(options = {}) {
       setLoading(true);
       clearError();
 
       try {
+        const { dateRange, ...otherOptions } = options;
+
         const response = await resourceService.getAll({
           page: filters.value.page,
           perPage: filters.value.perPage,
           sort: filters.value.sort,
+          dateRange,
+          ...otherOptions,
         });
 
+        // problematic line causing the error.
         items.value = Array.isArray(response.data)
           ? response.data
           : response.data.items || response.data.data || [];

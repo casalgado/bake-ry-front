@@ -94,6 +94,17 @@ export const usePeriodStore = defineStore('period', () => {
     return getPeriodRange(currentDate.value, periodType.value);
   });
 
+  const periodRangeForDB = computed(() => {
+    const { start, end } = periodRange.value;
+    return {
+      startTimestamp: start.getTime(),
+      endTimestamp: end.getTime(),
+      // Also provide ISO strings for REST APIs
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+    };
+  });
+
   const displayFormat = computed(() => {
     const { start, end } = periodRange.value;
 
@@ -180,6 +191,7 @@ export const usePeriodStore = defineStore('period', () => {
 
     // Computed
     periodRange,
+    periodRangeForDB,
     displayFormat,
 
     // Actions

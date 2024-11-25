@@ -34,17 +34,33 @@ export class BaseService {
   }
 
   /**
-   * Get all resources
+   * Get all resources with optional date filtering
    * @param {Object} params - Query parameters
+   * @param {Object} [params.dateRange] - Date range for filtering
+   * @param {string} [params.dateRange.startDate] - Start date in ISO format
+   * @param {string} [params.dateRange.endDate] - End date in ISO format
+   * @param {number} [params.page] - Page number
+   * @param {number} [params.perPage] - Items per page
+   * @param {string} [params.sort] - Sort field
    * @returns {Promise<{data: Array, total?: number, page?: number}>}
    */
-  async getAll(params = {}) {
+  async getAll(options = {}) {
+    console.log(options);
     try {
+      const { dateRange, ...otherOptions } = options;
+
+      // Build query parameters
       const queryParams = {
-        page: params.page,
-        per_page: params.perPage,
-        sort: params.sort,
+        page: otherOptions.page,
+        per_page: otherOptions.perPage,
+        sort: otherOptions.sort,
       };
+
+      // Add date range if provided
+      if (dateRange) {
+        queryParams.start_date = dateRange.startDate;
+        queryParams.end_date = dateRange.endDate;
+      }
 
       const response = await this.api.get(this.getPath(), {
         params: queryParams,
@@ -53,6 +69,21 @@ export class BaseService {
     } catch (error) {
       throw this.handleError(error);
     }
+  }
+
+  /**
+   * Get filtered resources for a specific period
+   * @param {Object} dateRange - Date range object
+   * @param {string} dateRange.startDate - Start date in ISO format
+   * @param {string} dateRange.endDate - End date in ISO format
+   * @param {Object} [additionalParams] - Additional query parameters
+   * @returns {Promise<{data: Array, total?: number, page?: number}>}
+   */
+  async getAllInPeriod(dateRange, additionalParams = {}) {
+    return this.getAll({
+      dateRange,
+      ...additionalParams,
+    });
   }
 
   /**
@@ -101,7 +132,6 @@ export class BaseService {
     if (!id) {
       throw new Error('ID is required');
     }
-
     if (!data) {
       throw new Error('Data is required');
     }
@@ -124,7 +154,6 @@ export class BaseService {
     if (!id) {
       throw new Error('ID is required');
     }
-
     if (!data) {
       throw new Error('Data is required');
     }
@@ -163,10 +192,10 @@ export class BaseService {
    */
   /**
  * Subscribe to collection changes
- * @param {string} bakeryId - Bakery ID for filtering
- * @param {Function} onUpdate - Callback for updates
- * @returns {Function} Unsubscribe function
- */
+   * @param {string} bakeryId - Bakery ID for filtering
+   * @param {Function} onUpdate - Callback for updates
+   * @returns {Function} Unsubscribe function
+   */
   subscribeToChanges(bakeryId, onUpdate) {
 
     // Create reference to the subcollection
@@ -191,7 +220,7 @@ export class BaseService {
           const data = {
             id: change.doc.id,
             ...change.doc.data(),
-            bakeryId, // Add bakeryId to match your API response format
+            bakeryId,
           };
           changes.push({ type: change.type, data });
         });
@@ -202,7 +231,6 @@ export class BaseService {
       },
     );
 
-    // Store listener reference
     const listenerId = `${this.resource}-${bakeryId}`;
     this.listeners.set(listenerId, unsubscribe);
 
@@ -258,7 +286,6 @@ export class BaseService {
    */
   handleError(error) {
     if (error.response) {
-      // Server responded with error status
       const message =
         error.response.data?.message ||
         error.response.data?.error ||
@@ -268,10 +295,8 @@ export class BaseService {
       errorObject.data = error.response.data;
       throw errorObject;
     } else if (error.request) {
-      // Request made but no response received
       throw new Error('No response from server');
     } else {
-      // Error in request setup
       throw new Error(error.message || 'Request failed');
     }
   }

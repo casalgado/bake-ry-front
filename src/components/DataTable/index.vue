@@ -22,7 +22,7 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  loading: {
+  actionLoading: {
     type: Object,
     default: () => ({}),
   },
@@ -205,7 +205,7 @@ const handleSort = (columnId, isMulti) => {
     <ActionBar
       :selected-count="selectedRows.size"
       :actions="actions"
-      :loading="loading"
+      :loading="actionLoading"
       @action="handleAction"
     />
   </div>

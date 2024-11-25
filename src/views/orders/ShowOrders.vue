@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, nextTick, onUnmounted, watch } from 'vue';
+import { ref, onMounted, computed, nextTick, onUnmounted, watch, onBeforeUnmount, onBeforeUpdate, onUpdated } from 'vue';
 import { useRouter } from 'vue-router';
 
 import OrderForm from '@/components/forms/OrderForm.vue';
@@ -212,9 +212,17 @@ const handleCancel = () => {
 
 watch(
   () => periodStore.periodRange,
-  (newRange) => {
-    // Fetch your data here
-    console.log('Period changed:', newRange);
+  async (newRange) => {
+    const dateRange = {
+      startDate: newRange.start.toISOString(),
+      endDate: newRange.end.toISOString(),
+    };
+
+    try {
+      await orderStore.fetchAll({ dateRange });
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    }
   },
   { deep: true },
 );
@@ -222,6 +230,7 @@ watch(
 onMounted(async () => {
   try {
     // First fetch initial data
+
     await orderStore.fetchAll();
 
     const bakeryId = getBakeryId.value;
@@ -318,10 +327,11 @@ onUnmounted(() => {
     <div v-if="!orderStore.loading">
 
       <DataTable
+        :key="'orders-table-' + orderStore.items.length"
         :data="filteredData"
         :columns="columns"
         :actions="tableActions"
-        :loading="actionLoading"
+        :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
         @selection-change="handleSelectionChange"
         @toggle-update="handleToggleUpdate"
