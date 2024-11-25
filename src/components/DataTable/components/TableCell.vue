@@ -15,14 +15,15 @@ const props = defineProps({
     type: Set,
     required: true,
   },
+  hovering: {
+    type: Boolean,
+    required: true,
+  },
 });
 
 const emit = defineEmits(['click', 'hover-change']);
 
 const handleClick = (event) => {
-  // Only emit click for toggle cells if either:
-  // - No rows are selected
-  // - This row is part of the selection
   if (props.column.type === 'toggle' && !isToggleEnabled.value) {
     event.stopPropagation();
     return;
@@ -93,16 +94,24 @@ const renderCell = () => {
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
     :class="{
-      'hover:bg-neutral-500 transition-colors': isAffectedByToggle,
-      'cursor-not-allowed opacity-50': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id)
+      'cursor-not-allowed': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id)
     }"
   >
-    <component
-      :is="renderCell()"
-      v-if="renderCell()?.__v_isVNode"
-    />
-    <template v-else>
-      {{ renderCell() }}
-    </template>
+    <div
+      class="inline-block px-3 py-1 rounded-2xl transition-colors"
+      :class="{
+        'hover:bg-neutral-800 hover:text-white': isAffectedByToggle,
+        'bg-neutral-800 text-white': props.column.type === 'toggle' && props.hovering,
+        'opacity-50': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id)
+      }"
+    >
+      <component
+        :is="renderCell()"
+        v-if="renderCell()?.__v_isVNode"
+      />
+      <template v-else>
+        {{ renderCell() }}
+      </template>
+    </div>
   </td>
 </template>

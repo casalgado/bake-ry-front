@@ -28,9 +28,6 @@ const handleRowClick = (event, row) => {
 };
 
 const handleCellClick = (event, row, column) => {
-  // Only allow toggle if:
-  // - No rows are selected, or
-  // - This row is part of the selection
   if (column.type === 'toggle' && (!props.selectedRows.size || props.selectedRows.has(row.id))) {
     event.stopPropagation();
     emit('toggle-update', { row, column });
@@ -44,13 +41,10 @@ const handleCellHover = ({ hovering, rowId, columnId }) => {
 const isCellHighlighted = (row, column) => {
   if (!hoveredCell.value || column.type !== 'toggle') return false;
 
-  // If hovering over a toggle cell
   if (hoveredCell.value.columnId === column.id) {
-    // If there are selected rows, only highlight selected toggle cells
     if (props.selectedRows.size > 0) {
       return props.selectedRows.has(row.id);
     }
-    // If no selection, only highlight the hovered cell
     return row.id === hoveredCell.value.rowId;
   }
 
@@ -80,11 +74,9 @@ const isEmpty = computed(() => props.data.length === 0);
           :column="column"
           :row="row"
           :selected-rows="selectedRows"
+          :hovering="isCellHighlighted(row, column)"
           @click="(event) => handleCellClick(event, row, column)"
           @hover-change="handleCellHover"
-          :class="{
-            'bg-neutral-500': isCellHighlighted(row, column)
-          }"
         />
       </tr>
     </template>
