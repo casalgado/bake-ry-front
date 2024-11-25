@@ -1,13 +1,19 @@
 <script setup>
-import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue';
-import { useOrderStore } from '@/stores/orderStore';
+import { ref, onMounted, computed, nextTick, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import { MoneyRenderer, DateRenderer, ItemsRenderer, ClientRenderer } from '@/components/DataTable/renderers/CellRenderers';
 import { PhPen, PhExport } from '@phosphor-icons/vue';
-import { useAuthenticationStore } from '@/stores/authentication';
+
 import { storeToRefs } from 'pinia';
+import { useOrderStore } from '@/stores/orderStore';
+import { useAuthenticationStore } from '@/stores/authentication';
+import PeriodSelector from '@/components/common/PeriodSelector.vue';
+import { usePeriodStore } from '@/stores/periodStore';
+
+const periodStore = usePeriodStore();
 
 const router = useRouter();
 const orderStore = useOrderStore();
@@ -204,6 +210,15 @@ const handleCancel = () => {
   selectedOrder.value = null;
 };
 
+watch(
+  () => periodStore.periodRange,
+  (newRange) => {
+    // Fetch your data here
+    console.log('Period changed:', newRange);
+  },
+  { deep: true },
+);
+
 onMounted(async () => {
   try {
     // First fetch initial data
@@ -238,6 +253,7 @@ onUnmounted(() => {
   <div class="container p-4">
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold">Pedidos</h2>
+      <PeriodSelector />
       <button
         @click="() => router.push('/dashboard/orders/create')"
         class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
