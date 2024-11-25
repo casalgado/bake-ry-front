@@ -1,17 +1,15 @@
 <script setup>
-import { ref, onMounted, computed, nextTick, onUnmounted, watch, onBeforeUnmount, onBeforeUpdate, onUpdated } from 'vue';
-
+import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue';
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import { MoneyRenderer, DateRenderer, ItemsRenderer, ClientRenderer } from '@/components/DataTable/renderers/CellRenderers';
 import { PhPen, PhExport } from '@phosphor-icons/vue';
-
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
+import { useDebouncedRef } from '@vueuse/core'; // Add this import
 
 const periodStore = usePeriodStore();
-
 const orderStore = useOrderStore();
 const unsubscribeRef = ref(null);
 
@@ -109,30 +107,68 @@ const tableActions = [
   },
 ];
 
-// Search filters
-const searchQuery = ref('');
+// Search filters and state
+const searchQuery = useDebouncedRef('', 300);
 const dateFilter = ref('');
+const filterState = ref({
+  filtered: [],
+  isFiltering: false,
+  error: null,
+});
 
-// Filtered data
-const filteredData = computed(() => {
-  let filtered = orderStore.items;
+// Pure filtering function
+const filterOrders = (orders, query, date) => {
+  let filtered = orders;
 
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
+  if (query) {
+    const lowercaseQuery = query.toLowerCase();
     filtered = filtered.filter(order =>
-      order.userName?.toLowerCase().includes(query) ||
-      order.items.some(item => item.productName.toLowerCase().includes(query)),
+      order.userName?.toLowerCase().includes(lowercaseQuery) ||
+      order.items.some(item => item.productName.toLowerCase().includes(lowercaseQuery)),
     );
   }
 
-  if (dateFilter.value) {
+  if (date) {
     filtered = filtered.filter(order =>
-      order.dueDate.startsWith(dateFilter.value),
+      order.dueDate.startsWith(date),
     );
   }
 
   return filtered;
-});
+};
+
+// Main filtering function
+const applyFilters = async () => {
+  if (filterState.value.isFiltering) return;
+
+  filterState.value.isFiltering = true;
+  filterState.value.error = null;
+
+  try {
+    // Wait for any pending store operations
+    if (orderStore.loading) {
+      await new Promise(resolve => {
+        const unwatch = watch(() => orderStore.loading, (isLoading) => {
+          if (!isLoading) {
+            unwatch();
+            resolve();
+          }
+        });
+      });
+    }
+
+    filterState.value.filtered = filterOrders(
+      orderStore.items,
+      searchQuery.value,
+      dateFilter.value,
+    );
+  } catch (error) {
+    console.error('Filtering failed:', error);
+    filterState.value.error = 'Failed to filter orders';
+  } finally {
+    filterState.value.isFiltering = false;
+  }
+};
 
 // Handlers
 const handleSelectionChange = (selectedIds) => {
@@ -146,9 +182,7 @@ const handleSelectionChange = (selectedIds) => {
 const toggleLoading = ref({});
 
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
-
   try {
-    // Update each selected order
     let promises = [];
     rowIds.forEach(id => {
       toggleLoading.value[`${id}-${field}`] = true;
@@ -157,6 +191,7 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
     });
     await Promise.all(promises);
     await nextTick();
+    await applyFilters();
   } catch (error) {
     console.error('Failed to update orders:', error);
   } finally {
@@ -191,6 +226,7 @@ const handleSubmit = async (formData) => {
   try {
     if (selectedOrder.value) {
       await orderStore.update(selectedOrder.value.id, formData);
+      await applyFilters(); // Apply filters after update
     }
     showForm.value = false;
     selectedOrder.value = null;
@@ -204,6 +240,11 @@ const handleCancel = () => {
   selectedOrder.value = null;
 };
 
+// Watch for filter changes
+watch([searchQuery, dateFilter], async () => {
+  await applyFilters();
+});
+
 watch(
   () => periodStore.periodRange,
   async (newRange) => {
@@ -214,6 +255,7 @@ watch(
 
     try {
       await orderStore.fetchAll({ dateRange });
+      await applyFilters(); // Apply filters after fetch
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     }
@@ -223,20 +265,15 @@ watch(
 
 onMounted(async () => {
   try {
-    // First fetch initial data
-
     await orderStore.fetchAll();
-
-    // Store the unsubscribe function
+    await applyFilters(); // Initial filter application
     unsubscribeRef.value = await orderStore.subscribeToChanges();
-
     console.log('🔄 Real-time updates enabled for orders');
   } catch (error) {
     console.error('Failed to initialize orders:', error);
   }
 });
 
-// Handle cleanup properly
 onUnmounted(() => {
   if (unsubscribeRef.value) {
     unsubscribeRef.value();
@@ -249,8 +286,7 @@ onUnmounted(() => {
   <div class="container p-4">
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold">Pedidos</h2>
-      <PeriodSelector  />
-
+      <PeriodSelector />
     </div>
 
     <!-- Filters Section -->
@@ -277,8 +313,8 @@ onUnmounted(() => {
     </div>
 
     <!-- Error State -->
-    <div v-if="orderStore.error" class="text-danger text-center py-4">
-      {{ orderStore.error }}
+    <div v-if="filterState.error || orderStore.error" class="text-danger text-center py-4">
+      {{ filterState.error || orderStore.error }}
     </div>
 
     <!-- Edit Form Modal -->
@@ -300,14 +336,14 @@ onUnmounted(() => {
 
     <!-- Table -->
     <div v-if="!orderStore.loading">
-
       <DataTable
         :key="'orders-table-' + orderStore.items.length"
-        :data="filteredData"
+        :data="filterState.filtered"
         :columns="columns"
         :actions="tableActions"
         :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
+        :loading="filterState.isFiltering"
         @selection-change="handleSelectionChange"
         @toggle-update="handleToggleUpdate"
         @action="handleAction"
