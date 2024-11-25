@@ -42,6 +42,26 @@ const isAffectedByToggle = computed(() => {
   return props.column.type === 'toggle' && isToggleEnabled.value;
 });
 
+// Get next toggle value
+const getNextToggleValue = computed(() => {
+  if (!props.column.type === 'toggle' || !props.column.options) return null;
+  const currentValue = props.row[props.column.field];
+  const currentIndex = props.column.options.indexOf(currentValue);
+  return props.column.options[(currentIndex + 1) % props.column.options.length];
+});
+
+// Get tooltip content
+const tooltipContent = computed(() => {
+  if (!isToggleEnabled.value || !props.column.type === 'toggle') return null;
+
+  const nextValue = getNextToggleValue.value;
+  const affectedCount = props.selectedRows.size || 1;
+
+  return affectedCount > 1
+    ? `Cambiar ${affectedCount} a ${nextValue}`
+    : `Cambiar a ${nextValue}`;
+});
+
 // Handle hover events
 const handleMouseEnter = () => {
   if (props.column.type === 'toggle' && isToggleEnabled.value) {
@@ -68,28 +88,24 @@ const renderCell = () => {
   if (props.column.customRender) {
     const rendered = props.column.customRender(props.row);
 
-    // If renderer returns a VNode or Component
     if (rendered && rendered.__v_isVNode) {
       return rendered;
     }
 
-    // If renderer returns a component definition
     if (rendered && rendered.component) {
       return h(rendered.component, rendered.props || {});
     }
 
-    // For simple value transformations
     return rendered;
   }
 
-  // Default case: just return the field value
   return props.row[props.column.field];
 };
 </script>
 
 <template>
   <td
-    class="px-4 py-2 relative"
+    class="px-4 py-2 relative group"
     @click="handleClick"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
@@ -112,6 +128,18 @@ const renderCell = () => {
       <template v-else>
         {{ renderCell() }}
       </template>
+    </div>
+
+    <!-- Tooltip -->
+    <div
+      v-if="tooltipContent && isAffectedByToggle && hovering"
+      class="absolute z-50 px-2 py-1 text-xs text-white bg-neutral-800 rounded shadow-lg whitespace-nowrap -translate-y-full -translate-x-1/2 left-1/2 -top-1"
+    >
+      {{ tooltipContent }}
+      <!-- Triangle pointer -->
+      <div class="absolute left-1/2 top-full -translate-x-1/2 -translate-y-px">
+        <div class="border-4 border-transparent border-t-neutral-800"></div>
+      </div>
     </div>
   </td>
 </template>
