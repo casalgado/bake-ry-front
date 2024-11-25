@@ -1,5 +1,7 @@
 // services/base/resourceService.js
 import api from '../api';
+import { db } from '@/config/firebase';
+import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 
 /**
  * Base service class for handling common API operations
@@ -19,6 +21,7 @@ export class BaseService {
     this.resource = resource;
     this.basePath = basePath;
     this.api = api;
+    this.listeners = new Map();
   }
 
   /**
@@ -149,6 +152,73 @@ export class BaseService {
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Subscribe to collection changes
+   * @param {string} bakeryId - Bakery ID for filtering
+   * @param {Function} onUpdate - Callback for updates
+   * @returns {Function} Unsubscribe function
+   */
+  /**
+ * Subscribe to collection changes
+ * @param {string} bakeryId - Bakery ID for filtering
+ * @param {Function} onUpdate - Callback for updates
+ * @returns {Function} Unsubscribe function
+ */
+  subscribeToChanges(bakeryId, onUpdate) {
+
+    // Create reference to the subcollection
+    const collectionRef = collection(
+      db,
+      'bakeries',
+      bakeryId,
+      this.resource,
+    );
+
+    // Create query - note we don't need the where clause anymore
+    // since we're already in the correct subcollection
+    const q = query(
+      collectionRef,
+      orderBy('updatedAt', 'desc'),
+    );
+
+    const unsubscribe = onSnapshot(q,
+      (snapshot) => {
+        const changes = [];
+        snapshot.docChanges().forEach((change) => {
+          const data = {
+            id: change.doc.id,
+            ...change.doc.data(),
+            bakeryId, // Add bakeryId to match your API response format
+          };
+          changes.push({ type: change.type, data });
+        });
+        onUpdate(changes);
+      },
+      (error) => {
+        console.error('Firestore subscription error:', error);
+      },
+    );
+
+    // Store listener reference
+    const listenerId = `${this.resource}-${bakeryId}`;
+    this.listeners.set(listenerId, unsubscribe);
+
+    return unsubscribe;
+  }
+
+  /**
+   * Unsubscribe from changes
+   * @param {string} bakeryId - Bakery ID
+   */
+  unsubscribeFromChanges(bakeryId) {
+    const listenerId = `${this.resource}-${bakeryId}`;
+    const unsubscribe = this.listeners.get(listenerId);
+    if (unsubscribe) {
+      unsubscribe();
+      this.listeners.delete(listenerId);
     }
   }
 

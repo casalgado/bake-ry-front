@@ -49,9 +49,7 @@ const isAffectedByToggle = computed(() => {
 
 // Determine if this cell is in loading state
 const isLoading = computed(() => {
-  console.log('toggleLoading', props.toggleLoading);
-  console.log('row', props.row.id);
-  console.log('column', props.column.field);
+
   return props.toggleLoading[`${props.row.id}-${props.column.field}`];
 });
 

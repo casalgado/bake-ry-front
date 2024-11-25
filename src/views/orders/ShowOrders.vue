@@ -1,14 +1,20 @@
 <script setup>
-import { ref, onMounted, computed, nextTick } from 'vue';
+import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useRouter } from 'vue-router';
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import { MoneyRenderer, DateRenderer, ItemsRenderer, ClientRenderer } from '@/components/DataTable/renderers/CellRenderers';
 import { PhPen, PhExport } from '@phosphor-icons/vue';
+import { useAuthenticationStore } from '@/stores/authentication';
+import { storeToRefs } from 'pinia';
 
 const router = useRouter();
 const orderStore = useOrderStore();
+const authStore = useAuthenticationStore();
+const { getBakeryId } = storeToRefs(authStore);
+const unsubscribeRef = ref(null);
+
 const showForm = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
@@ -199,14 +205,39 @@ const handleCancel = () => {
 };
 
 onMounted(async () => {
-  await orderStore.fetchAll();
+  try {
+    // First fetch initial data
+    await orderStore.fetchAll();
+
+    const bakeryId = getBakeryId.value;
+    console.log('Using bakeryId:', bakeryId);
+
+    if (!bakeryId) {
+      throw new Error('No bakery ID available');
+    }
+
+    // Store the unsubscribe function
+    unsubscribeRef.value = await orderStore.subscribeToChanges(bakeryId);
+
+    console.log('🔄 Real-time updates enabled for orders');
+  } catch (error) {
+    console.error('Failed to initialize orders:', error);
+  }
+});
+
+// Handle cleanup properly
+onUnmounted(() => {
+  if (unsubscribeRef.value) {
+    unsubscribeRef.value();
+    orderStore.unsubscribe(getBakeryId.value);
+  }
 });
 </script>
 
 <template>
   <div class="container p-4">
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold">Order Management</h2>
+      <h2 class="text-2xl font-bold">Pedidos</h2>
       <button
         @click="() => router.push('/dashboard/orders/create')"
         class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"

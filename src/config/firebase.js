@@ -1,7 +1,8 @@
 // src/config/firebase.js
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { initializeApp } from 'firebase/app';
+import { getAnalytics } from 'firebase/analytics';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY,
@@ -17,9 +18,14 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 export const analytics = getAnalytics(firebaseApp);
 export const auth = getAuth(firebaseApp);
+export const db = getFirestore(firebaseApp);
 
 // Connect to auth emulator if USE_AUTH_EMULATOR is true
-if (import.meta.env.VITE_USE_AUTH_EMULATOR === "true") {
-  console.log("🔧 Using Auth Emulator");
-  connectAuthEmulator(auth, "http://localhost:9099");
+if (import.meta.env.VITE_USE_AUTH_EMULATOR === 'true') {
+  console.log('🔧 Using Auth Emulator');
+  connectAuthEmulator(auth, 'http://localhost:9099');
+
+  // Add Firestore emulator connection
+  console.log('🔧 Using Firestore Emulator');
+  connectFirestoreEmulator(db, 'localhost', 8080);
 }

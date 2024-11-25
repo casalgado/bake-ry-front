@@ -12,6 +12,7 @@ export const createResourceStore = (resourceName, resourceService) => {
     const currentItem = ref(null);
     const loading = ref(false);
     const error = ref(null);
+    const isSubscribed = ref(false);
     const filters = ref({
       page: 1,
       perPage: 1000,
@@ -82,6 +83,76 @@ export const createResourceStore = (resourceName, resourceService) => {
 
     function updateFilters(newFilters) {
       filters.value = { ...filters.value, ...newFilters };
+    }
+
+    // Real-time update handler
+    function handleRealtimeUpdate(changes) {
+      changes.forEach((change) => {
+        switch (change.type) {
+        case 'added': {
+          console.log('ADDED REALTIME NOT IMPLEMENTED YET', change.data);
+          // const index = items.value.findIndex(item => item.id === change.data.id);
+          // if (index === -1) {
+          //   items.value.push(change.data);
+          // }
+          break;
+        }
+        case 'modified': {
+          const index = items.value.findIndex(item => item.id === change.data.id);
+          if (index !== -1) {
+            const currentItem = items.value[index];
+
+            Object.entries(change.data).forEach(([key, newValue]) => {
+              // Skip id field
+              if (key === 'id') return;
+
+              // Only update primitive values (string, number, boolean)
+
+              if (
+                typeof newValue === 'string' ||
+                typeof newValue === 'number' ||
+                typeof newValue === 'boolean'
+              ) {
+                if (currentItem[key] !== newValue) {
+                  items.value[index][key] = newValue;
+                  console.log('key newValue', key, newValue);
+                }
+              }
+              // For timestamps, arrays, and objects, keep the existing value
+              // This preserves the reactive arrays and properly formatted dates
+            });
+          }
+          break;
+        }
+        case 'removed': {
+          console.log('REMOVED REALTIME NOT IMPLEMENTED YET', change.data);
+          // items.value = items.value.filter(item => item.id !== change.data.id);
+          // if (currentItem.value?.id === change.data.id) {
+          //   currentItem.value = null;
+          // }
+          break;
+        }
+        }
+      });
+    }
+
+    async function subscribeToChanges(bakeryId) {
+      if (isSubscribed.value) return;
+
+      const unsubscribe = resourceService.subscribeToChanges(
+        bakeryId,
+        handleRealtimeUpdate,
+      );
+
+      isSubscribed.value = true;
+      return unsubscribe;
+    }
+
+    function unsubscribe(bakeryId) {
+      if (isSubscribed.value) {
+        resourceService.unsubscribeFromChanges(bakeryId);
+        isSubscribed.value = false;
+      }
     }
 
     async function fetchAll() {
@@ -157,12 +228,8 @@ export const createResourceStore = (resourceName, resourceService) => {
     async function update(id, formData) {
       if (!id) throw new Error('ID is required for update');
       if (!formData) throw new Error('Data is required for update');
-      console.log('formData', formData);
 
       const { ...data } = formData;
-
-      console.log('data', data);
-
       setLoading(true);
       clearError();
 
@@ -258,6 +325,7 @@ export const createResourceStore = (resourceName, resourceService) => {
       loading,
       error,
       filters,
+      isSubscribed,
 
       // Getters
       getById,
@@ -271,6 +339,8 @@ export const createResourceStore = (resourceName, resourceService) => {
       clearError,
       setCurrentItem,
       updateFilters,
+      subscribeToChanges,
+      unsubscribe,
       fetchAll,
       fetchById,
       create,
