@@ -137,17 +137,16 @@ const renderCell = () => {
       <!-- Tooltip -->
       <div
         v-if="tooltipContent && showTooltip"
-        class="absolute z-50 px-2 py-1 text-xs text-white bg-primary rounded shadow-lg whitespace-nowrap -translate-y-full -translate-x-1/2 left-1/2 -top-3"
+        class="absolute z-50 px-2 py-1 text-xs text-white bg-primary rounded shadow-lg whitespace-nowrap left-full ml-2 top-1/2 -translate-y-1/2"
       >
-        <span class="flex items-center gap-1">
+        <div class="flex items-center gap-1">
           {{ tooltipContent.prefix }}
-          <PhArrowRight class="w-3 h-3" />
+          <PhArrowRight weight="bold" class="w-3 h-3" />
           {{ tooltipContent.value }}
-        </span>
-
+        </div>
         <!-- Triangle pointer -->
-        <div class="absolute left-1/2 top-full -translate-x-1/2 -translate-y-px">
-          <div class="border-4 border-transparent border-t-primary"></div>
+        <div class="absolute right-full top-1/2 -translate-y-1/2">
+          <div class="border-4 border-transparent border-r-primary"></div>
         </div>
       </div>
     </div>
