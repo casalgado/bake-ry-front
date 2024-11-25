@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useRouter } from 'vue-router';
 import OrderForm from '@/components/forms/OrderForm.vue';
@@ -49,7 +49,7 @@ const columns = [
     customRender: (row) => ({
       component: ItemsRenderer,
       props: {
-        items: row.items,
+        items: row.orderItems,
         maxDisplay: 2,
       },
     }),
@@ -140,9 +140,13 @@ const handleSelectionChange = (selectedIds) => {
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
     // Update each selected order
-    rowIds.map(id =>
-      console.log(id, field, value),
-    );
+    let promises = [];
+    rowIds.forEach(id => {
+      console.log('patching', id, field, value);
+      promises.push(orderStore.patch(id, { [field]: value }));
+    });
+    await Promise.all(promises);
+    await nextTick();
   } catch (error) {
     console.error('Failed to update orders:', error);
   }
