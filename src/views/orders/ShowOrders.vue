@@ -1,13 +1,18 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue';
+
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
-import { MoneyRenderer, DateRenderer, ItemsRenderer, ClientRenderer } from '@/components/DataTable/renderers/CellRenderers';
+import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
+import DateCell from '@/components/DataTable/renderers/DateCell.vue';
+import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
+import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
+
 import { PhPen, PhExport } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
+
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
-import { useDebouncedRef } from '@vueuse/core'; // Add this import
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -16,6 +21,8 @@ const unsubscribeRef = ref(null);
 const showForm = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
+const toggleLoading = ref({});
+const showOrders = ref([]);
 
 // Column definitions
 const columns = [
@@ -24,12 +31,10 @@ const columns = [
     label: 'Client',
     field: 'userName',
     sortable: true,
-    customRender: (row) => ({
-      component: ClientRenderer,
-      props: {
-        name: row.userName,
-        phone: row.userPhone,
-      },
+    component: ClientCell,
+    getProps: (row) => ({
+      name: row.userName,
+      phone: row.userPhone,
     }),
   },
   {
@@ -37,12 +42,10 @@ const columns = [
     label: 'Due Date',
     field: 'dueDate',
     sortable: true,
-    customRender: (row) => ({
-      component: DateRenderer,
-      props: {
-        value: row.dueDate,
-        showTime: true,
-      },
+    component: DateCell,
+    getProps: (row) => ({
+      value: row.dueDate,
+      showTime: true,
     }),
   },
   {
@@ -50,12 +53,10 @@ const columns = [
     label: 'Items',
     field: 'items',
     sortable: false,
-    customRender: (row) => ({
-      component: ItemsRenderer,
-      props: {
-        items: row.orderItems,
-        maxDisplay: 2,
-      },
+    component: ItemsCell,
+    getProps: (row) => ({
+      items: row.orderItems,
+      maxDisplay: 2,
     }),
   },
   {
@@ -79,11 +80,9 @@ const columns = [
     label: 'Total',
     field: 'total',
     sortable: true,
-    customRender: (row) => ({
-      component: MoneyRenderer,
-      props: {
-        value: row.total,
-      },
+    component: MoneyCell,
+    getProps: (row) => ({
+      value: row.total,
     }),
   },
 ];
@@ -107,69 +106,6 @@ const tableActions = [
   },
 ];
 
-// Search filters and state
-const searchQuery = useDebouncedRef('', 300);
-const dateFilter = ref('');
-const filterState = ref({
-  filtered: [],
-  isFiltering: false,
-  error: null,
-});
-
-// Pure filtering function
-const filterOrders = (orders, query, date) => {
-  let filtered = orders;
-
-  if (query) {
-    const lowercaseQuery = query.toLowerCase();
-    filtered = filtered.filter(order =>
-      order.userName?.toLowerCase().includes(lowercaseQuery) ||
-      order.items.some(item => item.productName.toLowerCase().includes(lowercaseQuery)),
-    );
-  }
-
-  if (date) {
-    filtered = filtered.filter(order =>
-      order.dueDate.startsWith(date),
-    );
-  }
-
-  return filtered;
-};
-
-// Main filtering function
-const applyFilters = async () => {
-  if (filterState.value.isFiltering) return;
-
-  filterState.value.isFiltering = true;
-  filterState.value.error = null;
-
-  try {
-    // Wait for any pending store operations
-    if (orderStore.loading) {
-      await new Promise(resolve => {
-        const unwatch = watch(() => orderStore.loading, (isLoading) => {
-          if (!isLoading) {
-            unwatch();
-            resolve();
-          }
-        });
-      });
-    }
-
-    filterState.value.filtered = filterOrders(
-      orderStore.items,
-      searchQuery.value,
-      dateFilter.value,
-    );
-  } catch (error) {
-    console.error('Filtering failed:', error);
-    filterState.value.error = 'Failed to filter orders';
-  } finally {
-    filterState.value.isFiltering = false;
-  }
-};
-
 // Handlers
 const handleSelectionChange = (selectedIds) => {
   if (selectedIds.length === 1) {
@@ -179,19 +115,14 @@ const handleSelectionChange = (selectedIds) => {
   }
 };
 
-const toggleLoading = ref({});
-
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
-    let promises = [];
-    rowIds.forEach(id => {
+    const promises = rowIds.map(id => {
       toggleLoading.value[`${id}-${field}`] = true;
-      console.log('patching', id, field, value);
-      promises.push(orderStore.patch(id, { [field]: value }));
+      return orderStore.patch(id, { [field]: value });
     });
     await Promise.all(promises);
     await nextTick();
-    await applyFilters();
   } catch (error) {
     console.error('Failed to update orders:', error);
   } finally {
@@ -226,7 +157,6 @@ const handleSubmit = async (formData) => {
   try {
     if (selectedOrder.value) {
       await orderStore.update(selectedOrder.value.id, formData);
-      await applyFilters(); // Apply filters after update
     }
     showForm.value = false;
     selectedOrder.value = null;
@@ -240,22 +170,22 @@ const handleCancel = () => {
   selectedOrder.value = null;
 };
 
-// Watch for filter changes
-watch([searchQuery, dateFilter], async () => {
-  await applyFilters();
-});
-
+// Watch for period changes and fetch new data
 watch(
   () => periodStore.periodRange,
   async (newRange) => {
-    const dateRange = {
-      startDate: newRange.start.toISOString(),
-      endDate: newRange.end.toISOString(),
-    };
-
     try {
-      await orderStore.fetchAll({ dateRange });
-      await applyFilters(); // Apply filters after fetch
+      await orderStore.fetchAll({
+        dateRange: {
+          startDate: newRange.start.toISOString(),
+          endDate: newRange.end.toISOString(),
+        },
+      });
+      console.log('showOrders', showOrders.value);
+      console.log('orderStore.items', orderStore.items);
+      setTimeout(() => {
+        showOrders.value = [];
+      }, 100);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     }
@@ -266,8 +196,9 @@ watch(
 onMounted(async () => {
   try {
     await orderStore.fetchAll();
-    await applyFilters(); // Initial filter application
     unsubscribeRef.value = await orderStore.subscribeToChanges();
+    console.log('orderStore.items');
+    showOrders.value = orderStore.items;
     console.log('🔄 Real-time updates enabled for orders');
   } catch (error) {
     console.error('Failed to initialize orders:', error);
@@ -285,26 +216,8 @@ onUnmounted(() => {
 <template>
   <div class="container p-4">
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold">Pedidos</h2>
+      <h2 class="text-2xl font-bold text-neutral-800">Pedidos</h2>
       <PeriodSelector />
-    </div>
-
-    <!-- Filters Section -->
-    <div class="bg-white p-4 rounded-lg shadow-sm mb-4 hidden">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Search -->
-        <div>
-          <label class="block text-sm font-medium text-neutral-700 mb-1">
-            Search
-          </label>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search orders..."
-            class="w-full px-3 py-2 border rounded-lg focus:ring-primary-500 focus:border-primary-500"
-          />
-        </div>
-      </div>
     </div>
 
     <!-- Loading State -->
@@ -313,8 +226,8 @@ onUnmounted(() => {
     </div>
 
     <!-- Error State -->
-    <div v-if="filterState.error || orderStore.error" class="text-danger text-center py-4">
-      {{ filterState.error || orderStore.error }}
+    <div v-if="orderStore.error" class="text-danger text-center py-4">
+      {{ orderStore.error }}
     </div>
 
     <!-- Edit Form Modal -->
@@ -335,15 +248,13 @@ onUnmounted(() => {
     </div>
 
     <!-- Table -->
-    <div v-if="!orderStore.loading">
+    <div>
       <DataTable
-        :key="'orders-table-' + orderStore.items.length"
-        :data="filterState.filtered"
+        :data="orderStore.items"
         :columns="columns"
         :actions="tableActions"
         :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
-        :loading="filterState.isFiltering"
         @selection-change="handleSelectionChange"
         @toggle-update="handleToggleUpdate"
         @action="handleAction"

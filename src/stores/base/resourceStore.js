@@ -169,8 +169,10 @@ export const createResourceStore = (resourceName, resourceService) => {
           ...otherOptions,
         });
 
+        console.log('response.data', response.data);
+
         // problematic line causing the error.
-        items.value = Array.isArray(response.data)
+        items.value = Array.isArray(response.data) && response.data.length > 0
           ? response.data
           : response.data.items || response.data.data || [];
 

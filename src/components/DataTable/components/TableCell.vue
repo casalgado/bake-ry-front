@@ -99,25 +99,6 @@ const handleMouseLeave = () => {
   showTooltip.value = false;
 };
 
-const renderCell = () => {
-
-  // For custom rendered cells
-  if (props.column.customRender) {
-    const rendered = props.column.customRender(props.row);
-
-    if (rendered && rendered.__v_isVNode) {
-      return rendered;
-    }
-
-    if (rendered && rendered.component) {
-      return h(rendered.component, rendered.props || {});
-    }
-
-    return rendered;
-  }
-
-  return props.row[props.column.field];
-};
 </script>
 
 <template>
@@ -141,11 +122,12 @@ const renderCell = () => {
       }"
     >
       <component
-        :is="renderCell()"
-        v-if="renderCell()?.__v_isVNode"
+        v-if="column.component"
+        :is="column.component"
+        v-bind="column.getProps(row)"
       />
       <template v-else>
-        {{ renderCell() }}
+        {{ row[column.field] }}
       </template>
       <!-- Tooltip -->
       <div
