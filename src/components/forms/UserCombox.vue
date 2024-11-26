@@ -80,6 +80,8 @@ onMounted(async () => {
         <div class="relative w-full">
           <ComboboxInput
             ref="inputRef"
+            autocomplete="off"
+            enterkeyhint="done"
             @change="query = $event.target.value"
             :displayValue="
               (userId) => props.users.find((u) => u.id === userId)?.name || ''

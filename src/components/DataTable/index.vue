@@ -1,6 +1,7 @@
 <!-- components/DataTable/index.vue -->
 <script setup>
 import { ref, computed } from 'vue';
+import { PhDisc } from '@phosphor-icons/vue';
 import TableHeader from './components/TableHeader.vue';
 import TableBody from './components/TableBody.vue';
 import ActionBar from './components/ActionBar.vue';
@@ -26,14 +27,19 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
-  wrapperClass: {
-    type: String,
-    default: '',
-  },
   toggleLoading: {
     type: Object,
     default: () => ({}),
   },
+  dataLoading: {
+    type: Boolean,
+    default: false,
+  },
+  wrapperClass: {
+    type: String,
+    default: '',
+  },
+
 });
 
 const emit = defineEmits([
@@ -143,6 +149,9 @@ const handleSort = (columnId, isMulti) => {
     <div
       class="bg-neutral-50 px-4 py-2 flex items-center justify-between border-b"
     >
+      <div v-if="dataLoading" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-delayed-fade-in">
+        <PhDisc class="animate-spin text-xl"/>
+      </div>
       <div class="flex items-center gap-4">
         <button
           @click="selectAll"
@@ -210,3 +219,17 @@ const handleSort = (columnId, isMulti) => {
     />
   </div>
 </template>
+<style scoped>
+@keyframes delayedFadeIn {
+  0%, 99% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-delayed-fade-in {
+  animation: delayedFadeIn 1s linear;
+}
+</style>

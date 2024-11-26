@@ -23,13 +23,17 @@ const selectedOrder = ref(null);
 const actionLoading = ref({});
 const toggleLoading = ref({});
 
-// Column definitions
+// Column definitions / "id must be the same as field for sorting to work"
 const columns = [
   {
-    id: 'client',
+    id: 'useName',
     label: 'Client',
     field: 'userName',
     sortable: true,
+    component: ClientCell,
+    getProps: (row) => ({
+      name: row.userName,
+    }),
   },
   {
     id: 'dueDate',
@@ -188,7 +192,13 @@ watch(
 
 onMounted(async () => {
   try {
-    await orderStore.fetchAll();
+    await orderStore.fetchAll({ filters: {
+      dateRange: {
+        dateField: 'dueDate',
+        startDate: periodStore.periodRange.start.toISOString(),
+        endDate: periodStore.periodRange.end.toISOString(),
+      },
+    } });
     unsubscribeRef.value = await orderStore.subscribeToChanges();
 
     console.log('🔄 Real-time updates enabled for orders');
@@ -210,11 +220,6 @@ onUnmounted(() => {
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Pedidos</h2>
       <PeriodSelector />
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="orderStore.loading" class="text-neutral-600 text-center py-4">
-      Loading orders...
     </div>
 
     <!-- Error State -->
@@ -247,6 +252,7 @@ onUnmounted(() => {
         :actions="tableActions"
         :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
+        :data-loading="orderStore.loading"
         @selection-change="handleSelectionChange"
         @toggle-update="handleToggleUpdate"
         @action="handleAction"
