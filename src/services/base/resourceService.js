@@ -55,42 +55,49 @@ export class BaseService {
     }
   }
 
-  /**
-   * Get all resources with optional date filtering
-   * @param {Object} params - Query parameters
-   * @param {Object} [params.dateRange] - Date range for filtering
-   * @param {string} [params.dateRange.startDate] - Start date in ISO format
-   * @param {string} [params.dateRange.endDate] - End date in ISO format
-   * @param {number} [params.page] - Page number
-   * @param {number} [params.perPage] - Items per page
-   * @param {string} [params.sort] - Sort field
-   * @returns {Promise<{data: Array, total?: number, page?: number}>}
-   */
-  async getAll(options = {}) {
-    console.log(options);
+  async getAll(query = {}) {
     try {
-      const { dateRange, ...otherOptions } = options;
+    // Convert the query object to API parameters
+      const params = this.formatQueryParams(query);
 
-      // Build query parameters
-      const queryParams = {
-        page: otherOptions.page,
-        per_page: otherOptions.perPage,
-        sort: otherOptions.sort,
-      };
-
-      // Add date range if provided
-      if (dateRange) {
-        queryParams.start_date = dateRange.startDate;
-        queryParams.end_date = dateRange.endDate;
-      }
-
-      const response = await this.api.get(this.getPath(), {
-        params: queryParams,
-      });
+      const response = await this.api.get(this.getPath(), { params });
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error);
     }
+  }
+
+  formatQueryParams(query) {
+    const params = {
+      page: query.pagination?.page,
+      per_page: query.pagination?.perPage,
+    };
+
+    // Add sorting
+    if (query.sort) {
+      params.sort = query.sort.direction === 'desc' ? `-${query.sort.field}` : query.sort.field;
+    }
+
+    // Add date range
+    if (query.filters?.dateRange) {
+      params.date_field = query.filters.dateRange.dateField;
+      params.start_date = query.filters.dateRange.startDate;
+      params.end_date = query.filters.dateRange.endDate;
+    }
+
+    // Add other filters
+    Object.entries(query.filters || {}).forEach(([key, value]) => {
+      if (key !== 'dateRange') {  // Skip dateRange as it's already handled
+        params[key] = value;
+      }
+    });
+
+    // Add additional options
+    Object.entries(query.options || {}).forEach(([key, value]) => {
+      params[key] = value;
+    });
+
+    return params;
   }
 
   /**
@@ -207,14 +214,7 @@ export class BaseService {
   }
 
   /**
-   * Subscribe to collection changes
-   * @param {string} bakeryId - Bakery ID for filtering
-   * @param {Function} onUpdate - Callback for updates
-   * @returns {Function} Unsubscribe function
-   */
-  /**
  * Subscribe to collection changes
-   * @param {string} bakeryId - Bakery ID for filtering
    * @param {Function} onUpdate - Callback for updates
    * @returns {Function} Unsubscribe function
    */

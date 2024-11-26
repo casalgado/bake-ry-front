@@ -22,7 +22,6 @@ const showForm = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
 const toggleLoading = ref({});
-const showOrders = ref([]);
 
 // Column definitions
 const columns = [
@@ -31,11 +30,6 @@ const columns = [
     label: 'Client',
     field: 'userName',
     sortable: true,
-    component: ClientCell,
-    getProps: (row) => ({
-      name: row.userName,
-      phone: row.userPhone,
-    }),
   },
   {
     id: 'dueDate',
@@ -176,16 +170,15 @@ watch(
   async (newRange) => {
     try {
       await orderStore.fetchAll({
-        dateRange: {
-          startDate: newRange.start.toISOString(),
-          endDate: newRange.end.toISOString(),
+        filters: {
+          dateRange: {
+            dateField: 'dueDate',
+            startDate: newRange.start.toISOString(),
+            endDate: newRange.end.toISOString(),
+          },
         },
       });
-      console.log('showOrders', showOrders.value);
-      console.log('orderStore.items', orderStore.items);
-      setTimeout(() => {
-        showOrders.value = [];
-      }, 100);
+
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     }
@@ -197,8 +190,7 @@ onMounted(async () => {
   try {
     await orderStore.fetchAll();
     unsubscribeRef.value = await orderStore.subscribeToChanges();
-    console.log('orderStore.items');
-    showOrders.value = orderStore.items;
+
     console.log('🔄 Real-time updates enabled for orders');
   } catch (error) {
     console.error('Failed to initialize orders:', error);

@@ -7,7 +7,5 @@ defineProps({
 </script>
 
 <template>
-  <div class="flex flex-col">
-    <span class="font-medium">{{ name }}{{ phone ? ` - ${phone}` : '' }}</span>
-  </div>
+  {{ name }}
 </template>

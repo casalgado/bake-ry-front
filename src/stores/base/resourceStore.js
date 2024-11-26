@@ -1,6 +1,7 @@
 // stores/base/resourceStore.js
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import QueryBuilder from '@/utils/queryBuilder';
 
 export const createResourceStore = (resourceName, resourceService) => {
   if (!resourceService) {
@@ -13,55 +14,10 @@ export const createResourceStore = (resourceName, resourceService) => {
     const loading = ref(false);
     const error = ref(null);
     const isSubscribed = ref(false);
-    const filters = ref({
-      page: 1,
-      perPage: 1000,
-      sort: 'createdAt',
-    });
 
     // Getters
     const getById = computed(() => {
       return (id) => items.value.find((item) => item.id === id);
-    });
-
-    const filteredItems = computed(() => {
-      let filtered = [...items.value];
-
-      if (filters.value.search) {
-        const searchLower = filters.value.search.toLowerCase();
-        filtered = filtered.filter((item) =>
-          Object.values(item).some((value) =>
-            String(value).toLowerCase().includes(searchLower),
-          ),
-        );
-      }
-
-      filtered.sort((a, b) => {
-        const aValue = a[filters.value.sortBy];
-        const bValue = b[filters.value.sortBy];
-        const modifier = filters.value.sortDesc ? -1 : 1;
-
-        // Handle different types
-        if (typeof aValue === 'number' && typeof bValue === 'number') {
-          return modifier * (aValue - bValue);
-        }
-        if (aValue instanceof Date && bValue instanceof Date) {
-          return modifier * (aValue.getTime() - bValue.getTime());
-        }
-        return modifier * String(aValue).localeCompare(String(bValue));
-      });
-
-      return filtered;
-    });
-
-    const paginatedItems = computed(() => {
-      const start = (filters.value.page - 1) * filters.value.perPage;
-      const end = start + filters.value.perPage;
-      return filteredItems.value.slice(start, end);
-    });
-
-    const totalPages = computed(() => {
-      return Math.ceil(filteredItems.value.length / filters.value.perPage);
     });
 
     // Actions
@@ -79,10 +35,6 @@ export const createResourceStore = (resourceName, resourceService) => {
 
     function setCurrentItem(item) {
       currentItem.value = item;
-    }
-
-    function updateFilters(newFilters) {
-      filters.value = { ...filters.value, ...newFilters };
     }
 
     // Real-time update handler
@@ -154,24 +106,30 @@ export const createResourceStore = (resourceName, resourceService) => {
       }
     }
 
-    async function fetchAll(options = {}) {
+    // stores/base/resourceStore.js
+
+    async function fetchAll(request = {}) {
       setLoading(true);
       clearError();
 
       try {
-        const { dateRange, ...otherOptions } = options;
+        const queryBuilder = new QueryBuilder();
 
-        const response = await resourceService.getAll({
-          page: filters.value.page,
-          perPage: filters.value.perPage,
-          sort: filters.value.sort,
-          dateRange,
-          ...otherOptions,
-        });
+        // Add date range if provided
+        if (request.dateRange) {
+          queryBuilder.setDateRange(request.dateRange.dateField, request.dateRange.startDate, request.dateRange.endDate);
+        }
 
-        console.log('response.data', response.data);
+        // Add any other filters
+        if (request.filters) {
+          Object.entries(request.filters).forEach(([key, value]) => {
+            queryBuilder.addFilter(key, value);
+          });
+        }
 
-        // problematic line causing the error.
+        const query = queryBuilder.build();
+        const response = await resourceService.getAll(query);
+
         items.value = Array.isArray(response.data) && response.data.length > 0
           ? response.data
           : response.data.items || response.data.data || [];
@@ -315,7 +273,7 @@ export const createResourceStore = (resourceName, resourceService) => {
       currentItem.value = null;
       loading.value = false;
       error.value = null;
-      filters.value = {
+      queryParams.value = {
         search: '',
         sortBy: 'createdAt',
         sortDesc: true,
@@ -330,21 +288,16 @@ export const createResourceStore = (resourceName, resourceService) => {
       currentItem,
       loading,
       error,
-      filters,
       isSubscribed,
 
       // Getters
       getById,
-      filteredItems,
-      paginatedItems,
-      totalPages,
 
       // Actions
       setLoading,
       setError,
       clearError,
       setCurrentItem,
-      updateFilters,
       subscribeToChanges,
       unsubscribe,
       fetchAll,
