@@ -160,13 +160,16 @@ watch(selectedFeeType, (newValue) => {
     <div class="base-card">
       <div>
         <label for="client-select">Cliente</label>
-        <UserCombox
-          v-model="formData.userId"
-          :users="userStore.items"
-          :error="errors.userId"
-          :required="true"
-          @change="handleUserChange"
-        />
+        <div class="grid grid-cols-[1fr_auto] gap-2">
+          <UserCombox
+            v-model="formData.userId"
+            :users="userStore.items"
+            :error="errors.userId"
+            :required="true"
+            @change="handleUserChange"
+          />
+          <button type="button" class="utility-btn m-0">Nuevo Cliente</button>
+        </div>
         <span v-if="errors.userId">{{ errors.userId }}</span>
       </div>
 
