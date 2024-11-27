@@ -1,6 +1,7 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue';
 import RecipeSelector from './RecipeSelector.vue';
+import { PhMinusCircle } from '@phosphor-icons/vue';
 
 const props = defineProps({
   variation: {
@@ -17,10 +18,6 @@ const props = defineProps({
     required: true,
   },
   disabled: {
-    type: Boolean,
-    default: false,
-  },
-  isFixed: {
     type: Boolean,
     default: false,
   },
@@ -51,20 +48,21 @@ const getValueLabel = () => {
   }
 };
 
-const getValueStep = () => props.variationType === 'WEIGHT' ? '50' : '1';
+const getValueStep = () => (props.variationType === 'WEIGHT' ? '50' : '1');
 </script>
 
 <template>
-  <div class="flat-card flex gap-4" :class="props.variation.isWholeGrain ? 'bg-neutral-200' : ''">
-
+  <div
+    class="flat-card py-1 pb-2 mb-0 flex gap-4"
+    :class="props.variation.isWholeGrain ? 'bg-neutral-200' : ''"
+  >
     <div>
-      <label>Nombre {{ isFixed ? '(fijo)' : '' }}</label>
+      <label>Nombre</label>
       <input
         type="text"
         :value="variation.name"
         @input="updateField('name', $event.target.value)"
         :disabled="disabled"
-        :class="isFixed ? 'bg-neutral-200 cursor-not-allowed' : ''"
       />
     </div>
 
@@ -94,10 +92,9 @@ const getValueStep = () => props.variationType === 'WEIGHT' ? '50' : '1';
       type="button"
       @click="emit('remove')"
       :disabled="disabled"
-      class="danger-btn"
-      :class="isFixed ? 'cursor-not-allowed bg-neutral-200 hover:bg-neutral-200' : ''"
+      class="hover:danger-btn aspect-square rounded-full text-danger hover:text-white p-1 self-end"
     >
-      Eliminar Variación
+      <PhMinusCircle size="24px" />
     </button>
   </div>
 </template>

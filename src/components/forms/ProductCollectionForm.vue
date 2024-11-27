@@ -8,7 +8,10 @@ const fetchCollections = async () => {
 };
 
 // Form state
-const productName = ref('');
+const formData = ref({
+  name: '',
+  description: '',
+});
 const collections = ref([]);
 
 // Collection loading
@@ -29,25 +32,33 @@ onMounted(() => {
 const emit = defineEmits(['submit']);
 
 const handleSubmit = () => {
-  emit('submit', {
-    name: productName.value,
-  });
+  console.log(formData.value);
+  //emit('submit', formData.value);
 };
 </script>
 
 <template>
   <form @submit.prevent="handleSubmit">
     <div>
-      <label for="productName">Nombre de la Colección</label>
+      <label for="name">Nombre de la Colección</label>
       <input
-        id="productName"
+        id="name"
         type="text"
-        v-model="productName"
+        v-model="formData.name"
       />
     </div>
 
     <div>
-      <button type="submit">
+      <label for="description">Descripción</label>
+      <textarea
+        id="description"
+        v-model="formData.description"
+        rows="3"
+      />
+    </div>
+
+    <div>
+      <button type="submit" class="action-btn">
         Crear
       </button>
     </div>

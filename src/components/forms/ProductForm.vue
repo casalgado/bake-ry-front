@@ -24,11 +24,25 @@ const bakerySettingsStore = useBakerySettingsStore();
 
 // Base structure for a variation
 const createBaseVariation = (templateVariation = {}, isWholeGrain = false) => ({
-  name: isWholeGrain ? `${templateVariation.name || ''} integral` : templateVariation.name || '',
+  name: isWholeGrain
+    ? `${templateVariation.name || ''} integral`
+    : templateVariation.name || '',
   value: templateVariation.value || 0,
   basePrice: templateVariation.basePrice || 0,
   isWholeGrain,
-  isFixed: templateVariation.isFixed || false,
+  recipe: {
+    recipeSource: 'base',
+    recipeId: null,
+    ingredients: [],
+  },
+});
+
+// Define the fixed variation
+const getFixedVariation = () => ({
+  name: 'otra',
+  value: 1000,
+  basePrice: 1000,
+  isWholeGrain: false,
   recipe: {
     recipeSource: 'base',
     recipeId: null,
@@ -58,52 +72,40 @@ const suggestedVariations = computed(() => {
   return bakerySettingsStore.items[0].suggestedProductVariations;
 });
 
-// Helper to ensure fixed variations are at the end
-const sortVariationsWithFixed = (variations) => {
-  const fixed = variations.filter(v => v.isFixed);
-  const regular = variations.filter(v => !v.isFixed);
-  return [...regular, ...fixed];
-};
-
-// Utility function for confirmation
-const confirmChange = (message = '¿Está seguro que desea continuar? Se perderán algunas variaciones.') => {
-  return window.confirm(message);
-};
-
 // Separate functions for variation type handling
 const getVariationsForType = (type) => {
   if (!type || !suggestedVariations.value[type]) return [];
 
-  return suggestedVariations.value[type].defaults.map(variation =>
-    createBaseVariation({
-      ...variation,
-      isFixed: variation.name.toLowerCase() === 'otra', // Mark 'otra' as fixed
-    }),
+  return suggestedVariations.value[type].defaults.map((variation) =>
+    createBaseVariation(variation),
   );
 };
 
-const handleVariationTypeChange = (type) => {
+const selectedVariationType = ref(formData.value.variationType);
 
-  if (formData.value.variations.length) {
-    console.log('type', type);
-    if (!confirmChange()) {
-      return;
-
-    }
+const handleVariationTypeChange = () => {
+  if (
+    formData.value.variations.length &&
+    !window.confirm(
+      '¿Está seguro que desea continuar? Se perderán algunas variaciones.',
+    )
+  ) {
+    // Revert the selection to the current variation type
+    selectedVariationType.value = formData.value.variationType;
+    return;
   }
 
-  console.log('im here');
-
-  formData.value.variationType = type;
+  // Update the form data with the new variation type
+  formData.value.variationType = selectedVariationType.value;
   formData.value.variations = [];
 
-  if (type === 'CUSTOM') {
+  if (selectedVariationType.value === 'CUSTOM') {
     addVariation();
     return;
   }
 
-  const baseVariations = getVariationsForType(type);
-  formData.value.variations = sortVariationsWithFixed(baseVariations);
+  const baseVariations = getVariationsForType(selectedVariationType.value);
+  formData.value.variations = baseVariations;
 
   if (formData.value.hasWholeGrain) {
     applyWholeGrainVariations();
@@ -112,49 +114,27 @@ const handleVariationTypeChange = (type) => {
 
 // Separate function for whole grain handling
 const applyWholeGrainVariations = () => {
-  const newVariations = [];
-
-  formData.value.variations.forEach(variation => {
-    if (!variation.isFixed) {
-      newVariations.push(variation);
-      newVariations.push(createBaseVariation(variation, true));
-    } else {
-      newVariations.push(variation);
-    }
-  });
-
-  formData.value.variations = sortVariationsWithFixed(newVariations);
+  const newVariations = formData.value.variations.flatMap((variation) => [
+    variation,
+    createBaseVariation(variation, true),
+  ]);
+  formData.value.variations = newVariations;
 };
 
 // Simplified variation management
 const addVariation = () => {
   const baseVariation = createBaseVariation();
-
-  if (formData.value.hasWholeGrain) {
-    const wholeGrainVariation = createBaseVariation(baseVariation, true);
-    formData.value.variations = sortVariationsWithFixed([
-      ...formData.value.variations.filter(v => !v.isFixed),
-      baseVariation,
-      wholeGrainVariation,
-      ...formData.value.variations.filter(v => v.isFixed),
-    ]);
-  } else {
-    formData.value.variations = sortVariationsWithFixed([
-      ...formData.value.variations.filter(v => !v.isFixed),
-      baseVariation,
-      ...formData.value.variations.filter(v => v.isFixed),
-    ]);
-  }
+  const newVariations = formData.value.hasWholeGrain
+    ? [baseVariation, createBaseVariation(baseVariation, true)]
+    : [baseVariation];
+  formData.value.variations.push(...newVariations);
 };
 
 const removeVariation = (index) => {
-  if (formData.value.variations[index].isFixed) return;
   formData.value.variations.splice(index, 1);
 };
 
 const updateVariation = (index, updatedVariation) => {
-  if (formData.value.variations[index].isFixed) return;
-
   formData.value.variations[index] = updatedVariation;
 
   if (formData.value.hasWholeGrain && !updatedVariation.isWholeGrain) {
@@ -169,30 +149,44 @@ const updateVariation = (index, updatedVariation) => {
 };
 
 // Watch for whole grain changes
-watch(() => formData.value.hasWholeGrain, (newValue, oldValue) => {
-  if (!formData.value.variationType) return;
+watch(
+  () => formData.value.hasWholeGrain,
+  (newValue, oldValue) => {
+    if (!formData.value.variationType) return;
 
-  // Only ask for confirmation when turning off whole grain and variations exist
-  if (!newValue && oldValue && formData.value.variations.some(v => v.isWholeGrain)) {
-    if (!confirmChange()) {
-      // Revert the change if user cancels
-      formData.value.hasWholeGrain = true;
-      return;
+    if (
+      !newValue &&
+      oldValue &&
+      formData.value.variations.some((v) => v.isWholeGrain)
+    ) {
+      if (
+        !window.confirm(
+          '¿Está seguro que desea continuar? Se perderán algunas variaciones.',
+        )
+      ) {
+        formData.value.hasWholeGrain = true;
+        return;
+      }
     }
-  }
 
-  if (newValue) {
-    applyWholeGrainVariations();
-  } else {
-    formData.value.variations = sortVariationsWithFixed(
-      formData.value.variations.filter(v => !v.isWholeGrain || v.isFixed),
-    );
-  }
-});
+    if (newValue) {
+      applyWholeGrainVariations();
+    } else {
+      formData.value.variations = formData.value.variations.filter(
+        (v) => !v.isWholeGrain,
+      );
+    }
+  },
+);
 
+// Append the fixed variation and submit
 const handleSubmit = () => {
-  console.log('Form submission data:', formData.value);
-  // emit('submit', formData.value);
+  const finalVariations = [...formData.value.variations, getFixedVariation()];
+  console.log('Form submission data:', {
+    ...formData.value,
+    variations: finalVariations,
+  });
+  // emit('submit', {...formData.value, variations: finalVariations });
 };
 
 const resetForm = () => {
@@ -261,6 +255,7 @@ onMounted(async () => {
         <select
           id="collection"
           v-model="formData.collection"
+          required
         >
           <option value="">Seleccionar colección</option>
           <option
@@ -282,7 +277,7 @@ onMounted(async () => {
     </div>
 
     <!-- Variations Section -->
-    <div v-if="formData.hasVariations" class="base-card" >
+    <div v-if="formData.hasVariations" class="base-card">
       <h4>Variaciones del Producto</h4>
 
       <!-- Variation Type Selection -->
@@ -290,7 +285,7 @@ onMounted(async () => {
         <label for="variationType">Tipo de Variación</label>
         <select
           id="variationType"
-          v-model="formData.variationType"
+          v-model="selectedVariationType"
           @change="handleVariationTypeChange(formData.variationType)"
         >
           <option value="">Seleccionar tipo</option>
@@ -302,7 +297,6 @@ onMounted(async () => {
 
       <!-- Whole Grain Toggle -->
       <div v-if="formData.variationType">
-
         <YesNoToggle
           v-model="formData.hasWholeGrain"
           label="¿Incluir versión integral?"
@@ -310,10 +304,8 @@ onMounted(async () => {
       </div>
 
       <!-- Variations List -->
-      <div v-if="formData.variationType" class="grid grid-cols-1 gap-4 ">
-
+      <div v-if="formData.variationType" class="grid grid-cols-1 gap-2">
         <div v-for="(variation, index) in formData.variations" :key="index">
-
           <ProductVariationEditor
             :variation="variation"
             :variation-type="formData.variationType"
@@ -322,15 +314,19 @@ onMounted(async () => {
             :is-fixed="variation.isFixed"
             @update:variation="updateVariation(index, $event)"
             @remove="removeVariation(index)"
-            @recipe-update="(newData) => handleVariationRecipeUpdate(index, newData)"
+
           />
         </div>
 
-        <button type="button" @click="addVariation" :disabled="loading" class="utility-btn !m-0 !mb-4 w-1/4">
+        <button
+          type="button"
+          @click="addVariation"
+          :disabled="loading"
+          class="utility-btn !m-0 !mb-4 w-1/4"
+        >
           Agregar Variación
         </button>
       </div>
-
     </div>
 
     <!-- Non-variation product details -->
@@ -347,16 +343,19 @@ onMounted(async () => {
           step="100"
         />
       </div>
-
     </div>
 
     <!-- Form Actions -->
     <div class="base-card flex gap-2">
-
       <button class="action-btn" type="submit" :disabled="loading">
-        {{ loading ? 'Guardando...' : 'Guardar Producto' }}
+        {{ loading ? "Guardando..." : "Guardar Producto" }}
       </button>
-      <button class="action-btn" type="button" @click="resetForm" :disabled="loading">
+      <button
+        class="action-btn"
+        type="button"
+        @click="resetForm"
+        :disabled="loading"
+      >
         Resetear
       </button>
     </div>
