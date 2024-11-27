@@ -231,6 +231,7 @@ const getOptionDisplay = (option, index) => {
     <div class="grid grid-cols-3 grid-rows-3 gap-2 h-full p-1">
       <button
         v-for="i in 9"
+        type="button"
         :key="i"
         class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
         :class="{
@@ -241,7 +242,7 @@ const getOptionDisplay = (option, index) => {
         @click="handleOptionClick(i-1)"
       >
         <span v-if="currentStep !== 'quantity'" class="button-number">{{ getKeyForNumber(i) }}</span>
-        <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
+        <span class="leading-none text-xs">{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
       </button>
     </div>
 
