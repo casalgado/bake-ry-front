@@ -1,5 +1,6 @@
 <script setup>
 import { ref, defineProps, defineEmits } from 'vue';
+import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue'; // Adjust path as needed
 
 const props = defineProps({
   initialData: {
@@ -34,6 +35,8 @@ const formData = ref({ ...props.initialData });
 const roleOptions = [
   { value: 'bakery_customer', label: 'Cliente' },
   { value: 'bakery_staff', label: 'Staff' },
+  { value: 'delivery_assistant', label: 'Asistente Domicilio' },
+  { value: 'production_assistant', label: 'Asistente Produccion' },
 ];
 
 const categoryOptions = [
@@ -78,70 +81,61 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <form @submit.prevent="handleSubmit">
+  <form @submit.prevent="handleSubmit" class="base-card">
+
     <div>
-      <label>Correo Electrónico *</label>
+      <label>Nombre</label>
+      <input
+        type="text"
+        v-model="formData.firstName"
+        required
+        class="w-full"
+      />
+      <span v-if="errors.name" class="text-danger text-sm">{{ errors.name }}</span>
+    </div>
+
+    <div>
+      <label>Apellido</label>
+      <input
+        type="text"
+        v-model="formData.lastName"
+        required
+        class="w-full"
+      />
+      <span v-if="errors.name" class="text-danger text-sm">{{ errors.name }}</span>
+    </div>
+
+    <div>
+      <label>Correo Electrónico</label>
       <input
         type="email"
         v-model="formData.email"
         :disabled="isEdit"
         required
-      />
-      <span v-if="errors.email">{{ errors.email }}</span>
-    </div>
 
-    <div v-if="!isEdit">
-      <label>Contraseña *</label>
-      <input
-        type="password"
-        v-model="formData.password"
-        required
       />
-      <span v-if="errors.password">{{ errors.password }}</span>
+      <span v-if="errors.email" class="text-danger text-sm">{{ errors.email }}</span>
     </div>
 
     <div>
-      <label>Nombre Completo *</label>
-      <input
-        type="text"
-        v-model="formData.name"
-        required
+      <RadioButtonGroup
+        v-model="formData.role"
+        :options="roleOptions"
+        name="role"
+        label="Rol"
+
       />
-      <span v-if="errors.name">{{ errors.name }}</span>
+      <span v-if="errors.role" class="text-danger text-sm">{{ errors.role }}</span>
     </div>
 
     <div>
-      <label>Tipo de Cliente *</label>
-      <div>
-        <div v-for="option in categoryOptions" :key="option.value">
-          <input
-            type="radio"
-            :id="option.value"
-            :value="option.value"
-            v-model="formData.category"
-            required
-          />
-          <label :for="option.value">{{ option.label }}</label>
-        </div>
-      </div>
-      <span v-if="errors.category">{{ errors.category }}</span>
-    </div>
-
-    <div>
-      <label>Rol *</label>
-      <div>
-        <div v-for="option in roleOptions" :key="option.value">
-          <input
-            type="radio"
-            :id="option.value"
-            :value="option.value"
-            v-model="formData.role"
-            required
-          />
-          <label :for="option.value">{{ option.label }}</label>
-        </div>
-      </div>
-      <span v-if="errors.role">{{ errors.role }}</span>
+      <RadioButtonGroup
+        v-model="formData.category"
+        :options="categoryOptions"
+        name="category"
+        label="Tipo de Cliente"
+      />
+      <span v-if="errors.category" class="text-danger text-sm">{{ errors.category }}</span>
     </div>
 
     <div>
@@ -149,6 +143,7 @@ const handleSubmit = () => {
       <input
         type="tel"
         v-model="formData.phone"
+
       />
     </div>
 
@@ -157,6 +152,7 @@ const handleSubmit = () => {
       <input
         type="text"
         v-model="formData.address"
+
       />
     </div>
 
@@ -165,6 +161,7 @@ const handleSubmit = () => {
       <input
         type="text"
         v-model="formData.national_id"
+
       />
     </div>
 
@@ -173,6 +170,7 @@ const handleSubmit = () => {
       <input
         type="date"
         v-model="formData.birthday"
+
       />
     </div>
 
@@ -181,23 +179,27 @@ const handleSubmit = () => {
       <textarea
         v-model="formData.comment"
         rows="3"
+
       ></textarea>
     </div>
 
-    <div>
+    <div class="flex gap-2 justify-end">
+      <button
+        type="submit"
+        :disabled="loading"
+        class="action-btn"
+      >
+        {{ loading ? "Guardando..." : (isEdit ? "Actualizar" : "Crear") }}
+      </button>
       <button
         type="button"
         @click="$emit('cancel')"
         :disabled="loading"
+        class="danger-btn"
       >
         Cancelar
       </button>
-      <button
-        type="submit"
-        :disabled="loading"
-      >
-        {{ loading ? "Guardando..." : (isEdit ? "Actualizar" : "Crear") }}
-      </button>
+
     </div>
   </form>
 </template>

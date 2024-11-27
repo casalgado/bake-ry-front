@@ -43,7 +43,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'custom-option-selected', 'option-selected']);
 
 const groupId = computed(() => `radio-group-${props.name}`);
-const isCustomInputFocused = ref(false);
 
 const handleKeydown = (event) => {
   // Check if the event target is an input element
