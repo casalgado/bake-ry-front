@@ -83,7 +83,7 @@ const handleVariationTypeChange = (type) => {
 };
 
 // Watch for whole grain changes
-watch(() => formData.value.hasWholeGrain, (newValue) => {
+watch(() => formData.value.hasWholeGrain, () => {
   if (formData.value.variationType && formData.value.variationType !== 'CUSTOM') {
     handleVariationTypeChange(formData.value.variationType);
   }
@@ -254,7 +254,7 @@ onMounted(async () => {
       </div>
 
       <!-- Variations List -->
-      <div v-if="formData.variationType" class="grid grid-cols-1 gap-4 auto-rows-fr">
+      <div v-if="formData.variationType" class="grid grid-cols-1 gap-4 ">
 
         <div v-for="(variation, index) in formData.variations" :key="index">
           <ProductVariationEditor
@@ -268,7 +268,7 @@ onMounted(async () => {
           />
         </div>
 
-        <button type="button" @click="addVariation" :disabled="loading" class="utility-btn !m-0 !mb-4">
+        <button type="button" @click="addVariation" :disabled="loading" class="utility-btn !m-0 !mb-4 w-1/4">
           Agregar Variación
         </button>
       </div>
@@ -277,7 +277,7 @@ onMounted(async () => {
 
     <!-- Non-variation product details -->
     <div v-if="!formData.hasVariations" class="base-card">
-      <h4>Detalles del Producto</h4>
+      <h4>Detalles</h4>
 
       <div>
         <label for="basePrice">Precio Base</label>
@@ -290,16 +290,10 @@ onMounted(async () => {
         />
       </div>
 
-      <!-- Recipe Selection -->
-      <RecipeSelector
-        :recipe-data="formData.recipe"
-        @update="handleRecipeUpdate"
-        :disabled="loading"
-      />
     </div>
 
     <!-- Form Actions -->
-    <div class="base-card">
+    <div class="base-card flex gap-2">
 
       <button class="action-btn" type="submit" :disabled="loading">
         {{ loading ? 'Guardando...' : 'Guardar Producto' }}

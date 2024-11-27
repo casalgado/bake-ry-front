@@ -26,7 +26,7 @@ const setValue = (value) => {
           type="button"
           @click="setValue(false)"
           :class="[
-            'utility-btn w-10 p-0',
+            'utility-btn w-10 p-1',
             modelValue === false ? 'utility-btn-active' : 'utility-btn-inactive'
           ]"
         >
@@ -36,7 +36,7 @@ const setValue = (value) => {
           type="button"
           @click="setValue(true)"
           :class="[
-            'utility-btn w-10 p-0',
+            'utility-btn w-10 p-1',
             modelValue === true ? 'utility-btn-active' : 'utility-btn-inactive'
           ]"
         >

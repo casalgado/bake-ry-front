@@ -85,12 +85,6 @@ const getValueStep = () => props.variationType === 'WEIGHT' ? '50' : '1';
       />
     </div>
 
-    <RecipeSelector
-      :recipe-data="variation.recipe"
-      @update="handleRecipeUpdate"
-      :disabled="disabled"
-    />
-
     <button
       type="button"
       @click="emit('remove')"

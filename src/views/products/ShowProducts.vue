@@ -113,7 +113,7 @@ const navigateToCreate = () => {
 
 <template>
   <div class="container p-4">
-    <h2 class="text-2xl font-bold mb-4">Product Management</h2>
+    <h2 class="text-2xl font-bold mb-4">Productos</h2>
 
     <!-- Search and Filter Controls -->
     <div class="flex gap-4 mb-4">
@@ -128,7 +128,7 @@ const navigateToCreate = () => {
         v-model="selectedCollection"
         class="px-4 py-2 border rounded"
       >
-        <option value="">All collections</option>
+        <option value="">Todas</option>
         <option
           v-for="collection in productCollectionStore.items"
           :key="collection.id"
@@ -142,13 +142,13 @@ const navigateToCreate = () => {
         @click="navigateToCreate"
         class="px-4 py-2 action-btn"
       >
-        New Product
+        Crear Producto
       </button>
     </div>
 
     <!-- Loading State -->
     <div v-if="productStore.loading" class="text-neutral-600 text-center py-4">
-      Loading products...
+      Cargando productos...
     </div>
 
     <!-- Error State -->
