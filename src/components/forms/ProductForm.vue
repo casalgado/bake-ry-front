@@ -65,6 +65,11 @@ const sortVariationsWithFixed = (variations) => {
   return [...regular, ...fixed];
 };
 
+// Utility function for confirmation
+const confirmChange = (message = '¿Está seguro que desea continuar? Se perderán algunas variaciones.') => {
+  return window.confirm(message);
+};
+
 // Separate functions for variation type handling
 const getVariationsForType = (type) => {
   if (!type || !suggestedVariations.value[type]) return [];
@@ -78,22 +83,28 @@ const getVariationsForType = (type) => {
 };
 
 const handleVariationTypeChange = (type) => {
-  formData.value.variationType = type;
 
-  // Reset variations array
+  if (formData.value.variations.length) {
+    console.log('type', type);
+    if (!confirmChange()) {
+      return;
+
+    }
+  }
+
+  console.log('im here');
+
+  formData.value.variationType = type;
   formData.value.variations = [];
 
-  // Handle different variation types
   if (type === 'CUSTOM') {
     addVariation();
     return;
   }
 
-  // Get base variations for selected type
   const baseVariations = getVariationsForType(type);
   formData.value.variations = sortVariationsWithFixed(baseVariations);
 
-  // Apply whole grain variations if needed
   if (formData.value.hasWholeGrain) {
     applyWholeGrainVariations();
   }
@@ -103,13 +114,12 @@ const handleVariationTypeChange = (type) => {
 const applyWholeGrainVariations = () => {
   const newVariations = [];
 
-  // Create alternating pattern of regular and whole grain variations
   formData.value.variations.forEach(variation => {
-    if (!variation.isFixed) { // Skip fixed variations for whole grain creation
-      newVariations.push(variation); // Add regular variation
-      newVariations.push(createBaseVariation(variation, true)); // Add its whole grain version
+    if (!variation.isFixed) {
+      newVariations.push(variation);
+      newVariations.push(createBaseVariation(variation, true));
     } else {
-      newVariations.push(variation); // Just add fixed variation as-is
+      newVariations.push(variation);
     }
   });
 
@@ -138,16 +148,15 @@ const addVariation = () => {
 };
 
 const removeVariation = (index) => {
-  if (formData.value.variations[index].isFixed) return; // Prevent removal of fixed variations
+  if (formData.value.variations[index].isFixed) return;
   formData.value.variations.splice(index, 1);
 };
 
 const updateVariation = (index, updatedVariation) => {
-  if (formData.value.variations[index].isFixed) return; // Prevent updates to fixed variations
+  if (formData.value.variations[index].isFixed) return;
 
   formData.value.variations[index] = updatedVariation;
 
-  // If this is a regular variation and has a whole grain pair, update the whole grain name
   if (formData.value.hasWholeGrain && !updatedVariation.isWholeGrain) {
     const nextIndex = index + 1;
     if (formData.value.variations[nextIndex]?.isWholeGrain) {
@@ -160,20 +169,32 @@ const updateVariation = (index, updatedVariation) => {
 };
 
 // Watch for whole grain changes
-watch(() => formData.value.hasWholeGrain, (newValue) => {
+watch(() => formData.value.hasWholeGrain, (newValue, oldValue) => {
   if (!formData.value.variationType) return;
+
+  // Only ask for confirmation when turning off whole grain and variations exist
+  if (!newValue && oldValue && formData.value.variations.some(v => v.isWholeGrain)) {
+    if (!confirmChange()) {
+      // Revert the change if user cancels
+      formData.value.hasWholeGrain = true;
+      return;
+    }
+  }
 
   if (newValue) {
     applyWholeGrainVariations();
   } else {
-    // Remove whole grain variations while preserving fixed ones
     formData.value.variations = sortVariationsWithFixed(
       formData.value.variations.filter(v => !v.isWholeGrain || v.isFixed),
     );
   }
 });
 
-// Reset form
+const handleSubmit = () => {
+  console.log('Form submission data:', formData.value);
+  // emit('submit', formData.value);
+};
+
 const resetForm = () => {
   formData.value = {
     name: '',
@@ -190,12 +211,6 @@ const resetForm = () => {
       ingredients: [],
     },
   };
-};
-
-// Handle form submission
-const handleSubmit = () => {
-  console.log('Form submission data:', formData.value);
-  emit('submit', formData.value);
 };
 
 // Initialize form with initial data if provided
