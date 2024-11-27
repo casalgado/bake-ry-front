@@ -5,6 +5,7 @@ import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
 import OrderItemsManager from './OrderItemsManager.vue';
 import NewClientDialog from './NewClientDialog.vue';
+import RadioButtonGroup from './RadioButtonGroup.vue';
 
 const props = defineProps({
   initialData: {
@@ -177,7 +178,7 @@ watch(selectedFeeType, (newValue) => {
 
 <template>
   <form @submit.prevent="handleSubmit">
-    <div class="base-card">
+    <div class="base-card flex flex-col gap-2">
       <div>
         <label for="client-select">Cliente</label>
         <div class="grid grid-cols-[1fr_auto] gap-2">
@@ -227,38 +228,15 @@ watch(selectedFeeType, (newValue) => {
       @client-created="handleClientCreated"
     />
 
-    <div class="base-card">
-      <legend>Envio</legend>
+    <div class="base-card flex flex-col gap-2">
+
       <!-- Fulfillment Type Section -->
-      <div
-        role="radiogroup"
-        aria-labelledby="fulfillment-type-group"
-        @keydown="handleRadioGroupKeydown($event, fulfillmentTypes, 'fulfillmentType')"
-      >
-        <label id="fulfillment-type-group" class="sr-only">Tipo de Envío</label>
-        <div class="flex gap-1">
-          <div
-            v-for="type in fulfillmentTypes"
-            :key="type.value"
-            class="relative"
-          >
-            <input
-              type="radio"
-              :id="'fulfillment-' + type.value"
-              :value="type.value"
-              v-model="formData.fulfillmentType"
-              :name="'fulfillment-type'"
-              class="sr-only peer"
-            />
-            <label
-              :for="'fulfillment-' + type.value"
-              class="utility-btn-inactive cursor-pointer py-1 px-2 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black"
-            >
-              {{ type.label }}
-            </label>
-          </div>
-        </div>
-      </div>
+      <RadioButtonGroup
+        v-model="formData.fulfillmentType"
+        :options="fulfillmentTypes"
+        name="fulfillment-type"
+        label="Tipo de Envío"
+      />
 
       <div v-if="formData.fulfillmentType === 'delivery'">
         <label for="delivery-address">Dirección de Entrega</label>
@@ -288,82 +266,37 @@ watch(selectedFeeType, (newValue) => {
         </div>
       </div>
 
-      <!-- Delivery Fee Section -->
-      <div v-if="formData.fulfillmentType === 'delivery'">
-        <label id="delivery-fee-group">Costo de Envío</label>
-        <div
-          class="flex gap-1"
-          role="radiogroup"
-          aria-labelledby="delivery-fee-group"
-          @keydown="handleRadioGroupKeydown($event, deliveryFeeOptions, 'selectedFeeType')"
-        >
-          <div
-            v-for="option in deliveryFeeOptions"
-            :key="option.value"
-            class="relative"
-          >
-            <input
-              type="radio"
-              :id="'fee-' + option.value"
-              :value="option.value"
-              v-model="selectedFeeType"
-              :name="'delivery-fee'"
-              class="sr-only peer"
-            />
-            <label
-              :for="'fee-' + option.value"
-              class="utility-btn-inactive cursor-pointer py-1 px-2 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black"
-            >
-              {{ option.label }}
-            </label>
-          </div>
-        </div>
-
-        <div v-if="selectedFeeType === 'custom'" class="mt-2">
+      <RadioButtonGroup
+        v-if="formData.fulfillmentType === 'delivery'"
+        v-model="selectedFeeType"
+        :options="deliveryFeeOptions"
+        name="delivery-fee"
+        label="Costo de Envío"
+        has-custom-option
+        custom-option-value="custom"
+        @custom-option-selected="handleCustomFeeSelected"
+      >
+        <template #custom-input>
           <input
             type="number"
             v-model="formData.deliveryFee"
             min="0"
             step="100"
             placeholder="Ingrese valor personalizado"
+            class="mt-2 w-full"
           />
-        </div>
-      </div>
+        </template>
+      </RadioButtonGroup>
+
+      <RadioButtonGroup
+        v-model="formData.paymentMethod"
+        :options="paymentMethods"
+        name="payment-method"
+        label="Método de Pago"
+      />
     </div>
 
-    <div class="base-card">
-      <legend>Pago</legend>
-      <!-- Payment Methods Section -->
-      <div
-        role="radiogroup"
-        aria-labelledby="payment-method-group"
-        @keydown="handleRadioGroupKeydown($event, paymentMethods, 'paymentMethod')"
-      >
-        <label id="payment-method-group" class="sr-only">Método de Pago</label>
-        <div class="flex gap-1">
-          <div
-            v-for="method in paymentMethods"
-            :key="method.value"
-            class="relative"
-          >
-            <input
-              type="radio"
-              :id="'payment-' + method.value"
-              :value="method.value"
-              v-model="formData.paymentMethod"
-              :name="'payment-method'"
-              class="sr-only peer"
-            />
-            <label
-              :for="'payment-' + method.value"
-              class="utility-btn-inactive cursor-pointer py-1 px-2 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black"
-            >
-              {{ method.label }}
-            </label>
-          </div>
-        </div>
-      </div>
-    </div>
+    <pre>{{ formData }}</pre>
 
     <OrderItemsManager
       v-model="formData.items"

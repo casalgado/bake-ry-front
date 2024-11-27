@@ -21,7 +21,7 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <div>
+  <div class="form-container">
     <h2>Crear Nuevo Usuario</h2>
     <BakeryUserForm
       :loading="bakeryUserStore.loading"

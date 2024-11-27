@@ -84,6 +84,8 @@ const removeItem = (index) => {
 
 <template>
   <div class="base-card grid grid-cols-3 gap-x-3">
+    <label class="col-span-3">Productos</label>
+
     <ProductWizard
       @select="handleWizardSelect"
       :products="products"
