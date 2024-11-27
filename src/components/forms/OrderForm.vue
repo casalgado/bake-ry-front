@@ -4,6 +4,7 @@ import { useProductStore } from '@/stores/productStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
 import OrderItemsManager from './OrderItemsManager.vue';
+import NewClientDialog from './NewClientDialog.vue';
 
 const props = defineProps({
   initialData: {
@@ -20,6 +21,8 @@ const emit = defineEmits(['submit', 'cancel']);
 
 const productStore = useProductStore();
 const userStore = useBakeryUserStore();
+const isNewClientDialogOpen = ref(false);
+const originalAddress = ref('');
 
 // Get tomorrow's date
 const tomorrow = new Date();
@@ -41,6 +44,7 @@ const formData = ref(
     deliveryFee: 7000,
     paymentMethod: 'cash',
     internalNotes: '',
+    shouldUpdateClientAddress: false,
   },
 );
 
@@ -58,7 +62,16 @@ onMounted(async () => {
   } else if (formData.value.deliveryFee) {
     selectedFeeType.value = 'custom';
   }
+
 });
+
+const handleNewClientClick = () => {
+  isNewClientDialogOpen.value = true;
+};
+
+const handleClientCreated = (newClient) => {
+  handleUserChange(newClient);
+};
 
 const handleUserChange = async (user) => {
   formData.value.userId = user.id;
@@ -66,6 +79,7 @@ const handleUserChange = async (user) => {
   formData.value.userEmail = user.email;
   formData.value.userPhone = user.phone;
   formData.value.deliveryAddress = user.address;
+  originalAddress.value = user.address;
   await nextTick();
   setTimeout(() => {
     const firstFulfillmentRadio = document.querySelector('input[name="fulfillment-type"]');
@@ -74,6 +88,12 @@ const handleUserChange = async (user) => {
     }
   }, 0);
 };
+
+const addressHasChanged = computed(() => {
+  return formData.value.deliveryAddress !== originalAddress.value
+    && formData.value.deliveryAddress !== ''
+    && originalAddress.value !== '';
+});
 
 const handleRadioGroupKeydown = (event, options, modelKey) => {
   const num = parseInt(event.key);
@@ -168,7 +188,13 @@ watch(selectedFeeType, (newValue) => {
             :required="true"
             @change="handleUserChange"
           />
-          <button type="button" class="utility-btn m-0">Nuevo Cliente</button>
+          <button
+            type="button"
+            class="action-btn m-0"
+            @click="handleNewClientClick"
+          >
+            Nuevo Cliente
+          </button>
         </div>
         <span v-if="errors.userId">{{ errors.userId }}</span>
       </div>
@@ -195,6 +221,11 @@ watch(selectedFeeType, (newValue) => {
         <span v-if="errors.dueDate">{{ errors.dueDate }}</span>
       </div>
     </div>
+
+    <NewClientDialog
+      v-model:isOpen="isNewClientDialogOpen"
+      @client-created="handleClientCreated"
+    />
 
     <div class="base-card">
       <legend>Envio</legend>
@@ -231,12 +262,30 @@ watch(selectedFeeType, (newValue) => {
 
       <div v-if="formData.fulfillmentType === 'delivery'">
         <label for="delivery-address">Dirección de Entrega</label>
-        <input
-          id="delivery-address"
-          type="text"
-          v-model="formData.deliveryAddress"
-        />
-        <span v-if="errors.deliveryAddress">{{ errors.deliveryAddress }}</span>
+        <div class="grid grid-cols-[1fr_auto] gap-2">
+          <input
+            id="delivery-address"
+            type="text"
+            v-model="formData.deliveryAddress"
+
+          />
+
+          <div v-if="addressHasChanged">
+            <input
+              type="checkbox"
+              id="update-address"
+              v-model="formData.shouldUpdateClientAddress"
+              class="sr-only peer"
+            />
+            <label
+              for="update-address"
+              class="utility-btn-inactive cursor-pointer py-1 px-2 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black inline-block m-0"
+            >
+              Actualizar Cliente
+            </label>
+          </div>
+          <span v-if="errors.deliveryAddress">{{ errors.deliveryAddress }}</span>
+        </div>
       </div>
 
       <!-- Delivery Fee Section -->
