@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
   modelValue: {
@@ -43,8 +43,14 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'custom-option-selected', 'option-selected']);
 
 const groupId = computed(() => `radio-group-${props.name}`);
+const isCustomInputFocused = ref(false);
 
 const handleKeydown = (event) => {
+  // Check if the event target is an input element
+  if (event.target.tagName === 'INPUT' && event.target.type !== 'radio') {
+    return;
+  }
+
   const num = parseInt(event.key);
   if (!isNaN(num) && num > 0 && num <= props.options.length) {
     const selectedOption = props.options[num - 1];
@@ -83,7 +89,7 @@ const containerClasses = computed(() => ({
     :aria-labelledby="`${groupId}-label`"
     @keydown="handleKeydown"
   >
-    <label :id="`${groupId}-label`" >{{ label }}</label>
+    <label :id="`${groupId}-label`">{{ label }}</label>
     <div :class="containerClasses">
       <div
         v-for="(option, index) in options"
@@ -104,7 +110,6 @@ const containerClasses = computed(() => ({
           :for="`${groupId}-${option.value}`"
           class="utility-btn-inactive cursor-pointer py-1 px-2 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"
         >
-          <!-- Use default slot if provided, otherwise use option label -->
           <slot name="option-label" :option="option" :index="index">
             {{ option.label }}
           </slot>

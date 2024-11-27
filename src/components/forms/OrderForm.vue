@@ -96,24 +96,6 @@ const addressHasChanged = computed(() => {
     && originalAddress.value !== '';
 });
 
-const handleRadioGroupKeydown = (event, options, modelKey) => {
-  const num = parseInt(event.key);
-  if (!isNaN(num) && num > 0 && num <= options.length) {
-    const selectedOption = options[num - 1];
-    if (modelKey === 'selectedFeeType') {
-      selectedFeeType.value = selectedOption.value;
-      // Focus the selected radio input
-      document.querySelector(`input[value="${selectedOption.value}"][name="delivery-fee"]`)?.focus();
-    } else {
-      formData.value[modelKey] = selectedOption.value;
-      // Focus the selected radio input based on the modelKey
-      const inputName = modelKey === 'fulfillmentType' ? 'fulfillment-type' : 'payment-method';
-      document.querySelector(`input[value="${selectedOption.value}"][name="${inputName}"]`)?.focus();
-    }
-    event.preventDefault();
-  }
-};
-
 const validate = () => {
   errors.value = {};
 
@@ -274,14 +256,13 @@ watch(selectedFeeType, (newValue) => {
         label="Costo de Envío"
         has-custom-option
         custom-option-value="custom"
-        @custom-option-selected="handleCustomFeeSelected"
       >
         <template #custom-input>
           <input
             type="number"
             v-model="formData.deliveryFee"
             min="0"
-            step="100"
+            step="500"
             placeholder="Ingrese valor personalizado"
             class="mt-2 w-full"
           />
@@ -295,8 +276,6 @@ watch(selectedFeeType, (newValue) => {
         label="Método de Pago"
       />
     </div>
-
-    <pre>{{ formData }}</pre>
 
     <OrderItemsManager
       v-model="formData.items"
@@ -312,8 +291,6 @@ watch(selectedFeeType, (newValue) => {
         ></textarea>
       </div>
     </div>
-
-    <pre>{{ JSON.stringify(formData, null, 2) }}</pre>
 
     <div class="base-card">
       <div>
