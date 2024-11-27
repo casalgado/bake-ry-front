@@ -23,10 +23,10 @@ const collectionStore = useProductCollectionStore();
 const bakerySettingsStore = useBakerySettingsStore();
 
 // Base structure for a variation
-const createBaseVariation = (name = '', isWholeGrain = false) => ({
-  name: isWholeGrain ? `${name} integral` : name,
-  value: 0,
-  basePrice: 0,
+const createBaseVariation = (templateVariation = {}, isWholeGrain = false) => ({
+  name: isWholeGrain ? `${templateVariation.name || ''} integral` : templateVariation.name || '',
+  value: templateVariation.value || 0,
+  basePrice: templateVariation.basePrice || 0,
   isWholeGrain,
   recipe: {
     recipeSource: 'base',
@@ -62,7 +62,7 @@ const getVariationsForType = (type) => {
   if (!type || !suggestedVariations.value[type]) return [];
 
   return suggestedVariations.value[type].defaults.map(variation =>
-    createBaseVariation(variation.name),
+    createBaseVariation(variation),
   );
 };
 
@@ -90,48 +90,45 @@ const handleVariationTypeChange = (type) => {
 
 // Separate function for whole grain handling
 const applyWholeGrainVariations = () => {
-  const currentVariations = [...formData.value.variations];
+  const newVariations = [];
 
-  // Create whole grain versions only for non-whole grain variations
-  const wholeGrainVariations = currentVariations
-    .filter(v => !v.isWholeGrain)
-    .map(v => createBaseVariation(v.name, true));
+  // Create alternating pattern of regular and whole grain variations
+  formData.value.variations.forEach(variation => {
+    if (!variation.isWholeGrain) {
+      newVariations.push(variation); // Add regular variation
+      newVariations.push(createBaseVariation(variation, true)); // Add its whole grain version
+    }
+  });
 
-  formData.value.variations = [...currentVariations, ...wholeGrainVariations];
+  formData.value.variations = newVariations;
 };
 
 // Simplified variation management
 const addVariation = () => {
-  const newVariations = [createBaseVariation()];
+  const baseVariation = createBaseVariation();
 
   if (formData.value.hasWholeGrain) {
-    newVariations.push(createBaseVariation('', true));
+    const wholeGrainVariation = createBaseVariation(baseVariation, true);
+    formData.value.variations.push(baseVariation, wholeGrainVariation);
+  } else {
+    formData.value.variations.push(baseVariation);
   }
-
-  formData.value.variations.push(...newVariations);
 };
 
 const removeVariation = (index) => {
-  // If whole grain is enabled, remove pairs of variations
-  if (formData.value.hasWholeGrain && index % 2 === 0) {
-    formData.value.variations.splice(index, 2);
-  } else {
-    formData.value.variations.splice(index, 1);
-  }
+  formData.value.variations.splice(index, 1);
 };
 
 const updateVariation = (index, updatedVariation) => {
-  // Update the variation
   formData.value.variations[index] = updatedVariation;
 
-  // If whole grain is enabled, update the corresponding whole grain variation
+  // If this is a regular variation and has a whole grain pair, update the whole grain name
   if (formData.value.hasWholeGrain && !updatedVariation.isWholeGrain) {
-    const wholeGrainIndex = index + 1;
-    if (formData.value.variations[wholeGrainIndex]?.isWholeGrain) {
-      formData.value.variations[wholeGrainIndex] = {
-        ...updatedVariation,
+    const nextIndex = index + 1;
+    if (formData.value.variations[nextIndex]?.isWholeGrain) {
+      formData.value.variations[nextIndex] = {
+        ...formData.value.variations[nextIndex],
         name: `${updatedVariation.name} integral`,
-        isWholeGrain: true,
       };
     }
   }
