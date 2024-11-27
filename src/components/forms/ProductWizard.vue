@@ -11,11 +11,39 @@ const props = defineProps({
 
 const emit = defineEmits(['select']);
 
-// Key mapping object
 const keyMap = {
-  'z': 1, 'x': 2, 'c': 3,
+  'q': 1, 'w': 2, 'e': 3,
   'a': 4, 's': 5, 'd': 6,
-  'q': 7, 'w': 8, 'e': 9,
+  'z': 7, 'x': 8, 'c': 9,
+};
+
+const reverseKeyMap = Object.fromEntries(
+  Object.entries(keyMap).map(([key, value]) => [value, key.toUpperCase()]),
+);
+
+const getKeyForNumber = (num) => reverseKeyMap[num] || num;
+
+const emulateNumpadPosition = (index) => {
+  const keyMapping = {
+    1: 7,
+    2: 8,
+    3: 9,
+    4: 4,
+    5: 5,
+    6: 6,
+    7: 1,
+    8: 2,
+    9: 3,
+  };
+
+  return keyMapping[index] || null;
+};
+
+const getKeyIndex = (key) => {
+  if (/^[1-9]$/.test(key)) {
+    return emulateNumpadPosition(parseInt(key)) - 1;
+  }
+  return keyMap[key.toLowerCase()] ? keyMap[key.toLowerCase()] - 1 : null;
 };
 
 const currentStep = ref('category');
@@ -144,13 +172,6 @@ const handleBackKey = () => {
   highlightedIndex.value = null;
 };
 
-const getKeyIndex = (key) => {
-  if (/^[1-9]$/.test(key)) {
-    return parseInt(key) - 1;
-  }
-  return keyMap[key.toLowerCase()] ? keyMap[key.toLowerCase()] - 1 : null;
-};
-
 const handleKeydown = (event) => {
   const index = getKeyIndex(event.key);
 
@@ -209,7 +230,7 @@ const getOptionDisplay = (option, index) => {
     <!-- Grid with numpad layout -->
     <div class="grid grid-cols-3 grid-rows-3 gap-2 h-full p-1">
       <button
-        v-for="i in [7,8,9]"
+        v-for="i in 9"
         :key="i"
         class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
         :class="{
@@ -219,37 +240,7 @@ const getOptionDisplay = (option, index) => {
         tabindex="-1"
         @click="handleOptionClick(i-1)"
       >
-        <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>
-        <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
-      </button>
-
-      <button
-        v-for="i in [4,5,6]"
-        :key="i"
-        class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
-        :class="{
-          'invisible': !currentOptions[i-1],
-          'utility-btn-active': highlightedIndex === i-1
-        }"
-        tabindex="-1"
-        @click="handleOptionClick(i-1)"
-      >
-        <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>
-        <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
-      </button>
-
-      <button
-        v-for="i in [1,2,3]"
-        :key="i"
-        class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
-        :class="{
-          'invisible': !currentOptions[i-1],
-          'utility-btn-active': highlightedIndex === i-1
-        }"
-        tabindex="-1"
-        @click="handleOptionClick(i-1)"
-      >
-        <span v-if="currentStep !== 'quantity'" class="button-number">{{ i }}</span>
+        <span v-if="currentStep !== 'quantity'" class="button-number">{{ getKeyForNumber(i) }}</span>
         <span>{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
       </button>
     </div>
@@ -271,6 +262,6 @@ const getOptionDisplay = (option, index) => {
 
 <style scoped lang="scss">
 .button-number {
-  @apply absolute top-1 left-1 text-xs opacity-60;
+  @apply absolute top-1 left-1 text-xs opacity-60 lowercase;
 }
 </style>
