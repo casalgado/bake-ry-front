@@ -34,7 +34,7 @@ const getSortIcon = (column) => {
 </script>
 
 <template>
-  <thead class="text-xs uppercase bg-neutral-100">
+  <thead class="text-xs uppercase bg-neutral-200">
     <tr>
       <th
         v-for="column in columns"
@@ -54,13 +54,13 @@ const getSortIcon = (column) => {
             <component
               :is="getSortIcon(column)"
               v-if="getSortDirection(column.id)"
-              class="w-4 h-4"
+              class="w-4 h-4 absolute right-4"
             />
 
             <!-- Sort index for multi-sort -->
             <span
               v-if="getSortIndex(column.id) > -1"
-              class="text-xs bg-primary-100 text-primary-600 px-1 rounded"
+              class="text-xs bg-primary-100 text-primary-600 px-1 rounded absolute right-0"
             >
               {{ getSortIndex(column.id) + 1 }}
             </span>

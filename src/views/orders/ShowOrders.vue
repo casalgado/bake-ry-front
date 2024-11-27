@@ -7,6 +7,7 @@ import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
+import IsPaidCell from '@/components/DataTable/renderers/IsPaidCell.vue';
 
 import { PhPen, PhExport } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
@@ -57,6 +58,7 @@ const columns = [
       maxDisplay: 2,
     }),
   },
+
   {
     id: 'paymentMethod',
     label: 'Payment',
@@ -72,6 +74,18 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: ['pickup', 'delivery'],
+  },
+  {
+    id: 'isPaid',
+    label: 'Pagado',
+    field: 'isPaid',
+    sortable: true,
+    type: 'toggle',
+    options: [true, false],
+    component: IsPaidCell,
+    getProps: (row) => ({
+      isPaid: row.isPaid,
+    }),
   },
   {
     id: 'total',

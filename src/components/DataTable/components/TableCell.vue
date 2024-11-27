@@ -137,7 +137,7 @@ const handleMouseLeave = () => {
         <div class="flex items-center gap-1">
           {{ tooltipContent.prefix }}
           <PhArrowRight weight="bold" class="w-3 h-3" />
-          {{ tooltipContent.value }}
+          {{ typeof tooltipContent.value === 'boolean' ? (tooltipContent.value ? '✓' : '-') : tooltipContent.value }}
         </div>
         <!-- Triangle pointer -->
         <div class="absolute right-full top-1/2 -translate-y-1/2">
