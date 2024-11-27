@@ -28,6 +28,7 @@ const createBaseVariation = (templateVariation = {}, isWholeGrain = false) => ({
   value: templateVariation.value || 0,
   basePrice: templateVariation.basePrice || 0,
   isWholeGrain,
+  isFixed: templateVariation.isFixed || false,
   recipe: {
     recipeSource: 'base',
     recipeId: null,
@@ -57,12 +58,22 @@ const suggestedVariations = computed(() => {
   return bakerySettingsStore.items[0].suggestedProductVariations;
 });
 
+// Helper to ensure fixed variations are at the end
+const sortVariationsWithFixed = (variations) => {
+  const fixed = variations.filter(v => v.isFixed);
+  const regular = variations.filter(v => !v.isFixed);
+  return [...regular, ...fixed];
+};
+
 // Separate functions for variation type handling
 const getVariationsForType = (type) => {
   if (!type || !suggestedVariations.value[type]) return [];
 
   return suggestedVariations.value[type].defaults.map(variation =>
-    createBaseVariation(variation),
+    createBaseVariation({
+      ...variation,
+      isFixed: variation.name.toLowerCase() === 'otra', // Mark 'otra' as fixed
+    }),
   );
 };
 
@@ -80,7 +91,7 @@ const handleVariationTypeChange = (type) => {
 
   // Get base variations for selected type
   const baseVariations = getVariationsForType(type);
-  formData.value.variations = baseVariations;
+  formData.value.variations = sortVariationsWithFixed(baseVariations);
 
   // Apply whole grain variations if needed
   if (formData.value.hasWholeGrain) {
@@ -94,13 +105,15 @@ const applyWholeGrainVariations = () => {
 
   // Create alternating pattern of regular and whole grain variations
   formData.value.variations.forEach(variation => {
-    if (!variation.isWholeGrain) {
+    if (!variation.isFixed) { // Skip fixed variations for whole grain creation
       newVariations.push(variation); // Add regular variation
       newVariations.push(createBaseVariation(variation, true)); // Add its whole grain version
+    } else {
+      newVariations.push(variation); // Just add fixed variation as-is
     }
   });
 
-  formData.value.variations = newVariations;
+  formData.value.variations = sortVariationsWithFixed(newVariations);
 };
 
 // Simplified variation management
@@ -109,17 +122,29 @@ const addVariation = () => {
 
   if (formData.value.hasWholeGrain) {
     const wholeGrainVariation = createBaseVariation(baseVariation, true);
-    formData.value.variations.push(baseVariation, wholeGrainVariation);
+    formData.value.variations = sortVariationsWithFixed([
+      ...formData.value.variations.filter(v => !v.isFixed),
+      baseVariation,
+      wholeGrainVariation,
+      ...formData.value.variations.filter(v => v.isFixed),
+    ]);
   } else {
-    formData.value.variations.push(baseVariation);
+    formData.value.variations = sortVariationsWithFixed([
+      ...formData.value.variations.filter(v => !v.isFixed),
+      baseVariation,
+      ...formData.value.variations.filter(v => v.isFixed),
+    ]);
   }
 };
 
 const removeVariation = (index) => {
+  if (formData.value.variations[index].isFixed) return; // Prevent removal of fixed variations
   formData.value.variations.splice(index, 1);
 };
 
 const updateVariation = (index, updatedVariation) => {
+  if (formData.value.variations[index].isFixed) return; // Prevent updates to fixed variations
+
   formData.value.variations[index] = updatedVariation;
 
   // If this is a regular variation and has a whole grain pair, update the whole grain name
@@ -141,8 +166,10 @@ watch(() => formData.value.hasWholeGrain, (newValue) => {
   if (newValue) {
     applyWholeGrainVariations();
   } else {
-    // Remove whole grain variations
-    formData.value.variations = formData.value.variations.filter(v => !v.isWholeGrain);
+    // Remove whole grain variations while preserving fixed ones
+    formData.value.variations = sortVariationsWithFixed(
+      formData.value.variations.filter(v => !v.isWholeGrain || v.isFixed),
+    );
   }
 });
 
@@ -271,11 +298,13 @@ onMounted(async () => {
       <div v-if="formData.variationType" class="grid grid-cols-1 gap-4 ">
 
         <div v-for="(variation, index) in formData.variations" :key="index">
+
           <ProductVariationEditor
             :variation="variation"
             :variation-type="formData.variationType"
             :index="index"
             :disabled="loading"
+            :is-fixed="variation.isFixed"
             @update:variation="updateVariation(index, $event)"
             @remove="removeVariation(index)"
             @recipe-update="(newData) => handleVariationRecipeUpdate(index, newData)"
