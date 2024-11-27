@@ -1,6 +1,6 @@
 <script setup>
 import { ref, defineProps, defineEmits } from 'vue';
-import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue'; // Adjust path as needed
+import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
 
 const props = defineProps({
   initialData: {
@@ -32,17 +32,37 @@ const emit = defineEmits(['submit', 'cancel']);
 
 const formData = ref({ ...props.initialData });
 
-const roleOptions = [
-  { value: 'bakery_customer', label: 'Cliente' },
-  { value: 'bakery_staff', label: 'Staff' },
-  { value: 'delivery_assistant', label: 'Asistente Domicilio' },
-  { value: 'production_assistant', label: 'Asistente Produccion' },
+// Combined options with both role and category values
+const userTypeOptions = [
+  { value: 'client', label: 'Cliente', role: 'bakery_customer', category: 'B2C' },
+  { value: 'company', label: 'Empresa', role: 'bakery_customer', category: 'B2B' },
+  { value: 'staff', label: 'Staff', role: 'bakery_staff', category: '' },
+  { value: 'delivery', label: 'Asistente Domicilio', role: 'delivery_assistant', category: '' },
+  { value: 'production', label: 'Asistente Produccion', role: 'production_assistant', category: '' },
 ];
 
-const categoryOptions = [
-  { value: 'B2B', label: 'B2B' },
-  { value: 'B2C', label: 'B2C' },
-];
+// Compute initial selected value based on role and category
+const getInitialUserType = () => {
+  const { role, category } = formData.value;
+  if (role === 'bakery_customer') {
+    return category === 'B2B' ? 'company' : 'client';
+  }
+  if (role === 'bakery_staff') return 'staff';
+  if (role === 'delivery_assistant') return 'delivery';
+  if (role === 'production_assistant') return 'production';
+  return 'client'; // default
+};
+
+const selectedUserType = ref(getInitialUserType());
+
+// Update both role and category when user type changes
+const handleUserTypeChange = (value) => {
+  const selected = userTypeOptions.find(opt => opt.value === value);
+  if (selected) {
+    formData.value.role = selected.role;
+    formData.value.category = selected.category;
+  }
+};
 
 const errors = ref({});
 
@@ -50,10 +70,9 @@ const validate = () => {
   errors.value = {};
 
   if (!formData.value.email) errors.value.email = 'El correo electrónico es requerido';
-  if (!props.isEdit && !formData.value.password) errors.value.password = 'La contraseña es requerida';
   if (!formData.value.role) errors.value.role = 'El rol es requerido';
-  if (!formData.value.name) errors.value.name = 'El nombre es requerido';
-  if (!formData.value.category) errors.value.category = 'El tipo de cliente es requerido';
+  if (!formData.value.firstName) errors.value.firstName = 'El nombre es requerido';
+  if (!formData.value.lastName) errors.value.lastName = 'El apellido es requerido';
 
   // Email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -61,28 +80,23 @@ const validate = () => {
     errors.value.email = 'Formato de correo electrónico inválido';
   }
 
-  // Password validation (only for new users)
-  if (!props.isEdit && formData.value.password && formData.value.password.length < 6) {
-    errors.value.password = 'La contraseña debe tener al menos 6 caracteres';
-  }
-
+  console.log(errors.value);
   return Object.keys(errors.value).length === 0;
 };
 
 const handleSubmit = () => {
-  if (!validate()) return;
+  console.log(formData.value);
 
+  if (!validate()) return;
+  console.log('valido');
   emit('submit', {
     ...formData.value,
-    updatedAt: new Date(),
-    createdAt: formData.value.createdAt || new Date(),
   });
 };
 </script>
 
 <template>
   <form @submit.prevent="handleSubmit" class="base-card">
-
     <div>
       <label>Nombre</label>
       <input
@@ -119,23 +133,13 @@ const handleSubmit = () => {
 
     <div>
       <RadioButtonGroup
-        v-model="formData.role"
-        :options="roleOptions"
-        name="role"
-        label="Rol"
-
+        v-model="selectedUserType"
+        :options="userTypeOptions"
+        name="user-type"
+        label="Tipo de Usuario"
+        @update:modelValue="handleUserTypeChange"
       />
       <span v-if="errors.role" class="text-danger text-sm">{{ errors.role }}</span>
-    </div>
-
-    <div>
-      <RadioButtonGroup
-        v-model="formData.category"
-        :options="categoryOptions"
-        name="category"
-        label="Tipo de Cliente"
-      />
-      <span v-if="errors.category" class="text-danger text-sm">{{ errors.category }}</span>
     </div>
 
     <div>
@@ -201,5 +205,6 @@ const handleSubmit = () => {
       </button>
 
     </div>
+
   </form>
 </template>

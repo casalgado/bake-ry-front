@@ -8,6 +8,7 @@ const bakeryUserStore = useBakeryUserStore();
 
 const handleSubmit = async (formData) => {
   try {
+    console.log(formData);
     await bakeryUserStore.create(formData);
     router.push('/dashboard/users');
   } catch (error) {
