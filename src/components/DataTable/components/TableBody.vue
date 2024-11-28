@@ -66,7 +66,7 @@ const isEmpty = computed(() => props.data.length === 0);
         :key="row.id"
         @click="(event) => handleRowClick(event, row)"
         :class="[
-          'cursor-pointer border-b transition-colors',
+          'cursor-pointer border-b transition-colors duration-50',
           selectedRows.has(row.id)
             ? 'bg-neutral hover:bg-neutral-600 text-white'
             : [

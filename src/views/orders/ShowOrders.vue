@@ -27,7 +27,7 @@ const toggleLoading = ref({});
 // Column definitions / "id must be the same as field for sorting to work"
 const columns = [
   {
-    id: 'useName',
+    id: 'userName',
     label: 'Client',
     field: 'userName',
     sortable: true,
@@ -61,7 +61,7 @@ const columns = [
 
   {
     id: 'paymentMethod',
-    label: 'Payment',
+    label: 'Pago',
     field: 'paymentMethod',
     sortable: true,
     type: 'toggle',
@@ -69,7 +69,7 @@ const columns = [
   },
   {
     id: 'fulfillmentType',
-    label: 'Fulfillment',
+    label: 'Entrega',
     field: 'fulfillmentType',
     sortable: true,
     type: 'toggle',

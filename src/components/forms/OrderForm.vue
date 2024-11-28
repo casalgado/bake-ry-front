@@ -37,7 +37,7 @@ const formData = ref(
     userName: '',
     userEmail: '',
     userPhone: '',
-    items: [],
+    orderItems: [],
     preparationDate: tomorrowString,
     dueDate: tomorrowString,
     fulfillmentType: 'delivery',
@@ -100,7 +100,7 @@ const validate = () => {
   errors.value = {};
 
   if (!formData.value.userId) errors.value.userId = 'Cliente es requerido';
-  if (!formData.value.items.length) errors.value.items = 'Se requiere al menos un producto';
+  if (!formData.value.orderItems.length) errors.value.orderItems = 'Se requiere al menos un producto';
   if (!formData.value.preparationDate) errors.value.preparationDate = 'Fecha de preparación es requerida';
   if (!formData.value.dueDate) errors.value.dueDate = 'Fecha de entrega es requerida';
   if (formData.value.fulfillmentType === 'delivery' && !formData.value.deliveryAddress) {
@@ -120,7 +120,7 @@ const handleSubmit = () => {
 };
 
 const subtotal = computed(() => {
-  return formData.value.items.reduce((sum, item) => {
+  return formData.value.orderItems.reduce((sum, item) => {
     return sum + (item.isComplimentary ? 0 : item.quantity * item.currentPrice);
   }, 0);
 });
@@ -278,7 +278,7 @@ watch(selectedFeeType, (newValue) => {
     </div>
 
     <OrderItemsManager
-      v-model="formData.items"
+      v-model="formData.orderItems"
       :products="productStore.items"
     />
 

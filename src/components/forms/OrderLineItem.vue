@@ -77,12 +77,14 @@ const handleRemove = () => {
         />
         <div class="flex items-center gap-1">
           <button
+            type="button"
             @click="handleQuantityChange(-1)"
             class="px-1.5 py-0.5 text-xs bg-gray-100 rounded"
             :disabled="item.quantity <= 1"
           >-</button>
           <span class="text-sm min-w-[1.5rem] text-center">{{ item.quantity }}</span>
           <button
+            type="button"
             @click="handleQuantityChange(1)"
             class="px-1.5 py-0.5 text-xs bg-gray-100 rounded"
           >+</button>
