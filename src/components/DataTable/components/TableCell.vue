@@ -1,7 +1,7 @@
 <!-- components/DataTable/components/TableCell.vue -->
 <script setup>
-import { h, computed, ref } from 'vue';
-import { PhArrowRight, PhSpinner } from '@phosphor-icons/vue';
+import { computed, ref } from 'vue';
+import { PhArrowRight } from '@phosphor-icons/vue';
 
 const props = defineProps({
   column: {
@@ -112,7 +112,7 @@ const handleMouseLeave = () => {
     }"
   >
     <div
-      class="inline-block px-3 py-1 rounded-2xl transition-colors"
+      class="inline-block px-3  rounded-2xl transition-colors"
       :class="{
         'hover:bg-neutral-800 hover:text-white': isAffectedByToggle && !isLoading,
 

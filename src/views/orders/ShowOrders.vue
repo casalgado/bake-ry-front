@@ -8,6 +8,8 @@ import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import IsPaidCell from '@/components/DataTable/renderers/IsPaidCell.vue';
+import DeliveryCell from '@/components/DataTable/renderers/DeliveryCell.vue';
+import PaymentMethodCell from '@/components/DataTable/renderers/PaymentMethodCell.vue';
 
 import { PhPen, PhExport } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
@@ -65,7 +67,11 @@ const columns = [
     field: 'paymentMethod',
     sortable: true,
     type: 'toggle',
-    options: ['cash', 'card', 'transfer'],
+    options: ['cash', 'card', 'transfer', 'complementary'],
+    component: PaymentMethodCell,
+    getProps: (row) => ({
+      paymentMethod: row.paymentMethod,
+    }),
   },
   {
     id: 'fulfillmentType',
@@ -74,6 +80,10 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: ['pickup', 'delivery'],
+    component: DeliveryCell,
+    getProps: (row) => ({
+      fulfillmentType: row.fulfillmentType,
+    }),
   },
   {
     id: 'isPaid',
@@ -246,7 +256,7 @@ onUnmounted(() => {
       v-if="showForm"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
     >
-      <div class="bg-white rounded-lg p-6 max-w-2xl w-full">
+      <div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto form-container">
         <h3 class="text-xl font-bold mb-4">Edit Order</h3>
         <OrderForm
           :key="selectedOrder.id"

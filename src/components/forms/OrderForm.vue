@@ -133,7 +133,7 @@ const paymentMethods = [
   { value: 'cash', label: 'Efectivo' },
   { value: 'transfer', label: 'Transferencia' },
   { value: 'card', label: 'Tarjeta' },
-  { value: 'regalo', label: 'Regalo' },
+  { value: 'complementary', label: 'Regalo' },
 ];
 
 const fulfillmentTypes = [
