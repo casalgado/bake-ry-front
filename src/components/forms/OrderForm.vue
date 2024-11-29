@@ -55,8 +55,29 @@ const formData = ref(
 
 const errors = ref({});
 
+// Computed property for submit button text
+const submitButtonText = computed(() => {
+  return props.initialData ? 'Actualizar Pedido' : 'Crear Pedido';
+});
+
+// Computed property for loading text
+const loadingText = computed(() => {
+  return props.initialData ? 'Actualizando...' : 'Creando...';
+});
+
 onMounted(async () => {
   await Promise.all([productStore.fetchAll(), userStore.fetchAll()]);
+
+  // If we have initialData with a user, populate the user data
+  console.log(props.initialData);
+  if (props.initialData?.userId) {
+    console.log('initialData.userId', props.initialData.userId);
+    const user = userStore.items.find(u => u.id === props.initialData.userId);
+    if (user) {
+      console.log('user found');
+      handleUserChange(user);
+    }
+  }
 
   // Initialize selected fee type if there's an initial value
   const matchingOption = deliveryFeeOptions.find(
@@ -67,7 +88,6 @@ onMounted(async () => {
   } else if (formData.value.deliveryFee) {
     selectedFeeType.value = 'custom';
   }
-
 });
 
 const handleNewClientClick = () => {
@@ -137,7 +157,7 @@ const paymentMethods = [
   { value: 'cash', label: 'Efectivo' },
   { value: 'transfer', label: 'Transferencia' },
   { value: 'card', label: 'Tarjeta' },
-  { value: 'complementary', label: 'Regalo' },
+  { value: 'complimentary', label: 'Regalo' },
 ];
 
 const fulfillmentTypes = [
@@ -185,7 +205,7 @@ watch(selectedFeeType, (newValue) => {
               Nuevo Cliente
             </button>
           </div>
-          <span v-if="errors.userId">{{ errors.userId }}</span>
+          <span v-if="errors.userId" class="text-danger text-sm">{{ errors.userId }}</span>
         </div>
 
         <div>
@@ -195,8 +215,9 @@ watch(selectedFeeType, (newValue) => {
             type="date"
             v-model="formData.preparationDate"
             :min="tomorrowString"
+            class="w-full"
           />
-          <span v-if="errors.preparationDate">{{ errors.preparationDate }}</span>
+          <span v-if="errors.preparationDate" class="text-danger text-sm">{{ errors.preparationDate }}</span>
         </div>
 
         <div>
@@ -206,8 +227,9 @@ watch(selectedFeeType, (newValue) => {
             type="date"
             v-model="formData.dueDate"
             :min="formData.preparationDate"
+            class="w-full"
           />
-          <span v-if="errors.dueDate">{{ errors.dueDate }}</span>
+          <span v-if="errors.dueDate" class="text-danger text-sm">{{ errors.dueDate }}</span>
         </div>
       </div>
 
@@ -217,7 +239,6 @@ watch(selectedFeeType, (newValue) => {
       />
 
       <div class="base-card flex flex-col gap-2">
-
         <!-- Fulfillment Type Section -->
         <RadioButtonGroup
           v-model="formData.fulfillmentType"
@@ -233,7 +254,7 @@ watch(selectedFeeType, (newValue) => {
               id="delivery-address"
               type="text"
               v-model="formData.deliveryAddress"
-
+              class="w-full"
             />
 
             <div v-if="addressHasChanged">
@@ -250,8 +271,8 @@ watch(selectedFeeType, (newValue) => {
                 Actualizar Cliente
               </label>
             </div>
-            <span v-if="errors.deliveryAddress">{{ errors.deliveryAddress }}</span>
           </div>
+          <span v-if="errors.deliveryAddress" class="text-danger text-sm">{{ errors.deliveryAddress }}</span>
         </div>
 
         <RadioButtonGroup
@@ -294,24 +315,45 @@ watch(selectedFeeType, (newValue) => {
           <textarea
             id="internal-notes"
             v-model="formData.internalNotes"
+            class="w-full"
+            rows="3"
           ></textarea>
         </div>
       </div>
 
       <div class="base-card">
-        <div>
-          <div>Subtotal: {{ subtotal }}</div>
-          <div>Envío: {{ formData.deliveryFee }}</div>
-          <div>Total: {{ total }}</div>
+        <div class="flex flex-col gap-1 mb-4">
+          <div class="flex justify-between">
+            <span>Subtotal:</span>
+            <span>{{ subtotal }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span>Envío:</span>
+            <span>{{ formData.deliveryFee }}</span>
+          </div>
+          <div class="flex justify-between font-bold">
+            <span>Total:</span>
+            <span>{{ total }}</span>
+          </div>
         </div>
 
-        <div class="flex gap-2">
-          <button type="submit" :disabled="loading" class="action-btn">
-            {{ loading ? 'Creando...' : 'Crear Pedido' }}
+        <div class="flex gap-2 justify-end">
+          <button
+            type="submit"
+            :disabled="loading"
+            class="action-btn"
+          >
+            {{ loading ? loadingText : submitButtonText }}
           </button>
-          <button type="button" @click="$emit('cancel')" :disabled="loading" class="danger-btn">
+          <button
+            type="button"
+            @click="$emit('cancel')"
+            :disabled="loading"
+            class="secondary-btn"
+          >
             Cancelar
           </button>
+
         </div>
       </div>
     </form>

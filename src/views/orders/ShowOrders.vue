@@ -67,7 +67,7 @@ const columns = [
     field: 'paymentMethod',
     sortable: true,
     type: 'toggle',
-    options: ['cash', 'card', 'transfer', 'complementary'],
+    options: ['cash', 'card', 'transfer', 'complimentary'],
     component: PaymentMethodCell,
     getProps: (row) => ({
       paymentMethod: row.paymentMethod,
@@ -269,6 +269,7 @@ onUnmounted(() => {
             :key="selectedOrder.id"
             :initial-data="selectedOrder"
             :loading="orderStore.loading"
+            class="w-full"
             @submit="handleSubmit"
             @cancel="closeForm"
           />
