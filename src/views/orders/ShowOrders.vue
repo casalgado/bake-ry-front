@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
 
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
@@ -21,7 +22,7 @@ const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const unsubscribeRef = ref(null);
 
-const showForm = ref(false);
+const isFormOpen = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
 const toggleLoading = ref({});
@@ -60,7 +61,6 @@ const columns = [
       maxDisplay: 2,
     }),
   },
-
   {
     id: 'paymentMethod',
     label: 'Pago',
@@ -161,7 +161,7 @@ const handleAction = async ({ actionId, selectedIds }) => {
     switch (actionId) {
     case 'edit':
       selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
-      showForm.value = true;
+      isFormOpen.value = true;
       break;
 
     case 'export':
@@ -180,15 +180,14 @@ const handleSubmit = async (formData) => {
     if (selectedOrder.value) {
       await orderStore.update(selectedOrder.value.id, formData);
     }
-    showForm.value = false;
-    selectedOrder.value = null;
+    closeForm();
   } catch (error) {
     console.error('Failed to update order:', error);
   }
 };
 
-const handleCancel = () => {
-  showForm.value = false;
+const closeForm = () => {
+  isFormOpen.value = false;
   selectedOrder.value = null;
 };
 
@@ -206,7 +205,6 @@ watch(
           },
         },
       });
-
     } catch (error) {
       console.error('Failed to fetch orders:', error);
     }
@@ -216,15 +214,16 @@ watch(
 
 onMounted(async () => {
   try {
-    await orderStore.fetchAll({ filters: {
-      dateRange: {
-        dateField: 'dueDate',
-        startDate: periodStore.periodRange.start.toISOString(),
-        endDate: periodStore.periodRange.end.toISOString(),
+    await orderStore.fetchAll({
+      filters: {
+        dateRange: {
+          dateField: 'dueDate',
+          startDate: periodStore.periodRange.start.toISOString(),
+          endDate: periodStore.periodRange.end.toISOString(),
+        },
       },
-    } });
+    });
     unsubscribeRef.value = await orderStore.subscribeToChanges();
-
     console.log('🔄 Real-time updates enabled for orders');
   } catch (error) {
     console.error('Failed to initialize orders:', error);
@@ -251,22 +250,33 @@ onUnmounted(() => {
       {{ orderStore.error }}
     </div>
 
-    <!-- Edit Form Modal -->
-    <div
-      v-if="showForm"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+    <!-- Edit Form Dialog -->
+    <Dialog
+      :open="isFormOpen"
+      @close="closeForm"
+      class="relative z-50 form-container"
     >
-      <div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto form-container">
-        <h3 class="text-xl font-bold mb-4">Edit Order</h3>
-        <OrderForm
-          :key="selectedOrder.id"
-          :initial-data="selectedOrder"
-          :loading="orderStore.loading"
-          @submit="handleSubmit"
-          @cancel="handleCancel"
-        />
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+
+      <!-- Full-screen container for centering -->
+      <div class="fixed inset-0 flex items-center justify-center p-4 ">
+        <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <DialogTitle class="text-xl font-bold text-neutral-800 mb-4">
+            Editar
+          </DialogTitle>
+
+          <OrderForm
+            v-if="selectedOrder"
+            :key="selectedOrder.id"
+            :initial-data="selectedOrder"
+            :loading="orderStore.loading"
+            @submit="handleSubmit"
+            @cancel="closeForm"
+          />
+        </DialogPanel>
       </div>
-    </div>
+    </Dialog>
 
     <!-- Table -->
     <div>
@@ -285,3 +295,25 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+.dialog-overlay {
+  @apply bg-black bg-opacity-50;
+}
+
+.dialog-content {
+  @apply bg-white rounded-lg shadow-xl transform transition-all;
+
+  &:focus {
+    @apply outline-none;
+  }
+}
+
+* {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>
