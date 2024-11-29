@@ -9,6 +9,10 @@ import YesNoToggle from './YesNoToggle.vue';
 const emit = defineEmits(['submit', 'cancel']);
 
 const props = defineProps({
+  title: {
+    type: String,
+    default: 'Crear Producto',
+  },
   initialData: {
     type: Object,
     default: () => null,
@@ -226,138 +230,141 @@ onMounted(async () => {
 </script>
 
 <template>
-  <form @submit.prevent="handleSubmit">
-    <!-- Basic Information -->
-    <div class="base-card">
-      <h4>Información Básica</h4>
+  <div class="form-container">
+    <h2>{{ title }}</h2>
+    <form @submit.prevent="handleSubmit">
+      <!-- Basic Information -->
+      <div class="base-card">
+        <h4>Información Básica</h4>
 
-      <div>
-        <label for="productName">Nombre del Producto</label>
-        <input
-          id="productName"
-          type="text"
-          v-model="formData.name"
-          required
-        />
-      </div>
-
-      <div>
-        <label for="description">Descripción</label>
-        <textarea
-          id="description"
-          v-model="formData.description"
-          rows="3"
-        />
-      </div>
-
-      <div>
-        <label for="collection">Colección</label>
-        <select
-          id="collection"
-          v-model="formData.collection"
-          required
-        >
-          <option value="">Seleccionar colección</option>
-          <option
-            v-for="collection in collectionStore.items"
-            :key="collection.id"
-            :value="collection.id"
-          >
-            {{ collection.name }}
-          </option>
-        </select>
-      </div>
-
-      <div>
-        <YesNoToggle
-          v-model="formData.hasVariations"
-          label="¿Tiene variaciones?"
-        />
-      </div>
-    </div>
-
-    <!-- Variations Section -->
-    <div v-if="formData.hasVariations" class="base-card">
-      <h4>Variaciones del Producto</h4>
-
-      <!-- Variation Type Selection -->
-      <div>
-        <label for="variationType">Tipo de Variación</label>
-        <select
-          id="variationType"
-          v-model="selectedVariationType"
-          @change="handleVariationTypeChange(formData.variationType)"
-        >
-          <option value="">Seleccionar tipo</option>
-          <option value="WEIGHT">Peso (g)</option>
-          <option value="QUANTITY">Cantidad</option>
-          <option value="CUSTOM">Personalizado</option>
-        </select>
-      </div>
-
-      <!-- Whole Grain Toggle -->
-      <div v-if="formData.variationType">
-        <YesNoToggle
-          v-model="formData.hasWholeGrain"
-          label="¿Incluir versión integral?"
-        />
-      </div>
-
-      <!-- Variations List -->
-      <div v-if="formData.variationType" class="grid grid-cols-1 gap-2">
-        <div v-for="(variation, index) in formData.variations" :key="index">
-          <ProductVariationEditor
-            :variation="variation"
-            :variation-type="formData.variationType"
-            :index="index"
-            :disabled="loading"
-            :is-fixed="variation.isFixed"
-            @update:variation="updateVariation(index, $event)"
-            @remove="removeVariation(index)"
-
+        <div>
+          <label for="productName">Nombre del Producto</label>
+          <input
+            id="productName"
+            type="text"
+            v-model="formData.name"
+            required
           />
         </div>
 
+        <div>
+          <label for="description">Descripción</label>
+          <textarea
+            id="description"
+            v-model="formData.description"
+            rows="3"
+          />
+        </div>
+
+        <div>
+          <label for="collection">Colección</label>
+          <select
+            id="collection"
+            v-model="formData.collection"
+            required
+          >
+            <option value="">Seleccionar colección</option>
+            <option
+              v-for="collection in collectionStore.items"
+              :key="collection.id"
+              :value="collection.id"
+            >
+              {{ collection.name }}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <YesNoToggle
+            v-model="formData.hasVariations"
+            label="¿Tiene variaciones?"
+          />
+        </div>
+      </div>
+
+      <!-- Variations Section -->
+      <div v-if="formData.hasVariations" class="base-card">
+        <h4>Variaciones del Producto</h4>
+
+        <!-- Variation Type Selection -->
+        <div>
+          <label for="variationType">Tipo de Variación</label>
+          <select
+            id="variationType"
+            v-model="selectedVariationType"
+            @change="handleVariationTypeChange(formData.variationType)"
+          >
+            <option value="">Seleccionar tipo</option>
+            <option value="WEIGHT">Peso (g)</option>
+            <option value="QUANTITY">Cantidad</option>
+            <option value="CUSTOM">Personalizado</option>
+          </select>
+        </div>
+
+        <!-- Whole Grain Toggle -->
+        <div v-if="formData.variationType">
+          <YesNoToggle
+            v-model="formData.hasWholeGrain"
+            label="¿Incluir versión integral?"
+          />
+        </div>
+
+        <!-- Variations List -->
+        <div v-if="formData.variationType" class="grid grid-cols-1 gap-2">
+          <div v-for="(variation, index) in formData.variations" :key="index">
+            <ProductVariationEditor
+              :variation="variation"
+              :variation-type="formData.variationType"
+              :index="index"
+              :disabled="loading"
+              :is-fixed="variation.isFixed"
+              @update:variation="updateVariation(index, $event)"
+              @remove="removeVariation(index)"
+
+            />
+          </div>
+
+          <button
+            type="button"
+            @click="addVariation"
+            :disabled="loading"
+            class="utility-btn !m-0 !mb-4 w-1/4"
+          >
+            Agregar Variación
+          </button>
+        </div>
+      </div>
+
+      <!-- Non-variation product details -->
+      <div v-if="!formData.hasVariations" class="base-card">
+        <h4>Detalles</h4>
+
+        <div>
+          <label for="basePrice">Precio Base</label>
+          <input
+            id="basePrice"
+            type="number"
+            v-model="formData.basePrice"
+            min="0"
+            step="100"
+          />
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="base-card flex gap-2">
+        <button class="action-btn" type="submit" :disabled="loading">
+          {{ loading ? "Guardando..." : "Guardar Producto" }}
+        </button>
         <button
+          class="action-btn"
           type="button"
-          @click="addVariation"
+          @click="resetForm"
           :disabled="loading"
-          class="utility-btn !m-0 !mb-4 w-1/4"
         >
-          Agregar Variación
+          Resetear
         </button>
       </div>
-    </div>
-
-    <!-- Non-variation product details -->
-    <div v-if="!formData.hasVariations" class="base-card">
-      <h4>Detalles</h4>
-
-      <div>
-        <label for="basePrice">Precio Base</label>
-        <input
-          id="basePrice"
-          type="number"
-          v-model="formData.basePrice"
-          min="0"
-          step="100"
-        />
-      </div>
-    </div>
-
-    <!-- Form Actions -->
-    <div class="base-card flex gap-2">
-      <button class="action-btn" type="submit" :disabled="loading">
-        {{ loading ? "Guardando..." : "Guardar Producto" }}
-      </button>
-      <button
-        class="action-btn"
-        type="button"
-        @click="resetForm"
-        :disabled="loading"
-      >
-        Resetear
-      </button>
-    </div>
-  </form>
+    </form>
+  </div>
 </template>

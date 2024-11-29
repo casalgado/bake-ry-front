@@ -3,6 +3,10 @@ import { ref, defineProps, defineEmits } from 'vue';
 import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
 
 const props = defineProps({
+  title: {
+    type: String,
+    default: 'Crear Usuario',
+  },
   initialData: {
     type: Object,
     default: () => ({
@@ -96,115 +100,119 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <form @submit.prevent="handleSubmit" class="base-card">
-    <div>
-      <label>Nombre</label>
-      <input
-        type="text"
-        v-model="formData.firstName"
-        required
-        class="w-full"
-      />
-      <span v-if="errors.name" class="text-danger text-sm">{{ errors.name }}</span>
-    </div>
+  <div class="form-container">
+    <h2>{{ title }}</h2>
 
-    <div>
-      <label>Apellido</label>
-      <input
-        type="text"
-        v-model="formData.lastName"
-        required
-        class="w-full"
-      />
-      <span v-if="errors.name" class="text-danger text-sm">{{ errors.name }}</span>
-    </div>
+    <form @submit.prevent="handleSubmit" class="base-card">
+      <div>
+        <label>Nombre</label>
+        <input
+          type="text"
+          v-model="formData.firstName"
+          required
+          class="w-full"
+        />
+        <span v-if="errors.name" class="text-danger text-sm">{{ errors.name }}</span>
+      </div>
 
-    <div>
-      <label>Correo Electrónico</label>
-      <input
-        type="email"
-        v-model="formData.email"
-        :disabled="isEdit"
-        required
+      <div>
+        <label>Apellido</label>
+        <input
+          type="text"
+          v-model="formData.lastName"
+          required
+          class="w-full"
+        />
+        <span v-if="errors.name" class="text-danger text-sm">{{ errors.name }}</span>
+      </div>
 
-      />
-      <span v-if="errors.email" class="text-danger text-sm">{{ errors.email }}</span>
-    </div>
+      <div>
+        <label>Correo Electrónico</label>
+        <input
+          type="email"
+          v-model="formData.email"
+          :disabled="isEdit"
+          required
 
-    <div>
-      <RadioButtonGroup
-        v-model="selectedUserType"
-        :options="userTypeOptions"
-        name="user-type"
-        label="Tipo de Usuario"
-        @update:modelValue="handleUserTypeChange"
-      />
-      <span v-if="errors.role" class="text-danger text-sm">{{ errors.role }}</span>
-    </div>
+        />
+        <span v-if="errors.email" class="text-danger text-sm">{{ errors.email }}</span>
+      </div>
 
-    <div>
-      <label>Teléfono</label>
-      <input
-        type="tel"
-        v-model="formData.phone"
+      <div>
+        <RadioButtonGroup
+          v-model="selectedUserType"
+          :options="userTypeOptions"
+          name="user-type"
+          label="Tipo de Usuario"
+          @update:modelValue="handleUserTypeChange"
+        />
+        <span v-if="errors.role" class="text-danger text-sm">{{ errors.role }}</span>
+      </div>
 
-      />
-    </div>
+      <div>
+        <label>Teléfono</label>
+        <input
+          type="tel"
+          v-model="formData.phone"
 
-    <div>
-      <label>Dirección</label>
-      <input
-        type="text"
-        v-model="formData.address"
+        />
+      </div>
 
-      />
-    </div>
+      <div>
+        <label>Dirección</label>
+        <input
+          type="text"
+          v-model="formData.address"
 
-    <div>
-      <label>Documento de Identidad</label>
-      <input
-        type="text"
-        v-model="formData.national_id"
+        />
+      </div>
 
-      />
-    </div>
+      <div>
+        <label>Documento de Identidad</label>
+        <input
+          type="text"
+          v-model="formData.national_id"
 
-    <div>
-      <label>Fecha de Nacimiento</label>
-      <input
-        type="date"
-        v-model="formData.birthday"
+        />
+      </div>
 
-      />
-    </div>
+      <div>
+        <label>Fecha de Nacimiento</label>
+        <input
+          type="date"
+          v-model="formData.birthday"
 
-    <div>
-      <label>Comentarios</label>
-      <textarea
-        v-model="formData.comment"
-        rows="3"
+        />
+      </div>
 
-      ></textarea>
-    </div>
+      <div>
+        <label>Comentarios</label>
+        <textarea
+          v-model="formData.comment"
+          rows="3"
 
-    <div class="flex gap-2 justify-end">
-      <button
-        type="submit"
-        :disabled="loading"
-        class="action-btn"
-      >
-        {{ loading ? "Guardando..." : (isEdit ? "Actualizar" : "Crear") }}
-      </button>
-      <button
-        type="button"
-        @click="$emit('cancel')"
-        :disabled="loading"
-        class="danger-btn"
-      >
-        Cancelar
-      </button>
+        ></textarea>
+      </div>
 
-    </div>
+      <div class="flex gap-2 justify-end">
+        <button
+          type="submit"
+          :disabled="loading"
+          class="action-btn"
+        >
+          {{ loading ? "Guardando..." : (isEdit ? "Actualizar" : "Crear") }}
+        </button>
+        <button
+          type="button"
+          @click="$emit('cancel')"
+          :disabled="loading"
+          class="danger-btn"
+        >
+          Cancelar
+        </button>
 
-  </form>
+      </div>
+
+    </form>
+  </div>
 </template>

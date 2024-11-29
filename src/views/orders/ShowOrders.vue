@@ -262,12 +262,10 @@ onUnmounted(() => {
       <!-- Full-screen container for centering -->
       <div class="fixed inset-0 flex items-center justify-center p-4 ">
         <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <DialogTitle class="text-xl font-bold text-neutral-800 mb-4">
-            Editar
-          </DialogTitle>
 
           <OrderForm
             v-if="selectedOrder"
+            :title="'Editar Pedido'"
             :key="selectedOrder.id"
             :initial-data="selectedOrder"
             :loading="orderStore.loading"

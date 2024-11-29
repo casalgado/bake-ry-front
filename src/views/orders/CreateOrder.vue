@@ -21,15 +21,14 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <div class="form-container">
-    <h2>Create New Order</h2>
-    <OrderForm
-      :loading="orderStore.loading"
-      @submit="handleSubmit"
-      @cancel="handleCancel"
-    />
-    <div v-if="orderStore.error">
-      {{ orderStore.error }}
-    </div>
+  <OrderForm
+    :title="'Crear Pedido'"
+    :loading="orderStore.loading"
+    @submit="handleSubmit"
+    @cancel="handleCancel"
+  />
+  <div v-if="orderStore.error">
+    {{ orderStore.error }}
   </div>
+
 </template>
