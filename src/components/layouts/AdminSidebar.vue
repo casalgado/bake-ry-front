@@ -1,7 +1,20 @@
 <script setup>
 
 import { useRouter, useRoute } from 'vue-router';
-import { PhChartDonut, PhOven, PhPersonArmsSpread, PhCashRegister, PhDresser, PhChefHat, PhBasket, PhBarcode, PhShoppingBagOpen, PhMopedFront } from '@phosphor-icons/vue';
+import {
+  PhChartDonut,
+  PhOven,
+  PhPersonArmsSpread,
+  PhCashRegister,
+  PhDresser,
+  PhChefHat,
+  PhBasket,
+  PhBarcode,
+  PhShoppingBagOpen,
+  PhMopedFront,
+  PhUsersThree,
+  PhHandshake,
+} from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 
 const router = useRouter();
@@ -39,8 +52,20 @@ const links = [
     path: '/dashboard/show-delivery',
   },
   {
-    id: 'clientes',
+    id: 'usuarios_activos',
+    icon: PhHandshake,
+    text: 'Clientes Activos',
+    path: '/dashboard/users/active',
+  },
+  {
+    id: 'nuevo_cliente',
     icon: PhPersonArmsSpread,
+    text: 'Crear Cliente',
+    path: '/dashboard/users/create',
+  },
+  {
+    id: 'clientes',
+    icon: PhUsersThree,
     text: 'Clientes',
     path: '/dashboard/users',
   },
