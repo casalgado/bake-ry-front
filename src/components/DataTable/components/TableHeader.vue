@@ -54,13 +54,13 @@ const getSortIcon = (column) => {
             <component
               :is="getSortIcon(column)"
               v-if="getSortDirection(column.id)"
-              class="w-4 h-4 absolute right-4"
+              class="w-4 h-4 absolute left-0 top-[-15px]"
             />
 
             <!-- Sort index for multi-sort -->
             <span
               v-if="getSortIndex(column.id) > -1"
-              class="text-xs bg-primary-100 text-primary-600 px-1 rounded absolute right-0"
+              class="text-xs bg-primary-100 text-primary-600 px-1 rounded absolute left-4 top-[-15px]"
             >
               {{ getSortIndex(column.id) + 1 }}
             </span>
