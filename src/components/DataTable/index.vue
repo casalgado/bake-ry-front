@@ -156,44 +156,42 @@ const handleSort = (columnId, isMulti) => {
       <div v-if="dataLoading" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-delayed-fade-in">
         <PhDisc class="animate-spin text-xl"/>
       </div>
-      <div class="flex items-center gap-4">
+      <div alt="form-controls" class="flex items-center gap-4">
         <button
           @click="selectAll"
-          class="text-sm font-medium text-neutral-700 hover:text-neutral-900"
+          class="button action-btn"
         >
-          {{ allSelected ? 'Deselect All' : 'Select All' }}
+          {{ allSelected ? 'Ninguna' : 'Todas' }}
         </button>
 
         <button
           v-if="hasSelection"
           @click="clearSelection"
-          class="text-sm font-medium text-neutral-700 hover:text-neutral-900"
+          class="button utility-btn-active"
         >
-          Clear Selection
+          Limpiar selección {{ selectedRows.size }}
         </button>
+
+        <template v-if="sortState.length" >
+          <button
+            @click="clearSort"
+            class="button utility-btn-active"
+          >
+            limpiar order
+          </button>
+        </template>
       </div>
 
+      <!-- Action Bar -->
+      <ActionBar
+        :selected-count="selectedRows.size"
+        :actions="actions"
+        :loading="actionLoading"
+        @action="handleAction"
+      />
+
       <!-- Sort info -->
-      <div v-if="sortState.length" class="flex items-center gap-2">
-        <span class="text-sm text-neutral-600">Sorted by:</span>
-        <div class="flex items-center gap-1">
-          <span
-            v-for="(sort, index) in sortState"
-            :key="sort.columnId"
-            class="text-sm"
-          >
-            {{ columns.find(col => col.id === sort.columnId)?.label }}
-            ({{ sort.direction }})
-            <span v-if="index < sortState.length - 1">,</span>
-          </span>
-        </div>
-        <button
-          @click="clearSort"
-          class="text-sm text-primary-600 hover:text-primary-700 ml-2"
-        >
-          Clear sort
-        </button>
-      </div>
+
     </div>
 
     <table class="w-full text-sm text-left text-neutral-700">
@@ -214,13 +212,6 @@ const handleSort = (columnId, isMulti) => {
       />
     </table>
 
-    <!-- Action Bar -->
-    <ActionBar
-      :selected-count="selectedRows.size"
-      :actions="actions"
-      :loading="actionLoading"
-      @action="handleAction"
-    />
   </div>
 </template>
 <style scoped>

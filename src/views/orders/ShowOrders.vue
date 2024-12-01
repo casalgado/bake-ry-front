@@ -114,15 +114,15 @@ const columns = [
 const tableActions = [
   {
     id: 'edit',
-    label: 'Edit',
+    label: 'Editar',
     icon: PhPen,
     minSelected: 1,
     maxSelected: 1,
-    variant: 'secondary',
+    variant: 'primary',
   },
   {
     id: 'delete',
-    label: 'Delete',
+    label: 'Eliminar',
     icon: PhTrash,
     minSelected: 1,
     maxSelected: 1,
@@ -130,9 +130,9 @@ const tableActions = [
   },
   {
     id: 'export',
-    label: 'Export',
+    label: 'ExportarS',
     icon: PhExport,
-    minSelected: 1,
+    minSelected: 2,
     variant: 'primary',
   },
 ];
@@ -180,9 +180,6 @@ const handleAction = async ({ actionId, selectedIds }) => {
       }
       break;
 
-    case 'export':
-      console.log('Exporting orders:', selectedIds);
-      break;
     }
   } catch (error) {
     console.error('Action failed:', error);

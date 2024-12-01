@@ -35,23 +35,35 @@ const tomorrow = new Date();
 tomorrow.setDate(tomorrow.getDate() + 1);
 const tomorrowString = tomorrow.toISOString().split('T')[0];
 
+const formatDateForInput = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toISOString().split('T')[0];
+};
+
 // Form state
 const formData = ref(
-  props.initialData || {
-    userId: '',
-    userName: '',
-    userEmail: '',
-    userPhone: '',
-    orderItems: [],
-    preparationDate: tomorrowString,
-    dueDate: tomorrowString,
-    fulfillmentType: 'delivery',
-    deliveryAddress: '',
-    deliveryFee: 7000,
-    paymentMethod: 'cash',
-    internalNotes: '',
-    shouldUpdateClientAddress: false,
-  },
+  props.initialData
+    ? {
+      ...props.initialData,
+      preparationDate: formatDateForInput(props.initialData.preparationDate),
+      dueDate: formatDateForInput(props.initialData.dueDate),
+    }
+    : {
+      userId: '',
+      userName: '',
+      userEmail: '',
+      userPhone: '',
+      orderItems: [],
+      preparationDate: tomorrowString,
+      dueDate: tomorrowString,
+      fulfillmentType: 'delivery',
+      deliveryAddress: '',
+      deliveryFee: 7000,
+      paymentMethod: 'cash',
+      internalNotes: '',
+      shouldUpdateClientAddress: false,
+    },
 );
 
 const errors = ref({});
@@ -198,7 +210,7 @@ watch(selectedFeeType, (newValue) => {
             />
             <button
               type="button"
-              class="action-btn m-0"
+              class="utility-btn m-0"
               @click="handleNewClientClick"
             >
               Nuevo Cliente
@@ -347,7 +359,7 @@ watch(selectedFeeType, (newValue) => {
             type="button"
             @click="$emit('cancel')"
             :disabled="loading"
-            class="secondary-btn"
+            class="utility-btn"
           >
             Cancelar
           </button>

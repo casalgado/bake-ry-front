@@ -103,11 +103,12 @@ const handleMouseLeave = () => {
 
 <template>
   <td
-    class="px-4 py-2 relative group"
+    class="px-4 py-2 relative group select-none"
     @click="handleClick"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
     :class="{
+      'border-neutral-300 border-2': props.column.type === 'toggle',
       'cursor-not-allowed': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id)
     }"
   >

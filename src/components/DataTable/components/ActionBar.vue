@@ -52,13 +52,10 @@ const handleCancel = () => {
 <template>
   <div
     v-if="selectedCount > 0"
-    class="fixed bottom-10 left-0 right-0 bg-white border-t shadow-lg z-40"
+    class=""
   >
-    <div class="container mx-auto px-4 py-3">
+    <div class="container">
       <div class="flex items-center justify-between">
-        <div class="text-sm text-neutral-600">
-          {{ selectedCount }} {{ selectedCount === 1 ? 'item' : 'items' }} selected
-        </div>
 
         <div class="flex items-center gap-2">
           <button
@@ -67,7 +64,7 @@ const handleCancel = () => {
             @click="handleAction(action)"
             :disabled="loading[action.id]"
             :class="[
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2',
+              'pr-3 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2',
               loading[action.id] && 'opacity-75 cursor-not-allowed',
               action.variant === 'danger'
                 ? 'bg-danger text-white hover:bg-danger/90'
