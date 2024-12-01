@@ -28,6 +28,7 @@ const productStore = useProductStore();
 const userStore = useBakeryUserStore();
 const isNewClientDialogOpen = ref(false);
 const originalAddress = ref('');
+const fetching = ref(false);
 
 // Get tomorrow's date
 const tomorrow = new Date();
@@ -66,12 +67,14 @@ const loadingText = computed(() => {
 });
 
 onMounted(async () => {
+  fetching.value = true;
   await Promise.all([productStore.fetchAll(), userStore.fetchAll()]);
-
+  fetching.value = false;
+  console.log('initialData', props.initialData);
   // If we have initialData with a user, populate the user data
-  console.log(props.initialData);
   if (props.initialData?.userId) {
     console.log('initialData.userId', props.initialData.userId);
+    console.log(userStore.items);
     const user = userStore.items.find(u => u.id === props.initialData.userId);
     if (user) {
       console.log('user found');
@@ -131,10 +134,6 @@ const validate = () => {
     errors.value.deliveryAddress = 'Dirección de entrega es requerida';
   }
 
-  if (new Date(formData.value.dueDate) < new Date(formData.value.preparationDate)) {
-    errors.value.dueDate = 'La fecha de entrega no puede ser anterior a la fecha de preparación';
-  }
-
   return Object.keys(errors.value).length === 0;
 };
 
@@ -188,7 +187,7 @@ watch(selectedFeeType, (newValue) => {
     <form @submit.prevent="handleSubmit">
       <div class="base-card flex flex-col gap-2">
         <div>
-          <label for="client-select">Cliente</label>
+          <label for="client-select">{{ fetching ? 'Clientes...' : "Clientes" }}</label>
           <div class="grid grid-cols-[1fr_auto] gap-2">
             <UserCombox
               v-model="formData.userId"
@@ -214,7 +213,6 @@ watch(selectedFeeType, (newValue) => {
             id="preparation-date"
             type="date"
             v-model="formData.preparationDate"
-            :min="tomorrowString"
             class="w-full"
           />
           <span v-if="errors.preparationDate" class="text-danger text-sm">{{ errors.preparationDate }}</span>

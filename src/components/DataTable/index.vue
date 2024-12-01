@@ -120,6 +120,10 @@ const clearSelection = () => {
   emitSelectionChange();
 };
 
+// Make clearSelection available externally
+defineExpose({
+  clearSelection,
+});
 const emitSelectionChange = () => {
   emit('selection-change', [...selectedRows.value]);
 };

@@ -252,6 +252,7 @@ export const createResourceStore = (resourceName, resourceService) => {
 
       setLoading(true);
       clearError();
+      console.log('remove', id);
 
       try {
         await resourceService.delete(id);

@@ -12,7 +12,7 @@ import IsPaidCell from '@/components/DataTable/renderers/IsPaidCell.vue';
 import DeliveryCell from '@/components/DataTable/renderers/DeliveryCell.vue';
 import PaymentMethodCell from '@/components/DataTable/renderers/PaymentMethodCell.vue';
 
-import { PhPen, PhExport } from '@phosphor-icons/vue';
+import { PhPen, PhExport, PhTrash } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
@@ -22,6 +22,7 @@ const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const unsubscribeRef = ref(null);
 
+const dataTable = ref(null);
 const isFormOpen = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
@@ -120,6 +121,14 @@ const tableActions = [
     variant: 'secondary',
   },
   {
+    id: 'delete',
+    label: 'Delete',
+    icon: PhTrash,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'danger',
+  },
+  {
     id: 'export',
     label: 'Export',
     icon: PhExport,
@@ -162,6 +171,13 @@ const handleAction = async ({ actionId, selectedIds }) => {
     case 'edit':
       selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
       isFormOpen.value = true;
+      break;
+    case 'delete':
+      if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
+        selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
+        await orderStore.remove(selectedOrder.value.id);
+        dataTable.value?.clearSelection();
+      }
       break;
 
     case 'export':
@@ -280,6 +296,7 @@ onUnmounted(() => {
     <!-- Table -->
     <div>
       <DataTable
+        ref="dataTable"
         :data="orderStore.items"
         :columns="columns"
         :actions="tableActions"
