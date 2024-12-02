@@ -89,34 +89,46 @@ const columns = [
     field: 'productionBatch',
     sortable: true,
     type: 'toggle',
-    options: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    options: [1, 2, 3, 4],
   },
 ];
 
 // Handlers
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
-    const promises = rowIds.map(async (itemId) => {
+    // Group items by orderId
+    const orderUpdates = rowIds.reduce((acc, itemId) => {
       const orderItem = flattenedOrderItems.value.find(item => item.id === itemId);
-      if (!orderItem) return;
+      if (!orderItem) return acc;
 
       toggleLoading.value[`${itemId}-${field}`] = true;
-      console.log('orderItem', orderItem);
-      console.log('🔄 Updating order item:', itemId, field, value);
 
-      // Create the update object based on the field being updated
-      const updateData = {
-        orderItems: orderStore.items
-          .find(order => order.id === orderItem.orderId)
-          .orderItems.map(item => {
-            if (item.id === itemId) {
-              return { ...item, [field]: value };
-            }
-            return item;
-          }),
-      };
+      // Initialize array for this order if it doesn't exist
+      if (!acc[orderItem.orderId]) {
+        acc[orderItem.orderId] = {
+          orderItems: orderStore.items.find(order => order.id === orderItem.orderId).orderItems,
+          itemsToUpdate: new Set(),
+        };
+      }
 
-      return orderStore.patch(orderItem.orderId, updateData);
+      // Add this item to the set of items to update for this order
+      acc[orderItem.orderId].itemsToUpdate.add(itemId);
+
+      return acc;
+    }, {});
+
+    console.log('orderUpdates', orderUpdates);
+
+    // Create and execute updates for each order
+    const promises = Object.entries(orderUpdates).map(([orderId, { orderItems, itemsToUpdate }]) => {
+      const updatedItems = orderItems.map(item => {
+        if (itemsToUpdate.has(item.id)) {
+          return { ...item, [field]: value };
+        }
+        return item;
+      });
+      console.log('updatedItems', updatedItems);
+      return orderStore.patch(orderId, { orderItems: updatedItems });
     });
 
     await Promise.all(promises);
