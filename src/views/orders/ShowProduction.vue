@@ -50,6 +50,8 @@ const columns = [
     component: ShowValuesCell,
     getProps: (row) => ({
       object: row.variation,
+      fields: ['name'],
+
     }),
   },
   {
