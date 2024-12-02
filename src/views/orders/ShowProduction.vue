@@ -2,6 +2,7 @@
 import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
 import DataTable from '@/components/DataTable/index.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
+import ShowValuesCell from '@/components/DataTable/renderers/ShowValuesCell.vue';
 
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
@@ -30,15 +31,15 @@ const flattenedOrderItems = computed(() => {
 // Column definitions
 const columns = [
   {
-    id: 'productName',
-    label: 'Producto',
-    field: 'productName',
-    sortable: true,
-  },
-  {
     id: 'collectionName',
     label: 'Colección',
     field: 'collectionName',
+    sortable: true,
+  },
+  {
+    id: 'productName',
+    label: 'Producto',
+    field: 'productName',
     sortable: true,
   },
   {
@@ -46,6 +47,10 @@ const columns = [
     label: 'Variación',
     field: 'variation',
     sortable: false,
+    component: ShowValuesCell,
+    getProps: (row) => ({
+      object: row.variation,
+    }),
   },
   {
     id: 'quantity',
