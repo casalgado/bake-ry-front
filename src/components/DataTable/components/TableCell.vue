@@ -108,7 +108,7 @@ const handleMouseLeave = () => {
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
     :class="{
-      'border-neutral-300 border-2': props.column.type === 'toggle',
+      'border-neutral-300 border-2 border-dashed': props.column.type === 'toggle',
       'cursor-not-allowed': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id)
     }"
   >

@@ -90,6 +90,11 @@ const router = createRouter({
           name: 'create-order',
           component: () => import('../views/orders/CreateOrder.vue'),
         },
+        {
+          path: 'orders/production',
+          name: 'show-production',
+          component: () => import('../views/orders/ShowProduction.vue'),
+        },
         { path: 'settings',
           name: 'settings',
           component: () => import('../views/bakerySettings/ShowBakerySettings.vue'),

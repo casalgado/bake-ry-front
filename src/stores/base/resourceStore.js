@@ -231,9 +231,7 @@ export const createResourceStore = (resourceName, resourceService) => {
 
         const index = items.value.findIndex((item) => item.id === id);
         if (index !== -1) {
-          Object.entries(data).forEach(([key, value]) => {
-            items.value[index][key] = value;
-          });
+          items.value[index] = updatedItem;
         }
 
         if (currentItem.value?.id === id) {

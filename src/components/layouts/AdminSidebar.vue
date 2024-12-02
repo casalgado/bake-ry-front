@@ -43,7 +43,7 @@ const links = [
     id: 'produccion',
     icon: PhOven,
     text: 'Produccion',
-    path: '/dashboard/show-production',
+    path: '/dashboard/orders/production',
   },
   {
     id: 'entrega',
