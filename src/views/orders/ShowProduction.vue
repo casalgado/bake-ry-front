@@ -7,6 +7,7 @@ import ShowValuesCell from '@/components/DataTable/renderers/ShowValuesCell.vue'
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
+import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -50,7 +51,7 @@ const columns = [
     component: ShowValuesCell,
     getProps: (row) => ({
       object: row.variation,
-      fields: ['name'],
+      fields: ['name', 'isWholeGrain'],
 
     }),
   },
@@ -72,11 +73,15 @@ const columns = [
   },
   {
     id: 'status',
-    label: 'Status',
+    label: 'Completado',
     field: 'status',
     sortable: true,
     type: 'toggle',
     options: [0, 1],
+    component: CheckboxCell,
+    getProps: (row) => ({
+      isChecked: row.status,
+    }),
   },
   {
     id: 'productionBatch',

@@ -8,8 +8,8 @@ import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
-import IsPaidCell from '@/components/DataTable/renderers/IsPaidCell.vue';
 import DeliveryCell from '@/components/DataTable/renderers/DeliveryCell.vue';
+import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
 import PaymentMethodCell from '@/components/DataTable/renderers/PaymentMethodCell.vue';
 
 import { PhPen, PhExport, PhTrash } from '@phosphor-icons/vue';
@@ -93,9 +93,9 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [true, false],
-    component: IsPaidCell,
+    component: CheckboxCell,
     getProps: (row) => ({
-      isPaid: row.isPaid,
+      isChecked: row.isPaid,
     }),
   },
   {
