@@ -7,7 +7,7 @@ import ShowValuesCell from '@/components/DataTable/renderers/ShowValuesCell.vue'
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
-import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
+import OrderItemStatusCell from '@/components/DataTable/renderers/OrderItemStatusCell.vue';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -77,10 +77,10 @@ const columns = [
     field: 'status',
     sortable: true,
     type: 'toggle',
-    options: [0, 1],
-    component: CheckboxCell,
+    options: [0, 1, 2],
+    component: OrderItemStatusCell,
     getProps: (row) => ({
-      isChecked: row.status,
+      status: row.status,
     }),
   },
   {

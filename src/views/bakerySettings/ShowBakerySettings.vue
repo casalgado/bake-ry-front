@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useRouter } from 'vue-router';
+import DataTable from '@/components/DataTable/index.vue';
 
 const router = useRouter();
 void router;
@@ -14,8 +15,16 @@ const editingSections = ref({
   theme: false,
 });
 
+const staffData = ref([]);
+
+const staffColumns = ref([
+  { id: 'name', label: 'Nombre', field: 'name' },
+  { id: 'role', label: 'Rol', field: 'role' },
+]);
+
 onMounted(async () => {
   await settingsStore.fetchById('default');
+  staffData.value = await settingsStore.staff;
 });
 
 const toggleEdit = (section) => {
@@ -50,32 +59,14 @@ const toggleEdit = (section) => {
 
     <!-- Settings Sections -->
     <div v-if="!settingsStore.loading && settingsStore.currentItem">
-      <!-- Ingredient Categories Section -->
+
       <section>
         <div class="section-header">
-          <h3>Ingredient Categories</h3>
-          <button @click="toggleEdit('ingredientCategories')">
-            {{ editingSections.ingredientCategories ? 'Cancel' : 'Edit' }}
-          </button>
+          <h3>Equipo</h3>
+
         </div>
 
-        <table v-if="!editingSections.ingredientCategories">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="category in settingsStore.currentItem.ingredientCategories" :key="category.name">
-              <td>
-                <div>{{ category.name }}</div>
-                <div v-if="category.description">{{ category.description }}</div>
-              </td>
-              <td>{{ category.isActive ? 'Active' : 'Inactive' }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <DataTable :data="staffData" :columns="staffColumns" />
       </section>
 
       <!-- Order Statuses Section -->
@@ -94,17 +85,6 @@ const toggleEdit = (section) => {
         </ul>
       </section>
 
-      <!-- Theme Settings -->
-      <section>
-        <div class="section-header">
-          <h3>Theme Settings</h3>
-          <button @click="toggleEdit('theme')">
-            {{ editingSections.theme ? 'Cancel' : 'Edit' }}
-          </button>
-        </div>
-
-        <pre v-if="!editingSections.theme">{{ JSON.stringify(settingsStore.currentItem.theme, null, 2) }}</pre>
-      </section>
     </div>
 
     <div v-else-if="!settingsStore.loading && !settingsStore.currentItem">
@@ -114,30 +94,5 @@ const toggleEdit = (section) => {
 </template>
 
 <style scoped lang="scss">
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
 
-th,
-td {
-  padding: 0.5rem;
-  text-align: left;
-  border: 1px solid #ddd;
-}
-
-section {
-  margin-bottom: 2rem;
-}
-
-.section-header {
-  display: flex;
-  justify-content: start;
-  align-items: center;
-}
-
-button + button {
-  margin-left: 0.5rem;
-}
 </style>

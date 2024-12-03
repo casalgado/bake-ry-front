@@ -14,6 +14,7 @@ import {
   PhMopedFront,
   PhUsersThree,
   PhHandshake,
+  PhGear,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 
@@ -93,6 +94,12 @@ const links = [
     icon: PhBarcode,
     text: 'Ingredientes',
     path: '/dashboard/ingredients',
+  },
+  {
+    id: 'configuracion',
+    icon: PhGear,
+    text: 'Configuración',
+    path: '/dashboard/settings',
   },
 ];
 
