@@ -29,27 +29,21 @@ const props = defineProps({
 const emit = defineEmits(['click', 'hover-change']);
 
 const handleClick = (event) => {
-  if (props.column.type === 'toggle' && !isToggleEnabled.value) {
+  if (props.column.type === 'toggle' && !isClickEnabled.value) {
     event.stopPropagation();
     return;
   }
   emit('click', event);
 };
 
-// Determine if toggle is enabled for this cell
-const isToggleEnabled = computed(() => {
+// Determine if click is enabled for this cell
+const isClickEnabled = computed(() => {
   if (props.column.type !== 'toggle') return false;
   return !props.selectedRows.size || props.selectedRows.has(props.row.id);
 });
 
-// Determine if this cell will be affected by a toggle action
-const isAffectedByToggle = computed(() => {
-  return props.column.type === 'toggle' && isToggleEnabled.value;
-});
-
 // Determine if this cell is in loading state
 const isLoading = computed(() => {
-
   return props.toggleLoading[`${props.row.id}-${props.column.field}`];
 });
 
@@ -63,7 +57,7 @@ const getNextToggleValue = computed(() => {
 
 // Get tooltip content
 const tooltipContent = computed(() => {
-  if (!isToggleEnabled.value || props.column.type !== 'toggle') return null;
+  if (!isClickEnabled.value || props.column.type !== 'toggle') return null;
 
   const nextValue = getNextToggleValue.value;
   const affectedCount = props.selectedRows.size || 1;
@@ -78,7 +72,7 @@ const showTooltip = ref(false);
 
 // Handle hover events
 const handleMouseEnter = () => {
-  if (props.column.type === 'toggle' && isToggleEnabled.value) {
+  if (props.column.type === 'toggle' && isClickEnabled.value) {
     emit('hover-change', {
       hovering: true,
       rowId: props.row.id,
@@ -89,7 +83,7 @@ const handleMouseEnter = () => {
 };
 
 const handleMouseLeave = () => {
-  if (props.column.type === 'toggle' && isToggleEnabled.value) {
+  if (props.column.type === 'toggle' && isClickEnabled.value) {
     emit('hover-change', {
       hovering: false,
       rowId: props.row.id,
@@ -115,7 +109,7 @@ const handleMouseLeave = () => {
     <div
       class="inline-block px-3  rounded-2xl transition-colors"
       :class="{
-        'hover:bg-neutral-800 hover:text-white': isAffectedByToggle && !isLoading,
+        'hover:bg-neutral-800 hover:text-white': isClickEnabled && !isLoading,
 
         'bg-neutral-800 text-white': (props.column.type === 'toggle' && props.hovering) || isLoading,
         'opacity-50': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id),
@@ -123,9 +117,14 @@ const handleMouseLeave = () => {
       }"
     >
       <component
-        v-if="column.component"
+        v-if="column.component && column.type !== 'input'"
         :is="column.component"
         v-bind="column.getProps(row)"
+      />
+      <component
+        v-else-if="column.component && column.type === 'input'"
+        :is="column.component"
+        @input-update="handleInputUpdate"
       />
       <template v-else>
         {{ row[column.field] }}

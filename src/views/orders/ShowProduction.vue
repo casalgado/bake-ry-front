@@ -1,9 +1,7 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
 import DataTable from '@/components/DataTable/index.vue';
-import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import ShowValuesCell from '@/components/DataTable/renderers/ShowValuesCell.vue';
-
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
@@ -62,14 +60,10 @@ const columns = [
     sortable: true,
   },
   {
-    id: 'currentPrice',
-    label: 'Precio',
-    field: 'currentPrice',
+    id: 'productionBatch',
+    label: 'Tanda',
+    field: 'productionBatch',
     sortable: true,
-    component: MoneyCell,
-    getProps: (row) => ({
-      value: row.currentPrice,
-    }),
   },
   {
     id: 'status',
@@ -83,14 +77,7 @@ const columns = [
       status: row.status,
     }),
   },
-  {
-    id: 'productionBatch',
-    label: 'Tanda',
-    field: 'productionBatch',
-    sortable: true,
-    type: 'toggle',
-    options: [1, 2, 3, 4],
-  },
+
 ];
 
 // Handlers

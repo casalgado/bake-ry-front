@@ -42,6 +42,18 @@ const handleCellHover = ({ hovering, rowId, columnId }) => {
   hoveredCell.value = hovering ? { rowId, columnId } : null;
 };
 
+/**
+ * Determines whether a table cell should be highlighted based on hover and selection state
+ * @param {Object} row - The row data object containing the cell
+ * @param {Object} column - The column configuration object
+ * @returns {boolean} - Whether the cell should be highlighted
+ *
+ * Highlighting behavior:
+ * 1. For non-toggle columns: never highlighted
+ * 2. When no rows are selected: only highlights the specific hovered cell
+ * 3. When rows are selected: highlights all toggle cells in selected rows
+ *    when hovering over the toggle column
+ */
 const isCellHighlighted = (row, column) => {
   if (!hoveredCell.value || column.type !== 'toggle') return false;
 
@@ -82,9 +94,9 @@ const isEmpty = computed(() => props.data.length === 0);
           :column="column"
           :row="row"
           :selected-rows="selectedRows"
-          :hovering="isCellHighlighted(row, column)"
           :toggle-loading="toggleLoading"
           @click="(event) => handleCellClick(event, row, column)"
+          :hovering="isCellHighlighted(row, column)"
           @hover-change="handleCellHover"
         />
       </tr>
