@@ -1,25 +1,26 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue';
-import { Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
+import { Dialog, DialogPanel } from '@headlessui/vue';
 
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
-import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import DeliveryCell from '@/components/DataTable/renderers/DeliveryCell.vue';
 import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
 import PaymentMethodCell from '@/components/DataTable/renderers/PaymentMethodCell.vue';
 
 import { PhPen, PhExport, PhTrash } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
+const settingsStore = useBakerySettingsStore();
 const unsubscribeRef = ref(null);
 
 const dataTable = ref(null);
@@ -27,6 +28,8 @@ const isFormOpen = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
 const toggleLoading = ref({});
+
+const deliveryDrivers = ref([]);
 
 // Column definitions / "id must be the same as field for sorting to work"
 const columns = [
@@ -87,6 +90,14 @@ const columns = [
     }),
   },
   {
+    id: 'deliveryDriver',
+    label: 'Conductor',
+    field: 'deliveryDriver',
+    sortable: true,
+    type: 'toggle',
+    options: ['-'],
+  },
+  {
     id: 'isPaid',
     label: 'Pagado',
     field: 'isPaid',
@@ -96,16 +107,6 @@ const columns = [
     component: CheckboxCell,
     getProps: (row) => ({
       isChecked: row.isPaid,
-    }),
-  },
-  {
-    id: 'total',
-    label: 'Total',
-    field: 'total',
-    sortable: true,
-    component: MoneyCell,
-    getProps: (row) => ({
-      value: row.total,
     }),
   },
 ];
@@ -130,7 +131,7 @@ const tableActions = [
   },
   {
     id: 'export',
-    label: 'Exportar',
+    label: 'ExportarS',
     icon: PhExport,
     minSelected: 2,
     variant: 'primary',
@@ -147,6 +148,7 @@ const handleSelectionChange = (selectedIds) => {
 };
 
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
+  console.log('handleToggleUpdate', { rowIds, field, value });
   try {
     const promises = rowIds.map(id => {
       toggleLoading.value[`${id}-${field}`] = true;
@@ -225,6 +227,16 @@ watch(
   { deep: true },
 );
 
+watch(deliveryDrivers, (newDrivers) => {
+  // Find and update the deliveryDriver column options
+  console.log('deliveryDrivers changed', newDrivers);
+  const driverColumn = columns.find(col => col.id === 'deliveryDriver');
+  if (driverColumn) {
+    console.log('driverColumn', driverColumn);
+    driverColumn.options = ['-', ...newDrivers];
+  }
+}, { deep: true });
+
 onMounted(async () => {
   try {
     await orderStore.fetchAll({
@@ -238,6 +250,9 @@ onMounted(async () => {
     });
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for orders');
+    const staff = await settingsStore.staff;
+    deliveryDrivers.value = staff.filter(staff => staff.role === 'delivery_assistant').map(staff => staff.first_name);
+    console.log('deliveryDrivers', deliveryDrivers.value);
   } catch (error) {
     console.error('Failed to initialize orders:', error);
   }
@@ -254,7 +269,7 @@ onUnmounted(() => {
 <template>
   <div class="container p-4">
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Pedidos</h2>
+      <h2 class="text-2xl font-bold text-neutral-800">Entrega</h2>
       <PeriodSelector />
     </div>
 
@@ -294,6 +309,7 @@ onUnmounted(() => {
     <div>
       <DataTable
         ref="dataTable"
+        :key="deliveryDrivers.length"
         :data="orderStore.items"
         :columns="columns"
         :actions="tableActions"
@@ -303,7 +319,7 @@ onUnmounted(() => {
         @selection-change="handleSelectionChange"
         @toggle-update="handleToggleUpdate"
         @action="handleAction"
-        :wrapper-class="`bg-white shadow-lg rounded-lg`"
+        class="bg-white shadow-lg rounded-lg"
       />
     </div>
   </div>

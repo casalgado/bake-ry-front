@@ -64,7 +64,7 @@ const handleCancel = () => {
             @click="handleAction(action)"
             :disabled="loading[action.id]"
             :class="[
-              'pr-3 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2',
+              'pr-3 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2 py-0.5',
               loading[action.id] && 'opacity-75 cursor-not-allowed',
               action.variant === 'danger'
                 ? 'bg-danger text-white hover:bg-danger/90'

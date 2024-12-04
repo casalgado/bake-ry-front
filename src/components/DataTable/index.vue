@@ -39,7 +39,6 @@ const props = defineProps({
     type: String,
     default: '',
   },
-
 });
 
 const emit = defineEmits([
@@ -91,6 +90,11 @@ const handleRowSelect = ({ row, shift }) => {
   emitSelectionChange();
 };
 
+const getNextToggleValue = (currentValue, options) => {
+  const currentIndex = options.indexOf(currentValue);
+  return options[(currentIndex + 1) % options.length];
+};
+
 const handleToggleUpdate = ({ row, column }) => {
   const rowsToUpdate = selectedRows.value.has(row.id)
     ? props.data.filter(r => selectedRows.value.has(r.id))
@@ -124,6 +128,7 @@ const clearSelection = () => {
 defineExpose({
   clearSelection,
 });
+
 const emitSelectionChange = () => {
   emit('selection-change', [...selectedRows.value]);
 };
@@ -133,12 +138,6 @@ const handleAction = (actionId) => {
     actionId,
     selectedIds: [...selectedRows.value],
   });
-};
-
-// Helper to get next value in toggle sequence
-const getNextToggleValue = (currentValue, options) => {
-  const currentIndex = options.indexOf(currentValue);
-  return options[(currentIndex + 1) % options.length];
 };
 
 // Handle sort
@@ -161,7 +160,7 @@ const handleSort = (columnId, isMulti) => {
           @click="selectAll"
           class="button action-btn"
         >
-          {{ allSelected ? 'Ninguna' : 'Todas' }}
+          {{ allSelected ? 'Ninguna' : 'Todo' }}
         </button>
 
         <button

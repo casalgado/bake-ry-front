@@ -50,7 +50,7 @@ const links = [
     id: 'entrega',
     icon: PhMopedFront,
     text: 'Entrega',
-    path: '/dashboard/show-delivery',
+    path: '/dashboard/orders/delivery',
   },
   {
     id: 'usuarios_activos',
