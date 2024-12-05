@@ -60,12 +60,6 @@ const columns = [
     sortable: true,
   },
   {
-    id: 'productionBatch',
-    label: 'Tanda',
-    field: 'productionBatch',
-    sortable: true,
-  },
-  {
     id: 'status',
     label: 'Completado',
     field: 'status',
@@ -77,7 +71,12 @@ const columns = [
       status: row.status,
     }),
   },
-
+  {
+    id: 'productionBatch',
+    label: 'Tanda',
+    field: 'productionBatch',
+    sortable: true,
+  },
 ];
 
 // Handlers
