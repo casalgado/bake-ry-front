@@ -245,6 +245,25 @@ export const createResourceStore = (resourceName, resourceService) => {
       }
     }
 
+    const patchAll = async (updates) => {
+      try {
+        const response = await resourceService.patchAll(updates);
+
+        // Update local state
+        updates.forEach(({ id, data }) => {
+          const index = items.value.findIndex(item => item.id === id);
+          if (index !== -1) {
+            items.value[index] = { ...items.value[index], ...data };
+          }
+        });
+
+        return response;
+      } catch (error) {
+        setError(error);
+        throw error;
+      }
+    };
+
     async function remove(id) {
       if (!id) throw new Error('ID is required for delete');
 
@@ -304,6 +323,7 @@ export const createResourceStore = (resourceName, resourceService) => {
       create,
       update,
       patch,
+      patchAll,
       remove,
       resetStore,
     };

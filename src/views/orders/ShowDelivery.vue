@@ -156,17 +156,25 @@ const handleSelectionChange = (selectedIds) => {
 };
 
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
-  console.log('handleToggleUpdate', { rowIds, field, value });
   try {
-    const promises = rowIds.map(id => {
+    // Set loading state for all affected rows
+    rowIds.forEach(id => {
       toggleLoading.value[`${id}-${field}`] = true;
-      return orderStore.patch(id, { [field]: value });
     });
-    await Promise.all(promises);
+
+    // Prepare updates array
+    const updates = rowIds.map(id => ({
+      id,
+      data: { [field]: value },
+    }));
+
+    // Single API call
+    await orderStore.patchAll(updates);
     await nextTick();
   } catch (error) {
     console.error('Failed to update orders:', error);
   } finally {
+    // Clear loading state
     rowIds.forEach(id => {
       toggleLoading.value[`${id}-${field}`] = false;
     });

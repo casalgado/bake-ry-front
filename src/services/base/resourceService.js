@@ -195,6 +195,22 @@ export class BaseService {
     }
   }
 
+  async patchAll(updates) {
+    if (!updates || !Array.isArray(updates)) {
+      throw new Error('Updates array is required');
+    }
+
+    try {
+      const response = await this.api.patch(
+        `${this.getPath()}/bulk-update`,
+        { updates },
+      );
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   /**
    * Delete a resource
    * @param {string} id - Resource ID

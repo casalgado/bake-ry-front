@@ -152,7 +152,8 @@ const handleSort = (columnId, isMulti) => {
     <div
       class="bg-neutral-50 px-4 py-2 flex items-center justify-between border-b"
     >
-      <div v-if="dataLoading" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-delayed-fade-in">
+
+      <div v-if="dataLoading || Object.values(toggleLoading).some(value => value)" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-delayed-fade-in">
         <PhDisc class="animate-spin text-xl"/>
       </div>
       <div alt="form-controls" class="flex items-center gap-4">

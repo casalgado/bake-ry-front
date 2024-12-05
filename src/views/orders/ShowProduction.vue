@@ -5,7 +5,6 @@ import ShowValuesCell from '@/components/DataTable/renderers/ShowValuesCell.vue'
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
-import OrderItemStatusCell from '@/components/DataTable/renderers/OrderItemStatusCell.vue';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -66,10 +65,6 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [{ value: 0, displayText: '-' }, { value: 1, displayText: 'completado' }, { value: 2, displayText: 'entregado' }],
-    component: OrderItemStatusCell,
-    getProps: (row) => ({
-      status: row.status,
-    }),
   },
   {
     id: 'productionBatch',
@@ -79,45 +74,44 @@ const columns = [
   },
 ];
 
-// Handlers
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
-    // Group items by orderId
+    // Set loading state
+    rowIds.forEach(id => {
+      toggleLoading.value[`${id}-${field}`] = true;
+    });
+
+    // Group items by order
     const orderUpdates = rowIds.reduce((acc, itemId) => {
       const orderItem = flattenedOrderItems.value.find(item => item.id === itemId);
       if (!orderItem) return acc;
 
-      toggleLoading.value[`${itemId}-${field}`] = true;
-
-      // Initialize array for this order if it doesn't exist
       if (!acc[orderItem.orderId]) {
         acc[orderItem.orderId] = {
-          orderItems: orderStore.items.find(order => order.id === orderItem.orderId).orderItems,
-          itemsToUpdate: new Set(),
+          itemIds: new Set(),
+          orderItems: orderStore.items
+            .find(order => order.id === orderItem.orderId)
+            .orderItems,
         };
       }
 
-      // Add this item to the set of items to update for this order
-      acc[orderItem.orderId].itemsToUpdate.add(itemId);
-
+      acc[orderItem.orderId].itemIds.add(itemId);
       return acc;
     }, {});
 
-    console.log('orderUpdates', orderUpdates);
+    // Prepare updates array
+    const updates = Object.entries(orderUpdates).map(([orderId, { orderItems, itemIds }]) => ({
+      id: orderId,
+      data: {
+        orderItems: orderItems.map(item => ({
+          ...item,
+          [field]: itemIds.has(item.id) ? value : item[field],
+        })),
+      },
+    }));
 
-    // Create and execute updates for each order
-    const promises = Object.entries(orderUpdates).map(([orderId, { orderItems, itemsToUpdate }]) => {
-      const updatedItems = orderItems.map(item => {
-        if (itemsToUpdate.has(item.id)) {
-          return { ...item, [field]: value };
-        }
-        return item;
-      });
-      console.log('updatedItems', updatedItems);
-      return orderStore.patch(orderId, { orderItems: updatedItems });
-    });
-
-    await Promise.all(promises);
+    // Single API call
+    await orderStore.patchAll(updates);
     await nextTick();
   } catch (error) {
     console.error('Failed to update order items:', error);
