@@ -65,7 +65,7 @@ const columns = [
     field: 'status',
     sortable: true,
     type: 'toggle',
-    options: [0, 1, 2],
+    options: [{ value: 0, displayText: '-' }, { value: 1, displayText: 'completado' }, { value: 2, displayText: 'entregado' }],
     component: OrderItemStatusCell,
     getProps: (row) => ({
       status: row.status,

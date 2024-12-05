@@ -22,6 +22,7 @@ const props = defineProps({
   },
 });
 
+const isEmpty = computed(() => props.data.length === 0);
 const emit = defineEmits(['row-select', 'toggle-update']);
 
 // Track hover state for toggle cells
@@ -32,6 +33,7 @@ const handleRowClick = (event, row) => {
 };
 
 const handleCellClick = (event, row, column) => {
+  // only act if cell is a toggle and is in a selected row
   if (column.type === 'toggle' && (!props.selectedRows.size || props.selectedRows.has(row.id))) {
     event.stopPropagation();
     emit('toggle-update', { row, column });
@@ -67,7 +69,6 @@ const isCellHighlighted = (row, column) => {
   return false;
 };
 
-const isEmpty = computed(() => props.data.length === 0);
 </script>
 
 <template>
@@ -106,7 +107,7 @@ const isEmpty = computed(() => props.data.length === 0);
         :colspan="columns.length"
         class="px-4 py-8 text-center text-neutral-500"
       >
-        No data available
+        No hay datos disponibles para mostrar.
       </td>
     </tr>
   </tbody>

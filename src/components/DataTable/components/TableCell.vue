@@ -37,6 +37,7 @@ const handleClick = (event) => {
 };
 
 // Determine if click is enabled for this cell
+// Only toggle cells in selected rows are clickable
 const isClickEnabled = computed(() => {
   if (props.column.type !== 'toggle') return false;
   return !props.selectedRows.size || props.selectedRows.has(props.row.id);
@@ -51,20 +52,18 @@ const isLoading = computed(() => {
 const getNextToggleValue = computed(() => {
   if (props.column.type !== 'toggle' || !props.column.options) return null;
   const currentValue = props.row[props.column.field];
-  const currentIndex = props.column.options.indexOf(currentValue);
+  const currentIndex = props.column.options.findIndex(opt => opt.value === currentValue);
   return props.column.options[(currentIndex + 1) % props.column.options.length];
 });
 
 // Get tooltip content
 const tooltipContent = computed(() => {
   if (!isClickEnabled.value || props.column.type !== 'toggle') return null;
-
   const nextValue = getNextToggleValue.value;
   const affectedCount = props.selectedRows.size || 1;
-
   return {
     prefix: affectedCount > 1 ? `${affectedCount}` : '',
-    value: nextValue,
+    value: nextValue.displayText,
   };
 });
 
@@ -117,17 +116,15 @@ const handleMouseLeave = () => {
       }"
     >
       <component
-        v-if="column.component && column.type !== 'input'"
+        v-if="column.component"
         :is="column.component"
         v-bind="column.getProps(row)"
       />
-      <component
-        v-else-if="column.component && column.type === 'input'"
-        :is="column.component"
-        @input-update="handleInputUpdate"
-      />
       <template v-else>
-        {{ row[column.field] }}
+        {{ column.type === 'toggle'
+          ? column.options.find(opt => opt.value === row[column.field])?.displayText
+          : row[column.field]
+        }}
       </template>
       <!-- Tooltip -->
       <div
@@ -137,7 +134,7 @@ const handleMouseLeave = () => {
         <div class="flex items-center gap-1">
           {{ tooltipContent.prefix }}
           <PhArrowRight weight="bold" class="w-3 h-3" />
-          {{ typeof tooltipContent.value === 'boolean' ? (tooltipContent.value ? '✓' : '-') : tooltipContent.value }}
+          {{ tooltipContent.value }}
         </div>
         <!-- Triangle pointer -->
         <div class="absolute right-full top-1/2 -translate-y-1/2">

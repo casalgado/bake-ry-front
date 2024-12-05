@@ -71,7 +71,12 @@ const columns = [
     field: 'paymentMethod',
     sortable: true,
     type: 'toggle',
-    options: ['cash', 'card', 'transfer', 'complimentary'],
+    options: [
+      { value: 'cash', displayText: 'efectivo' },
+      { value: 'card', displayText: 'tarjeta' },
+      { value: 'transfer', displayText: 'transferencia' },
+      { value: 'complimentary', displayText: 'regalo' },
+    ],
     component: PaymentMethodCell,
     getProps: (row) => ({
       paymentMethod: row.paymentMethod,
@@ -83,7 +88,10 @@ const columns = [
     field: 'fulfillmentType',
     sortable: true,
     type: 'toggle',
-    options: ['pickup', 'delivery'],
+    options: [
+      { value: 'pickup', displayText: 'recoger' },
+      { value: 'delivery', displayText: 'entregar' },
+    ],
     component: DeliveryCell,
     getProps: (row) => ({
       fulfillmentType: row.fulfillmentType,
@@ -95,7 +103,7 @@ const columns = [
     field: 'deliveryDriver',
     sortable: true,
     type: 'toggle',
-    options: ['-'],
+    options: [{ value: '-', displayText: '-' }],
   },
   {
     id: 'isPaid',
@@ -103,7 +111,7 @@ const columns = [
     field: 'isPaid',
     sortable: true,
     type: 'toggle',
-    options: [true, false],
+    options: [{ value: true, displayText: '✓' }, { value: false, displayText: '-' }],
     component: CheckboxCell,
     getProps: (row) => ({
       isChecked: row.isPaid,
@@ -233,7 +241,7 @@ watch(deliveryDrivers, (newDrivers) => {
   const driverColumn = columns.find(col => col.id === 'deliveryDriver');
   if (driverColumn) {
     console.log('driverColumn', driverColumn);
-    driverColumn.options = ['-', ...newDrivers];
+    driverColumn.options = [{ value: '-', displayText: '-' }, ...newDrivers];
   }
 }, { deep: true });
 
@@ -251,7 +259,10 @@ onMounted(async () => {
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for orders');
     const staff = await settingsStore.staff;
-    deliveryDrivers.value = staff.filter(staff => staff.role === 'delivery_assistant').map(staff => staff.first_name);
+    deliveryDrivers.value = staff.filter(staff => staff.role === 'delivery_assistant').map(staff => ({
+      value: staff.first_name,
+      displayText: `${staff.first_name}`,
+    }));
     console.log('deliveryDrivers', deliveryDrivers.value);
   } catch (error) {
     console.error('Failed to initialize orders:', error);

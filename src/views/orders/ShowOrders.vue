@@ -68,7 +68,12 @@ const columns = [
     field: 'paymentMethod',
     sortable: true,
     type: 'toggle',
-    options: ['cash', 'card', 'transfer', 'complimentary'],
+    options: [
+      { value: 'cash', displayText: 'efectivo' },
+      { value: 'card', displayText: 'tarjeta' },
+      { value: 'transfer', displayText: 'transferencia' },
+      { value: 'complimentary', displayText: 'regalo' },
+    ],
     component: PaymentMethodCell,
     getProps: (row) => ({
       paymentMethod: row.paymentMethod,
@@ -80,7 +85,10 @@ const columns = [
     field: 'fulfillmentType',
     sortable: true,
     type: 'toggle',
-    options: ['pickup', 'delivery'],
+    options: [
+      { value: 'pickup', displayText: 'recoger' },
+      { value: 'delivery', displayText: 'entregar' },
+    ],
     component: DeliveryCell,
     getProps: (row) => ({
       fulfillmentType: row.fulfillmentType,
@@ -92,7 +100,7 @@ const columns = [
     field: 'isPaid',
     sortable: true,
     type: 'toggle',
-    options: [true, false],
+    options: [{ value: true, displayText: '✓' }, { value: false, displayText: '-' }],
     component: CheckboxCell,
     getProps: (row) => ({
       isChecked: row.isPaid,

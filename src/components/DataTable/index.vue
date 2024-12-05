@@ -59,13 +59,12 @@ const {
 
 // Selection state
 const selectedRows = ref(new Set());
-
-// Computed
 const hasSelection = computed(() => selectedRows.value.size > 0);
 const allSelected = computed(() => selectedRows.value.size === props.data.length);
+
 const sortedData = computed(() => sortData(props.data));
 
-// Selection handlers
+// Manages row selection with shift-click support for range selection
 const handleRowSelect = ({ row, shift }) => {
   if (shift && selectedRows.value.size > 0) {
     // Handle range selection
@@ -86,15 +85,16 @@ const handleRowSelect = ({ row, shift }) => {
       selectedRows.value.add(row.id);
     }
   }
-
   emitSelectionChange();
 };
 
+// Handles toggling between options in a toggle column
 const getNextToggleValue = (currentValue, options) => {
-  const currentIndex = options.indexOf(currentValue);
-  return options[(currentIndex + 1) % options.length];
+  const currentIndex = options.findIndex(opt => opt.value === currentValue);
+  return options[(currentIndex + 1) % options.length].value;
 };
 
+// Handles updating the state of toggle columns
 const handleToggleUpdate = ({ row, column }) => {
   const rowsToUpdate = selectedRows.value.has(row.id)
     ? props.data.filter(r => selectedRows.value.has(r.id))
