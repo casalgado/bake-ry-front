@@ -7,11 +7,9 @@ import DataTable from '@/components/DataTable/index.vue';
 import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
-import DeliveryCell from '@/components/DataTable/renderers/DeliveryCell.vue';
 import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
-import PaymentMethodCell from '@/components/DataTable/renderers/PaymentMethodCell.vue';
 
-import { PhPen, PhExport, PhTrash } from '@phosphor-icons/vue';
+import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
@@ -72,15 +70,11 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [
-      { value: 'cash', displayText: 'efectivo' },
-      { value: 'card', displayText: 'tarjeta' },
-      { value: 'transfer', displayText: 'transferencia' },
-      { value: 'complimentary', displayText: 'regalo' },
+      { value: 'cash', displayText: 'efectivo', icon: PhMoney },
+      { value: 'bold', displayText: 'bold', icon: PhCreditCard },
+      { value: 'transfer', displayText: 'transferencia', icon: PhDeviceMobile },
+      { value: 'complimentary', displayText: 'regalo', icon: PhGift },
     ],
-    component: PaymentMethodCell,
-    getProps: (row) => ({
-      paymentMethod: row.paymentMethod,
-    }),
   },
   {
     id: 'fulfillmentType',
@@ -89,13 +83,9 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [
-      { value: 'pickup', displayText: 'recoger' },
-      { value: 'delivery', displayText: 'entregar' },
+      { value: 'pickup', displayText: 'recogen' },
+      { value: 'delivery', displayText: 'domicilio' },
     ],
-    component: DeliveryCell,
-    getProps: (row) => ({
-      fulfillmentType: row.fulfillmentType,
-    }),
   },
   {
     id: 'deliveryDriver',

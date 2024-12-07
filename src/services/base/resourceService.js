@@ -59,6 +59,8 @@ export class BaseService {
     try {
     // Convert the query object to API parameters
       const params = this.formatQueryParams(query);
+      console.log('path', this.getPath());
+      console.log('params', params);
 
       const response = await this.api.get(this.getPath(), { params });
       return this.handleResponse(response);

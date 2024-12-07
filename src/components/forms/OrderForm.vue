@@ -85,8 +85,6 @@ onMounted(async () => {
   console.log('initialData', props.initialData);
   // If we have initialData with a user, populate the user data
   if (props.initialData?.userId) {
-    console.log('initialData.userId', props.initialData.userId);
-    console.log(userStore.items);
     const user = userStore.items.find(u => u.id === props.initialData.userId);
     if (user) {
       console.log('user found');

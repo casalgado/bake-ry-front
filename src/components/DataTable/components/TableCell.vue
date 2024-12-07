@@ -40,6 +40,7 @@ const handleClick = (event) => {
 // Only toggle cells in selected rows are clickable
 const isClickEnabled = computed(() => {
   if (props.column.type !== 'toggle') return false;
+  if (props.column.field === 'isPaid' && props.row.isComplimentary) return false;
   return !props.selectedRows.size || props.selectedRows.has(props.row.id);
 });
 
@@ -56,6 +57,11 @@ const getNextToggleValue = computed(() => {
   return props.column.options[(currentIndex + 1) % props.column.options.length];
 });
 
+const currentOption = computed(() => {
+  if (props.column.type !== 'toggle' || !props.column.options) return null;
+  return props.column.options.find(opt => opt.value === props.row[props.column.field]);
+});
+
 // Get tooltip content
 const tooltipContent = computed(() => {
   if (!isClickEnabled.value || props.column.type !== 'toggle') return null;
@@ -64,6 +70,7 @@ const tooltipContent = computed(() => {
   return {
     prefix: affectedCount > 1 ? `${affectedCount}` : '',
     value: nextValue.displayText,
+    icon: nextValue.icon,
   };
 });
 
@@ -115,16 +122,28 @@ const handleMouseLeave = () => {
         '!text-neutral-800': isLoading && props.column.type,
       }"
     >
+      <!-- Cell Content -->
+      <template v-if="column.type === 'toggle' && currentOption">
+        <component
+          v-if="column.component"
+          :is="column.component"
+          v-bind="column.getProps(row)"
+        />
+        <div v-else class="flex items-center gap-2">
+          <component
+            :is="currentOption.icon"
+            class="w-5 h-5"
+          />
+          <span>{{ currentOption.displayText }}</span>
+        </div>
+      </template>
       <component
-        v-if="column.component"
+        v-else-if="column.component"
         :is="column.component"
         v-bind="column.getProps(row)"
       />
       <template v-else>
-        {{ column.type === 'toggle'
-          ? column.options.find(opt => opt.value === row[column.field])?.displayText
-          : row[column.field]
-        }}
+        {{ row[column.field] }}
       </template>
       <!-- Tooltip -->
       <div
@@ -134,7 +153,14 @@ const handleMouseLeave = () => {
         <div class="flex items-center gap-1">
           {{ tooltipContent.prefix }}
           <PhArrowRight weight="bold" class="w-3 h-3" />
-          {{ tooltipContent.value }}
+          <div class="flex items-center gap-1">
+            <component
+              v-if="tooltipContent.icon"
+              :is="tooltipContent.icon"
+              class="w-3 h-3"
+            />
+            <span>{{ tooltipContent.value }}</span>
+          </div>
         </div>
         <!-- Triangle pointer -->
         <div class="absolute right-full top-1/2 -translate-y-1/2">

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue';
-import { Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
+import { Dialog, DialogPanel } from '@headlessui/vue';
 
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
@@ -8,11 +8,9 @@ import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
-import DeliveryCell from '@/components/DataTable/renderers/DeliveryCell.vue';
-import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
-import PaymentMethodCell from '@/components/DataTable/renderers/PaymentMethodCell.vue';
+import IsPaidCell from '@/components/DataTable/renderers/isPaidCell.vue';
 
-import { PhPen, PhExport, PhTrash } from '@phosphor-icons/vue';
+import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
@@ -69,15 +67,11 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [
-      { value: 'cash', displayText: 'efectivo' },
-      { value: 'card', displayText: 'tarjeta' },
-      { value: 'transfer', displayText: 'transferencia' },
-      { value: 'complimentary', displayText: 'regalo' },
+      { value: 'cash', displayText: 'efectivo', icon: PhMoney },
+      { value: 'bold', displayText: 'bold', icon: PhCreditCard },
+      { value: 'transfer', displayText: 'transferencia', icon: PhDeviceMobile },
+      { value: 'complimentary', displayText: 'regalo', icon: PhGift },
     ],
-    component: PaymentMethodCell,
-    getProps: (row) => ({
-      paymentMethod: row.paymentMethod,
-    }),
   },
   {
     id: 'fulfillmentType',
@@ -86,13 +80,9 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [
-      { value: 'pickup', displayText: 'recoger' },
-      { value: 'delivery', displayText: 'entregar' },
+      { value: 'pickup', displayText: 'recogen' },
+      { value: 'delivery', displayText: 'domicilio' },
     ],
-    component: DeliveryCell,
-    getProps: (row) => ({
-      fulfillmentType: row.fulfillmentType,
-    }),
   },
   {
     id: 'isPaid',
@@ -101,9 +91,10 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [{ value: true, displayText: '✓' }, { value: false, displayText: '-' }],
-    component: CheckboxCell,
+    component: IsPaidCell,
     getProps: (row) => ({
-      isChecked: row.isPaid,
+      isPaid: row.isPaid,
+      isComplimentary: row.isComplimentary,
     }),
   },
   {
@@ -243,6 +234,7 @@ watch(
 );
 
 onMounted(async () => {
+
   try {
     await orderStore.fetchAll({
       filters: {
