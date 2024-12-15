@@ -23,7 +23,7 @@ const props = defineProps({
   },
   searchableColumns: {
     type: Array,
-    default: () => ['name'],
+    default: () => ['name', 'userName'],
   },
   filters: {
     type: Array,
@@ -76,8 +76,6 @@ const processedData = computed(() => {
   return sortData(filteredData);
 });
 
-const sortedData = computed(() => sortData(props.data));
-
 // Manages row selection with shift-click support for range selection
 const handleRowSelect = ({ row, shift }) => {
   if (shift && selectedRows.value.size > 0) {
@@ -128,7 +126,7 @@ const selectAll = () => {
   if (allSelected.value) {
     selectedRows.value.clear();
   } else {
-    sortedData.value.forEach(row => selectedRows.value.add(row.id));
+    processedData.value.forEach(row => selectedRows.value.add(row.id));
   }
   emitSelectionChange();
 };
