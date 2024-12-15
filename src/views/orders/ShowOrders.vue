@@ -109,6 +109,34 @@ const columns = [
   },
 ];
 
+const searchableColumns = ['userName'];
+
+const tableFilters = [
+  {
+    field: 'paymentMethod',
+    options: [
+      { label: 'Efectivo', value: 'cash' },
+      { label: 'Bold', value: 'bold' },
+      { label: 'Transferencia', value: 'transfer' },
+      { label: 'Regalo', value: 'complimentary' },
+    ],
+  },
+  {
+    field: 'fulfillmentType',
+    options: [
+      { label: 'Recogen', value: 'pickup' },
+      { label: 'Domicilio', value: 'delivery' },
+    ],
+  },
+  {
+    field: 'isPaid',
+    options: [
+      { label: 'Pagado', value: true },
+      { label: 'Por Cobrar', value: false },
+    ],
+  },
+];
+
 // Table actions
 const tableActions = [
   {
@@ -305,6 +333,8 @@ onUnmounted(() => {
         ref="dataTable"
         :data="orderStore.items"
         :columns="columns"
+        :searchable-columns="searchableColumns"
+        :filters="tableFilters"
         :actions="tableActions"
         :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
