@@ -96,7 +96,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="container p-4">
+  <div class="container p-4 px-0 lg:px-4">
     <!-- Loading State -->
     <div v-if="ingredientStore.loading" class="text-neutral-600 text-center py-4">
       Loading...

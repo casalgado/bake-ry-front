@@ -276,7 +276,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="container p-4">
+  <div class="container p-4 px-0 lg:px-4">
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Entrega</h2>
       <PeriodSelector />

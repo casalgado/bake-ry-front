@@ -20,15 +20,17 @@ onMounted(async () => {
     <h2>Welcome! Get Started with Your Bakery</h2>
     <CreateBakery @success="handleSuccess" />
   </section>
-  <section v-else class="grid lg:grid-cols-[200px_1fr] transition-all">
+  <section v-else class="relative grid lg:grid-cols-[200px_1fr] transition-all">
     <AdminSidebar />
-    <!-- Added pb-16 to account for mobile navigation bar -->
-    <div class="grid justify-items-center grid-cols-1 bg-neutral-150 py-5 pb-16 lg:pb-5">
+    <!-- Added relative positioning and proper z-index -->
+    <div class="relative grid justify-items-center grid-cols-1 bg-neutral-150 py-5 pb-20 lg:pb-5 min-h-screen">
       <RouterView />
     </div>
   </section>
 </template>
 
 <style scoped lang="scss">
-
+section {
+  min-height: 100vh;
+}
 </style>

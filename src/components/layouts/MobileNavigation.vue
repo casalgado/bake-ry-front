@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
 import { PhList } from '@phosphor-icons/vue';
+import SidebarLink from '@/components/common/SidebarLink.vue';
 
 const props = defineProps({
   links: {
@@ -25,10 +26,10 @@ const handleNavigation = (link) => {
 
 <template>
   <!-- Fixed bottom bar -->
-  <div class="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-neutral-200 flex items-center justify-center lg:hidden">
+  <div class="fixed bottom-0 left-0 right-0 h-10 bg-white border-t border-neutral-200 flex items-center justify-center lg:hidden z-50">
     <button
       @click="isOpen = true"
-      class="flex items-center gap-2 px-4 py-2 text-neutral-600 hover:text-primary"
+      class="flex items-center gap-2 px-4 py-0 text-neutral-600 hover:text-primary"
     >
       <PhList class="w-6 h-6" />
       <span>Menu</span>
@@ -47,7 +48,7 @@ const handleNavigation = (link) => {
     <!-- Full-screen container -->
     <div class="fixed inset-0 flex w-screen">
       <DialogPanel class="w-full bg-white">
-        <div class="flex justify-between items-center p-4 border-b border-neutral-200">
+        <div class="flex justify-between items-center px-4 py-0 border-b border-neutral-200">
           <DialogTitle class="text-lg font-semibold text-neutral-800">
             Menu
           </DialogTitle>
@@ -60,20 +61,14 @@ const handleNavigation = (link) => {
         </div>
 
         <nav class="p-4">
-          <button
+          <SidebarLink
             v-for="link in links"
             :key="link.id"
+            :icon="link.icon"
+            :text="link.text"
+            :isActive="activeRoute === link.path"
             @click="handleNavigation(link)"
-            class="w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2"
-            :class="[
-              activeRoute === link.path
-                ? 'bg-primary-100 text-primary-700'
-                : 'text-neutral-600 hover:bg-neutral-50'
-            ]"
-          >
-            <component :is="link.icon" class="w-5 h-5" />
-            <span>{{ link.text }}</span>
-          </button>
+          />
         </nav>
       </DialogPanel>
     </div>
