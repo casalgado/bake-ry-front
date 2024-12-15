@@ -110,7 +110,7 @@ onClickOutside(searchContainer, () => {
         :disabled="!hasActiveFilters"
       >
         <PhX class="w-4 h-4" />
-        Clear all
+
       </button>
     </div>
   </div>

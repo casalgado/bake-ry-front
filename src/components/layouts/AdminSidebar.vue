@@ -1,5 +1,4 @@
 <script setup>
-
 import { useRouter, useRoute } from 'vue-router';
 import {
   PhChartDonut,
@@ -17,6 +16,7 @@ import {
   PhGear,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
+import MobileNavigation from './MobileNavigation.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -109,7 +109,8 @@ const handleLinkClick = (link) => {
 </script>
 
 <template>
-  <nav class="p-4">
+  <!-- Desktop Sidebar -->
+  <nav class="p-4 hidden lg:block">
     <SidebarLink
       v-for="link in links"
       :key="link.id"
@@ -119,4 +120,11 @@ const handleLinkClick = (link) => {
       @click="handleLinkClick(link)"
     />
   </nav>
+
+  <!-- Mobile Navigation -->
+  <MobileNavigation
+    :links="links"
+    :active-route="route.path"
+    @navigate="handleLinkClick"
+  />
 </template>
