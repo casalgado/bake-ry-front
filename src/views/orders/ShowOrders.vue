@@ -113,15 +113,6 @@ const searchableColumns = ['userName'];
 
 const tableFilters = [
   {
-    field: 'paymentMethod',
-    options: [
-      { label: 'Efectivo', value: 'cash' },
-      { label: 'Bold', value: 'bold' },
-      { label: 'Transferencia', value: 'transfer' },
-      { label: 'Regalo', value: 'complimentary' },
-    ],
-  },
-  {
     field: 'fulfillmentType',
     options: [
       { label: 'Recogen', value: 'pickup' },
