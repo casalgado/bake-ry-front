@@ -9,9 +9,10 @@ import {
 import axios from 'axios';
 
 const development = import.meta.env.VITE_USE_AUTH_EMULATOR === 'true';
+console.log('development', development);
 const API_URL = development
   ? 'http://localhost:5001/bake-ry/us-central1/bake'
-  : import.meta.env.VITE_API_URL;
+  : import.meta.env.VITE_API_URL_REMOTE;
 
 const VALID_ROLES = {
   BAKERY_ADMIN: 'bakery_admin',

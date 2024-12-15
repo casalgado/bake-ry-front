@@ -33,7 +33,7 @@ const emit = defineEmits(['submit']);
 
 const handleSubmit = () => {
   console.log(formData.value);
-  //emit('submit', formData.value);
+  emit('submit', formData.value);
 };
 </script>
 

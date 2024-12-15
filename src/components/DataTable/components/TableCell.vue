@@ -148,7 +148,7 @@ const handleMouseLeave = () => {
       <!-- Tooltip -->
       <div
         v-if="tooltipContent && showTooltip && !isLoading"
-        class="absolute z-50 px-2 py-1 text-xs text-white bg-primary rounded shadow-lg whitespace-nowrap left-full ml-2 top-1/2 -translate-y-1/2"
+        class="pointer-events-none absolute z-50 px-2 py-1 text-xs text-white bg-primary rounded shadow-lg whitespace-nowrap left-full ml-2 top-1/2 -translate-y-1/2"
       >
         <div class="flex items-center gap-1">
           {{ tooltipContent.prefix }}

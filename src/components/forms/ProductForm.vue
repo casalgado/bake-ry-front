@@ -190,7 +190,7 @@ const handleSubmit = () => {
     ...formData.value,
     variations: finalVariations,
   });
-  // emit('submit', {...formData.value, variations: finalVariations });
+  emit('submit', { ...formData.value, variations: finalVariations });
 };
 
 const resetForm = () => {

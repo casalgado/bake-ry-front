@@ -20,6 +20,7 @@ export class BakeryService {
   static async createBakery(bakeryData) {
     try {
       const response = await api.post('/bakeries', bakeryData);
+
       console.log('Bakery created:', response.data);
       return response.data;
     } catch (error) {

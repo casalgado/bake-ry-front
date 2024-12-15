@@ -24,6 +24,11 @@ const router = createRouter({
       meta: { requiresGuest: true },
     },
     {
+      path: '/createBakery',
+      name: 'create-bakery',
+      component: () => import('../views/bakeries/CreateBakery.vue'),
+    },
+    {
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('../views/dashboard/AdminDashboard.vue'),

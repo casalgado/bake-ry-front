@@ -90,6 +90,7 @@ const validate = () => {
 
 const handleSubmit = () => {
   console.log(formData.value);
+  formData.value.name = formData.value.firstName + ' ' + formData.value.lastName;
 
   if (!validate()) return;
   console.log('valido');
