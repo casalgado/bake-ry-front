@@ -28,7 +28,7 @@ const formatPrice = (price) => new Intl.NumberFormat('es-CO', {
               </span> -->
             </div>
           </td>
-          <td class="px-3 py-2 text-sm text-neutral-600">{{ item.value }}g</td>
+
           <td class="px-3 py-2 text-sm text-right font-medium">
             {{ formatPrice(item.currentPrice) }}
           </td>

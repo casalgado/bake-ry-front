@@ -48,11 +48,6 @@ const getFixedVariation = () => ({
   value: 1000,
   basePrice: 1000,
   isWholeGrain: false,
-  recipe: {
-    recipeSource: 'base',
-    recipeId: null,
-    ingredients: [],
-  },
 });
 
 const formData = ref({
@@ -196,6 +191,10 @@ watch(
 
 const handleSubmit = () => {
   const finalVariations = [...formData.value.variations, getFixedVariation()];
+  formData.value.collectionId = formData.value.collection;
+  formData.value.collectionName = collectionStore.items.find(
+    (c) => c.id === formData.value.collection,
+  )?.name;
   emit('submit', { ...formData.value, variations: finalVariations });
 };
 
@@ -203,6 +202,8 @@ const resetForm = () => {
   formData.value = {
     name: '',
     collection: '',
+    collectionId: '',
+    collectionName: '',
     description: '',
     hasVariations: false,
     hasWholeGrain: false,
@@ -221,14 +222,38 @@ const initializeForm = () => {
   if (props.initialData) {
     isEditMode.value = true;
     // Filter out the 'otra' variation
-    const productVariations = props.initialData.variations?.filter(v => v.name !== 'otra') || [];
+    const rawVariations = props.initialData.variations?.filter(v => v.name !== 'otra') || [];
+
+    // Organize variations in pairs
+    const organizedVariations = [];
+    const regularVariations = rawVariations.filter(v => !v.isWholeGrain);
+
+    regularVariations.forEach(regVar => {
+      // Add regular variation
+      organizedVariations.push(regVar);
+      // Find and add matching whole grain variation if exists
+      const wholeGrainMatch = rawVariations.find(v =>
+        v.isWholeGrain &&
+        v.name.includes(regVar.name),
+      );
+      if (wholeGrainMatch) {
+        organizedVariations.push(wholeGrainMatch);
+      }
+    });
+
+    // Add any remaining whole grain variations that didn't have matches
+    const remainingWholeGrain = rawVariations.filter(v =>
+      v.isWholeGrain &&
+      !organizedVariations.includes(v),
+    );
+    organizedVariations.push(...remainingWholeGrain);
 
     formData.value = {
       name: props.initialData.name || '',
       collection: props.initialData.collectionId || '',
       description: props.initialData.description || '',
-      hasVariations: productVariations.length > 0,
-      variations: productVariations,
+      hasVariations: organizedVariations.length > 0,
+      variations: organizedVariations,
       basePrice: props.initialData.basePrice || 0,
       recipe: props.initialData.recipe || {
         recipeSource: null,
@@ -268,14 +293,14 @@ onMounted(async () => {
           />
         </div>
 
-        <div>
+        <!-- <div>
           <label for="description">Descripción</label>
           <textarea
             id="description"
             v-model="formData.description"
             rows="3"
           />
-        </div>
+        </div> -->
 
         <div>
           <label for="collection">Colección</label>

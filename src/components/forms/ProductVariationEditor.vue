@@ -30,6 +30,9 @@ const updateField = (field, value) => {
     ...props.variation,
     [field]: value,
   };
+  if (field === 'basePrice') {
+    updatedVariation.currentPrice = value;
+  }
   emit('update:variation', updatedVariation);
 };
 
@@ -78,12 +81,12 @@ const getValueStep = () => (props.variationType === 'WEIGHT' ? '50' : '1');
     </div>
 
     <div>
-      <label>Precio Base</label>
+      <label>Precio</label>
       <input
         type="number"
         :value="variation.basePrice"
         @input="updateField('basePrice', Number($event.target.value))"
-        step="100"
+        step="500"
         :disabled="disabled"
       />
     </div>
