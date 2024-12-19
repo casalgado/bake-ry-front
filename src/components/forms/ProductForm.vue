@@ -372,6 +372,7 @@ onMounted(async () => {
           </div>
 
           <button
+            v-if="formData.variationType || isEditMode"
             type="button"
             @click="addVariation"
             :disabled="loading"

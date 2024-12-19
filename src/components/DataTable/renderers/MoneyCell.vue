@@ -18,5 +18,5 @@ const formatMoney = (value) => {
 </script>
 
 <template>
-  <span>{{ formatMoney(value) }}</span>
+  <span>{{ value && value > 0 ? formatMoney(value) : ''}}</span>
 </template>

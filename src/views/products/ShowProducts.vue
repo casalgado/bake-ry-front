@@ -8,7 +8,8 @@ import ProductForm from '@/components/forms/ProductForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import VariationsCell from '@/components/DataTable/renderers/VariationsCell.vue';
 import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
-import { PhPen } from '@phosphor-icons/vue';
+import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
+import { PhPen, PhTrash } from '@phosphor-icons/vue';
 
 const router = useRouter();
 const productStore = useProductStore();
@@ -66,6 +67,10 @@ const columns = [
     label: 'Precio Base',
     field: 'basePrice',
     sortable: true,
+    component: MoneyCell,
+    getProps: (row) => ({
+      value: row.basePrice,
+    }),
   },
   {
     id: 'isActive',
@@ -102,6 +107,14 @@ const tableActions = [
     maxSelected: 1,
     variant: 'primary',
   },
+  {
+    id: 'delete',
+    label: 'Eliminar',
+    icon: PhTrash,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'danger',
+  },
 ];
 
 const handleAction = async ({ actionId, selectedIds }) => {
@@ -111,6 +124,12 @@ const handleAction = async ({ actionId, selectedIds }) => {
     if (actionId === 'edit') {
       selectedProduct.value = productStore.items.find(product => product.id === selectedIds[0]);
       isFormOpen.value = true;
+    } else if (actionId === 'delete') {
+      if (window.confirm('¿Estás seguro de querer eliminar este producto?')) {
+        selectedProduct.value = productStore.items.find(product => product.id === selectedIds[0]);
+        await productStore.remove(selectedProduct.value.id);
+        dataTable.value?.clearSelection();
+      }
     }
   } catch (error) {
     console.error('Action failed:', error);
