@@ -1,6 +1,5 @@
 <!-- components/DataTable/renderers/ClientCell.vue -->
 <script setup>
-import { computed } from 'vue';
 import { PhCheckFat, PhMinus } from '@phosphor-icons/vue';
 const props = defineProps({
   isChecked: {

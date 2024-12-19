@@ -47,6 +47,15 @@ const toggleSearch = () => {
   }
 };
 
+const clearAll = () => {
+  if (searchInput.value) {
+    searchInput.value.value = '';
+  }
+  showSearch.value = false;
+  emit('update:search', '');
+  emit('clear-all');
+};
+
 const searchContainer = ref(null);
 onClickOutside(searchContainer, () => {
   if (showSearch.value && !searchInput.value?.value) {
@@ -100,7 +109,7 @@ onClickOutside(searchContainer, () => {
 
       <!-- Clear filters (always visible) -->
       <button
-        @click="$emit('clear-all')"
+        @click="clearAll"
         class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
         :class="[
           hasActiveFilters

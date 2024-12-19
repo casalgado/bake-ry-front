@@ -5,6 +5,8 @@ import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import { useRouter } from 'vue-router';
 import ProductForm from '@/components/forms/ProductForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
+import VariationsCell from '@/components/DataTable/renderers/VariationsCell.vue';
+import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
 
 const router = useRouter();
 const productStore = useProductStore();
@@ -32,21 +34,7 @@ const tableData = computed(() => {
   });
 });
 
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(value);
-};
-
 const columns = [
-  {
-    id: 'name',
-    label: 'Name',
-    field: 'name',
-    sortable: true,
-  },
   {
     id: 'collectionName',
     label: 'Collection',
@@ -54,35 +42,54 @@ const columns = [
     sortable: true,
   },
   {
+    id: 'name',
+    label: 'Name',
+    field: 'name',
+    sortable: true,
+  },
+  {
     id: 'variations',
     label: 'Variaciones',
     field: 'variations',
     sortable: false,
-    customRender: (variations) => {
-      if (!variations || variations.length === 0) return '-';
-      return variations.map(v => `${v.name} (${v.value}g)`).join(', ');
-    },
+    component: VariationsCell,
+    getProps: (row) => ({
+      variations: row.variations,
+    }),
   },
   {
     id: 'basePrice',
     label: 'Precio Base',
     field: 'basePrice',
-    sortable: false,
-  },
-  {
-    id: 'recipes',
-    label: 'Receta',
-    field: 'recipeId',
-    sortable: false,
+    sortable: true,
   },
   {
     id: 'isActive',
-    label: 'Status',
+    label: 'Activo',
     field: 'isActive',
     sortable: true,
-    customRender: (value) => value ? 'Active' : 'Inactive',
+    component: CheckboxCell,
+    getProps: (row) => ({
+      isChecked: row.isActive,
+    }),
   },
 ];
+
+// Add collectionFilter computed property
+const uniqueCollections = computed(() => {
+  return [...new Set(productStore.items.map(item => item.collectionName))];
+
+});
+
+const tableFilters = computed(() => [
+  {
+    field: 'collectionName',
+    options: uniqueCollections.value.map((collection) => ({
+      label: collection,
+      value: collection,
+    })),
+  },
+]);
 
 const handleRowClick = ({ row }) => {
   selectedProduct.value = row;
@@ -115,37 +122,6 @@ const navigateToCreate = () => {
   <div class="container p-4 px-0 lg:px-4">
     <h2 class="text-2xl font-bold mb-4">Productos</h2>
 
-    <!-- Search and Filter Controls -->
-    <div class="flex gap-4 mb-4">
-      <input
-        type="text"
-        v-model="searchQuery"
-        placeholder="Search products..."
-        class="px-4 py-2 border rounded"
-      />
-
-      <select
-        v-model="selectedCollection"
-        class="px-4 py-2 border rounded"
-      >
-        <option value="">Todas</option>
-        <option
-          v-for="collection in productCollectionStore.items"
-          :key="collection.id"
-          :value="collection.id"
-        >
-          {{ collection.name }}
-        </option>
-      </select>
-
-      <button
-        @click="navigateToCreate"
-        class="px-4 py-2 action-btn"
-      >
-        Crear Producto
-      </button>
-    </div>
-
     <!-- Loading State -->
     <div v-if="productStore.loading" class="text-neutral-600 text-center py-4">
       Cargando productos...
@@ -175,6 +151,7 @@ const navigateToCreate = () => {
       <DataTable
         :data="tableData"
         :columns="columns"
+        :filters="tableFilters"
         @row-click="handleRowClick"
         class="bg-white shadow-lg rounded-lg"
       />
