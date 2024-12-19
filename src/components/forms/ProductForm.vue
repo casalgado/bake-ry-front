@@ -23,6 +23,7 @@ const props = defineProps({
   },
 });
 
+const isEditMode = ref(false);
 const collectionStore = useProductCollectionStore();
 const bakerySettingsStore = useBakerySettingsStore();
 
@@ -88,6 +89,8 @@ const getVariationsForType = (type) => {
 const selectedVariationType = ref(formData.value.variationType);
 
 const handleVariationTypeChange = () => {
+  if (isEditMode.value) return;
+
   if (
     formData.value.variations.length &&
     !window.confirm(
@@ -118,6 +121,8 @@ const handleVariationTypeChange = () => {
 
 // Separate function for whole grain handling
 const applyWholeGrainVariations = () => {
+  if (isEditMode.value) return;
+
   const newVariations = formData.value.variations.flatMap((variation) => [
     variation,
     createBaseVariation(variation, true),
@@ -127,6 +132,12 @@ const applyWholeGrainVariations = () => {
 
 // Simplified variation management
 const addVariation = () => {
+  if (isEditMode.value) {
+    formData.value.variations.push(createBaseVariation());
+    formData.value.variations.push(createBaseVariation({}, true));
+    return;
+  }
+
   const baseVariation = createBaseVariation();
   const newVariations = formData.value.hasWholeGrain
     ? [baseVariation, createBaseVariation(baseVariation, true)]
@@ -141,7 +152,7 @@ const removeVariation = (index) => {
 const updateVariation = (index, updatedVariation) => {
   formData.value.variations[index] = updatedVariation;
 
-  if (formData.value.hasWholeGrain && !updatedVariation.isWholeGrain) {
+  if (!isEditMode.value && formData.value.hasWholeGrain && !updatedVariation.isWholeGrain) {
     const nextIndex = index + 1;
     if (formData.value.variations[nextIndex]?.isWholeGrain) {
       formData.value.variations[nextIndex] = {
@@ -152,11 +163,11 @@ const updateVariation = (index, updatedVariation) => {
   }
 };
 
-// Watch for whole grain changes
+// Watch for whole grain changes - only in create mode
 watch(
   () => formData.value.hasWholeGrain,
   (newValue, oldValue) => {
-    if (!formData.value.variationType) return;
+    if (isEditMode.value || !formData.value.variationType) return;
 
     if (
       !newValue &&
@@ -183,13 +194,8 @@ watch(
   },
 );
 
-// Append the fixed variation and submit
 const handleSubmit = () => {
   const finalVariations = [...formData.value.variations, getFixedVariation()];
-  console.log('Form submission data:', {
-    ...formData.value,
-    variations: finalVariations,
-  });
   emit('submit', { ...formData.value, variations: finalVariations });
 };
 
@@ -211,10 +217,25 @@ const resetForm = () => {
   };
 };
 
-// Initialize form with initial data if provided
 const initializeForm = () => {
   if (props.initialData) {
-    formData.value = { ...props.initialData };
+    isEditMode.value = true;
+    // Filter out the 'otra' variation
+    const productVariations = props.initialData.variations?.filter(v => v.name !== 'otra') || [];
+
+    formData.value = {
+      name: props.initialData.name || '',
+      collection: props.initialData.collectionId || '',
+      description: props.initialData.description || '',
+      hasVariations: productVariations.length > 0,
+      variations: productVariations,
+      basePrice: props.initialData.basePrice || 0,
+      recipe: props.initialData.recipe || {
+        recipeSource: null,
+        recipeId: null,
+        ingredients: [],
+      },
+    };
   }
 };
 
@@ -274,7 +295,7 @@ onMounted(async () => {
           </select>
         </div>
 
-        <div>
+        <div v-if="!isEditMode">
           <YesNoToggle
             v-model="formData.hasVariations"
             label="¿Tiene variaciones?"
@@ -283,44 +304,45 @@ onMounted(async () => {
       </div>
 
       <!-- Variations Section -->
-      <div v-if="formData.hasVariations" class="base-card">
+      <div v-if="formData.hasVariations || isEditMode" class="base-card">
         <h4>Variaciones del Producto</h4>
 
-        <!-- Variation Type Selection -->
-        <div>
-          <label for="variationType">Tipo de Variación</label>
-          <select
-            id="variationType"
-            v-model="selectedVariationType"
-            @change="handleVariationTypeChange(formData.variationType)"
-          >
-            <option value="">Seleccionar tipo</option>
-            <option value="WEIGHT">Peso (g)</option>
-            <option value="QUANTITY">Cantidad</option>
-            <option value="CUSTOM">Personalizado</option>
-          </select>
-        </div>
+        <!-- Variation Type Selection - only show in create mode -->
+        <template v-if="!isEditMode">
+          <div>
+            <label for="variationType">Tipo de Variación</label>
+            <select
+              id="variationType"
+              v-model="selectedVariationType"
+              @change="handleVariationTypeChange"
+            >
+              <option value="">Seleccionar tipo</option>
+              <option value="WEIGHT">Peso (g)</option>
+              <option value="QUANTITY">Cantidad</option>
+              <option value="CUSTOM">Personalizado</option>
+            </select>
+          </div>
 
-        <!-- Whole Grain Toggle -->
-        <div v-if="formData.variationType">
-          <YesNoToggle
-            v-model="formData.hasWholeGrain"
-            label="¿Incluir versión integral?"
-          />
-        </div>
+          <!-- Whole Grain Toggle -->
+          <div v-if="formData.variationType">
+            <YesNoToggle
+              v-model="formData.hasWholeGrain"
+              label="¿Incluir versión integral?"
+            />
+          </div>
+        </template>
 
         <!-- Variations List -->
-        <div v-if="formData.variationType" class="grid grid-cols-1 gap-2">
+        <div class="grid grid-cols-1 gap-2">
           <div v-for="(variation, index) in formData.variations" :key="index">
             <ProductVariationEditor
               :variation="variation"
-              :variation-type="formData.variationType"
+              :variation-type="isEditMode ? 'CUSTOM' : formData.variationType"
               :index="index"
               :disabled="loading"
               :is-fixed="variation.isFixed"
               @update:variation="updateVariation(index, $event)"
               @remove="removeVariation(index)"
-
             />
           </div>
 
@@ -336,7 +358,7 @@ onMounted(async () => {
       </div>
 
       <!-- Non-variation product details -->
-      <div v-if="!formData.hasVariations" class="base-card">
+      <div v-if="!formData.hasVariations && !isEditMode" class="base-card">
         <h4>Detalles</h4>
 
         <div>

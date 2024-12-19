@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { Dialog, DialogPanel } from '@headlessui/vue';
 import { useProductStore } from '@/stores/productStore';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import { useRouter } from 'vue-router';
@@ -12,7 +13,7 @@ import { PhPen } from '@phosphor-icons/vue';
 const router = useRouter();
 const productStore = useProductStore();
 const productCollectionStore = useProductCollectionStore();
-const showForm = ref(false);
+const isFormOpen = ref(false);
 const selectedProduct = ref(null);
 const searchQuery = ref('');
 const selectedCollection = ref('');
@@ -109,7 +110,7 @@ const handleAction = async ({ actionId, selectedIds }) => {
   try {
     if (actionId === 'edit') {
       selectedProduct.value = productStore.items.find(product => product.id === selectedIds[0]);
-      showForm.value = true;
+      isFormOpen.value = true;
     }
   } catch (error) {
     console.error('Action failed:', error);
@@ -131,7 +132,7 @@ const handleSubmit = async (formData) => {
     if (selectedProduct.value) {
       await productStore.update(selectedProduct.value.id, formData);
     }
-    showForm.value = false;
+    isFormOpen.value = false;
     selectedProduct.value = null;
   } catch (error) {
     console.error('Failed to update product:', error);
@@ -139,7 +140,7 @@ const handleSubmit = async (formData) => {
 };
 
 const handleCancel = () => {
-  showForm.value = false;
+  isFormOpen.value = false;
   selectedProduct.value = null;
 };
 
@@ -162,19 +163,31 @@ const navigateToCreate = () => {
       {{ productStore.error }}
     </div>
 
-    <!-- Edit Form Modal -->
-    <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 ">
-      <div class="bg-white rounded-lg p-6 max-w-2xl w-full">
-        <h3 class="text-xl font-bold mb-4">Edit Product</h3>
-        <ProductForm
-          :key="selectedProduct.id"
-          :initial-data="selectedProduct"
-          :loading="productStore.loading"
-          @submit="handleSubmit"
-          @cancel="handleCancel"
-        />
+    <!-- Edit Form Dialog -->
+    <Dialog
+      :open="isFormOpen"
+      @close="handleCancel"
+      class="relative z-50"
+    >
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+
+      <!-- Full-screen container -->
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <h3 class="text-xl font-bold mb-4">Edit Product</h3>
+          <ProductForm
+            v-if="selectedProduct"
+            :key="selectedProduct.id"
+            :initial-data="selectedProduct"
+            :loading="productStore.loading"
+            class="w-full"
+            @submit="handleSubmit"
+            @cancel="handleCancel"
+          />
+        </DialogPanel>
       </div>
-    </div>
+    </Dialog>
 
     <!-- Table -->
     <div v-if="!productStore.loading">
@@ -194,18 +207,6 @@ const navigateToCreate = () => {
 </template>
 
 <style scoped lang="scss">
-.dialog-overlay {
-  @apply bg-black bg-opacity-50;
-}
-
-.dialog-content {
-  @apply bg-white rounded-lg shadow-xl transform transition-all;
-
-  &:focus {
-    @apply outline-none;
-  }
-}
-
 * {
   &::-webkit-scrollbar {
     display: none;
