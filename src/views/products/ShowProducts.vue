@@ -7,6 +7,7 @@ import ProductForm from '@/components/forms/ProductForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import VariationsCell from '@/components/DataTable/renderers/VariationsCell.vue';
 import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
+import { PhPen } from '@phosphor-icons/vue';
 
 const router = useRouter();
 const productStore = useProductStore();
@@ -15,6 +16,8 @@ const showForm = ref(false);
 const selectedProduct = ref(null);
 const searchQuery = ref('');
 const selectedCollection = ref('');
+const actionLoading = ref({});
+const dataTable = ref(null);
 
 onMounted(async () => {
   await productStore.fetchAll();
@@ -75,10 +78,8 @@ const columns = [
   },
 ];
 
-// Add collectionFilter computed property
 const uniqueCollections = computed(() => {
   return [...new Set(productStore.items.map(item => item.collectionName))];
-
 });
 
 const tableFilters = computed(() => [
@@ -91,9 +92,38 @@ const tableFilters = computed(() => [
   },
 ]);
 
-const handleRowClick = ({ row }) => {
-  selectedProduct.value = row;
-  showForm.value = true;
+const tableActions = [
+  {
+    id: 'edit',
+    label: 'Editar',
+    icon: PhPen,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'primary',
+  },
+];
+
+const handleAction = async ({ actionId, selectedIds }) => {
+  actionLoading.value[actionId] = true;
+
+  try {
+    if (actionId === 'edit') {
+      selectedProduct.value = productStore.items.find(product => product.id === selectedIds[0]);
+      showForm.value = true;
+    }
+  } catch (error) {
+    console.error('Action failed:', error);
+  } finally {
+    actionLoading.value[actionId] = false;
+  }
+};
+
+const handleSelectionChange = (selectedIds) => {
+  if (selectedIds.length === 1) {
+    selectedProduct.value = productStore.items.find(product => product.id === selectedIds[0]);
+  } else {
+    selectedProduct.value = null;
+  }
 };
 
 const handleSubmit = async (formData) => {
@@ -133,7 +163,7 @@ const navigateToCreate = () => {
     </div>
 
     <!-- Edit Form Modal -->
-    <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 ">
       <div class="bg-white rounded-lg p-6 max-w-2xl w-full">
         <h3 class="text-xl font-bold mb-4">Edit Product</h3>
         <ProductForm
@@ -149,12 +179,38 @@ const navigateToCreate = () => {
     <!-- Table -->
     <div v-if="!productStore.loading">
       <DataTable
+        ref="dataTable"
         :data="tableData"
         :columns="columns"
         :filters="tableFilters"
-        @row-click="handleRowClick"
+        :actions="tableActions"
+        :action-loading="actionLoading"
+        @selection-change="handleSelectionChange"
+        @action="handleAction"
         class="bg-white shadow-lg rounded-lg"
       />
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+.dialog-overlay {
+  @apply bg-black bg-opacity-50;
+}
+
+.dialog-content {
+  @apply bg-white rounded-lg shadow-xl transform transition-all;
+
+  &:focus {
+    @apply outline-none;
+  }
+}
+
+* {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>
