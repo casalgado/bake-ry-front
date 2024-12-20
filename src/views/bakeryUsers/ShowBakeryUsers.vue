@@ -86,9 +86,9 @@ const handleAction = async ({ actionId, selectedIds }) => {
       isFormOpen.value = true;
       break;
     case 'delete':
-      if (window.confirm('Are you sure you want to delete this client?')) {
+      if (window.confirm('Estas seguro que deseas eliminar este cliente?')) {
         selectedClient.value = bakeryUserStore.items.find(client => client.id === selectedIds[0]);
-        // await bakeryUserStore.remove(selectedClient.value.id);
+        await bakeryUserStore.remove(selectedClient.value.id);
         dataTable.value?.clearSelection();
       }
       break;

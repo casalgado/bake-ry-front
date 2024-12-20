@@ -218,6 +218,16 @@ const resetForm = () => {
   };
 };
 
+// Computed property for submit button text
+const submitButtonText = computed(() => {
+  return props.initialData ? 'Actualizar Producto' : 'Crear Producto';
+});
+
+// Computed property for loading text
+const loadingText = computed(() => {
+  return props.initialData ? 'Actualizando...' : 'Creando...';
+});
+
 const initializeForm = () => {
   if (props.initialData) {
     isEditMode.value = true;
@@ -402,7 +412,7 @@ onMounted(async () => {
       <!-- Form Actions -->
       <div class="base-card flex gap-2">
         <button class="action-btn" type="submit" :disabled="loading">
-          {{ loading ? "Guardando..." : "Guardar Producto" }}
+          {{ loading ? loadingText : submitButtonText}}
         </button>
         <button
           class="action-btn"

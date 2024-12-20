@@ -31,6 +31,7 @@ const availableActions = computed(() => {
   return props.actions.filter(action => {
     if (action.minSelected && props.selectedCount < action.minSelected) return false;
     if (action.maxSelected && props.selectedCount > action.maxSelected) return false;
+    if (action.hideIf) return false;
     return true;
   });
 });

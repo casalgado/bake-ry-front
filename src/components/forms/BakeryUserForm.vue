@@ -1,5 +1,5 @@
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue';
+import { ref, defineProps, defineEmits, computed } from 'vue';
 import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
 
 const props = defineProps({
@@ -40,9 +40,9 @@ const formData = ref({ ...props.initialData });
 const userTypeOptions = [
   { value: 'client', label: 'Cliente', role: 'bakery_customer', category: 'B2C' },
   { value: 'company', label: 'Empresa', role: 'bakery_customer', category: 'B2B' },
-  { value: 'staff', label: 'Staff', role: 'bakery_staff', category: '' },
-  { value: 'delivery', label: 'Asistente Domicilio', role: 'delivery_assistant', category: '' },
-  { value: 'production', label: 'Asistente Produccion', role: 'production_assistant', category: '' },
+  { value: 'staff', label: 'Staff', role: 'bakery_staff', category: 'PER' },
+  { value: 'delivery', label: 'Asistente Domicilio', role: 'delivery_assistant', category: 'PER' },
+  { value: 'production', label: 'Asistente Produccion', role: 'production_assistant', category: 'PER' },
 ];
 
 // Compute initial selected value based on role and category
@@ -87,6 +87,16 @@ const validate = () => {
   console.log(errors.value);
   return Object.keys(errors.value).length === 0;
 };
+
+// Computed property for submit button text
+const submitButtonText = computed(() => {
+  return props.initialData.id ? 'Actualizar Cliente' : 'Crear Cliente';
+});
+
+// Computed property for loading text
+const loadingText = computed(() => {
+  return props.initialData.id ? 'Actualizando...' : 'Creando...';
+});
 
 const handleSubmit = () => {
   console.log(formData.value);
@@ -201,7 +211,7 @@ const handleSubmit = () => {
           :disabled="loading"
           class="action-btn"
         >
-          {{ loading ? "Guardando..." : (isEdit ? "Actualizar" : "Crear") }}
+          {{ loading ? loadingText : submitButtonText}}
         </button>
         <button
           type="button"
