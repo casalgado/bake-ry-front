@@ -8,8 +8,18 @@ import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
+import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
 
-import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift } from '@phosphor-icons/vue';
+import {
+  PhPen,
+  PhExport,
+  PhTrash,
+  PhMoney,
+  PhCreditCard,
+  PhDeviceMobile,
+  PhGift,
+  PhCurrencyDollar,
+} from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
@@ -23,11 +33,22 @@ const unsubscribeRef = ref(null);
 
 const dataTable = ref(null);
 const isFormOpen = ref(false);
+const isDeliveryPriceDialogOpen = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
 const toggleLoading = ref({});
+const selectedDeliveryPrice = ref(7000);
+const selectedFeeType = ref('7000');
 
 const deliveryDrivers = ref([]);
+
+const deliveryFeeOptions = [
+  { value: 5000, label: '5000' },
+  { value: 6000, label: '6000' },
+  { value: 7000, label: '7000' },
+  { value: 8000, label: '8000' },
+  { value: 'custom', label: 'Otro' },
+];
 
 // Column definitions / "id must be the same as field for sorting to work"
 const columns = [
@@ -128,8 +149,15 @@ const tableActions = [
     variant: 'danger',
   },
   {
+    id: 'set_delivery_price',
+    label: 'Valor Domi',
+    icon: PhCurrencyDollar,
+    minSelected: 1,
+    variant: 'primary',
+  },
+  {
     id: 'export',
-    label: 'ExportarS',
+    label: 'Exportar',
     icon: PhExport,
     minSelected: 2,
     variant: 'primary',
@@ -142,6 +170,20 @@ const handleSelectionChange = (selectedIds) => {
     selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
   } else {
     selectedOrder.value = null;
+  }
+};
+
+const handleDeliveryPriceSubmit = async (selectedIds) => {
+  try {
+    const updates = selectedIds.map(id => ({
+      id,
+      data: { deliveryCost: selectedFeeType.value === 'custom' ? selectedDeliveryPrice.value : parseInt(selectedFeeType.value) },
+    }));
+
+    await orderStore.patchAll(updates);
+    isDeliveryPriceDialogOpen.value = false;
+  } catch (error) {
+    console.error('Failed to update delivery prices:', error);
   }
 };
 
@@ -187,7 +229,10 @@ const handleAction = async ({ actionId, selectedIds }) => {
         dataTable.value?.clearSelection();
       }
       break;
+    case 'set_delivery_price':
+      isDeliveryPriceDialogOpen.value = true;
 
+      break;
     }
   } catch (error) {
     console.error('Action failed:', error);
@@ -212,6 +257,12 @@ const closeForm = () => {
   selectedOrder.value = null;
 };
 
+const closeDeliveryPriceDialog = () => {
+  isDeliveryPriceDialogOpen.value = false;
+  selectedDeliveryPrice.value = 7000;
+  selectedFeeType.value = '7000';
+};
+
 // Watch for period changes and fetch new data
 watch(
   () => periodStore.periodRange,
@@ -234,11 +285,8 @@ watch(
 );
 
 watch(deliveryDrivers, (newDrivers) => {
-  // Find and update the deliveryDriver column options
-  console.log('deliveryDrivers changed', newDrivers);
   const driverColumn = columns.find(col => col.id === 'deliveryDriver');
   if (driverColumn) {
-    console.log('driverColumn', driverColumn);
     driverColumn.options = [{ value: '-', displayText: '-' }, ...newDrivers];
   }
 }, { deep: true });
@@ -261,7 +309,6 @@ onMounted(async () => {
       value: staff.first_name,
       displayText: `${staff.first_name}`,
     }));
-    console.log('deliveryDrivers', deliveryDrivers.value);
   } catch (error) {
     console.error('Failed to initialize orders:', error);
   }
@@ -297,9 +344,8 @@ onUnmounted(() => {
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
 
       <!-- Full-screen container for centering -->
-      <div class="fixed inset-0 flex items-center justify-center p-4 ">
+      <div class="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-
           <OrderForm
             v-if="selectedOrder"
             :title="'Editar Pedido'"
@@ -310,6 +356,39 @@ onUnmounted(() => {
             @submit="handleSubmit"
             @cancel="closeForm"
           />
+        </DialogPanel>
+      </div>
+    </Dialog>
+
+    <!-- Delivery Price Dialog -->
+    <Dialog
+      :open="isDeliveryPriceDialogOpen"
+      @close="closeDeliveryPriceDialog"
+      class="relative z-50"
+    >
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel class="bg-white rounded-lg p-6 max-w-md w-full">
+          <h3 class="text-lg font-medium mb-4">Valor del Domicilio</h3>
+          <RadioButtonGroup
+            v-model="selectedFeeType"
+            :options="deliveryFeeOptions"
+            name="delivery-fee"
+            label="Costo de Envío"
+            has-custom-option
+            custom-option-value="custom"
+          >
+            <template #custom-input>
+              <input
+                type="number"
+                v-model="selectedDeliveryPrice"
+                min="0"
+                step="500"
+                placeholder="Ingrese valor personalizado"
+                class="mt-2 w-full"
+              />
+            </template>
+          </RadioButtonGroup>
         </DialogPanel>
       </div>
     </Dialog>
