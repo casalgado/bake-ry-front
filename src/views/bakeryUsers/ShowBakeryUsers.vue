@@ -68,6 +68,18 @@ const tableActions = [
   },
 ];
 
+const tableFilters = [
+  {
+    field: 'category',
+    options: [
+      { label: 'B2C', value: 'B2C' },
+      { label: 'B2B', value: 'B2B' },
+      { label: 'PER', value: 'PER' },
+    ],
+  },
+
+];
+
 const handleSelectionChange = (selectedIds) => {
   if (selectedIds.length === 1) {
     selectedClient.value = bakeryUserStore.items.find(client => client.id === selectedIds[0]);
@@ -172,6 +184,7 @@ onMounted(async () => {
         :data="bakeryUserStore.items"
         :columns="columns"
         :actions="tableActions"
+        :filters="tableFilters"
         :action-loading="actionLoading"
         :data-loading="bakeryUserStore.loading"
         @selection-change="handleSelectionChange"

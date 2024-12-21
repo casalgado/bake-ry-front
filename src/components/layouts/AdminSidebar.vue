@@ -61,13 +61,13 @@ const links = [
   {
     id: 'nuevo_cliente',
     icon: PhPersonArmsSpread,
-    text: 'Crear Cliente',
+    text: 'Crear Usuario',
     path: '/dashboard/users/create',
   },
   {
     id: 'clientes',
     icon: PhUsersThree,
-    text: 'Clientes',
+    text: 'Usuarios',
     path: '/dashboard/users',
   },
 
