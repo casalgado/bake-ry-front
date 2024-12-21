@@ -19,8 +19,9 @@ defineProps({
       :key="item.id"
       class="flex items-center gap-1"
     >
+      <span class="text-sm">{{ item.quantity }}</span>
       <span>{{ item.productName }}</span>
-      <span class="text-neutral-500 text-sm">×{{ item.quantity }}</span>
+
     </div>
     <div
       v-if="items.length > maxDisplay"

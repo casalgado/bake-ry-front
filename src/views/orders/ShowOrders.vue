@@ -57,7 +57,7 @@ const columns = [
     component: ItemsCell,
     getProps: (row) => ({
       items: row.orderItems,
-      maxDisplay: 2,
+      maxDisplay: 10,
     }),
   },
   {

@@ -11,13 +11,13 @@ import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
 
 import {
   PhPen,
-  PhExport,
   PhTrash,
   PhMoney,
   PhCreditCard,
   PhDeviceMobile,
   PhGift,
   PhCurrencyDollar,
+  PhMapPin,
 } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
@@ -39,6 +39,8 @@ const actionLoading = ref({});
 const toggleLoading = ref({});
 const selectedDeliveryCost = ref(5000);
 const selectedIds = ref([]);
+const isAddressDialogOpen = ref(false);
+const editingAddress = ref('');
 
 const deliveryDrivers = ref([]);
 
@@ -85,7 +87,6 @@ const columns = [
     component: DateCell,
     getProps: (row) => ({
       value: row.dueDate,
-      showTime: true,
     }),
   },
   {
@@ -96,7 +97,7 @@ const columns = [
     component: ItemsCell,
     getProps: (row) => ({
       items: row.orderItems,
-      maxDisplay: 2,
+      maxDisplay: 10,
     }),
   },
   {
@@ -172,10 +173,11 @@ const tableActions = [
     variant: 'primary',
   },
   {
-    id: 'export',
-    label: 'Exportar',
-    icon: PhExport,
-    minSelected: 2,
+    id: 'set_address',
+    label: 'Dirección',
+    icon: PhMapPin,
+    minSelected: 1,
+    maxSelected: 1,
     variant: 'primary',
   },
 ];
@@ -206,6 +208,26 @@ const handleDeliveryPriceSubmit = async () => {
   }
 };
 
+// Add handler for address updates
+const handleAddressSubmit = async () => {
+  try {
+    actionLoading.value['set_address'] = true;
+    await orderStore.update(selectedIds.value[0], {
+      deliveryAddress: editingAddress.value,
+    });
+    isAddressDialogOpen.value = false;
+  } catch (error) {
+    console.error('Failed to update address:', error);
+  } finally {
+    actionLoading.value['set_address'] = false;
+  }
+};
+
+const closeAddressDialog = () => {
+  isAddressDialogOpen.value = false;
+  editingAddress.value = '';
+};
+
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
     // Set loading state for all affected rows
@@ -232,7 +254,6 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
   }
 };
 
-// Update handleAction to store the IDs
 const handleAction = async ({ actionId, selectedIds: ids }) => {
   actionLoading.value[actionId] = true;
 
@@ -250,9 +271,15 @@ const handleAction = async ({ actionId, selectedIds: ids }) => {
       }
       break;
     case 'set_delivery_price':
-      selectedDeliveryCost.value = 5000; // Reset to default
-      selectedIds.value = ids; // Store the selected IDs
+      selectedDeliveryCost.value = 5000;
+      selectedIds.value = ids;
       isDeliveryPriceDialogOpen.value = true;
+      break;
+    case 'set_address':
+      selectedOrder.value = orderStore.items.find(order => order.id === ids[0]);
+      editingAddress.value = selectedOrder.value.deliveryAddress || '';
+      selectedIds.value = [ids[0]];
+      isAddressDialogOpen.value = true;
       break;
     }
   } catch (error) {
@@ -425,6 +452,42 @@ onUnmounted(() => {
               class="action-btn"
             >
               {{ actionLoading.set_delivery_price ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
+
+    <Dialog
+      :open="isAddressDialogOpen"
+      @close="closeAddressDialog"
+      class="relative z-50"
+    >
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel class="form-container bg-white rounded-lg p-6 max-w-md w-full">
+          <h3 class="text-lg font-medium mb-4">Dirección de Entrega</h3>
+
+          <textarea
+            v-model="editingAddress"
+            rows="3"
+            placeholder="Dirección de entrega"
+            class="w-full mb-4 p-2 border rounded"
+          />
+
+          <div class="flex justify-end gap-2">
+            <button
+              @click="closeAddressDialog"
+              class="utility-btn"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="handleAddressSubmit"
+              :disabled="actionLoading.set_address"
+              class="action-btn"
+            >
+              {{ actionLoading.set_address ? 'Guardando...' : 'Guardar' }}
             </button>
           </div>
         </DialogPanel>
