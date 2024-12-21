@@ -109,6 +109,11 @@ const router = createRouter({
           component: () => import('../views/bakerySettings/ShowBakerySettings.vue'),
         },
         {
+          path: 'product-collections',
+          name: 'product-collections',
+          component: () => import('../views/products/ShowProductCollections.vue'),
+        },
+        {
           path: 'product-collections/create',
           name: 'create-product-collections',
           component: () => import('../views/products/CreateProductCollection.vue'),

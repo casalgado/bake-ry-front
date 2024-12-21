@@ -72,10 +72,10 @@ const links = [
   },
 
   {
-    id: 'crear_coleccion',
+    id: 'colecciones',
     icon: PhDresser,
-    text: 'Crear Colección',
-    path: '/dashboard/product-collections/create',
+    text: 'Collecciones',
+    path: '/dashboard/product-collections',
   },
   {
     id: 'productos',
@@ -83,18 +83,18 @@ const links = [
     text: 'Productos',
     path: '/dashboard/products',
   },
-  {
-    id: 'recetas',
-    icon: PhBasket,
-    text: 'Recetas',
-    path: '/dashboard/recipes',
-  },
-  {
-    id: 'ingredientes',
-    icon: PhBarcode,
-    text: 'Ingredientes',
-    path: '/dashboard/ingredients',
-  },
+  // {
+  //   id: 'recetas',
+  //   icon: PhBasket,
+  //   text: 'Recetas',
+  //   path: '/dashboard/recipes',
+  // },
+  // {
+  //   id: 'ingredientes',
+  //   icon: PhBarcode,
+  //   text: 'Ingredientes',
+  //   path: '/dashboard/ingredients',
+  // },
   {
     id: 'configuracion',
     icon: PhGear,
