@@ -24,6 +24,7 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
+import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -36,7 +37,8 @@ const isDeliveryPriceDialogOpen = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
 const toggleLoading = ref({});
-const selectedDeliveryCost = ref(7000);
+const selectedDeliveryCost = ref(5000);
+const selectedIds = ref([]);
 
 const deliveryDrivers = ref([]);
 
@@ -51,7 +53,7 @@ const deliveryFeeOptions = [
 const columns = [
   {
     id: 'userName',
-    label: 'Client',
+    label: 'Cliente',
     field: 'userName',
     sortable: true,
     component: ClientCell,
@@ -60,8 +62,24 @@ const columns = [
     }),
   },
   {
+    id: 'deliveryAddress',
+    label: 'Dirección',
+    field: 'deliveryAddress',
+    sortable: true,
+  },
+  {
+    id: 'deliveryCost',
+    label: 'Valor Domi',
+    field: 'deliveryCost',
+    sortable: true,
+    component: MoneyCell,
+    getProps: (row) => ({
+      value: row.deliveryCost,
+    }),
+  },
+  {
     id: 'dueDate',
-    label: 'Due Date',
+    label: 'Fecha de Entrega',
     field: 'dueDate',
     sortable: true,
     component: DateCell,
@@ -96,7 +114,7 @@ const columns = [
   },
   {
     id: 'fulfillmentType',
-    label: 'Entrega',
+    label: 'Tipo Entrega',
     field: 'fulfillmentType',
     sortable: true,
     type: 'toggle',
@@ -113,6 +131,7 @@ const columns = [
     type: 'toggle',
     options: [{ value: '-', displayText: '-' }],
   },
+
   {
     id: 'isPaid',
     label: 'Pagado',
@@ -170,12 +189,12 @@ const handleSelectionChange = (selectedIds) => {
   }
 };
 
-const handleDeliveryPriceSubmit = async (selectedIds) => {
+const handleDeliveryPriceSubmit = async () => {
   try {
     actionLoading.value['set_delivery_price'] = true;
-    const updates = selectedIds.map(id => ({
+    const updates = selectedIds.value.map(id => ({
       id,
-      data: { deliveryFee: selectedDeliveryCost.value },
+      data: { deliveryCost: selectedDeliveryCost.value },
     }));
 
     await orderStore.patchAll(updates);
@@ -213,23 +232,26 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
   }
 };
 
-const handleAction = async ({ actionId, selectedIds }) => {
+// Update handleAction to store the IDs
+const handleAction = async ({ actionId, selectedIds: ids }) => {
   actionLoading.value[actionId] = true;
 
   try {
     switch (actionId) {
     case 'edit':
-      selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
+      selectedOrder.value = orderStore.items.find(order => order.id === ids[0]);
       isFormOpen.value = true;
       break;
     case 'delete':
       if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
-        selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
+        selectedOrder.value = orderStore.items.find(order => order.id === ids[0]);
         await orderStore.remove(selectedOrder.value.id);
         dataTable.value?.clearSelection();
       }
       break;
     case 'set_delivery_price':
+      selectedDeliveryCost.value = 5000; // Reset to default
+      selectedIds.value = ids; // Store the selected IDs
       isDeliveryPriceDialogOpen.value = true;
       break;
     }
@@ -258,7 +280,7 @@ const closeForm = () => {
 
 const closeDeliveryPriceDialog = () => {
   isDeliveryPriceDialogOpen.value = false;
-  selectedDeliveryCost.value = 7000;
+  selectedDeliveryCost.value = 5000;
 };
 
 // Watch for period changes and fetch new data
