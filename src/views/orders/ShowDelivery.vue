@@ -8,7 +8,6 @@ import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
-import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
 
 import {
   PhPen,
@@ -37,8 +36,7 @@ const isDeliveryPriceDialogOpen = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
 const toggleLoading = ref({});
-const selectedDeliveryPrice = ref(7000);
-const selectedFeeType = ref('7000');
+const selectedDeliveryCost = ref(7000);
 
 const deliveryDrivers = ref([]);
 
@@ -47,7 +45,6 @@ const deliveryFeeOptions = [
   { value: 6000, label: '6000' },
   { value: 7000, label: '7000' },
   { value: 8000, label: '8000' },
-  { value: 'custom', label: 'Otro' },
 ];
 
 // Column definitions / "id must be the same as field for sorting to work"
@@ -175,15 +172,18 @@ const handleSelectionChange = (selectedIds) => {
 
 const handleDeliveryPriceSubmit = async (selectedIds) => {
   try {
+    actionLoading.value['set_delivery_price'] = true;
     const updates = selectedIds.map(id => ({
       id,
-      data: { deliveryCost: selectedFeeType.value === 'custom' ? selectedDeliveryPrice.value : parseInt(selectedFeeType.value) },
+      data: { deliveryFee: selectedDeliveryCost.value },
     }));
 
     await orderStore.patchAll(updates);
     isDeliveryPriceDialogOpen.value = false;
   } catch (error) {
     console.error('Failed to update delivery prices:', error);
+  } finally {
+    actionLoading.value['set_delivery_price'] = false;
   }
 };
 
@@ -231,7 +231,6 @@ const handleAction = async ({ actionId, selectedIds }) => {
       break;
     case 'set_delivery_price':
       isDeliveryPriceDialogOpen.value = true;
-
       break;
     }
   } catch (error) {
@@ -259,8 +258,7 @@ const closeForm = () => {
 
 const closeDeliveryPriceDialog = () => {
   isDeliveryPriceDialogOpen.value = false;
-  selectedDeliveryPrice.value = 7000;
-  selectedFeeType.value = '7000';
+  selectedDeliveryCost.value = 7000;
 };
 
 // Watch for period changes and fetch new data
@@ -368,27 +366,45 @@ onUnmounted(() => {
     >
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel class="bg-white rounded-lg p-6 max-w-md w-full">
+        <DialogPanel class="form-container bg-white rounded-lg p-6 max-w-md w-full">
           <h3 class="text-lg font-medium mb-4">Valor del Domicilio</h3>
-          <RadioButtonGroup
-            v-model="selectedFeeType"
-            :options="deliveryFeeOptions"
-            name="delivery-fee"
-            label="Costo de Envío"
-            has-custom-option
-            custom-option-value="custom"
-          >
-            <template #custom-input>
-              <input
-                type="number"
-                v-model="selectedDeliveryPrice"
-                min="0"
-                step="500"
-                placeholder="Ingrese valor personalizado"
-                class="mt-2 w-full"
-              />
-            </template>
-          </RadioButtonGroup>
+
+          <div class="grid grid-cols-4 gap-2 mb-4">
+            <button
+              v-for="option in deliveryFeeOptions"
+              :key="option.value"
+              @click="selectedDeliveryCost = option.value"
+              class="utility-btn-inactive py-1 px-2 rounded-md hover:utility-btn-active"
+              :class="{ 'utility-btn-active': selectedDeliveryCost === option.value }"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+
+          <input
+            type="number"
+            v-model="selectedDeliveryCost"
+            min="0"
+            step="500"
+            placeholder="Valor del domicilio"
+            class="w-full mb-4 p-2 border rounded"
+          />
+
+          <div class="flex justify-end gap-2">
+            <button
+              @click="closeDeliveryPriceDialog"
+              class="utility-btn"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="handleDeliveryPriceSubmit"
+              :disabled="actionLoading.set_delivery_price"
+              class="action-btn"
+            >
+              {{ actionLoading.set_delivery_price ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
         </DialogPanel>
       </div>
     </Dialog>
