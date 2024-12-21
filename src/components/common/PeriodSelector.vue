@@ -22,9 +22,9 @@ if (props.onlyFor) {
 </script>
 
 <template>
-  <div class="flex items-center px-2 bg-neutral-100 rounded-lg">
+  <div class="flex flex-col lg:flex-row lg:w-auto w-11/12 lg:items-center px-2 bg-neutral-100 rounded-lg">
     <!-- Period Navigation -->
-    <div class="flex items-center gap-2" :class="{ 'flex-1 justify-center': !showPeriodTypes }">
+    <div class="flex items-center justify-between gap-2" :class="{ 'flex-1 justify-center': !showPeriodTypes }">
       <button
         @click="periodStore.previous"
         class="p-2 text-neutral-600 hover:text-primary-600 disabled:opacity-50
@@ -55,7 +55,7 @@ if (props.onlyFor) {
     </div>
 
     <!-- Period Type Buttons - Only shown when onlyFor is not provided -->
-    <div v-if="showPeriodTypes" class="flex items-center gap-2">
+    <div v-if="showPeriodTypes" class="flex justify-center items-center  gap-2">
       <button
         v-for="type in ['day', 'week', 'month', 'quarter', 'year']"
         :key="type"
