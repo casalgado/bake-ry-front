@@ -68,7 +68,7 @@ const actionBarStyle = computed(() => ({
   >
     <div class="h-full px-4 flex items-center gap-2 justify-between">
       <div class="text-sm text-neutral-600">
-        {{ selectedCount }} {{ selectedCount === 1 ? 'seleccion' : 'selecciones' }}
+        {{ selectedCount }} {{ selectedCount === 1 ? '' : '' }}
       </div>
 
       <div class="flex items-center gap-2">

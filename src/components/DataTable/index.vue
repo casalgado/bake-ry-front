@@ -234,7 +234,7 @@ const handleSort = (columnId, isMulti) => {
 
 /* Table styles */
 table {
-  border-collapse: separate;
+  border-collapse: collapse;
   border-spacing: 0;
 }
 

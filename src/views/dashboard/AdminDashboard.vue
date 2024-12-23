@@ -32,5 +32,6 @@ onMounted(async () => {
 <style scoped lang="scss">
 section {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 </style>
