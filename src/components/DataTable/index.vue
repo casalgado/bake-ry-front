@@ -157,15 +157,11 @@ const handleSort = (columnId, isMulti) => {
   toggleSort(columnId, isMulti);
 };
 </script>
-
+<!-- components/DataTable/index.vue -->
 <template>
-  <div :class="['relative overflow-x-auto shadow-md rounded-lg', wrapperClass]">
+  <div class="relative rounded-lg border border-neutral-200">
     <!-- Selection and Filter controls -->
-    <div class="bg-neutral-50 px-4 py-2 flex items-center justify-between border-b">
-
-      <div v-if="dataLoading || Object.values(toggleLoading).some(value => value)" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 animate-delayed-fade-in">
-        <PhDisc class="animate-spin text-xl"/>
-      </div>
+    <div class="sticky top-0 z-30 bg-neutral-50 px-4 py-2 flex items-center justify-between border-b">
       <div class="flex items-center gap-4">
         <button @click="selectAll" class="button action-btn">
           {{ allSelected ? 'Ninguna' : 'Todo' }}
@@ -182,7 +178,6 @@ const handleSort = (columnId, isMulti) => {
         </template>
       </div>
 
-      <!-- New FilterBar component -->
       <FilterBar
         :filters="filters"
         :active-filters="activeFilters"
@@ -191,6 +186,26 @@ const handleSort = (columnId, isMulti) => {
         @toggle-filter="toggleFilter"
         @clear-all="clearAll"
       />
+    </div>
+
+    <!-- Table Container -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left text-neutral-700">
+        <TableHeader
+          :columns="columns"
+          :get-sort-direction="getSortDirection"
+          :get-sort-index="getSortIndex"
+          @sort="handleSort"
+        />
+        <TableBody
+          :data="processedData"
+          :columns="columns"
+          :selected-rows="selectedRows"
+          :toggle-loading="toggleLoading"
+          @row-select="handleRowSelect"
+          @toggle-update="handleToggleUpdate"
+        />
+      </table>
     </div>
 
     <!-- Loading indicator -->
@@ -206,35 +221,32 @@ const handleSort = (columnId, isMulti) => {
       :loading="actionLoading"
       @action="handleAction"
     />
-
-    <!-- Table -->
-    <table class="w-full text-sm text-left text-neutral-700">
-      <TableHeader
-        :columns="columns"
-        :get-sort-direction="getSortDirection"
-        :get-sort-index="getSortIndex"
-        @sort="handleSort"
-      />
-
-      <TableBody
-        :data="processedData"
-        :columns="columns"
-        :selected-rows="selectedRows"
-        :toggle-loading="toggleLoading"
-        @row-select="handleRowSelect"
-        @toggle-update="handleToggleUpdate"
-      />
-    </table>
   </div>
 </template>
+
 <style scoped>
+/* Sticky header styles */
+:deep(thead th) {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Table styles */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+:deep(th),
+:deep(td) {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Animation for loading indicator */
 @keyframes delayedFadeIn {
-  0%, 99% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
+  0%, 99% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 .animate-delayed-fade-in {
