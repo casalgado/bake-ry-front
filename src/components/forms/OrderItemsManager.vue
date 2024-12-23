@@ -83,15 +83,16 @@ const removeItem = (index) => {
 </script>
 
 <template>
-  <div class="base-card grid grid-cols-3 gap-x-3">
+  <div class="base-card grid grid-cols-3 gap-x-3 gap-y-2 md:gap-y-0">
     <label class="col-span-3">Productos</label>
 
     <ProductWizard
       @select="handleWizardSelect"
       :products="products"
+      class="col-span-3 md:col-span-1"
     />
 
-    <div class="flat-card col-span-2 mb-0">
+    <div class="flat-card col-span-3 md:pt-0 md:col-span-2 mb-0">
       <div v-if="modelValue.length === 0" class="p-4">
         No hay productos seleccionados
       </div>

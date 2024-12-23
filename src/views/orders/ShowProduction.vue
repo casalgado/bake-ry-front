@@ -167,14 +167,13 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
     });
   }
 };
-
-const handleAction = async ({ actionId, selectedRowIds }) => {
+const handleAction = async ({ actionId, selectedIds: rowIds }) => {  // Changed parameter destructuring
   actionLoading.value[actionId] = true;
 
   try {
     switch (actionId) {
     case 'setBatch':
-      selectedIds.value = selectedRowIds;
+      selectedIds.value = rowIds;  // Now correctly assigns the selected IDs
       isBatchDialogOpen.value = true;
       break;
     }
@@ -186,6 +185,8 @@ const handleAction = async ({ actionId, selectedRowIds }) => {
 };
 
 const handleBatchSelect = async (batchNumber) => {
+  if (!selectedIds.value?.length) return;  // Add safety check
+
   try {
     const orderUpdates = selectedIds.value.reduce((acc, itemId) => {
       const orderItem = flattenedOrderItems.value.find(item => item.id === itemId);
@@ -213,15 +214,17 @@ const handleBatchSelect = async (batchNumber) => {
         })),
       },
     }));
-
+    isBatchDialogOpen.value = false;
     await orderStore.patchAll(updates);
     await nextTick();
-    isBatchDialogOpen.value = false;
+  } catch (error) {
+    console.error('Failed to update production batch:', error);
+  } finally {
+
+    selectedIds.value = [];  // Clear selected IDs
     if (dataTable.value) {
       dataTable.value.clearSelection();
     }
-  } catch (error) {
-    console.error('Failed to update production batch:', error);
   }
 };
 
@@ -304,7 +307,7 @@ onUnmounted(() => {
               v-for="batch in [1, 2, 3, 4, 5, 6]"
               :key="batch"
               @click="handleBatchSelect(batch)"
-              class="px-4 py-2 text-lg font-medium rounded-lg bg-primary-100 text-primary-700 hover:bg-primary-200 transition-colors duration-200"
+              class="utility-btn "
             >
               {{ batch }}
             </button>
