@@ -7,7 +7,7 @@ import {
   PhFunnel,
   PhCheck,
 } from '@phosphor-icons/vue';
-import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/vue';
+import { Menu, MenuButton, MenuItems } from '@headlessui/vue';
 import { onClickOutside } from '@vueuse/core';
 import { nextTick } from 'vue';
 
@@ -132,10 +132,11 @@ onClickOutside(searchContainer, () => {
       </div>
 
       <!-- Mobile dropdown -->
-      <div class="md:hidden z-10">
-        <Menu as="div" class="relative inline-block text-left">
+      <div class="md:hidden">
+        <Menu as="div" class="relative inline-block text-left" v-slot="{ open }">
           <MenuButton
             class="inline-flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-neutral-100"
+            :class="{ 'bg-neutral-100': open }"
           >
             <PhFunnel class="w-5 h-5" />
             <span
@@ -155,36 +156,31 @@ onClickOutside(searchContainer, () => {
             leave-to-class="transform scale-95 opacity-0"
           >
             <MenuItems
-              class="absolute right-0 mt-2 w-72 origin-top-right bg-white rounded-lg shadow-lg border divide-y divide-neutral-100 focus:outline-none"
+              class="absolute right-0 mt-2 w-72 origin-top-right bg-white rounded-lg shadow-lg border divide-y divide-neutral-100 focus:outline-none z-50"
             >
               <div v-for="filter in filters" :key="filter.field" class="p-4">
-                <div class="font-medium text-sm text-neutral-900 mb-2">
-                  {{ filter.label || filter.field }}
-                </div>
-                <div class="space-y-2">
-                  <MenuItem v-for="option in filter.options" :key="option.value" v-slot="{ active }">
-                    <label
-                      class="flex items-center gap-2 text-sm cursor-pointer"
+                <div class="space-y-1">
+                  <div
+                    v-for="option in filter.options"
+                    :key="option.value"
+                    @click.stop="$emit('toggle-filter', filter.field, option.value)"
+                    class="flex items-center gap-2 text-sm cursor-pointer p-2 hover:bg-neutral-50 rounded"
+                  >
+                    <div
+                      class="w-4 h-4 border rounded flex items-center justify-center"
                       :class="[
-                        active ? 'text-neutral-900' : 'text-neutral-700',
+                        isOptionSelected(filter.field, option.value)
+                          ? 'bg-primary-600 border-primary-600'
+                          : 'border-neutral-300'
                       ]"
                     >
-                      <div
-                        class="w-4 h-4 border rounded flex items-center justify-center"
-                        :class="[
-                          isOptionSelected(filter.field, option.value)
-                            ? 'bg-primary-600 border-primary-600'
-                            : 'border-neutral-300'
-                        ]"
-                      >
-                        <PhCheck
-                          v-if="isOptionSelected(filter.field, option.value)"
-                          class="w-3 h-3 text-white"
-                        />
-                      </div>
-                      {{ option.label }}
-                    </label>
-                  </MenuItem>
+                      <PhCheck
+                        v-if="isOptionSelected(filter.field, option.value)"
+                        class="w-3 h-3 text-white"
+                      />
+                    </div>
+                    {{ option.label }}
+                  </div>
                 </div>
               </div>
 
