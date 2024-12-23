@@ -1,6 +1,6 @@
 <!-- components/DataTable/index.vue -->
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { PhDisc } from '@phosphor-icons/vue';
 import TableHeader from './components/TableHeader.vue';
 import TableBody from './components/TableBody.vue';
@@ -156,12 +156,28 @@ const handleAction = (actionId) => {
 const handleSort = (columnId, isMulti) => {
   toggleSort(columnId, isMulti);
 };
+
+// Handle keyboard events
+const handleKeyDown = (event) => {
+  if (event.key === 'Escape' && selectedRows.value.size > 0) {
+    clearSelection();
+  }
+};
+
+// Setup keyboard event listeners
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown);
+});
 </script>
 <!-- components/DataTable/index.vue -->
 <template>
   <div class="relative rounded-lg border border-neutral-200">
     <!-- Selection and Filter controls -->
-    <div class="sticky top-0 z-30 bg-neutral-50 px-4 py-2 flex items-center justify-between border-b">
+    <div class="sticky top-0 z-30 bg-neutral-50 px-4 py-0 lg:py-2 flex items-center justify-between border-b">
       <div class="flex items-center gap-4">
         <button @click="selectAll" class="button action-btn">
           {{ allSelected ? 'Ninguna' : 'Todo' }}

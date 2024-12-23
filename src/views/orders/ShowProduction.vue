@@ -26,6 +26,19 @@ const flattenedOrderItems = computed(() => {
   );
 });
 
+// Computed property to get unique collection names
+const uniqueCollections = computed(() => {
+  const collections = new Set();
+  orderStore.items.forEach(order => {
+    order.orderItems.forEach(item => {
+      if (item.collectionName) {
+        collections.add(item.collectionName);
+      }
+    });
+  });
+  return Array.from(collections);
+});
+
 // Column definitions
 const columns = [
   {
@@ -41,6 +54,12 @@ const columns = [
     sortable: true,
   },
   {
+    id: 'quantity',
+    label: 'Ctd',
+    field: 'quantity',
+    sortable: true,
+  },
+  {
     id: 'variation',
     label: 'Variación',
     field: 'variation',
@@ -48,14 +67,14 @@ const columns = [
     component: ShowValuesCell,
     getProps: (row) => ({
       object: row.variation,
-      fields: ['name', 'isWholeGrain'],
+      fields: ['name'],
 
     }),
   },
   {
-    id: 'quantity',
-    label: 'Ctd',
-    field: 'quantity',
+    id: 'productionBatch',
+    label: 'Tanda',
+    field: 'productionBatch',
     sortable: true,
   },
   {
@@ -66,13 +85,26 @@ const columns = [
     type: 'toggle',
     options: [{ value: 0, displayText: '-' }, { value: 1, displayText: 'completado' }, { value: 2, displayText: 'entregado' }],
   },
-  {
-    id: 'productionBatch',
-    label: 'Tanda',
-    field: 'productionBatch',
-    sortable: true,
-  },
+
 ];
+
+const tableFilters = computed(() => [
+  {
+    field: 'collectionName',
+    options: uniqueCollections.value.map(collection => ({
+      label: collection,
+      value: collection,
+    })),
+  },
+  {
+    field: 'status',
+    options: [
+      { label: 'pendiente', value: 0 },
+      { label: 'completado', value: 1 },
+      { label: 'entregado', value: 2 },
+    ],
+  },
+]);
 
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
@@ -154,6 +186,7 @@ onMounted(async () => {
         },
       },
     });
+    console.log(orderStore.items);
     console.log('orderStore.items', orderStore.items);
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for orders');
@@ -172,7 +205,7 @@ onUnmounted(() => {
 
 <template>
   <div class="container p-4 px-0 lg:px-4">
-    <div class="flex justify-between items-center mb-4">
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Producción</h2>
       <PeriodSelector onlyFor="day" />
     </div>
@@ -190,6 +223,7 @@ onUnmounted(() => {
         :columns="columns"
         :actions="[]"
         :toggle-loading="toggleLoading"
+        :filters="tableFilters"
         :data-loading="orderStore.loading"
         @toggle-update="handleToggleUpdate"
         class="bg-white shadow-lg rounded-lg"

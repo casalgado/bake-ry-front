@@ -113,15 +113,15 @@ const tableFilters = [
   {
     field: 'fulfillmentType',
     options: [
-      { label: 'Recogen', value: 'pickup' },
-      { label: 'Domicilio', value: 'delivery' },
+      { label: 'recogen', value: 'pickup' },
+      { label: 'domicilio', value: 'delivery' },
     ],
   },
   {
     field: 'isPaid',
     options: [
-      { label: 'Pagado', value: true },
-      { label: 'Por Cobrar', value: false },
+      { label: 'pagado', value: true },
+      { label: 'por cobrar', value: false },
     ],
   },
 ];

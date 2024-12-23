@@ -39,7 +39,7 @@ const getSortIcon = (column) => {
       <th
         v-for="column in columns"
         :key="column.id"
-        class="px-6 py-4 font-medium whitespace-nowrap"
+        class="pl-3 lg:px-4 py-2 lg:py-4 font-medium whitespace-nowrap"
         :class="[
           column.sortable ? 'cursor-pointer select-none' : '',
         ]"
