@@ -1,10 +1,12 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
+import { Dialog, DialogPanel } from '@headlessui/vue';
 import DataTable from '@/components/DataTable/index.vue';
 import ShowValuesCell from '@/components/DataTable/renderers/ShowValuesCell.vue';
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
+import { PhPlusMinus } from '@phosphor-icons/vue';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -12,6 +14,9 @@ const unsubscribeRef = ref(null);
 
 const dataTable = ref(null);
 const toggleLoading = ref({});
+const actionLoading = ref({});
+const isBatchDialogOpen = ref(false);
+const selectedIds = ref([]);
 
 // Computed property to flatten order items
 const flattenedOrderItems = computed(() => {
@@ -20,7 +25,7 @@ const flattenedOrderItems = computed(() => {
       ...item,
       id: item.id,
       orderId: order.id,
-      productionBatch: item.productionBatch || 0, // Using existing or default value
+      productionBatch: item.productionBatch || 0,
       status: item.status || 0,
     })),
   );
@@ -68,7 +73,6 @@ const columns = [
     getProps: (row) => ({
       object: row.variation,
       fields: ['name'],
-
     }),
   },
   {
@@ -79,13 +83,27 @@ const columns = [
   },
   {
     id: 'status',
-    label: 'Completado',
+    label: 'Estado',
     field: 'status',
     sortable: true,
     type: 'toggle',
-    options: [{ value: 0, displayText: '-' }, { value: 1, displayText: 'completado' }, { value: 2, displayText: 'entregado' }],
+    options: [
+      { value: 0, displayText: '-' },
+      { value: 1, displayText: 'completado' },
+      { value: 2, displayText: 'entregado' },
+    ],
   },
+];
 
+// Table actions
+const tableActions = [
+  {
+    id: 'setBatch',
+    label: 'Asignar Tanda',
+    icon: PhPlusMinus,
+    minSelected: 1,
+    variant: 'primary',
+  },
 ];
 
 const tableFilters = computed(() => [
@@ -99,7 +117,7 @@ const tableFilters = computed(() => [
   {
     field: 'status',
     options: [
-      { label: 'pendiente', value: 0 },
+      { label: '-', value: 0 },
       { label: 'completado', value: 1 },
       { label: 'entregado', value: 2 },
     ],
@@ -108,12 +126,10 @@ const tableFilters = computed(() => [
 
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
-    // Set loading state
     rowIds.forEach(id => {
       toggleLoading.value[`${id}-${field}`] = true;
     });
 
-    // Group items by order
     const orderUpdates = rowIds.reduce((acc, itemId) => {
       const orderItem = flattenedOrderItems.value.find(item => item.id === itemId);
       if (!orderItem) return acc;
@@ -131,7 +147,6 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
       return acc;
     }, {});
 
-    // Prepare updates array
     const updates = Object.entries(orderUpdates).map(([orderId, { orderItems, itemIds }]) => ({
       id: orderId,
       data: {
@@ -142,7 +157,6 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
       },
     }));
 
-    // Single API call
     await orderStore.patchAll(updates);
     await nextTick();
   } catch (error) {
@@ -151,6 +165,63 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
     rowIds.forEach(id => {
       toggleLoading.value[`${id}-${field}`] = false;
     });
+  }
+};
+
+const handleAction = async ({ actionId, selectedRowIds }) => {
+  actionLoading.value[actionId] = true;
+
+  try {
+    switch (actionId) {
+    case 'setBatch':
+      selectedIds.value = selectedRowIds;
+      isBatchDialogOpen.value = true;
+      break;
+    }
+  } catch (error) {
+    console.error('Action failed:', error);
+  } finally {
+    actionLoading.value[actionId] = false;
+  }
+};
+
+const handleBatchSelect = async (batchNumber) => {
+  try {
+    const orderUpdates = selectedIds.value.reduce((acc, itemId) => {
+      const orderItem = flattenedOrderItems.value.find(item => item.id === itemId);
+      if (!orderItem) return acc;
+
+      if (!acc[orderItem.orderId]) {
+        acc[orderItem.orderId] = {
+          itemIds: new Set(),
+          orderItems: orderStore.items
+            .find(order => order.id === orderItem.orderId)
+            .orderItems,
+        };
+      }
+
+      acc[orderItem.orderId].itemIds.add(itemId);
+      return acc;
+    }, {});
+
+    const updates = Object.entries(orderUpdates).map(([orderId, { orderItems, itemIds }]) => ({
+      id: orderId,
+      data: {
+        orderItems: orderItems.map(item => ({
+          ...item,
+          productionBatch: itemIds.has(item.id) ? batchNumber : item.productionBatch,
+        })),
+      },
+    }));
+
+    await orderStore.patchAll(updates);
+    await nextTick();
+    isBatchDialogOpen.value = false;
+    if (dataTable.value) {
+      dataTable.value.clearSelection();
+    }
+  } catch (error) {
+    console.error('Failed to update production batch:', error);
   }
 };
 
@@ -186,8 +257,6 @@ onMounted(async () => {
         },
       },
     });
-    console.log(orderStore.items);
-    console.log('orderStore.items', orderStore.items);
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for orders');
   } catch (error) {
@@ -215,19 +284,64 @@ onUnmounted(() => {
       {{ orderStore.error }}
     </div>
 
+    <!-- Batch Selection Dialog -->
+    <Dialog
+      :open="isBatchDialogOpen"
+      @close="isBatchDialogOpen = false"
+      class="relative z-50"
+    >
+      <!-- Backdrop -->
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+
+      <!-- Dialog content -->
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel class="bg-white rounded-lg p-6 max-w-sm w-full">
+          <h3 class="text-lg font-medium text-neutral-800 mb-4 text-center">
+            Seleccionar Tanda de Producción
+          </h3>
+          <div class="grid grid-cols-3 gap-3">
+            <button
+              v-for="batch in [1, 2, 3, 4, 5, 6]"
+              :key="batch"
+              @click="handleBatchSelect(batch)"
+              class="px-4 py-2 text-lg font-medium rounded-lg bg-primary-100 text-primary-700 hover:bg-primary-200 transition-colors duration-200"
+            >
+              {{ batch }}
+            </button>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
+
     <!-- Table -->
     <div>
       <DataTable
         ref="dataTable"
         :data="flattenedOrderItems"
         :columns="columns"
-        :actions="[]"
+        :actions="tableActions"
+        :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
         :filters="tableFilters"
         :data-loading="orderStore.loading"
         @toggle-update="handleToggleUpdate"
+        @action="handleAction"
         class="bg-white shadow-lg rounded-lg"
       />
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+.dialog-overlay {
+  @apply bg-black bg-opacity-50;
+}
+
+.dialog-content {
+  @apply bg-white rounded-lg shadow-xl transform transition-all;
+
+  &:focus {
+    @apply outline-none;
+  }
+}
+</style>
