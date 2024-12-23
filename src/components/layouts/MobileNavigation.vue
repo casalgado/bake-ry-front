@@ -26,9 +26,9 @@ const handleNavigation = (link) => {
 
 <template>
   <!-- Fixed bottom bar -->
-  <div class="fixed bottom-0 left-0 right-0 h-10 bg-white border-t border-neutral-200 flex items-center justify-center lg:hidden z-50">
+  <div class="fixed bottom-0 left-0 right-0 h-10 bg-white border-t border-neutral-200 flex items-center justify-center lg:hidden z-50"  @click="isOpen = true">
     <button
-      @click="isOpen = true"
+
       class="flex items-center gap-2 px-4 py-0 text-neutral-600 hover:text-primary"
     >
       <PhList class="w-6 h-6" />

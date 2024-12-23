@@ -12,8 +12,6 @@ const authStore = useAuthenticationStore();
       <RouterLink to="/login">Login</RouterLink>
       <RouterLink to="/signup">Signup</RouterLink>
       <RouterLink to="/dashboard/show-bakery">Show Bakery</RouterLink>
-      <RouterLink to="/dashboard/update-bakery">Update Bakery</RouterLink>
-      <RouterLink to="/dashboard/settings">Settings</RouterLink>
       <button @click="authStore.logout" class="py-0 my-0.5">Logout</button>
     </nav>
   </header>
