@@ -18,6 +18,8 @@ const VALID_ROLES = {
   BAKERY_ADMIN: 'bakery_admin',
   BAKERY_STAFF: 'bakery_staff',
   BAKERY_CUSTOMER: 'bakery_customer',
+  DELIVERY_ASSISTANT: 'delivery_assistant',
+  PRODUCTION_ASSISTANT: 'production_assistant',
 };
 
 // User data transformer
@@ -49,6 +51,8 @@ export const useAuthenticationStore = defineStore('authentication', {
     isBakeryStaff: (state) => state.user?.role === VALID_ROLES.BAKERY_STAFF,
     isBakeryCustomer: (state) =>
       state.user?.role === VALID_ROLES.BAKERY_CUSTOMER,
+    isDeliveryAssistant: (state) => state.user?.role === VALID_ROLES.DELIVERY_ASSISTANT,
+    isProductionAssistant: (state) => state.user?.role === VALID_ROLES.PRODUCTION_ASSISTANT,
     hasAssignedBakery: (state) => !!state.user?.bakeryId,
   },
 

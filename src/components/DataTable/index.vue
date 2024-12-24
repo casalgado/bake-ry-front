@@ -184,12 +184,12 @@ onUnmounted(() => {
         </button>
 
         <button v-if="hasSelection" @click="clearSelection" class="button utility-btn-active">
-          Limpiar selección {{ selectedRows.size }}
+          LS {{ selectedRows.size }}
         </button>
 
         <template v-if="sortState.length">
           <button @click="clearSort" class="button utility-btn-active">
-            limpiar order
+            LO
           </button>
         </template>
       </div>

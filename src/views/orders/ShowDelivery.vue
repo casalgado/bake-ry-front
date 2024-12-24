@@ -125,9 +125,9 @@ const columns = [
     ],
   },
   {
-    id: 'deliveryDriver',
+    id: 'deliveryDriverId',
     label: 'Conductor',
-    field: 'deliveryDriver',
+    field: 'deliveryDriverId',
     sortable: true,
     type: 'toggle',
     options: [{ value: '-', displayText: '-' }],
@@ -332,7 +332,7 @@ watch(
 );
 
 watch(deliveryDrivers, (newDrivers) => {
-  const driverColumn = columns.find(col => col.id === 'deliveryDriver');
+  const driverColumn = columns.find(col => col.id === 'deliveryDriverId');
   if (driverColumn) {
     driverColumn.options = [{ value: '-', displayText: '-' }, ...newDrivers];
   }
@@ -353,7 +353,7 @@ onMounted(async () => {
     console.log('🔄 Real-time updates enabled for orders');
     const staff = await settingsStore.staff;
     deliveryDrivers.value = staff.filter(staff => staff.role === 'delivery_assistant').map(staff => ({
-      value: staff.first_name,
+      value: staff.id,
       displayText: `${staff.first_name}`,
     }));
   } catch (error) {

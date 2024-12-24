@@ -120,6 +120,25 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: '/driver',
+      name: 'driver',
+      component: () => import('../views/dashboard/DriverDashboard.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: 'orders',
+          name: 'driverOrders',
+          component: () => import('../views/orders/ShowDriverOrders.vue'),
+        },
+        {
+          path: 'summary',
+          name: 'driverSummary',
+          component: () => import('../views/orders/ShowDriverSummary.vue'),
+        },
+
+      ],
+    },
   ],
 });
 

@@ -89,7 +89,7 @@ const columns = [
     type: 'toggle',
     options: [
       { value: 0, displayText: '-' },
-      { value: 1, displayText: 'completado' },
+      { value: 1, displayText: 'producido' },
       { value: 2, displayText: 'entregado' },
     ],
   },
@@ -118,7 +118,7 @@ const tableFilters = computed(() => [
     field: 'status',
     options: [
       { label: '-', value: 0 },
-      { label: 'completado', value: 1 },
+      { label: 'producido', value: 1 },
       { label: 'entregado', value: 2 },
     ],
   },
