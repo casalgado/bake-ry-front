@@ -38,7 +38,7 @@ const links = [
     id: 'venta',
     icon: PhChartDonut,
     text: 'Venta',
-    path: '/dashboard',
+    path: '/dashboard/salesReport',
   },
   {
     id: 'produccion',

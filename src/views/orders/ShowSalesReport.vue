@@ -1,0 +1,288 @@
+<script setup>
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
+import DataTable from '@/components/DataTable/index.vue';
+import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
+import { useOrderStore } from '@/stores/orderStore';
+import PeriodSelector from '@/components/common/PeriodSelector.vue';
+import { usePeriodStore } from '@/stores/periodStore';
+
+const periodStore = usePeriodStore();
+const orderStore = useOrderStore();
+const unsubscribeRef = ref(null);
+
+// Table columns for product analysis
+const columns = [
+  {
+    id: 'productName',
+    label: 'Producto',
+    field: 'productName',
+    sortable: true,
+  },
+  {
+    id: 'variationName',
+    label: 'Variación',
+    field: 'variationName',
+    sortable: true,
+  },
+  {
+    id: 'quantity',
+    label: 'Cantidad',
+    field: 'quantity',
+    sortable: true,
+  },
+  {
+    id: 'totalAmount',
+    label: 'Total',
+    field: 'totalAmount',
+    sortable: true,
+    component: MoneyCell,
+    getProps: (row) => ({
+      value: row.totalAmount,
+    }),
+  },
+];
+
+// Helper function to calculate sales metrics
+const calculateMetrics = (orders) => {
+  const total = orders.reduce((sum, order) => sum + order.total, 0);
+  const delivery = orders.reduce((sum, order) => sum + (order.deliveryCost || 0), 0);
+  return {
+    total,
+    delivery,
+    withoutDelivery: total - delivery,
+  };
+};
+
+// Computed for valid orders (excluding complementary)
+const validOrders = computed(() => {
+  return orderStore.items.filter(order => !order.isComplimentary);
+});
+
+// Compute daily breakdowns
+const dailyBreakdown = computed(() => {
+  const days = {};
+
+  validOrders.value.forEach(order => {
+    const date = new Date(order.dueDate).toISOString().split('T')[0];
+    if (!days[date]) {
+      days[date] = {
+        b2b: [],
+        b2c: [],
+      };
+    }
+
+    // Sort into B2B or B2C
+    if (order.isB2B) {
+      days[date].b2b.push(order);
+    } else {
+      days[date].b2c.push(order);
+    }
+  });
+
+  // Calculate metrics for each day
+  return Object.entries(days).map(([date, data]) => ({
+    date,
+    b2b: calculateMetrics(data.b2b),
+    b2c: calculateMetrics(data.b2c),
+    total: calculateMetrics([...data.b2b, ...data.b2c]),
+  }));
+});
+
+// Compute period totals
+const periodTotals = computed(() => {
+  const b2bOrders = validOrders.value.filter(order => order.isB2B);
+  const b2cOrders = validOrders.value.filter(order => !order.isB2B);
+
+  return {
+    b2b: calculateMetrics(b2bOrders),
+    b2c: calculateMetrics(b2cOrders),
+    total: calculateMetrics(validOrders.value),
+  };
+});
+
+// Compute complementary orders count
+const complementaryOrders = computed(() => {
+  return orderStore.items.filter(order => order.isComplimentary).length;
+});
+
+// Compute product analysis
+const productAnalysis = computed(() => {
+  const products = {};
+
+  validOrders.value.forEach(order => {
+    order.orderItems.forEach(item => {
+      console.log('ITEM', item);
+      const key = `${item.productId}-${item.variation ? item.variation.name : 'default'}`;
+      if (!products[key]) {
+        products[key] = {
+          productName: item.productName,
+          variationName: item.variation ? item.variation.name : 'default',
+          quantity: 0,
+          totalAmount: 0,
+        };
+      }
+      products[key].quantity += item.quantity;
+      products[key].totalAmount += item.quantity * item.currentPrice;
+    });
+  });
+
+  return Object.values(products);
+});
+
+// Watch for period changes and fetch new data
+watch(
+  () => periodStore.periodRange,
+  async (newRange) => {
+    try {
+      await orderStore.fetchAll({
+        filters: {
+          dateRange: {
+            dateField: 'dueDate',
+            startDate: newRange.start.toISOString(),
+            endDate: newRange.end.toISOString(),
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    }
+  },
+  { deep: true },
+);
+
+onMounted(async () => {
+  try {
+    await orderStore.fetchAll({
+      filters: {
+        dateRange: {
+          dateField: 'dueDate',
+          startDate: periodStore.periodRange.start.toISOString(),
+          endDate: periodStore.periodRange.end.toISOString(),
+        },
+      },
+    });
+    unsubscribeRef.value = await orderStore.subscribeToChanges();
+    console.log('🔄 Real-time updates enabled for sales report');
+  } catch (error) {
+    console.error('Failed to initialize orders:', error);
+  }
+});
+
+onUnmounted(() => {
+  if (unsubscribeRef.value) {
+    unsubscribeRef.value();
+    orderStore.unsubscribe();
+  }
+});
+</script>
+
+<template>
+  <div class="container p-4 px-0 lg:px-4">
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-neutral-800">Reporte de Ventas</h2>
+      <PeriodSelector />
+    </div>
+
+    <!-- Error State -->
+    <div v-if="orderStore.error" class="text-danger text-center py-4">
+      {{ orderStore.error }}
+    </div>
+
+    <!-- Period Summary Card -->
+    <div class="bg-white shadow-lg rounded-lg p-4 mb-4">
+      <h3 class="text-xl font-semibold mb-4">Resumen del Periodo</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- B2B Section -->
+        <div class="bg-neutral-50 p-4 rounded-lg">
+          <h4 class="font-semibold text-lg mb-2">B2B</h4>
+          <div class="space-y-2">
+            <p>Total: {{ periodTotals.b2b.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+            <p>Sin Domicilio: {{ periodTotals.b2b.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+            <p>Domicilio: {{ periodTotals.b2b.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+          </div>
+        </div>
+        <!-- B2C Section -->
+        <div class="bg-neutral-50 p-4 rounded-lg">
+          <h4 class="font-semibold text-lg mb-2">B2C</h4>
+          <div class="space-y-2">
+            <p>Total: {{ periodTotals.b2c.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+            <p>Sin Domicilio: {{ periodTotals.b2c.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+            <p>Domicilio: {{ periodTotals.b2c.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+          </div>
+        </div>
+      </div>
+      <!-- Period Totals -->
+      <div class="mt-4 p-4 bg-primary-100 rounded-lg">
+        <h4 class="font-semibold text-lg mb-2">Total Periodo</h4>
+        <div class="space-y-2">
+          <p>Total: {{ periodTotals.total.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+          <p>Sin Domicilio: {{ periodTotals.total.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+          <p>Domicilio: {{ periodTotals.total.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Complementary Orders Card -->
+    <div class="bg-white shadow-lg rounded-lg p-4 mb-4">
+      <h3 class="text-xl font-semibold mb-2">Pedidos Cortesia</h3>
+      <p>Total pedidos: {{ complementaryOrders }}</p>
+    </div>
+
+    <!-- Daily Breakdown Cards -->
+    <div class="space-y-4 mb-4">
+      <div v-for="day in dailyBreakdown" :key="day.date" class="bg-white shadow-lg rounded-lg p-4">
+        <h3 class="text-xl font-semibold mb-4">{{ new Date(day.date).toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- B2B Section -->
+          <div class="bg-neutral-50 p-4 rounded-lg">
+            <h4 class="font-semibold text-lg mb-2">B2B</h4>
+            <div class="space-y-2">
+              <p>Total: {{ day.b2b.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+              <p>Sin Domicilio: {{ day.b2b.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+              <p>Domicilio: {{ day.b2b.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+            </div>
+          </div>
+          <!-- B2C Section -->
+          <div class="bg-neutral-50 p-4 rounded-lg">
+            <h4 class="font-semibold text-lg mb-2">B2C</h4>
+            <div class="space-y-2">
+              <p>Total: {{ day.b2c.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+              <p>Sin Domicilio: {{ day.b2c.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+              <p>Domicilio: {{ day.b2c.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+            </div>
+          </div>
+          <!-- Day Totals -->
+          <div class="md:col-span-2 bg-primary-100 p-4 rounded-lg">
+            <h4 class="font-semibold text-lg mb-2">Total Día</h4>
+            <div class="space-y-2">
+              <p>Total: {{ day.total.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+              <p>Sin Domicilio: {{ day.total.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+              <p>Domicilio: {{ day.total.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Analysis Table -->
+    <div class="bg-white shadow-lg rounded-lg p-4">
+      <h3 class="text-xl font-semibold mb-4">Análisis de Productos</h3>
+      <DataTable
+        :data="productAnalysis"
+        :columns="columns"
+        :data-loading="orderStore.loading"
+        class="bg-white"
+      />
+    </div>
+  </div>
+</template>
+
+<style scoped lang="scss">
+* {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>
