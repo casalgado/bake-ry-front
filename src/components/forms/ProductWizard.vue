@@ -140,6 +140,33 @@ const handleSelection = (index) => {
   }
 };
 
+const handleBreadcrumbClick = (step) => {
+  switch (step) {
+  case 'category':
+    currentStep.value = 'category';
+    selectedCategory.value = null;
+    selectedProduct.value = null;
+    selectedVariation.value = null;
+    selectedQuantity.value = null;
+    break;
+  case 'product':
+    currentStep.value = 'product';
+    selectedProduct.value = null;
+    selectedVariation.value = null;
+    selectedQuantity.value = null;
+    break;
+  case 'variation':
+    currentStep.value = 'variation';
+    selectedVariation.value = null;
+    selectedQuantity.value = null;
+    break;
+  case 'quantity':
+    currentStep.value = 'quantity';
+    selectedQuantity.value = null;
+    break;
+  }
+};
+
 const resetSelection = () => {
   currentStep.value = 'category';
   selectedCategory.value = null;
@@ -203,6 +230,21 @@ const handleOptionClick = (index) => {
   handleSelection(index);
 };
 
+const formatBreadcrumbText = (text) => {
+  if (!text) return '';
+
+  const words = text.trim().split(/\s+/);
+
+  if (words.length === 1) {
+    // Single word - take first 4 letters
+    return words[0].slice(0, 4).toLowerCase();
+  } else {
+    // Multiple words - take first 3 of first word + first letter of last word
+    const lastWord = words[words.length - 1];
+    return (words[0].slice(0, 3) + lastWord[0]).toLowerCase();
+  }
+};
+
 const getOptionDisplay = (option, index) => {
   if (!option) return '';
 
@@ -247,16 +289,51 @@ const getOptionDisplay = (option, index) => {
     </div>
 
     <!-- Breadcrumb -->
-    <div class="flat-card m-2 mt-0 py-0 text-xs flex items-center justify-center gap-1">
-      <span>{{ selectedCategory || 'colecciones' }}</span>
-      <span v-if="selectedCategory"> > </span>
-      <span v-if="selectedCategory">{{ productName || 'productos' }}</span>
-      <span v-if="selectedProduct && productVariations.length > 0"> > </span>
-      <span v-if="selectedProduct && productVariations.length > 0">
-        {{ selectedVariation?.name || 'variaciones' }}
-      </span>
-      <span v-if="currentStep === 'quantity'"> > </span>
-      <span v-if="currentStep === 'quantity'">{{ selectedQuantity || '#' }}</span>
+    <div class="m-2 mt-0 py-1 px-2 text-[10px] flex items-center min-h-[24px]  whitespace-nowrap">
+      <button
+        class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
+        :class="{ 'cursor-pointer': currentStep !== 'category' }"
+        @click="handleBreadcrumbClick('category')"
+        :disabled="currentStep === 'category'"
+      >
+        {{ formatBreadcrumbText(selectedCategory) || '>' }}
+      </button>
+
+      <span v-if="selectedCategory" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
+
+      <button
+        v-if="selectedCategory"
+        class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
+        :class="{ 'cursor-pointer': currentStep !== 'product' }"
+        @click="handleBreadcrumbClick('product')"
+        :disabled="currentStep === 'product'"
+      >
+        {{ formatBreadcrumbText(productName) || '#' }}
+      </button>
+
+      <span v-if="selectedProduct && productVariations.length > 0" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
+
+      <button
+        v-if="selectedProduct && productVariations.length > 0"
+        class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
+        :class="{ 'cursor-pointer': currentStep !== 'variation' }"
+        @click="handleBreadcrumbClick('variation')"
+        :disabled="currentStep === 'variation'"
+      >
+        {{ formatBreadcrumbText(selectedVariation?.name) || '#' }}
+      </button>
+
+      <span v-if="currentStep === 'quantity'" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
+
+      <button
+        v-if="currentStep === 'quantity'"
+        class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
+        :class="{ 'cursor-pointer': currentStep !== 'quantity' }"
+        @click="handleBreadcrumbClick('quantity')"
+        :disabled="currentStep === 'quantity'"
+      >
+        {{ selectedQuantity || '#' }}
+      </button>
     </div>
   </div>
 </template>
@@ -264,5 +341,13 @@ const getOptionDisplay = (option, index) => {
 <style scoped lang="scss">
 .button-number {
   @apply absolute top-1 left-1 text-xs opacity-60 lowercase;
+}
+
+.flat-card {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>

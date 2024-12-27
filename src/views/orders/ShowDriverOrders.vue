@@ -24,13 +24,10 @@ const authStore = useAuthenticationStore();
 const unsubscribeRef = ref(null);
 const toggleLoading = ref({});
 
-// First, let's make the user ID more reactive
 const userId = computed(() => authStore.getUserData?.uid);
 
-// Then modify the driverOrders computed to depend on this reactive userId
 const driverOrders = computed(() => {
   const currentUserId = userId.value;
-  orderStore.fetchAll();
   return orderStore.items.filter(order =>
     order.deliveryDriverId === currentUserId,
   );

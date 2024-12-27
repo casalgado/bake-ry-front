@@ -53,21 +53,19 @@ const handleRemove = () => {
 </script>
 
 <template>
-  <div class="flex flex-row items-center justify-between py-1.5 border-b border-gray-200 last:border-b-0">
+  <div class="flex flex-row items-center justify-between py-1.5  mb-3  border-neutral-300 last:border-b-0">
     <!-- Left Content -->
     <div class="flex-grow">
-      <div class="flex items-center gap-2">
-        <div class="text-pill text-xs">{{ item.collectionName }}</div>
-        <div class="text-xs">
+      <div class="flex items-center justify-between gap-2">
+        <div class="text-xs text-neutral-700 text-pill">{{ item.collectionName }}</div>
+        <div class="text-pill text-neutral-700 text-xs">
           {{ item.productName }}
           <span v-if="item.variation" class="text-xs">- {{ item.variation.name }}</span>
         </div>
+
       </div>
 
       <div class="flex items-center gap-2 mt-0.5">
-        <div class="text-xs hidden md:block">
-          base: {{ formatPrice(item.basePrice) }}
-        </div>
         <div class="flex items-center gap-1">
           <button
             type="button"

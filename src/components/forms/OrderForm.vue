@@ -175,6 +175,7 @@ const fulfillmentTypes = [
 ];
 
 const deliveryFeeOptions = [
+  { value: 6000, label: '6,000' },
   { value: 7000, label: '7,000' },
   { value: 8000, label: '8,000' },
   { value: 9000, label: '9,000' },

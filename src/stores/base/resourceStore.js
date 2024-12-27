@@ -39,14 +39,24 @@ export const createResourceStore = (resourceName, resourceService) => {
 
     // Real-time update handler
     function handleRealtimeUpdate(changes) {
+      console.log('handleRealtimeUpdate', changes);
       changes.forEach((change) => {
         switch (change.type) {
         case 'added': {
-          // console.log('ADDED REALTIME NOT IMPLEMENTED YET', change.data);
-          // const index = items.value.findIndex(item => item.id === change.data.id);
-          // if (index === -1) {
-          //   items.value.push(change.data);
-          // }
+          const index = items.value.findIndex(item => item.id === change.data.id);
+          // Only add if it doesn't already exist
+          if (index === -1) {
+            // Add to beginning of array to match typical Firestore behavior
+            items.value.push(change.data);
+            console.log('Added new item:', change.data);
+          } else {
+            // If it exists but might have different data, update it
+            items.value[index] = {
+              ...items.value[index],
+              ...change.data,
+            };
+            console.log('Updated existing item:', change.data);
+          }
           break;
         }
         case 'modified': {
