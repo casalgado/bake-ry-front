@@ -37,6 +37,13 @@ const handleLogin = () => {
           >
             Iniciar sesión
           </button>
+          <button
+            v-if="authStore.isLoggedIn"
+            @click="router.push('/dashboard/orders')"
+            class="utility-btn w-full text-base transition-colors"
+          >
+            Ir al panel
+          </button>
         </div>
 
         <div class="text-sm text-center text-neutral-600">

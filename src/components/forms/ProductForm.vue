@@ -46,7 +46,7 @@ const createBaseVariation = (templateVariation = {}, isWholeGrain = false) => ({
 const getFixedVariation = () => ({
   name: 'otra',
   value: 1000,
-  basePrice: 1000,
+  basePrice: 10000,
   isWholeGrain: false,
 });
 

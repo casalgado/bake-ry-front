@@ -40,7 +40,7 @@ const handleAuthClick = () => {
       <!-- Login/Logout Button -->
       <button
         @click="handleAuthClick"
-        class="utility-btn px-4 mt-1"
+        class="utility-btn px-4 my-1"
       >
         {{ authStore.isLoggedIn ? 'Cerrar sesión' : 'Iniciar sesión' }}
       </button>

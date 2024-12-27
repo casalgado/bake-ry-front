@@ -21,7 +21,7 @@ const formatPrice = (price) => new Intl.NumberFormat('es-CO', {
         <tr v-for="item in variations" :key="item.id" class="">
           <td class="px-3 py-2 text-sm">
             <div class="flex items-center gap-2">
-              <span class="capitalize">{{ item.name }}</span>
+              <span class="">{{ item.name }}</span>
               <!-- <span v-if="item.isWholeGrain"
                     class="bg-primary-100 text-primary-600 text-xs px-2 py-0.5 rounded-full">
                 WG
