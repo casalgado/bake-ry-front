@@ -45,7 +45,7 @@ const columns = [
 // Helper function to calculate sales metrics
 const calculateMetrics = (orders) => {
   const total = orders.reduce((sum, order) => sum + order.total, 0);
-  const delivery = orders.reduce((sum, order) => sum + (order.deliveryCost || 0), 0);
+  const delivery = orders.reduce((sum, order) => sum + (order.deliveryFee || 0), 0);
   return {
     total,
     delivery,
@@ -111,7 +111,7 @@ const productAnalysis = computed(() => {
 
   validOrders.value.forEach(order => {
     order.orderItems.forEach(item => {
-      console.log('ITEM', item);
+
       const key = `${item.productId}-${item.variation ? item.variation.name : 'default'}`;
       if (!products[key]) {
         products[key] = {
@@ -228,40 +228,79 @@ onUnmounted(() => {
       <p>Total pedidos: {{ complementaryOrders }}</p>
     </div>
 
-    <!-- Daily Breakdown Cards -->
-    <div class="space-y-4 mb-4">
-      <div v-for="day in dailyBreakdown" :key="day.date" class="bg-white shadow-lg rounded-lg p-4">
-        <h3 class="text-xl font-semibold mb-4">{{ new Date(day.date).toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- B2B Section -->
-          <div class="bg-neutral-50 p-4 rounded-lg">
-            <h4 class="font-semibold text-lg mb-2">B2B</h4>
-            <div class="space-y-2">
-              <p>Total: {{ day.b2b.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
-              <p>Sin Domicilio: {{ day.b2b.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
-              <p>Domicilio: {{ day.b2b.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
-            </div>
-          </div>
-          <!-- B2C Section -->
-          <div class="bg-neutral-50 p-4 rounded-lg">
-            <h4 class="font-semibold text-lg mb-2">B2C</h4>
-            <div class="space-y-2">
-              <p>Total: {{ day.b2c.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
-              <p>Sin Domicilio: {{ day.b2c.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
-              <p>Domicilio: {{ day.b2c.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
-            </div>
-          </div>
-          <!-- Day Totals -->
-          <div class="md:col-span-2 bg-primary-100 p-4 rounded-lg">
-            <h4 class="font-semibold text-lg mb-2">Total Día</h4>
-            <div class="space-y-2">
-              <p>Total: {{ day.total.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
-              <p>Sin Domicilio: {{ day.total.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
-              <p>Domicilio: {{ day.total.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- Daily Breakdown Table -->
+    <div class="bg-white shadow-lg rounded-lg p-4 mb-4 overflow-x-auto">
+      <h3 class="text-xl font-semibold mb-4">Desglose Diario</h3>
+      <table class="min-w-full">
+        <thead>
+          <tr class="bg-neutral-50">
+            <th class="px-4 py-2 text-left">Fecha</th>
+            <th class="px-4 py-2 text-center" colspan="3">B2C</th>
+            <th class="px-4 py-2 text-center" colspan="3">B2B</th>
+            <th class="px-4 py-2 text-center" colspan="3">Total Día</th>
+          </tr>
+          <tr class="bg-neutral-100">
+            <th class="px-4 py-2 text-left"></th>
+            <!-- B2B Subheaders -->
+
+            <th class="px-4 py-2 text-right">Venta</th>
+            <th class="px-4 py-2 text-right">Domicilio</th>
+            <th class="px-4 py-2 text-right">Total</th>
+            <!-- B2C Subheaders -->
+
+            <th class="px-4 py-2 text-right">Venta</th>
+            <th class="px-4 py-2 text-right">Domicilio</th>
+            <th class="px-4 py-2 text-right">Total</th>
+            <!-- Day Total Subheaders -->
+
+            <th class="px-4 py-2 text-right">Venta</th>
+            <th class="px-4 py-2 text-right">Domicilio</th>
+            <th class="px-4 py-2 text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="day in dailyBreakdown"
+              :key="day.date"
+              class="border-b hover:bg-neutral-50">
+            <td class="px-4 py-2">
+              {{ new Date(day.date).toLocaleDateString('es-CO', { weekday: 'short', month: 'short', day: 'numeric' }) }}
+            </td>
+            <!-- B2C Data -->
+
+            <td class="px-4 py-2 text-right">
+              {{ day.b2c.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
+            </td>
+            <td class="px-4 py-2 text-right">
+              {{ day.b2c.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
+            </td>
+            <td class="px-4 py-2 text-right">
+              {{ day.b2c.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
+            </td>
+            <!-- B2B Data -->
+
+            <td class="px-4 py-2 text-right">
+              {{ day.b2b.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
+            </td>
+            <td class="px-4 py-2 text-right">
+              {{ day.b2b.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
+            </td>
+            <td class="px-4 py-2 text-right">
+              {{ day.b2b.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
+            </td>
+            <!-- Day Totals -->
+
+            <td class="px-4 py-2 text-right font-medium">
+              {{ day.total.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
+            </td>
+            <td class="px-4 py-2 text-right font-medium">
+              {{ day.total.delivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
+            </td>
+            <td class="px-4 py-2 text-right font-medium">
+              {{ day.total.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- Product Analysis Table -->
