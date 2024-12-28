@@ -40,13 +40,13 @@ const handleLogin = () => {
           <button
             v-if="authStore.isLoggedIn"
             @click="router.push('/dashboard/orders')"
-            class="utility-btn w-full text-base transition-colors"
+            class="action-btn w-full text-base transition-colors"
           >
-            Ir al panel
+            Entrar
           </button>
         </div>
 
-        <div class="text-sm text-center text-neutral-600">
+        <div   v-if="!authStore.isLoggedIn" class="text-sm text-center text-neutral-600">
           ¿No tienes una cuenta?
           <RouterLink to="/signup" class="text-primary hover:text-primary-600 font-medium">
             Regístrate aquí

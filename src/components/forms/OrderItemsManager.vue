@@ -92,7 +92,7 @@ const removeItem = (index) => {
       class="col-span-3 md:col-span-1"
     />
 
-    <div class="flat-card col-span-3 md:pt-0 md:col-span-2 mb-0">
+    <div class="flat-card col-span-3 md:pt-0 md:col-span-2 mb-0 text-sm">
       <div v-if="modelValue.length === 0" class="p-4">
         No hay productos seleccionados
       </div>

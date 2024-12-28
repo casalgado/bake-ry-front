@@ -1,13 +1,14 @@
 <!-- components/DataTable/index.vue -->
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { PhDisc } from '@phosphor-icons/vue';
+import { PhDisc, PhArrowCounterClockwise, PhArrowClockwise } from '@phosphor-icons/vue';
 import TableHeader from './components/TableHeader.vue';
 import TableBody from './components/TableBody.vue';
 import ActionBar from './components/ActionBar.vue';
 import FilterBar from './components/FilterBar.vue';
 import { useTableSort } from './composables/useTableSort';
 import { useTableFilter } from './composables/useTableFilter';
+import { useUndoHistory } from './composables/useUndoHistory';
 
 const props = defineProps({
   data: {
@@ -57,6 +58,9 @@ const emit = defineEmits([
   'action',
 ]);
 
+// Initialize undo history
+const { addToHistory, undo, redo, canUndo, canRedo } = useUndoHistory();
+
 // Initialize sorting
 const { sortState, toggleSort, getSortDirection, getSortIndex, sortData, clearSort } = useTableSort();
 
@@ -70,6 +74,7 @@ initializeFilters(props.filters);
 const selectedRows = ref(new Set());
 const hasSelection = computed(() => selectedRows.value.size > 0);
 const allSelected = computed(() => selectedRows.value.size === props.data.length);
+
 // Apply sorting and filtering
 const processedData = computed(() => {
   const filteredData = filterData(props.data, props.searchableColumns);
@@ -79,7 +84,6 @@ const processedData = computed(() => {
 // Manages row selection with shift-click support for range selection
 const handleRowSelect = ({ row, shift }) => {
   if (shift && selectedRows.value.size > 0) {
-    // Handle range selection
     const lastSelected = [...selectedRows.value].pop();
     const startIdx = props.data.findIndex(r => r.id === lastSelected);
     const endIdx = props.data.findIndex(r => r.id === row.id);
@@ -90,7 +94,6 @@ const handleRowSelect = ({ row, shift }) => {
       selectedRows.value.add(props.data[i].id);
     }
   } else {
-    // Toggle single selection
     if (selectedRows.value.has(row.id)) {
       selectedRows.value.delete(row.id);
     } else {
@@ -106,8 +109,8 @@ const getNextToggleValue = (currentValue, options) => {
   return options[(currentIndex + 1) % options.length].value;
 };
 
-// Handles updating the state of toggle columns
-const handleToggleUpdate = ({ row, column }) => {
+// Handles updating the state of toggle columns with undo support
+const handleToggleUpdate = async ({ row, column }) => {
   const rowsToUpdate = selectedRows.value.has(row.id)
     ? props.data.filter(r => selectedRows.value.has(r.id))
     : [row];
@@ -115,6 +118,35 @@ const handleToggleUpdate = ({ row, column }) => {
   const currentValue = row[column.field];
   const nextValue = getNextToggleValue(currentValue, column.options);
 
+  // Store previous state for undo
+  const previousStates = rowsToUpdate.map(r => ({
+    id: r.id,
+    field: column.field,
+    value: r[column.field],
+  }));
+
+  // Add to history before making change
+  addToHistory({
+    type: 'toggle',
+    field: column.field,
+    changes: previousStates,
+    undo: async () => {
+      await emit('toggle-update', {
+        rowIds: previousStates.map(state => state.id),
+        field: column.field,
+        value: previousStates[0].value,
+      });
+    },
+    redo: async () => {
+      await emit('toggle-update', {
+        rowIds: rowsToUpdate.map(r => r.id),
+        field: column.field,
+        value: nextValue,
+      });
+    },
+  });
+
+  // Emit the update
   emit('toggle-update', {
     rowIds: rowsToUpdate.map(r => r.id),
     field: column.field,
@@ -157,10 +189,35 @@ const handleSort = (columnId, isMulti) => {
   toggleSort(columnId, isMulti);
 };
 
+// Undo/Redo handlers
+const handleUndo = async () => {
+  const operation = await undo();
+  if (operation) {
+    await operation.undo();
+  }
+};
+
+const handleRedo = async () => {
+  const operation = await redo();
+  if (operation) {
+    await operation.redo();
+  }
+};
+
 // Handle keyboard events
 const handleKeyDown = (event) => {
   if (event.key === 'Escape' && selectedRows.value.size > 0) {
     clearSelection();
+  }
+
+  // Add undo/redo keyboard shortcuts
+  if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+    event.preventDefault();
+    if (event.shiftKey) {
+      handleRedo();
+    } else {
+      handleUndo();
+    }
   }
 };
 
@@ -173,7 +230,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
 });
 </script>
-<!-- components/DataTable/index.vue -->
+
 <template>
   <div class="relative rounded-lg border border-neutral-200">
     <!-- Selection and Filter controls -->
@@ -192,16 +249,38 @@ onUnmounted(() => {
             LO
           </button>
         </template>
-      </div>
 
-      <FilterBar
-        :filters="filters"
-        :active-filters="activeFilters"
-        :has-active-filters="hasActiveFilters"
-        v-model:search="searchQuery"
-        @toggle-filter="toggleFilter"
-        @clear-all="clearAll"
-      />
+        <!-- Undo/Redo buttons -->
+
+      </div>
+      <div class="flex items-center gap-2 ml-2">
+        <div class="flex items-center gap-2">
+          <button
+            @click="handleUndo"
+            :disabled="!canUndo"
+            class="p-1.5 rounded-lg hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
+            title="Deshacer (Ctrl+Z)"
+          >
+            <PhArrowCounterClockwise class="w-5 h-5" />
+          </button>
+          <button
+            @click="handleRedo"
+            :disabled="!canRedo"
+            class="p-1.5 rounded-lg hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
+            title="Rehacer (Ctrl+Shift+Z)"
+          >
+            <PhArrowClockwise class="w-5 h-5" />
+          </button>
+        </div>
+        <FilterBar
+          :filters="filters"
+          :active-filters="activeFilters"
+          :has-active-filters="hasActiveFilters"
+          v-model:search="searchQuery"
+          @toggle-filter="toggleFilter"
+          @clear-all="clearAll"
+        />
+      </div>
     </div>
 
     <!-- Table Container -->
