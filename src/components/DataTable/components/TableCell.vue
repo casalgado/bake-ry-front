@@ -108,7 +108,7 @@ const handleTouchStart = () => {
 
   if (props.column.type === 'toggle' && isClickEnabled.value) {
     showTooltip.value = true;
-    // Immediately emit hover change to prevent stuck state
+
     emit('hover-change', {
       hovering: true,  // Changed to true since this is when interaction starts
       rowId: props.row.id,
@@ -117,21 +117,17 @@ const handleTouchStart = () => {
   }
 };
 
-const handleTouchEnd = (event) => {
+const handleTouchEnd = () => {
 
-  event.target.blur();
-  console.log('Touch end triggered');
-  emit('hover-change', {
-    hovering: false,
-    rowId: props.row.id,
-    columnId: props.column.id,
-  });
   if (touchTimeout) clearTimeout(touchTimeout);
   touchTimeout = setTimeout(() => {
     showTooltip.value = false;
     // Try emitting immediately without the timeout
-    console.log('Emitting hover-change false');
-
+    emit('hover-change', {
+      hovering: false,
+      rowId: props.row.id,
+      columnId: props.column.id,
+    });
   }, 100);
 };
 
@@ -159,7 +155,7 @@ onUnmounted(() => {
     <div
       class="inline-block px-3 rounded-2xl transition-colors"
       :class="{
-        'hover:bg-neutral-800 hover:text-white': isClickEnabled && !isLoading,
+        'lg:hover:bg-neutral-800 lg:hover:text-white': isClickEnabled && !isLoading,
         'bg-neutral-800 text-white': (props.column.type === 'toggle' && props.hovering) || isLoading,
         'opacity-50': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id),
         '!text-neutral-800': isLoading && props.column.type,
