@@ -29,6 +29,7 @@ const userStore = useBakeryUserStore();
 const isNewClientDialogOpen = ref(false);
 const originalAddress = ref('');
 const fetching = ref(false);
+const userCombox = ref(null);
 
 // Get tomorrow's date
 const tomorrow = new Date();
@@ -40,6 +41,35 @@ const formatDateForInput = (dateString) => {
   const date = new Date(dateString);
   return date.toISOString().split('T')[0];
 };
+
+const resetForm = () => {
+  formData.value = {
+    userId: '',
+    userName: '',
+    userEmail: '',
+    userPhone: '',
+    orderItems: [],
+    preparationDate: tomorrowString,
+    dueDate: tomorrowString,
+    fulfillmentType: 'delivery',
+    deliveryAddress: '',
+    deliveryFee: 7000,
+    paymentMethod: 'cash',
+    internalNotes: '',
+    shouldUpdateClientAddress: false,
+  };
+  errors.value = {};
+  selectedFeeType.value = deliveryFeeOptions[0].value;
+
+  nextTick(() => {
+    setTimeout(() => {
+      userCombox.value?.focus();
+    }, 800);
+  });
+};
+
+// Expose the resetForm method to the parent component
+defineExpose({ resetForm });
 
 // Form state
 const formData = ref(
@@ -201,6 +231,7 @@ watch(selectedFeeType, (newValue) => {
           <label for="client-select">{{ fetching ? 'Clientes...' : "Clientes" }}</label>
           <div class="grid grid-cols-[1fr_auto] gap-2">
             <UserCombox
+              ref="userCombox"
               v-model="formData.userId"
               :users="userStore.items"
               :error="errors.userId"

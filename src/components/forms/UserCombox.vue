@@ -66,12 +66,18 @@ watch(
 
 const inputRef = ref(null);
 
+const focus = () => {
+  const input = document.querySelector('[role="combobox"]');
+  input?.focus();
+};
+
 onMounted(async () => {
   await nextTick();
   // Find the actual input element
-  const input = document.querySelector('[role="combobox"]');
-  input?.focus();
+  focus();
 });
+
+defineExpose({ focus });
 </script>
 <template>
   <div>
