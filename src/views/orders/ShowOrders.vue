@@ -262,7 +262,7 @@ onMounted(async () => {
         },
       },
     });
-    console.log(orderStore.items);
+
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for orders');
   } catch (error) {

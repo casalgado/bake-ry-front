@@ -274,7 +274,6 @@ export class BaseService {
       this.bakeryId,
       this.resource,
     );
-    console.log('subscribing to changes', collectionRef);
     const q = query(
       collectionRef,
     );
@@ -284,7 +283,7 @@ export class BaseService {
 
         const changes = [];
         snapshot.docChanges().forEach((change) => {
-          console.log('change', change);
+
           const rawData = {
             id: change.doc.id,
             ...change.doc.data(),

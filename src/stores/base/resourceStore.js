@@ -39,7 +39,7 @@ export const createResourceStore = (resourceName, resourceService) => {
 
     // Real-time update handler
     function handleRealtimeUpdate(changes) {
-      console.log('handleRealtimeUpdate', changes);
+
       changes.forEach((change) => {
         switch (change.type) {
         case 'added': {
@@ -48,7 +48,7 @@ export const createResourceStore = (resourceName, resourceService) => {
           if (index === -1) {
             // Add to beginning of array to match typical Firestore behavior
             items.value.push(change.data);
-            console.log('Added new item:', change.data);
+
           }
           break;
         }
@@ -70,7 +70,7 @@ export const createResourceStore = (resourceName, resourceService) => {
               ) {
                 if (currentItem[key] !== newValue) {
                   items.value[index][key] = newValue;
-                  console.log('key newValue', key, newValue);
+
                 }
               }
               // For timestamps, arrays, and objects, keep the existing value

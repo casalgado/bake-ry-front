@@ -1,6 +1,6 @@
 <!-- components/DataTable/components/TableCell.vue -->
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onUnmounted } from 'vue';
 import { PhArrowRight } from '@phosphor-icons/vue';
 
 const props = defineProps({
@@ -75,17 +75,21 @@ const tooltipContent = computed(() => {
 });
 
 const showTooltip = ref(false);
+let touchTimeout = null;
 
-// Handle hover events
+// Handle mouse events for desktop
 const handleMouseEnter = () => {
-  if (props.column.type === 'toggle' && isClickEnabled.value) {
-    emit('hover-change', {
-      hovering: true,
-      rowId: props.row.id,
-      columnId: props.column.id,
-    });
+  // Only handle mouse events if not a touch device
+  if (!('ontouchstart' in window)) {
+    if (props.column.type === 'toggle' && isClickEnabled.value) {
+      emit('hover-change', {
+        hovering: true,
+        rowId: props.row.id,
+        columnId: props.column.id,
+      });
+    }
+    showTooltip.value = true;
   }
-  showTooltip.value = true;
 };
 
 const handleMouseLeave = () => {
@@ -99,6 +103,44 @@ const handleMouseLeave = () => {
   showTooltip.value = false;
 };
 
+// Handle touch events for mobile
+const handleTouchStart = () => {
+
+  if (props.column.type === 'toggle' && isClickEnabled.value) {
+    showTooltip.value = true;
+    // Immediately emit hover change to prevent stuck state
+    emit('hover-change', {
+      hovering: true,  // Changed to true since this is when interaction starts
+      rowId: props.row.id,
+      columnId: props.column.id,
+    });
+  }
+};
+
+const handleTouchEnd = (event) => {
+
+  event.target.blur();
+  console.log('Touch end triggered');
+  emit('hover-change', {
+    hovering: false,
+    rowId: props.row.id,
+    columnId: props.column.id,
+  });
+  if (touchTimeout) clearTimeout(touchTimeout);
+  touchTimeout = setTimeout(() => {
+    showTooltip.value = false;
+    // Try emitting immediately without the timeout
+    console.log('Emitting hover-change false');
+
+  }, 100);
+};
+
+// Clean up timeout on component unmount
+onUnmounted(() => {
+  if (touchTimeout) {
+    clearTimeout(touchTimeout);
+  }
+});
 </script>
 
 <template>
@@ -107,16 +149,17 @@ const handleMouseLeave = () => {
     @click="handleClick"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
+    @touchstart="handleTouchStart"
+    @touchend="handleTouchEnd"
     :class="{
       'border-neutral-300 border-2 border-dashed': props.column.type === 'toggle',
       'cursor-not-allowed': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id)
     }"
   >
     <div
-      class="inline-block px-3  rounded-2xl transition-colors"
+      class="inline-block px-3 rounded-2xl transition-colors"
       :class="{
         'hover:bg-neutral-800 hover:text-white': isClickEnabled && !isLoading,
-
         'bg-neutral-800 text-white': (props.column.type === 'toggle' && props.hovering) || isLoading,
         'opacity-50': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id),
         '!text-neutral-800': isLoading && props.column.type,
@@ -145,10 +188,13 @@ const handleMouseLeave = () => {
       <template v-else>
         {{ row[column.field] }}
       </template>
-      <!-- Tooltip -->
+
+      <!-- Responsive Tooltip -->
       <div
         v-if="tooltipContent && showTooltip && !isLoading"
-        class="pointer-events-none absolute z-50 px-2 py-1 text-xs text-white bg-primary rounded shadow-lg whitespace-nowrap left-full ml-2 top-1/2 -translate-y-1/2"
+        class="pointer-events-none absolute z-50 px-2 py-1 text-xs text-white bg-primary rounded shadow-lg whitespace-nowrap
+               left-1/2 -translate-x-1/2 -top-16
+               lg:left-full lg:ml-2 lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0"
       >
         <div class="flex items-center gap-1">
           {{ tooltipContent.prefix }}
@@ -162,9 +208,16 @@ const handleMouseLeave = () => {
             <span>{{ tooltipContent.value }}</span>
           </div>
         </div>
-        <!-- Triangle pointer -->
-        <div class="absolute right-full top-1/2 -translate-y-1/2">
-          <div class="border-4 border-transparent border-r-primary"></div>
+
+        <!-- Responsive triangle pointer -->
+        <div
+          class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full
+                 lg:bottom-auto lg:right-full lg:left-auto lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0"
+        >
+          <div
+            class="border-4 border-transparent border-t-primary
+                   lg:border-t-transparent lg:border-r-primary"
+          ></div>
         </div>
       </div>
     </div>
