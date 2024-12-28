@@ -1,7 +1,7 @@
 <!-- components/DataTable/index.vue -->
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { PhDisc, PhArrowCounterClockwise, PhArrowClockwise } from '@phosphor-icons/vue';
+import { PhDisc, PhArrowCounterClockwise, PhArrowClockwise, PhX } from '@phosphor-icons/vue';
 import TableHeader from './components/TableHeader.vue';
 import TableBody from './components/TableBody.vue';
 import ActionBar from './components/ActionBar.vue';
@@ -59,7 +59,7 @@ const emit = defineEmits([
 ]);
 
 // Initialize undo history
-const { addToHistory, undo, redo, canUndo, canRedo } = useUndoHistory();
+const { addToHistory, undo, redo, canUndo, canRedo } = useUndoHistory({ maxHistory: 100 });
 
 // Initialize sorting
 const { sortState, toggleSort, getSortDirection, getSortIndex, sortData, clearSort } = useTableSort();
@@ -111,47 +111,81 @@ const getNextToggleValue = (currentValue, options) => {
 
 // Handles updating the state of toggle columns with undo support
 const handleToggleUpdate = async ({ row, column }) => {
-  const rowsToUpdate = selectedRows.value.has(row.id)
-    ? props.data.filter(r => selectedRows.value.has(r.id))
-    : [row];
+  try {
+    // Determine affected rows
+    const rowsToUpdate = selectedRows.value.has(row.id)
+      ? props.data.filter(r => selectedRows.value.has(r.id))
+      : [row];
 
-  const currentValue = row[column.field];
-  const nextValue = getNextToggleValue(currentValue, column.options);
+    const currentValue = row[column.field];
+    const nextValue = getNextToggleValue(currentValue, column.options);
 
-  // Store previous state for undo
-  const previousStates = rowsToUpdate.map(r => ({
-    id: r.id,
-    field: column.field,
-    value: r[column.field],
-  }));
+    // Store the complete previous state
+    const previousState = rowsToUpdate.map(r => ({
+      id: r.id,
+      field: column.field,
+      value: r[column.field],
+    }));
 
-  // Add to history before making change
-  addToHistory({
-    type: 'toggle',
-    field: column.field,
-    changes: previousStates,
-    undo: async () => {
-      await emit('toggle-update', {
-        rowIds: previousStates.map(state => state.id),
-        field: column.field,
-        value: previousStates[0].value,
-      });
-    },
-    redo: async () => {
-      await emit('toggle-update', {
-        rowIds: rowsToUpdate.map(r => r.id),
-        field: column.field,
-        value: nextValue,
-      });
-    },
-  });
+    // Create the history entry before making the change
+    addToHistory({
+      type: 'toggle',
+      description: `Toggle ${column.label} for ${rowsToUpdate.length} row(s)`,
+      undo: async () => {
+        // For undo, we restore each row to its previous state individually
+        const updates = previousState.map(state => ({
+          rowIds: [state.id],
+          field: state.field,
+          value: state.value,
+        }));
 
-  // Emit the update
-  emit('toggle-update', {
-    rowIds: rowsToUpdate.map(r => r.id),
-    field: column.field,
-    value: nextValue,
-  });
+        // Execute all updates
+        for (const update of updates) {
+          await emit('toggle-update', update);
+        }
+      },
+      redo: async () => {
+        // For redo, we can update all rows at once since they're going to the same value
+        await emit('toggle-update', {
+          rowIds: rowsToUpdate.map(r => r.id),
+          field: column.field,
+          value: nextValue,
+        });
+      },
+    });
+
+    // Execute the actual update
+    await emit('toggle-update', {
+      rowIds: rowsToUpdate.map(r => r.id),
+      field: column.field,
+      value: nextValue,
+    });
+  } catch (error) {
+    console.error('Failed to update:', error);
+  }
+};
+
+// Undo/Redo handlers with error handling
+const handleUndo = async () => {
+  try {
+    const operation = await undo();
+    if (operation) {
+      await operation.undo();
+    }
+  } catch (error) {
+    console.error('Failed to undo:', error);
+  }
+};
+
+const handleRedo = async () => {
+  try {
+    const operation = await redo();
+    if (operation) {
+      await operation.redo();
+    }
+  } catch (error) {
+    console.error('Failed to redo:', error);
+  }
 };
 
 const selectAll = () => {
@@ -187,21 +221,6 @@ const handleAction = (actionId) => {
 // Handle sort
 const handleSort = (columnId, isMulti) => {
   toggleSort(columnId, isMulti);
-};
-
-// Undo/Redo handlers
-const handleUndo = async () => {
-  const operation = await undo();
-  if (operation) {
-    await operation.undo();
-  }
-};
-
-const handleRedo = async () => {
-  const operation = await redo();
-  if (operation) {
-    await operation.redo();
-  }
 };
 
 // Handle keyboard events
@@ -241,12 +260,12 @@ onUnmounted(() => {
         </button>
 
         <button v-if="hasSelection" @click="clearSelection" class="button utility-btn-active">
-          LS {{ selectedRows.size }}
+          <span class="flex items-center gap-2"><PhX class="w-4 h-4" /> Sel </span>
         </button>
 
         <template v-if="sortState.length">
           <button @click="clearSort" class="button utility-btn-active">
-            LO
+            <span class="flex items-center gap-2"><PhX class="w-4 h-4" /> Ord </span>
           </button>
         </template>
 
