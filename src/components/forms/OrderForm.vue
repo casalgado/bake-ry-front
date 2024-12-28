@@ -42,22 +42,37 @@ const formatDateForInput = (dateString) => {
   return date.toISOString().split('T')[0];
 };
 
+const getInitialFormState = () => ({
+  userId: '',
+  userName: '',
+  userEmail: '',
+  userPhone: '',
+  orderItems: [],
+  preparationDate: tomorrowString,
+  dueDate: tomorrowString,
+  fulfillmentType: 'delivery',
+  deliveryAddress: '',
+  deliveryFee: 7000,
+  paymentMethod: 'cash',
+  internalNotes: '',
+  shouldUpdateClientAddress: false,
+});
+
+// Form state
+const formData = ref(
+  props.initialData
+    ? {
+      ...props.initialData,
+      preparationDate: formatDateForInput(props.initialData.preparationDate),
+      dueDate: formatDateForInput(props.initialData.dueDate),
+    }
+    : getInitialFormState(),
+);
+
+const errors = ref({});
+
 const resetForm = () => {
-  formData.value = {
-    userId: '',
-    userName: '',
-    userEmail: '',
-    userPhone: '',
-    orderItems: [],
-    preparationDate: tomorrowString,
-    dueDate: tomorrowString,
-    fulfillmentType: 'delivery',
-    deliveryAddress: '',
-    deliveryFee: 7000,
-    paymentMethod: 'cash',
-    internalNotes: '',
-    shouldUpdateClientAddress: false,
-  };
+  formData.value = getInitialFormState();
   errors.value = {};
   selectedFeeType.value = deliveryFeeOptions[0].value;
 
@@ -70,33 +85,6 @@ const resetForm = () => {
 
 // Expose the resetForm method to the parent component
 defineExpose({ resetForm });
-
-// Form state
-const formData = ref(
-  props.initialData
-    ? {
-      ...props.initialData,
-      preparationDate: formatDateForInput(props.initialData.preparationDate),
-      dueDate: formatDateForInput(props.initialData.dueDate),
-    }
-    : {
-      userId: '',
-      userName: '',
-      userEmail: '',
-      userPhone: '',
-      orderItems: [],
-      preparationDate: tomorrowString,
-      dueDate: tomorrowString,
-      fulfillmentType: 'delivery',
-      deliveryAddress: '',
-      deliveryFee: 7000,
-      paymentMethod: 'cash',
-      internalNotes: '',
-      shouldUpdateClientAddress: false,
-    },
-);
-
-const errors = ref({});
 
 // Computed property for submit button text
 const submitButtonText = computed(() => {
@@ -159,8 +147,8 @@ const handleUserChange = async (user) => {
 
 const addressHasChanged = computed(() => {
   return formData.value.deliveryAddress !== originalAddress.value
-    && formData.value.deliveryAddress !== ''
-    && originalAddress.value !== '';
+   && formData.value.deliveryAddress !== ''
+   && originalAddress.value !== '';
 });
 
 const validate = () => {
