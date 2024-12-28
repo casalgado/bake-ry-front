@@ -49,13 +49,6 @@ export const createResourceStore = (resourceName, resourceService) => {
             // Add to beginning of array to match typical Firestore behavior
             items.value.push(change.data);
             console.log('Added new item:', change.data);
-          } else {
-            // If it exists but might have different data, update it
-            items.value[index] = {
-              ...items.value[index],
-              ...change.data,
-            };
-            console.log('Updated existing item:', change.data);
           }
           break;
         }

@@ -7,6 +7,17 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
  * Base service class for handling common API operations
  */
 export class BaseService {
+  // Define date fields that need conversion
+  static dateFields = [
+    'createdAt',
+    'updatedAt',
+    'dueDate',
+    'preparationDate',
+    'lastLoginAt',
+    'deletedAt',
+    'completedAt',
+  ];
+
   /**
    * @param {string} resource - The resource endpoint (e.g., 'ingredients', 'recipes')
    * @param {string} basePath - Base path for the API (e.g., '/bakeries/123')
@@ -23,6 +34,28 @@ export class BaseService {
     this.bakeryId = this.extractBakeryId(basePath);
     this.api = api;
     this.listeners = new Map();
+  }
+
+  /**
+   * Convert Firestore timestamps to JavaScript Date objects
+   * @private
+   * @param {Object} data - Data object containing timestamps
+   * @returns {Object} Data with converted dates
+   */
+  convertTimestamps(data) {
+    const converted = { ...data };
+    BaseService.dateFields.forEach(field => {
+      if (converted[field]?.toDate) {
+        converted[field] = converted[field].toDate();
+      } else if (converted[field] && !(converted[field] instanceof Date)) {
+        try {
+          converted[field] = new Date(converted[field]);
+        } catch (error) {
+          console.warn(`Failed to convert date for field ${field}:`, error);
+        }
+      }
+    });
+    return converted;
   }
 
   /**
@@ -59,8 +92,6 @@ export class BaseService {
     try {
     // Convert the query object to API parameters
       const params = this.formatQueryParams(query);
-      console.log('path', this.getPath());
-      console.log('params', params);
 
       const response = await this.api.get(this.getPath(), { params });
       return this.handleResponse(response);
@@ -144,7 +175,7 @@ export class BaseService {
     if (!data) {
       throw new Error('Data is required');
     }
-
+    console.log('creating', data);
     try {
       const response = await this.api.post(this.getPath(), data);
       return this.handleResponse(response);
@@ -232,37 +263,36 @@ export class BaseService {
   }
 
   /**
- * Subscribe to collection changes
+   * Subscribe to collection changes
    * @param {Function} onUpdate - Callback for updates
    * @returns {Function} Unsubscribe function
    */
   subscribeToChanges(onUpdate) {
-
-    // Create reference to the subcollection
     const collectionRef = collection(
       db,
       'bakeries',
       this.bakeryId,
       this.resource,
     );
-
-    // Create query - note we don't need the where clause anymore
-    // since we're already in the correct subcollection
+    console.log('subscribing to changes', collectionRef);
     const q = query(
       collectionRef,
-      orderBy('updatedAt', 'desc'),
     );
 
     const unsubscribe = onSnapshot(q,
       (snapshot) => {
+
         const changes = [];
         snapshot.docChanges().forEach((change) => {
-          const data = {
+          console.log('change', change);
+          const rawData = {
             id: change.doc.id,
             ...change.doc.data(),
             bakeryId: this.bakeryId,
           };
-          changes.push({ type: change.type, data });
+          // Convert timestamps before sending to store
+          const convertedData = this.convertTimestamps(rawData);
+          changes.push({ type: change.type, data: convertedData });
         });
         onUpdate(changes);
       },
@@ -279,7 +309,6 @@ export class BaseService {
 
   /**
    * Unsubscribe from changes
-   * @param {string} bakeryId - Bakery ID
    */
   unsubscribeFromChanges() {
     const listenerId = `${this.resource}-${this.bakeryId}`;

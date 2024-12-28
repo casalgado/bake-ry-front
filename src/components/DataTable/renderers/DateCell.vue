@@ -5,6 +5,7 @@ defineProps({
 });
 
 const formatDate = (dateStr) => {
+  console.log('in DateCell', dateStr);
   const date = new Date(dateStr);
   const weekday = date.toLocaleDateString('es', { weekday: 'short' });
   const day = date.getDate().toString().padStart(2, '0');
