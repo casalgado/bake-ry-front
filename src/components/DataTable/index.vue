@@ -108,8 +108,6 @@ const getNextToggleValue = (currentValue, options) => {
   const currentIndex = options.findIndex(opt => opt.value === currentValue);
   return options[(currentIndex + 1) % options.length].value;
 };
-
-// Handles updating the state of toggle columns with undo support
 const handleToggleUpdate = async ({ row, column }) => {
   try {
     // Determine affected rows
@@ -132,16 +130,23 @@ const handleToggleUpdate = async ({ row, column }) => {
       type: 'toggle',
       description: `Toggle ${column.label} for ${rowsToUpdate.length} row(s)`,
       undo: async () => {
-        // For undo, we restore each row to its previous state individually
-        const updates = previousState.map(state => ({
-          rowIds: [state.id],
-          field: state.field,
-          value: state.value,
-        }));
+        // Group rows by their previous values while preserving types
+        const updatesByValue = previousState.reduce((groups, state) => {
+          // Use Map instead of plain object to preserve value types
+          if (!groups.has(state.value)) {
+            groups.set(state.value, []);
+          }
+          groups.get(state.value).push(state.id);
+          return groups;
+        }, new Map());
 
-        // Execute all updates
-        for (const update of updates) {
-          await emit('toggle-update', update);
+        // Execute one update per unique previous value
+        for (const [value, rowIds] of updatesByValue.entries()) {
+          await emit('toggle-update', {
+            rowIds,
+            field: column.field,
+            value,
+          });
         }
       },
       redo: async () => {
