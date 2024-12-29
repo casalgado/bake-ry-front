@@ -61,6 +61,7 @@ const columns = [
     component: ClientCell,
     getProps: (row) => ({
       name: row.userName,
+      comment: row.internalNotes,
     }),
   },
   {
@@ -71,7 +72,7 @@ const columns = [
   },
   {
     id: 'deliveryCost',
-    label: 'Valor Domi',
+    label: '$Dom',
     field: 'deliveryCost',
     sortable: true,
     component: MoneyCell,
@@ -101,19 +102,6 @@ const columns = [
     }),
   },
   {
-    id: 'paymentMethod',
-    label: 'Pago',
-    field: 'paymentMethod',
-    sortable: true,
-    type: 'toggle',
-    options: [
-      { value: 'cash', displayText: 'efectivo', icon: PhMoney },
-      { value: 'bold', displayText: 'bold', icon: PhCreditCard },
-      { value: 'transfer', displayText: 'transferencia', icon: PhDeviceMobile },
-      { value: 'complimentary', displayText: 'regalo', icon: PhGift },
-    ],
-  },
-  {
     id: 'fulfillmentType',
     label: 'Tipo Entrega',
     field: 'fulfillmentType',
@@ -131,19 +119,6 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [{ value: '-', displayText: '-' }],
-  },
-
-  {
-    id: 'isPaid',
-    label: 'Pagado',
-    field: 'isPaid',
-    sortable: true,
-    type: 'toggle',
-    options: [{ value: true, displayText: '✓' }, { value: false, displayText: '-' }],
-    component: CheckboxCell,
-    getProps: (row) => ({
-      isChecked: row.isPaid,
-    }),
   },
 ];
 

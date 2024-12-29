@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { abbreviateText } from '@/utils/helpers';
 
 const props = defineProps({
   products: {
@@ -230,21 +231,6 @@ const handleOptionClick = (index) => {
   handleSelection(index);
 };
 
-const formatBreadcrumbText = (text) => {
-  if (!text) return '';
-
-  const words = text.trim().split(/\s+/);
-
-  if (words.length === 1) {
-    // Single word - take first 4 letters
-    return words[0].slice(0, 4).toLowerCase();
-  } else {
-    // Multiple words - take first 3 of first word + first letter of last word
-    const lastWord = words[words.length - 1];
-    return (words[0].slice(0, 3) + lastWord[0]).toLowerCase();
-  }
-};
-
 const getOptionDisplay = (option, index) => {
   if (!option) return '';
 
@@ -296,7 +282,7 @@ const getOptionDisplay = (option, index) => {
         @click="handleBreadcrumbClick('category')"
         :disabled="currentStep === 'category'"
       >
-        {{ formatBreadcrumbText(selectedCategory) || '>' }}
+        {{ abbreviateText (selectedCategory) || '>' }}
       </button>
 
       <span v-if="selectedCategory" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
@@ -308,7 +294,7 @@ const getOptionDisplay = (option, index) => {
         @click="handleBreadcrumbClick('product')"
         :disabled="currentStep === 'product'"
       >
-        {{ formatBreadcrumbText(productName) || '#' }}
+        {{ abbreviateText (productName) || '#' }}
       </button>
 
       <span v-if="selectedProduct && productVariations.length > 0" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
@@ -320,7 +306,7 @@ const getOptionDisplay = (option, index) => {
         @click="handleBreadcrumbClick('variation')"
         :disabled="currentStep === 'variation'"
       >
-        {{ formatBreadcrumbText(selectedVariation?.name) || '#' }}
+        {{ abbreviateText (selectedVariation?.name) || '#' }}
       </button>
 
       <span v-if="currentStep === 'quantity'" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>

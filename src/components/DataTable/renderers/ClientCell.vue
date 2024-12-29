@@ -3,9 +3,16 @@
 defineProps({
   name: String,
   phone: String,
+  comment: {
+    type: String,
+    default: null,
+  },
 });
 </script>
 
 <template>
-  {{ name }}
+  <div class="flex flex-col">
+    {{ name }}
+    <span v-if="comment" class="text-xs text-neutral-500">{{ comment }}</span>
+  </div>
 </template>

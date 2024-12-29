@@ -41,7 +41,6 @@ const handleCellClick = (event, row, column) => {
 };
 
 const handleCellHover = ({ hovering, rowId, columnId }) => {
-  console.log('handleCellHover:', { hovering, rowId, columnId });
   hoveredCell.value = hovering ? { rowId, columnId } : null;
 };
 

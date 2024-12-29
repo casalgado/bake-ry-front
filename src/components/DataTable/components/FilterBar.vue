@@ -85,7 +85,7 @@ onClickOutside(searchContainer, () => {
 </script>
 
 <template>
-  <div class="flex items-center gap-4">
+  <div class="flex items-center gap-2">
     <!-- Search section -->
     <div ref="searchContainer" class="flex items-center">
       <button
@@ -102,7 +102,7 @@ onClickOutside(searchContainer, () => {
           :value="search"
           @input="handleSearchInput"
           type="text"
-          class="w-full px-3 py-1.5 border rounded-lg focus:outline-none focus:ring-none"
+          class="w-full px-2 py-1.5 border rounded-lg focus:outline-none focus:ring-none"
 
         >
       </div>
@@ -117,7 +117,7 @@ onClickOutside(searchContainer, () => {
             <template v-for="option in filter.options" :key="option.value">
               <button
                 @click="$emit('toggle-filter', filter.field, option.value)"
-                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                class="px-2 py-1.5 rounded-lg text-sm font-medium transition-colors"
                 :class="[
                   activeFilters.get(filter.field)?.has(option.value)
                     ? 'bg-primary-600 text-white'
@@ -135,7 +135,7 @@ onClickOutside(searchContainer, () => {
       <div class="">
         <Menu as="div" class="relative inline-block text-left" v-slot="{ open }">
           <MenuButton
-            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-neutral-100"
+            class="inline-flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-neutral-100"
             :class="{ 'bg-neutral-100': open }"
           >
             <PhFunnel class="w-5 h-5" />
@@ -200,7 +200,7 @@ onClickOutside(searchContainer, () => {
       <!-- Clear filters button -->
       <button
         @click="clearAll"
-        class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+        class="flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm font-medium transition-colors"
         :class="[
           hasActiveFilters
             ? 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'

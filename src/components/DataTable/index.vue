@@ -278,24 +278,6 @@ onUnmounted(() => {
 
       </div>
       <div class="flex items-center gap-2 ml-2">
-        <div class="flex items-center gap-2">
-          <button
-            @click="handleUndo"
-            :disabled="!canUndo"
-            class="p-1.5 rounded-lg hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
-            title="Deshacer (Ctrl+Z)"
-          >
-            <PhArrowCounterClockwise class="w-5 h-5" />
-          </button>
-          <button
-            @click="handleRedo"
-            :disabled="!canRedo"
-            class="p-1.5 rounded-lg hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
-            title="Rehacer (Ctrl+Shift+Z)"
-          >
-            <PhArrowClockwise class="w-5 h-5" />
-          </button>
-        </div>
         <FilterBar
           :filters="filters"
           :active-filters="activeFilters"
@@ -304,6 +286,25 @@ onUnmounted(() => {
           @toggle-filter="toggleFilter"
           @clear-all="clearAll"
         />
+        <div class="flex items-center gap-2">
+          <button
+            @click="handleUndo"
+            :disabled="!canUndo"
+            class="p-1.5 rounded-lg hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent hover:bg-neutral-100"
+            title="Deshacer (Ctrl+Z)"
+          >
+            <PhArrowCounterClockwise class="w-5 h-5" />
+          </button>
+          <button
+            @click="handleRedo"
+            :disabled="!canRedo"
+            class="p-1.5 rounded-lg hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent hover:bg-neutral-100"
+            title="Rehacer (Ctrl+Shift+Z)"
+          >
+            <PhArrowClockwise class="w-5 h-5" />
+          </button>
+        </div>
+
       </div>
     </div>
 

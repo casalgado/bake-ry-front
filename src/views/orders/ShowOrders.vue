@@ -36,11 +36,12 @@ const columns = [
     component: ClientCell,
     getProps: (row) => ({
       name: row.userName,
+      comment: row.internalNotes,
     }),
   },
   {
     id: 'dueDate',
-    label: 'Due Date',
+    label: 'Fecha de Entrega',
     field: 'dueDate',
     sortable: true,
     component: DateCell,

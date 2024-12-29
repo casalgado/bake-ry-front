@@ -2,6 +2,7 @@
 <script setup>
 import { computed } from 'vue';
 import { PhCaretUp, PhCaretDown } from '@phosphor-icons/vue';
+import { abbreviateText } from '@/utils/helpers';
 
 const props = defineProps({
   columns: {
@@ -46,7 +47,7 @@ const getSortIcon = (column) => {
         @click="handleSort(column, $event)"
       >
         <div class="flex items-center gap-1">
-          {{ column.label }}
+          {{ abbreviateText(column.label, { singleWordLength: 4, firstWordLength: 4, lastWordLength: 0, separator: '' }) }}
 
           <template v-if="column.sortable">
             <component

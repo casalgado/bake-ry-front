@@ -1,6 +1,7 @@
 <script setup>
 import { ref, defineProps, defineEmits, computed } from 'vue';
 import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
+import { parseSpanishName } from '@/utils/helpers';
 
 const props = defineProps({
   title: {
@@ -75,8 +76,7 @@ const validate = () => {
 
   if (!formData.value.email) errors.value.email = 'El correo electrónico es requerido';
   if (!formData.value.role) errors.value.role = 'El rol es requerido';
-  if (!formData.value.firstName) errors.value.firstName = 'El nombre es requerido';
-  if (!formData.value.lastName) errors.value.lastName = 'El apellido es requerido';
+  if (!formData.value.name) errors.value.name = 'El nombre es requerido';
 
   // Email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -99,14 +99,14 @@ const loadingText = computed(() => {
 });
 
 const handleSubmit = () => {
-  console.log(formData.value);
-  formData.value.name = formData.value.firstName + ' ' + formData.value.lastName;
+  const submitData = {
+    ...formData.value,
+    ...parseSpanishName(formData.value.name, formData.value.category),
+  };
 
   if (!validate()) return;
   console.log('valido');
-  emit('submit', {
-    ...formData.value,
-  });
+  emit('submit', submitData);
 };
 </script>
 
@@ -119,18 +119,7 @@ const handleSubmit = () => {
         <label>Nombre</label>
         <input
           type="text"
-          v-model="formData.firstName"
-          required
-          class="w-full"
-        />
-        <span v-if="errors.name" class="text-danger text-sm">{{ errors.name }}</span>
-      </div>
-
-      <div>
-        <label>Apellido</label>
-        <input
-          type="text"
-          v-model="formData.lastName"
+          v-model="formData.name"
           required
           class="w-full"
         />

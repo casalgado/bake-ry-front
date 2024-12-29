@@ -22,15 +22,15 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <div class="form-container">
-    <h2>Crear Nuevo Usuario</h2>
-    <BakeryUserForm
-      :loading="bakeryUserStore.loading"
-      @submit="handleSubmit"
-      @cancel="handleCancel"
-    />
-    <div v-if="bakeryUserStore.error">
-      {{ bakeryUserStore.error }}
-    </div>
+
+  <BakeryUserForm
+    title="Crear nuevo usuario"
+    :loading="bakeryUserStore.loading"
+    @submit="handleSubmit"
+    @cancel="handleCancel"
+  />
+  <div v-if="bakeryUserStore.error">
+    {{ bakeryUserStore.error }}
   </div>
+
 </template>

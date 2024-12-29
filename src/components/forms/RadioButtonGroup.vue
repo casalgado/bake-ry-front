@@ -76,7 +76,7 @@ const updateValue = (value) => {
 };
 
 const containerClasses = computed(() => ({
-  'flex gap-1': props.layout === 'horizontal',
+  'flex gap-1 flex-wrap': props.layout === 'horizontal',
   'flex flex-col gap-1': props.layout === 'vertical',
 }));
 </script>

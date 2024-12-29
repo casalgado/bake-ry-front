@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
+import { parseSpanishName } from '@/utils/helpers';
 
 const props = defineProps({
   isOpen: Boolean,
@@ -27,10 +28,15 @@ const handleSubmit = async (e) => {
 
   try {
     formData.value.role = 'bakery_customer';
-    const newClient = await userStore.create(formData.value);
-    emit('clientCreated', newClient);
-    emit('update:isOpen', false);
-    formData.value = { name: '', email: '', phone: '', address: '' };
+    const submitData = {
+      ...formData.value,
+      ...parseSpanishName(formData.value.name, formData.value.category),
+    };
+    console.log('submitData', submitData);
+    // const newClient = await userStore.create(submitData);
+    // emit('clientCreated', newClient);
+    // emit('update:isOpen', false);
+    // formData.value = { name: '', email: '', phone: '', address: '' };
   } catch (err) {
     error.value = err.message || 'Error creating client';
   } finally {

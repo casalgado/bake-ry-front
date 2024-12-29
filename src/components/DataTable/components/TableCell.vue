@@ -153,7 +153,7 @@ onUnmounted(() => {
     }"
   >
     <div
-      class="inline-block px-3 rounded-2xl transition-colors"
+      class="inline-block px-1 rounded-2xl transition-colors"
       :class="{
         'lg:hover:bg-neutral-800 lg:hover:text-white': isClickEnabled && !isLoading,
         'bg-neutral-800 text-white': (props.column.type === 'toggle' && props.hovering) || isLoading,
