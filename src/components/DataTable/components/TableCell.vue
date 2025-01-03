@@ -182,7 +182,13 @@ onUnmounted(() => {
         v-bind="column.getProps(row)"
       />
       <template v-else>
-        {{ row[column.field] }}
+        <template v-if="column.displayText">
+
+          {{ column.displayText[row[column.field]] }}
+        </template>
+        <template v-else>
+          {{ row[column.field] }}
+        </template>
       </template>
 
       <!-- Responsive Tooltip -->

@@ -1,12 +1,11 @@
+<!-- views/BakerySettings.vue -->
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
-import { useRouter } from 'vue-router';
-import DataTable from '@/components/DataTable/index.vue';
+import StaffTable from './StaffTable.vue';
 
-const router = useRouter();
-void router;
 const settingsStore = useBakerySettingsStore();
+const staffData = ref([]);
 
 // Track which sections are being edited
 const editingSections = ref({
@@ -15,60 +14,41 @@ const editingSections = ref({
   theme: false,
 });
 
-const staffData = ref([]);
-const b2bClients = ref([]);
-
-const staffColumns = ref([
-  { id: 'name', label: 'Nombre', field: 'name' },
-  { id: 'role', label: 'Rol', field: 'role' },
-]);
-
 onMounted(async () => {
   await settingsStore.fetchById('default');
   staffData.value = await settingsStore.staff;
-  b2bClients.value = await settingsStore.b2b_clients;
 });
 
-const toggleEdit = (section) => {
-  editingSections.value[section] = !editingSections.value[section];
+const handleEditStaff = (staff) => {
+  console.log('Edit staff member:', staff);
+  // Implement edit functionality
 };
 
-// const handleSubmit = async (formData, section) => {
-//   try {
-//     await settingsStore.patch('default', { [section]: formData });
-//     editingSections.value[section] = false;
-//   } catch (error) {
-//     console.error(`Failed to update ${section}:`, error);
-//   }
-// };
-
-// const handleCancel = (section) => {
-//   editingSections.value[section] = false;
-// };
 </script>
 
 <template>
-  <div>
-    <h2>Bakery Settings Management</h2>
-
-    <!-- Loading State -->
-    <div v-if="settingsStore.loading">Loading settings...</div>
-
-    <!-- Error State -->
-    <div v-if="settingsStore.error">
-      {{ settingsStore.error }}
+  <div class="container p-4 px-0 lg:px-4">
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-neutral-800">Configuración</h2>
     </div>
 
     <!-- Settings Sections -->
-    <div v-if="!settingsStore.loading && settingsStore.currentItem">
+    <div v-if="!settingsStore.loading && settingsStore.currentItem"
+         class="space-y-6">
 
-      <section>
-        <div class="section-header">
-          <h3>Equipo</h3>
-
+      <!-- Staff Section -->
+      <section class="">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold text-neutral-800">Equipo</h3>
         </div>
 
-        <DataTable :data="staffData" :columns="staffColumns" />
+        <StaffTable
+          :staff="staffData"
+          :loading="settingsStore.loading"
+          :error="settingsStore.error"
+          @edit="handleEditStaff"
+          @delete="handleDeleteStaff"
+        />
       </section>
 
       <!-- Order Statuses Section -->
@@ -89,12 +69,9 @@ const toggleEdit = (section) => {
 
     </div>
 
-    <div v-else-if="!settingsStore.loading && !settingsStore.currentItem">
-      No settings found.
+    <div v-else-if="!settingsStore.loading && !settingsStore.currentItem"
+         class="text-center py-8 text-neutral-600">
+      Configuración no encontrada.
     </div>
   </div>
 </template>
-
-<style scoped lang="scss">
-
-</style>
