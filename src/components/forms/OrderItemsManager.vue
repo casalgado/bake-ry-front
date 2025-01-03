@@ -36,6 +36,7 @@ const handleWizardSelect = (selection) => {
     productName: product.name,
     collectionId: product.collectionId,
     collectionName: product.collectionName,
+    taxPercentage: product.taxPercentage,
     quantity: selection.quantity,
     basePrice: prices.basePrice,
     currentPrice: prices.currentPrice,

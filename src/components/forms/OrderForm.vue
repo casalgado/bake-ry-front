@@ -213,7 +213,7 @@ watch(selectedFeeType, (newValue) => {
 <template>
   <div class="form-container">
     <h2>{{ title }}</h2>
-    <form @submit.prevent="handleSubmit">
+    <form @submit.prevent="handleSubmit" :class="{ 'opacity-50': fetching }">
       <div class="base-card flex flex-col gap-2">
         <div>
           <label for="client-select">{{ fetching ? 'Clientes...' : "Clientes" }}</label>

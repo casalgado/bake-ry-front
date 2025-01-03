@@ -189,7 +189,7 @@ onClickOutside(searchContainer, () => {
                   @click="clearAll"
                   class="w-full px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-50 hover:bg-neutral-100 rounded-lg"
                 >
-                  Clear all filters
+                  Limpiar filtros
                 </button>
               </div>
             </MenuItems>

@@ -14,7 +14,7 @@ defineProps({
 
 const categoryShortener = (text) => {
   if (text == 'sourdough') return 'pan';
-  if (text == 'tortillas') return 'trt';
+  if (text == 'tortillas') return 'tort';
   if (text == 'baguette') return 'bag';
   return '';
 };
