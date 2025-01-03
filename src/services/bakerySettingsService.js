@@ -9,4 +9,8 @@ export class BakerySettingsService extends BaseService {
   async getStaff() {
     return this.api.get(`${this.basePath}/settings/default/staff`);
   }
+
+  async getB2bClients() {
+    return this.api.get(`${this.basePath}/settings/default/b2b_clients`);
+  }
 }

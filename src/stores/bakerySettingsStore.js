@@ -19,3 +19,8 @@ store.staff = computed(async () => {
   const response = await service.getStaff();
   return response.data;
 });
+
+store.b2b_clients = computed(async () => {
+  const response = await service.getB2bClients();
+  return response.data;
+});

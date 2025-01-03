@@ -16,6 +16,7 @@ const editingSections = ref({
 });
 
 const staffData = ref([]);
+const b2bClients = ref([]);
 
 const staffColumns = ref([
   { id: 'name', label: 'Nombre', field: 'name' },
@@ -25,6 +26,7 @@ const staffColumns = ref([
 onMounted(async () => {
   await settingsStore.fetchById('default');
   staffData.value = await settingsStore.staff;
+  b2bClients.value = await settingsStore.b2b_clients;
 });
 
 const toggleEdit = (section) => {

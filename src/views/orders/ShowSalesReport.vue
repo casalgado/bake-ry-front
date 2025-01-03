@@ -1,3 +1,4 @@
+
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import DataTable from '@/components/DataTable/index.vue';
@@ -5,10 +6,18 @@ import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
+const settingsStore = useBakerySettingsStore();
 const unsubscribeRef = ref(null);
+const b2bClients = ref([]);
+
+// Helper function to check if a client is B2B
+const isB2BClient = (userId) => {
+  return b2bClients.value.some(client => client.id === userId);
+};
 
 // Table columns for product analysis
 const columns = [
@@ -55,7 +64,12 @@ const calculateMetrics = (orders) => {
 
 // Computed for valid orders (excluding complementary)
 const validOrders = computed(() => {
-  return orderStore.items.filter(order => !order.isComplimentary);
+  return orderStore.items.filter(order => {
+    if (order.isComplimentary) return false;
+    // Add B2B status to each order based on client ID
+    order.isB2B = isB2BClient(order.userId);
+    return true;
+  });
 });
 
 // Compute daily breakdowns
@@ -111,7 +125,6 @@ const productAnalysis = computed(() => {
 
   validOrders.value.forEach(order => {
     order.orderItems.forEach(item => {
-
       const key = `${item.productId}-${item.variation ? item.variation.name : 'default'}`;
       if (!products[key]) {
         products[key] = {
@@ -134,6 +147,13 @@ watch(
   () => periodStore.periodRange,
   async (newRange) => {
     try {
+      // Ensure we have B2B clients first if not already loaded
+      if (b2bClients.value.length === 0) {
+        await settingsStore.fetchById('default');
+        b2bClients.value = await settingsStore.b2b_clients;
+      }
+
+      // Then fetch orders
       await orderStore.fetchAll({
         filters: {
           dateRange: {
@@ -152,6 +172,11 @@ watch(
 
 onMounted(async () => {
   try {
+    // First fetch settings to get B2B clients
+    await settingsStore.fetchById('default');
+    b2bClients.value = await settingsStore.b2b_clients;
+
+    // Then fetch orders
     await orderStore.fetchAll({
       filters: {
         dateRange: {
@@ -161,10 +186,11 @@ onMounted(async () => {
         },
       },
     });
+
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for sales report');
   } catch (error) {
-    console.error('Failed to initialize orders:', error);
+    console.error('Failed to initialize sales report:', error);
   }
 });
 
@@ -242,17 +268,14 @@ onUnmounted(() => {
           <tr class="bg-neutral-100">
             <th class="px-4 py-2 text-left"></th>
             <!-- B2B Subheaders -->
-
             <th class="px-4 py-2 text-right">Venta</th>
             <th class="px-4 py-2 text-right">Domicilio</th>
             <th class="px-4 py-2 text-right">Total</th>
             <!-- B2C Subheaders -->
-
             <th class="px-4 py-2 text-right">Venta</th>
             <th class="px-4 py-2 text-right">Domicilio</th>
             <th class="px-4 py-2 text-right">Total</th>
             <!-- Day Total Subheaders -->
-
             <th class="px-4 py-2 text-right">Venta</th>
             <th class="px-4 py-2 text-right">Domicilio</th>
             <th class="px-4 py-2 text-right">Total</th>
@@ -266,7 +289,6 @@ onUnmounted(() => {
               {{ new Date(day.date).toLocaleDateString('es-CO', { weekday: 'short', month: 'short', day: 'numeric' }) }}
             </td>
             <!-- B2C Data -->
-
             <td class="px-4 py-2 text-right">
               {{ day.b2c.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
             </td>
@@ -277,7 +299,6 @@ onUnmounted(() => {
               {{ day.b2c.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
             </td>
             <!-- B2B Data -->
-
             <td class="px-4 py-2 text-right">
               {{ day.b2b.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
             </td>
@@ -288,7 +309,6 @@ onUnmounted(() => {
               {{ day.b2b.total.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
             </td>
             <!-- Day Totals -->
-
             <td class="px-4 py-2 text-right font-medium">
               {{ day.total.withoutDelivery.toLocaleString('es-CO', { style: 'currency', currency: 'COP' }) }}
             </td>
