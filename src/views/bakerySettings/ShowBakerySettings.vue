@@ -1,35 +1,57 @@
-<!-- views/BakerySettings.vue -->
 <script setup>
 import { ref, onMounted } from 'vue';
+import { Dialog, DialogPanel } from '@headlessui/vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import StaffTable from './StaffTable.vue';
 import B2BClientsTable from './B2BClientsTable.vue';
+import BakeryUserForm from '@/components/forms/BakeryUserForm.vue';
 
 const settingsStore = useBakerySettingsStore();
+const bakeryUserStore = useBakeryUserStore();
 const staffData = ref([]);
 const b2bClientsData = ref([]);
 
-// Track which sections are being edited
-const editingSections = ref({
-  ingredientCategories: false,
-  orderStatuses: false,
-  theme: false,
-});
+// Form states - simplified to single form handling
+const isFormOpen = ref(false);
+const selectedUser = ref(null);
+
+// Table refs
+const staffTable = ref(null);
+const b2bTable = ref(null);
 
 onMounted(async () => {
   await settingsStore.fetchById('default');
   staffData.value = await settingsStore.staff;
   b2bClientsData.value = await settingsStore.b2b_clients;
+  console.log(b2bClientsData.value);
 });
 
-const handleEditStaff = (staff) => {
-  console.log('Edit staff member:', staff);
-  // Implement edit functionality
+// Unified form handlers
+const handleEdit = async (user) => {
+  selectedUser.value = await bakeryUserStore.fetchById(user.id);
+  console.log(selectedUser.value);
+  isFormOpen.value = true;
+  await settingsStore.fetchById('default');
+  staffData.value = await settingsStore.staff;
+  b2bClientsData.value = await settingsStore.b2b_clients;
 };
 
-const handleEditB2BClient = (client) => {
-  console.log('Edit B2B client:', client);
-  // Implement edit functionality
+const handleSubmit = async (formData) => {
+  try {
+    if (selectedUser.value) {
+      await bakeryUserStore.update(selectedUser.value.id, formData);
+    }
+
+    closeForm();
+  } catch (error) {
+    console.error('Failed to update user:', error);
+  }
+};
+
+const closeForm = () => {
+  isFormOpen.value = false;
+  selectedUser.value = null;
 };
 
 </script>
@@ -51,10 +73,11 @@ const handleEditB2BClient = (client) => {
         </div>
 
         <StaffTable
+          ref="staffTable"
           :staff="staffData"
           :loading="settingsStore.loading"
           :error="settingsStore.error"
-          @edit="handleEditStaff"
+          @edit="handleEdit"
           @delete="handleDeleteStaff"
         />
       </section>
@@ -66,13 +89,37 @@ const handleEditB2BClient = (client) => {
         </div>
 
         <B2BClientsTable
+          ref="b2bTable"
           :clients="b2bClientsData"
           :loading="settingsStore.loading"
           :error="settingsStore.error"
-          @edit="handleEditB2BClient"
+          @edit="handleEdit"
           @delete="handleDeleteB2BClient"
         />
       </section>
+
+      <!-- Unified Form Dialog -->
+      <Dialog
+        :open="isFormOpen"
+        @close="closeForm"
+        class="relative z-50"
+      >
+        <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <BakeryUserForm
+              v-if="selectedUser"
+              :title="`Edit ${selectedUser.role === 'staff' ? 'Staff Member' : 'B2B Client'}`"
+              :key="selectedUser.id"
+              :initial-data="selectedUser"
+              :loading="settingsStore.loading"
+              class="w-full"
+              @submit="handleSubmit"
+              @cancel="closeForm"
+            />
+          </DialogPanel>
+        </div>
+      </Dialog>
 
     </div>
 
@@ -82,3 +129,13 @@ const handleEditB2BClient = (client) => {
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+* {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>
