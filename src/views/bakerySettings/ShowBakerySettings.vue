@@ -3,9 +3,11 @@
 import { ref, onMounted } from 'vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import StaffTable from './StaffTable.vue';
+import B2BClientsTable from './B2BClientsTable.vue';
 
 const settingsStore = useBakerySettingsStore();
 const staffData = ref([]);
+const b2bClientsData = ref([]);
 
 // Track which sections are being edited
 const editingSections = ref({
@@ -17,10 +19,16 @@ const editingSections = ref({
 onMounted(async () => {
   await settingsStore.fetchById('default');
   staffData.value = await settingsStore.staff;
+  b2bClientsData.value = await settingsStore.b2b_clients;
 });
 
 const handleEditStaff = (staff) => {
   console.log('Edit staff member:', staff);
+  // Implement edit functionality
+};
+
+const handleEditB2BClient = (client) => {
+  console.log('Edit B2B client:', client);
   // Implement edit functionality
 };
 
@@ -51,27 +59,26 @@ const handleEditStaff = (staff) => {
         />
       </section>
 
-      <!-- Order Statuses Section -->
-      <section>
-        <div class="section-header">
-          <h3>Order Statuses</h3>
-          <button @click="toggleEdit('orderStatuses')">
-            {{ editingSections.orderStatuses ? 'Cancel' : 'Edit' }}
-          </button>
+      <!-- B2B Clients Section -->
+      <section class="">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-semibold text-neutral-800">Clientes B2B</h3>
         </div>
 
-        <ul v-if="!editingSections.orderStatuses">
-          <li v-for="status in settingsStore.currentItem.orderStatuses" :key="status">
-            {{ status }}
-          </li>
-        </ul>
+        <B2BClientsTable
+          :clients="b2bClientsData"
+          :loading="settingsStore.loading"
+          :error="settingsStore.error"
+          @edit="handleEditB2BClient"
+          @delete="handleDeleteB2BClient"
+        />
       </section>
 
     </div>
 
     <div v-else-if="!settingsStore.loading && !settingsStore.currentItem"
          class="text-center py-8 text-neutral-600">
-      Configuración no encontrada.
+      No settings found.
     </div>
   </div>
 </template>
