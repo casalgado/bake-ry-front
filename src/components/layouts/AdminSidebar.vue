@@ -13,7 +13,9 @@ import {
   PhMopedFront,
   PhUsersThree,
   PhHandshake,
-  PhGear,
+  PhStorefront,
+  PhTreeStructure,
+
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import MobileNavigation from './MobileNavigation.vue';
@@ -96,11 +98,18 @@ const links = [
   //   path: '/dashboard/ingredients',
   // },
   {
-    id: 'configuracion',
-    icon: PhGear,
-    text: 'Configuración',
-    path: '/dashboard/settings',
+    id: 'b2b-clients',
+    icon: PhStorefront,
+    text: 'Clientes B2B',
+    path: '/dashboard/b2b-clients',
   },
+  {
+    id: 'staff',
+    icon: PhTreeStructure,
+    text: 'Equipo',
+    path: '/dashboard/staff',
+  },
+
 ];
 
 const handleLinkClick = (link) => {

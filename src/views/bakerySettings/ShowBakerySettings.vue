@@ -78,7 +78,6 @@ const closeForm = () => {
           :loading="settingsStore.loading"
           :error="settingsStore.error"
           @edit="handleEdit"
-          @delete="handleDeleteStaff"
         />
       </section>
 
@@ -94,7 +93,6 @@ const closeForm = () => {
           :loading="settingsStore.loading"
           :error="settingsStore.error"
           @edit="handleEdit"
-          @delete="handleDeleteB2BClient"
         />
       </section>
 
