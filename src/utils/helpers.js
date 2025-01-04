@@ -44,19 +44,8 @@ const parseSpanishName = (fullName, category) => {
     .toLowerCase();
   fullName = fullName.replace(/__n__/g, 'ñ').replace(/__N__/g, 'ñ');
 
-  // Explicit business name patterns
-  const businessPatterns = [
-    /^(cafe|harissa)\s/,
-    /\b(sas|foods|group|fithub)\b/,
-    /^(inversiones|manufacturas)\s/,
-    /plaza del parque/,
-    /libros y cafe$/,
-    /cafe$/,
-    /\b(luzar|ponki)\b/,
-  ];
-
   // Check for business names
-  if (businessPatterns.some(pattern => pattern.test(fullName)) || category === 'B2B') {
+  if (category === 'B2B') {
     return {
       firstName: capitalize(fullName),
       name: capitalize(fullName),
