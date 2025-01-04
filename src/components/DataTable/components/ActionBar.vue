@@ -18,7 +18,7 @@ const props = defineProps({
   },
   tableWidth: {
     type: Number,
-    required: true,
+    // required: true,
   },
 });
 

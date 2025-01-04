@@ -93,7 +93,7 @@ onUnmounted(() => {
 
     <div>
       <pre>
-        {{ salesReport.map((item) => item.userName) }}
+        {{ salesReport }}
       </pre>
     </div>
   </div>

@@ -1,7 +1,9 @@
 <!-- components/DataTable/renderers/DateCell.vue -->
 <script setup>
 defineProps({
-  value: String,
+  value: {
+    type: [String, Date],
+  },
 });
 
 const formatDate = (dateStr) => {

@@ -25,6 +25,7 @@ const isFormOpen = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
 const toggleLoading = ref({});
+const searchableColumns = ref(['userName', 'items']);
 
 // Column definitions / "id must be the same as field for sorting to work"
 const columns = [
@@ -263,7 +264,6 @@ onMounted(async () => {
         },
       },
     });
-
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for orders');
   } catch (error) {
