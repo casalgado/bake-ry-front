@@ -70,7 +70,29 @@ const categoryProducts = computed(() =>
 // Get variations for selected product
 const productVariations = computed(() => {
   const product = props.products.find(p => p.id === selectedProduct.value?.id);
-  return product?.variations || [];
+  if (!product?.variations) return [];
+
+  // Get all variations except 'otra'
+  const regularVariations = product.variations.filter(v =>
+    !v.isWholeGrain && v.name !== 'otra',
+  );
+
+  // Get whole grain variations
+  const wholeGrainVariations = product.variations.filter(v =>
+    v.isWholeGrain,
+  );
+
+  // Get the 'otra' variation if it exists
+  const otraVariation = product.variations.find(v =>
+    v.name === 'otra',
+  );
+
+  // Combine the arrays in the desired order
+  return [
+    ...regularVariations,
+    ...wholeGrainVariations,
+    ...(otraVariation ? [otraVariation] : []),
+  ];
 });
 
 // Current options to display based on step
@@ -264,13 +286,14 @@ const getOptionDisplay = (option, index) => {
         class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
         :class="{
           'invisible': !currentOptions[i-1],
-          'utility-btn-active': highlightedIndex === i-1
+          'utility-btn-active': highlightedIndex === i-1,
+          'bg-neutral-300 hover:bg-neutral-350': currentStep === 'variation' && currentOptions[i-1]?.isWholeGrain
         }"
         tabindex="-1"
         @click="handleOptionClick(i-1)"
       >
         <span v-if="currentStep !== 'quantity'" class="button-number">{{ getKeyForNumber(i) }}</span>
-        <span class="leading-none text-xs">{{ getOptionDisplay(currentOptions[i-1], i-1) }}</span>
+        <span class="leading-none text-xs">{{ currentOptions[i-1]?.isWholeGrain ? abbreviateText(getOptionDisplay(currentOptions[i-1], i-1), {firstWordLength: 3, lastWordLength: 2, separator: ' '}) : getOptionDisplay(currentOptions[i-1], i-1) }}</span>
       </button>
     </div>
 

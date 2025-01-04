@@ -170,7 +170,16 @@ const navigateToCreate = () => {
 
 <template>
   <div class="container p-4 px-0 lg:px-4">
-    <h2 class="text-2xl font-bold mb-4">Productos</h2>
+    <div class="flex justify-between items-center mb-1">
+      <h2 class="text-2xl font-bold mb-0">Productos</h2>
+      <button
+        label="Crear Producto"
+        class="action-btn"
+        @click="navigateToCreate"
+      >
+        Crear Producto
+      </button>
+    </div>
 
     <!-- Loading State -->
     <div v-if="productStore.loading" class="text-neutral-600 text-center py-4">
