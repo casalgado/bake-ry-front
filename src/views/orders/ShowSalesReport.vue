@@ -1,8 +1,6 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
-import DataTable from '@/components/DataTable/index.vue';
-import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
@@ -14,11 +12,6 @@ const settingsStore = useBakerySettingsStore();
 const unsubscribeRef = ref(null);
 const b2bClients = ref([]);
 const salesReport = ref({});
-
-// Helper function to check if a client is B2B
-const isB2BClient = (userId) => {
-  return b2bClients.value.some(client => client.id === userId);
-};
 
 watch(
   () => periodStore.periodRange,
