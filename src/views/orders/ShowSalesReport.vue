@@ -171,11 +171,11 @@ const formatMoney = (value) => {
         <thead>
           <tr class="bg-neutral-100">
             <th class="p-2 border-r border-neutral-200 text-left">Período</th>
-            <th class="p-2 border-r border-neutral-200 text-left">Total</th>
-            <th class="p-2 border-r border-neutral-200 text-left">Ventas</th>
             <th class="p-2 border-r border-neutral-200 text-left">Domicilios</th>
             <th class="p-2 border-r border-neutral-200 text-left">B2B</th>
-            <th class="p-2 text-left">B2C</th>
+            <th class="p-2 border-r border-neutral-200 text-left">B2C</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Venta</th>
+            <th class="p-2 text-left">Ingresos</th>
           </tr>
         </thead>
         <tbody>
@@ -183,15 +183,15 @@ const formatMoney = (value) => {
               :key="period"
               class="border-b border-neutral-200">
             <td class="p-2 border-r border-neutral-200">{{ periodData.type === 'weekly' ? `${period.split('/')[0].split('-')[2]} - ${period.split('/')[1].split('-')[2]}` :  period }}</td>
-            <td class="p-2 border-r border-neutral-200">{{ formatMoney(data.total) }}</td>
-            <td class="p-2 border-r border-neutral-200">{{ formatMoney(data.sales) }}</td>
             <td class="p-2 border-r border-neutral-200">{{ formatMoney(data.delivery) }}</td>
             <td class="p-2 border-r border-neutral-200">
               {{ formatMoney(data.b2b.amount) }} ({{ data.b2b.percentage.toFixed(1) }}%)
             </td>
-            <td class="p-2">
+            <td class="p-2 border-r border-neutral-200">
               {{ formatMoney(data.b2c.amount) }} ({{ data.b2c.percentage.toFixed(1) }}%)
             </td>
+            <td class="p-2 border-r border-neutral-200">{{ formatMoney(data.sales) }}</td>
+            <td class="p-2">{{ formatMoney(data.total) }}</td>
           </tr>
         </tbody>
       </table>
@@ -206,7 +206,7 @@ const formatMoney = (value) => {
             <th class="p-2 border-r border-neutral-200 text-left">Segmento</th>
             <th class="p-2 border-r border-neutral-200 text-left">Ventas</th>
             <th class="p-2 border-r border-neutral-200 text-left">Pedidos</th>
-            <th class="p-2 text-left">Promedio</th>
+            <th class="p-2 text-left">Ticket Promedio</th>
           </tr>
         </thead>
         <tbody>
@@ -354,20 +354,24 @@ const formatMoney = (value) => {
       <table class="w-full border-collapse border border-neutral-200 bg-white">
         <tbody>
           <tr class="border-b border-neutral-200">
-            <td class="p-2 border-r border-neutral-200">Total Pedidos</td>
+            <td class="p-2 border-r border-neutral-200">Pedidos Entregados</td>
             <td class="p-2">{{ salesReport.operationalMetrics.deliveryMetrics.totalOrders }}</td>
           </tr>
           <tr class="border-b border-neutral-200">
-            <td class="p-2 border-r border-neutral-200">Total Cobrado</td>
+            <td class="p-2 border-r border-neutral-200">Total Cobrado a Clientes</td>
             <td class="p-2">{{ formatMoney(salesReport.operationalMetrics.deliveryMetrics.totalFees) }}</td>
           </tr>
           <tr class="border-b border-neutral-200">
-            <td class="p-2 border-r border-neutral-200">Promedio por Pedido</td>
+            <td class="p-2 border-r border-neutral-200">Promedio Cobrado a Cliente</td>
             <td class="p-2">{{ formatMoney(salesReport.operationalMetrics.deliveryMetrics.averageFee) }}</td>
           </tr>
           <tr class="border-b border-neutral-200">
-            <td class="p-2 border-r border-neutral-200">Costo Total</td>
+            <td class="p-2 border-r border-neutral-200">Total Pagado a Proveedores</td>
             <td class="p-2">{{ formatMoney(salesReport.operationalMetrics.deliveryMetrics.totalCost) }}</td>
+          </tr>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Promedio Pagado a Proveedor</td>
+            <td class="p-2">{{ formatMoney(salesReport.operationalMetrics.deliveryMetrics.averageCost) }}</td>
           </tr>
           <tr>
             <td class="p-2 border-r border-neutral-200">Ganancia</td>
