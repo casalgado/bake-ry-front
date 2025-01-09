@@ -70,6 +70,14 @@ onUnmounted(() => {
     orderStore.unsubscribe();
   }
 });
+
+const formatMoney = (value) => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+  }).format(value);
+};
 </script>
 
 <template>
@@ -84,10 +92,243 @@ onUnmounted(() => {
       {{ orderStore.error }}
     </div>
 
-    <div>
-      <pre>
-        {{ salesReport }}
-      </pre>
+    <!-- Summary Table -->
+    <div v-if="salesReport?.summary" class="mb-8">
+      <h3 class="text-lg font-semibold mb-4">Resumen</h3>
+      <table class="w-full border-collapse border border-neutral-200 bg-white">
+        <tbody>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Total Pedidos</td>
+            <td class="p-2">{{ salesReport.summary.totalPaidOrders }}</td>
+          </tr>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Ingreso Domicilios</td>
+            <td class="p-2">{{ formatMoney(salesReport.summary.totalDelivery) }}</td>
+          </tr>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Venta B2B</td>
+            <td class="p-2">{{ formatMoney(salesReport.summary.totalB2B) }} ({{ salesReport.summary.percentageB2B }}%)</td>
+          </tr>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Venta B2C</td>
+            <td class="p-2">{{ formatMoney(salesReport.summary.totalB2C) }} ({{ salesReport.summary.percentageB2C }}%)</td>
+          </tr>
+
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Venta Total</td>
+            <td class="p-2">{{ formatMoney(salesReport.summary.totalSales) }}</td>
+          </tr>
+          <tr >
+            <td class="p-2 border-r border-neutral-200">Ingresos Totales</td>
+            <td class="p-2">{{ formatMoney(salesReport.summary.totalRevenue) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Customer Segments Table -->
+    <div v-if="salesReport?.salesMetrics?.byCustomerSegment" class="mb-8">
+      <h3 class="text-lg font-semibold mb-4">Segmentos de Cliente</h3>
+      <table class="w-full border-collapse border border-neutral-200 bg-white">
+        <thead>
+          <tr class="bg-neutral-100">
+            <th class="p-2 border-r border-neutral-200 text-left">Segmento</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Ventas</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Pedidos</th>
+            <th class="p-2 text-left">Promedio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">B2B</td>
+            <td class="p-2 border-r border-neutral-200">
+              {{ formatMoney(salesReport.salesMetrics.byCustomerSegment.b2b.total) }}
+              ({{ salesReport.salesMetrics.byCustomerSegment.b2b.percentageSales.toFixed(1) }}%)
+            </td>
+            <td class="p-2 border-r border-neutral-200">{{ salesReport.salesMetrics.byCustomerSegment.b2b.orders }}</td>
+            <td class="p-2">{{ formatMoney(salesReport.salesMetrics.byCustomerSegment.b2b.averagePrice) }}</td>
+          </tr>
+          <tr>
+            <td class="p-2 border-r border-neutral-200">B2C</td>
+            <td class="p-2 border-r border-neutral-200">
+              {{ formatMoney(salesReport.salesMetrics.byCustomerSegment.b2c.total) }}
+              ({{ salesReport.salesMetrics.byCustomerSegment.b2c.percentageSales.toFixed(1) }}%)
+            </td>
+            <td class="p-2 border-r border-neutral-200">{{ salesReport.salesMetrics.byCustomerSegment.b2c.orders }}</td>
+            <td class="p-2">{{ formatMoney(salesReport.salesMetrics.byCustomerSegment.b2c.averagePrice) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Payment Methods Table -->
+    <div v-if="salesReport?.salesMetrics?.byPaymentMethod" class="mb-8">
+      <h3 class="text-lg font-semibold mb-4">Métodos de Pago</h3>
+      <table class="w-full border-collapse border border-neutral-200 bg-white">
+        <thead>
+          <tr class="bg-neutral-100">
+            <th class="p-2 border-r border-neutral-200 text-left">Método</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Total</th>
+            <th class="p-2 text-left">Pedidos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-for="(data, method) in salesReport.salesMetrics.byPaymentMethod" :key="method">
+            <tr class="border-b border-neutral-200">
+              <td class="p-2 border-r border-neutral-200 capitalize">{{ method }}</td>
+              <td class="p-2 border-r border-neutral-200">
+                {{ formatMoney(data.total) }} ({{ data.percentage.toFixed(1) }}%)
+              </td>
+              <td class="p-2">{{ data.orders }}</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Collections Table -->
+    <div v-if="salesReport?.salesMetrics?.byCollection" class="mb-8">
+      <h3 class="text-lg font-semibold mb-4">Colecciones</h3>
+      <table class="w-full border-collapse border border-neutral-200 bg-white">
+        <thead>
+          <tr class="bg-neutral-100">
+            <th class="p-2 border-r border-neutral-200 text-left">Colección</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Ingresos</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Cantidad</th>
+            <th class="p-2 text-left">Precio Promedio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-for="(collection, index) in Object.entries(salesReport.salesMetrics.byCollection).sort((a, b) => b[1].revenue - a[1].revenue)" :key="index">
+            <tr class="border-b border-neutral-200">
+              <td class="p-2 border-r border-neutral-200 capitalize">{{ collection[0] }}</td>
+              <td class="p-2 border-r border-neutral-200">
+                {{ formatMoney(collection[1].revenue) }} ({{ collection[1].percentageRevenue.toFixed(1) }}%)
+              </td>
+              <td class="p-2 border-r border-neutral-200">
+                {{ collection[1].quantity }} ({{ collection[1].percentageQuantity.toFixed(1) }}%)
+              </td>
+              <td class="p-2">{{ formatMoney(collection[1].averagePrice) }}</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Best Products Table -->
+    <div v-if="salesReport?.productMetrics?.bestSellers?.bySales" class="mb-8">
+      <h3 class="text-lg font-semibold mb-4">Productos Más Vendidos</h3>
+      <table class="w-full border-collapse border border-neutral-200 bg-white">
+        <thead>
+          <tr class="bg-neutral-100">
+            <th class="p-2 border-r border-neutral-200 text-left">Producto</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Colección</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Ingresos</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Cantidad</th>
+            <th class="p-2 text-left">Precio Promedio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="product in salesReport.productMetrics.bestSellers.bySales"
+              :key="product.productId"
+              class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200 capitalize">{{ product.name }}</td>
+            <td class="p-2 border-r border-neutral-200 capitalize">{{ product.collection }}</td>
+            <td class="p-2 border-r border-neutral-200">
+              {{ formatMoney(product.revenue) }} ({{ product.percentageOfSales.toFixed(1) }}%)
+            </td>
+            <td class="p-2 border-r border-neutral-200">
+              {{ product.quantity }} ({{ product.percentageOfQuantity.toFixed(1) }}%)
+            </td>
+            <td class="p-2">{{ formatMoney(product.averagePrice) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Worst Products Table -->
+    <div v-if="salesReport?.productMetrics?.lowestSellers?.bySales" class="mb-8">
+      <h3 class="text-lg font-semibold mb-4">Productos Menos Vendidos</h3>
+      <table class="w-full border-collapse border border-neutral-200 bg-white">
+        <thead>
+          <tr class="bg-neutral-100">
+            <th class="p-2 border-r border-neutral-200 text-left">Producto</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Colección</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Ingresos</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Cantidad</th>
+            <th class="p-2 text-left">Precio Promedio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="product in salesReport.productMetrics.lowestSellers.bySales"
+              :key="product.productId"
+              class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200 capitalize">{{ product.name }}</td>
+            <td class="p-2 border-r border-neutral-200 capitalize">{{ product.collection }}</td>
+            <td class="p-2 border-r border-neutral-200">
+              {{ formatMoney(product.revenue) }} ({{ product.percentageOfSales.toFixed(1) }}%)
+            </td>
+            <td class="p-2 border-r border-neutral-200">
+              {{ product.quantity }} ({{ product.percentageOfQuantity.toFixed(1) }}%)
+            </td>
+            <td class="p-2">{{ formatMoney(product.averagePrice) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Delivery Metrics Table -->
+    <div v-if="salesReport?.operationalMetrics?.deliveryMetrics" class="mb-8">
+      <h3 class="text-lg font-semibold mb-4">Métricas de Entrega</h3>
+      <table class="w-full border-collapse border border-neutral-200 bg-white">
+        <tbody>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Total Pedidos</td>
+            <td class="p-2">{{ salesReport.operationalMetrics.deliveryMetrics.totalOrders }}</td>
+          </tr>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Total Cobrado</td>
+            <td class="p-2">{{ formatMoney(salesReport.operationalMetrics.deliveryMetrics.totalFees) }}</td>
+          </tr>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Promedio por Pedido</td>
+            <td class="p-2">{{ formatMoney(salesReport.operationalMetrics.deliveryMetrics.averageFee) }}</td>
+          </tr>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Costo Total</td>
+            <td class="p-2">{{ formatMoney(salesReport.operationalMetrics.deliveryMetrics.totalCost) }}</td>
+          </tr>
+          <tr>
+            <td class="p-2 border-r border-neutral-200">Ganancia</td>
+            <td class="p-2">{{ formatMoney(salesReport.operationalMetrics.deliveryMetrics.deliveryRevenue) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tax Metrics Table -->
+    <div v-if="salesReport?.taxMetrics" class="mb-8">
+      <h3 class="text-lg font-semibold mb-4">Métricas de Impuestos</h3>
+      <table class="w-full border-collapse border border-neutral-200 bg-white">
+        <tbody>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Items Gravables</td>
+            <td class="p-2">{{ salesReport.taxMetrics.taxableItems }}</td>
+          </tr>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">Subtotal</td>
+            <td class="p-2">{{ formatMoney(salesReport.taxMetrics.preTaxSubtotal) }}</td>
+          </tr>
+          <tr class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">IVA</td>
+            <td class="p-2">{{ formatMoney(salesReport.taxMetrics.totalTax) }}</td>
+          </tr>
+          <tr>
+            <td class="p-2 border-r border-neutral-200">Total</td>
+            <td class="p-2">{{ formatMoney(salesReport.taxMetrics.total) }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
