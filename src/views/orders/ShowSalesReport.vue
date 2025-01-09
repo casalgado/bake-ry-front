@@ -13,6 +13,44 @@ const unsubscribeRef = ref(null);
 const b2bClients = ref([]);
 const salesReport = ref({});
 
+const periodData = computed(() => {
+  if (!salesReport.value?.salesMetrics?.total) return null;
+
+  const { monthly, weekly, daily } = salesReport.value.salesMetrics.total;
+
+  // If multiple months, return monthly data
+  if (Object.keys(monthly).length > 1) {
+    return {
+      type: 'monthly',
+      data: monthly,
+      display: 'Mes',
+    };
+  }
+
+  // If multiple weeks, return complete weeks only
+  const completeWeeks = Object.entries(weekly)
+    .filter(([_, week]) => week.days >= 6)
+    .reduce((acc, [key, value]) => {
+      acc[key] = value;
+      return acc;
+    }, {});
+
+  if (Object.keys(weekly).length > 1 && Object.keys(completeWeeks).length > 0) {
+    return {
+      type: 'weekly',
+      data: completeWeeks,
+      display: 'Semana',
+    };
+  }
+
+  // Otherwise return daily data
+  return {
+    type: 'daily',
+    data: daily,
+    display: 'Día',
+  };
+});
+
 watch(
   () => periodStore.periodRange,
   async (newRange) => {
@@ -121,6 +159,39 @@ const formatMoney = (value) => {
           <tr >
             <td class="p-2 border-r border-neutral-200">Ingresos Totales</td>
             <td class="p-2">{{ formatMoney(salesReport.summary.totalRevenue) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Period Data Table -->
+    <div v-if="periodData" class="mb-8">
+      <h3 class="text-lg font-semibold mb-4">Datos por {{ periodData.display }}</h3>
+      <table class="w-full border-collapse border border-neutral-200 bg-white">
+        <thead>
+          <tr class="bg-neutral-100">
+            <th class="p-2 border-r border-neutral-200 text-left">Período</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Total</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Ventas</th>
+            <th class="p-2 border-r border-neutral-200 text-left">Domicilios</th>
+            <th class="p-2 border-r border-neutral-200 text-left">B2B</th>
+            <th class="p-2 text-left">B2C</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(data, period) in periodData.data"
+              :key="period"
+              class="border-b border-neutral-200">
+            <td class="p-2 border-r border-neutral-200">{{ periodData.type === 'weekly' ? `${period.split('/')[0].split('-')[2]} - ${period.split('/')[1].split('-')[2]}` :  period }}</td>
+            <td class="p-2 border-r border-neutral-200">{{ formatMoney(data.total) }}</td>
+            <td class="p-2 border-r border-neutral-200">{{ formatMoney(data.sales) }}</td>
+            <td class="p-2 border-r border-neutral-200">{{ formatMoney(data.delivery) }}</td>
+            <td class="p-2 border-r border-neutral-200">
+              {{ formatMoney(data.b2b.amount) }} ({{ data.b2b.percentage.toFixed(1) }}%)
+            </td>
+            <td class="p-2">
+              {{ formatMoney(data.b2c.amount) }} ({{ data.b2c.percentage.toFixed(1) }}%)
+            </td>
           </tr>
         </tbody>
       </table>
