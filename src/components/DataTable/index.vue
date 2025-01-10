@@ -265,7 +265,7 @@ onUnmounted(() => {
         </button>
 
         <button v-if="hasSelection" @click="clearSelection" class="button utility-btn-active">
-          <span class="flex items-center gap-2"><PhX class="w-4 h-4" /> Sel </span>
+          <span class="flex items-center gap-2"><PhX class="w-4 h-4" /> {{ selectedRows.size }} </span>
         </button>
 
         <template v-if="sortState.length">
@@ -340,6 +340,7 @@ onUnmounted(() => {
       :actions="actions"
       :loading="actionLoading"
       @action="handleAction"
+      @clear-selection="clearSelection"
     />
   </div>
 </template>

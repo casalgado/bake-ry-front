@@ -1,6 +1,7 @@
 <!-- components/DataTable/components/ActionBar.vue -->
 <script setup>
 import { ref, computed } from 'vue';
+import { PhX } from '@phosphor-icons/vue';
 
 const props = defineProps({
   selectedCount: {
@@ -22,7 +23,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['action']);
+const emit = defineEmits(['action', 'clear-selection']);
 
 // For confirmation dialog
 const confirmAction = ref(null);
@@ -67,9 +68,13 @@ const actionBarStyle = computed(() => ({
     :style="actionBarStyle"
   >
     <div class="h-full px-4 flex items-center gap-2 justify-between">
-      <div class="text-sm text-neutral-600">
-        {{ selectedCount }} {{ selectedCount === 1 ? '' : '' }}
-      </div>
+      <button
+        @click="emit('clear-selection')"
+        class="button utility-btn-active"
+      >
+        <span class="flex items-center gap-2"><PhX class="w-4 h-4" /> {{ selectedCount }} </span>
+
+      </button>
 
       <div class="flex items-center gap-2">
         <button
