@@ -208,6 +208,12 @@ watch(selectedFeeType, (newValue) => {
     formData.value.deliveryFee = newValue;
   }
 });
+
+watch(() => formData.value.preparationDate, (newDate) => {
+  if (newDate) {
+    formData.value.dueDate = newDate;
+  }
+});
 </script>
 
 <template>

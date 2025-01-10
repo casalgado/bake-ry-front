@@ -59,6 +59,7 @@ const formData = ref({
   variationType: '',
   variations: [],
   basePrice: 0,
+  taxPercentage: 0, // Added tax percentage field
   recipe: {
     recipeSource: null,
     recipeId: null,
@@ -210,6 +211,7 @@ const resetForm = () => {
     variationType: '',
     variations: [],
     basePrice: 0,
+    taxPercentage: 0, // Reset tax percentage
     recipe: {
       recipeSource: null,
       recipeId: null,
@@ -265,6 +267,7 @@ const initializeForm = () => {
       hasVariations: organizedVariations.length > 0,
       variations: organizedVariations,
       basePrice: props.initialData.basePrice || 0,
+      taxPercentage: props.initialData.taxPercentage || 0, // Initialize tax percentage
       recipe: props.initialData.recipe || {
         recipeSource: null,
         recipeId: null,
@@ -328,6 +331,19 @@ onMounted(async () => {
               {{ collection.name }}
             </option>
           </select>
+        </div>
+
+        <!-- Add tax percentage input -->
+        <div>
+          <label for="taxPercentage">Porcentaje de Impuesto (%)</label>
+          <input
+            id="taxPercentage"
+            type="number"
+            v-model="formData.taxPercentage"
+            min="0"
+            max="100"
+            step="0.5"
+          />
         </div>
 
         <div v-if="!isEditMode">

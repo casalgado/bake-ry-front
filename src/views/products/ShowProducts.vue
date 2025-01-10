@@ -73,6 +73,14 @@ const columns = [
     }),
   },
   {
+    id: 'taxPercentage',
+    label: 'Impuesto (%)',
+    field: 'taxPercentage',
+    sortable: true,
+    // Format the tax percentage with one decimal place and add % symbol
+    format: (value) => `${(value || 0).toFixed(1)}%`,
+  },
+  {
     id: 'isActive',
     label: 'Activo',
     field: 'isActive',
