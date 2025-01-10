@@ -1,19 +1,8 @@
 <script setup>
 import { useRouter, useRoute } from 'vue-router';
 import {
-  PhChartDonut,
-  PhOven,
-  PhPersonArmsSpread,
-  PhCashRegister,
-  PhDresser,
-  PhChefHat,
-  PhBasket,
-  PhBarcode,
   PhShoppingBagOpen,
-  PhMopedFront,
-  PhUsersThree,
-  PhHandshake,
-  PhGear,
+  PhOven,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import MobileNavigation from './MobileNavigation.vue';
@@ -23,18 +12,17 @@ const route = useRoute();
 
 const links = [
   {
-    id: 'nuevo_pedido',
+    id: 'resumen',
     icon: PhShoppingBagOpen,
     text: 'Resumen',
-    path: '/driver/summary',
+    path: '/production/summary',
   },
   {
-    id: 'pedidos',
-    icon: PhMopedFront,
-    text: 'Entregas',
-    path: '/driver/orders',
+    id: 'produccion',
+    icon: PhOven,
+    text: 'Producción',
+    path: '/production/orders',
   },
-
 ];
 
 const handleLinkClick = (link) => {

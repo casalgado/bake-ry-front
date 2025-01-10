@@ -32,7 +32,11 @@ const router = createRouter({
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('../views/dashboard/AdminDashboard.vue'),
-      meta: { requiresAuth: true },
+      redirect: { name: 'orders' },
+      meta: {
+        requiresAuth: true,
+        allowedRoles: ['bakery_admin', 'bakery_staff'],
+      },
       children: [
         {
           path: 'show-bakery',
@@ -79,19 +83,23 @@ const router = createRouter({
           name: 'create-product',
           component: () => import('../views/products/CreateProduct.vue'),
         },
-        { path: 'users',
+        {
+          path: 'users',
           name: 'users',
           component: () => import('../views/bakeryUsers/ShowBakeryUsers.vue'),
         },
-        { path: 'users/create',
+        {
+          path: 'users/create',
           name: 'create-user',
           component: () => import('../views/bakeryUsers/CreateBakeryUser.vue'),
         },
-        { path: 'users/active',
+        {
+          path: 'users/active',
           name: 'active-users',
           component: () => import('../views/bakeryUsers/ShowActiveBakeryUsers.vue'),
         },
-        { path: 'orders',
+        {
+          path: 'orders',
           name: 'orders',
           component: () => import('../views/orders/ShowOrders.vue'),
         },
@@ -105,19 +113,23 @@ const router = createRouter({
           name: 'show-production',
           component: () => import('../views/orders/ShowProduction.vue'),
         },
-        { path: 'orders/delivery',
+        {
+          path: 'orders/delivery',
           name: 'show-delivery',
           component: () => import('../views/orders/ShowDelivery.vue'),
         },
-        { path: 'settings',
+        {
+          path: 'settings',
           name: 'settings',
           component: () => import('../views/bakerySettings/ShowBakerySettings.vue'),
         },
-        { path: 'staff',
+        {
+          path: 'staff',
           name: 'staff',
           component: () => import('../views/bakerySettings/ShowStaff.vue'),
         },
-        { path: 'b2b-clients',
+        {
+          path: 'b2b-clients',
           name: 'b2b-clients',
           component: () => import('../views/bakerySettings/ShowB2BClients.vue'),
         },
@@ -137,7 +149,11 @@ const router = createRouter({
       path: '/driver',
       name: 'driver',
       component: () => import('../views/dashboard/DriverDashboard.vue'),
-      meta: { requiresAuth: true },
+      redirect: { name: 'driverOrders' },
+      meta: {
+        requiresAuth: true,
+        allowedRoles: ['bakery_admin', 'bakery_staff', 'delivery_assistant'],
+      },
       children: [
         {
           path: 'orders',
@@ -149,7 +165,28 @@ const router = createRouter({
           name: 'driverSummary',
           component: () => import('../views/orders/ShowDriverSummary.vue'),
         },
-
+      ],
+    },
+    {
+      path: '/production',
+      name: 'production',
+      component: () => import('../views/dashboard/ProductionDashboard.vue'),
+      redirect: { name: 'productionOrders' },
+      meta: {
+        requiresAuth: true,
+        allowedRoles: ['bakery_admin', 'bakery_staff', 'production_assistant'],
+      },
+      children: [
+        {
+          path: 'orders',
+          name: 'productionOrders',
+          component: () => import('../views/orders/ShowProductionOrders.vue'),
+        },
+        {
+          path: 'summary',
+          name: 'productionSummary',
+          component: () => import('../views/orders/ShowProductionSummary.vue'),
+        },
       ],
     },
   ],
@@ -165,22 +202,51 @@ router.beforeEach(async (to, from, next) => {
   }
 
   const isAuthenticated = authStore.isLoggedIn;
+  const userRole = authStore.user?.role;
 
-  // Handle protected routes
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    // Redirect to login if trying to access protected route while not authenticated
-    next({
-      name: 'login',
-      query: { redirect: to.fullPath }, // Save the intended destination
-    });
-    return;
-  }
+  console.log('Route guard check:', {
+    path: to.path,
+    isAuthenticated,
+    userRole,
+    meta: to.meta,
+  });
 
   // Handle guest-only routes (login, signup)
   if (to.meta.requiresGuest && isAuthenticated) {
-    // Redirect to dashboard if trying to access login/signup while authenticated
     next({ name: 'dashboard' });
     return;
+  }
+
+  // Handle protected routes
+  if (to.meta.requiresAuth) {
+    if (!isAuthenticated) {
+      // Redirect to login if not authenticated
+      next({
+        name: 'login',
+        query: { redirect: to.fullPath },
+      });
+      return;
+    }
+
+    // Check role-based access
+    if (to.meta.allowedRoles && !to.meta.allowedRoles.includes(userRole)) {
+      console.warn('Access denied: User role not authorized');
+      // Redirect based on role
+      switch (userRole) {
+      case 'bakery_customer':
+        next({ name: 'home' }); // or customer dashboard when implemented
+        break;
+      case 'delivery_assistant':
+        next({ name: 'driver' });
+        break;
+      case 'production_assistant':
+        next({ name: 'production' });
+        break;
+      default:
+        next({ name: 'home' }); // fallback
+      }
+      return;
+    }
   }
 
   // If none of the above conditions are met, proceed normally
