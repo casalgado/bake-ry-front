@@ -24,7 +24,7 @@ const props = defineProps({
   },
   searchableColumns: {
     type: Array,
-    default: () => ['name', 'userName'],
+    default: () => ['name', 'userName', 'deliveryAddress', 'items', 'collectionName', 'productName'],
   },
   filters: {
     type: Array,

@@ -15,7 +15,7 @@ export const useOrderStore = createResourceStore('orders', service);
 const store = useOrderStore();
 
 // Add the sales report method
-store.sales_report = async (request = {}) => {
+store.salesReport = async (request = {}) => {
   store.setLoading(true);
   store.clearError();
 
@@ -42,6 +42,21 @@ store.sales_report = async (request = {}) => {
 
     const query = queryBuilder.build();
     const response = await service.getSalesReport(query);
+    return response.data;
+  } catch (err) {
+    store.setError(err);
+    throw err;
+  } finally {
+    store.setLoading(false);
+  }
+};
+
+store.getHistory = async (orderId) => {
+  store.setLoading(true);
+  store.clearError();
+
+  try {
+    const response = await service.getHistory(orderId);
     return response.data;
   } catch (err) {
     store.setError(err);

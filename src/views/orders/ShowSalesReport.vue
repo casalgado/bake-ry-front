@@ -62,7 +62,7 @@ watch(
       }
 
       // Then fetch report
-      salesReport.value = await orderStore.sales_report({
+      salesReport.value = await orderStore.salesReport({
         filters: {
           dateRange: {
             dateField: 'dueDate',
@@ -85,7 +85,7 @@ onMounted(async () => {
     b2bClients.value = await settingsStore.b2b_clients;
 
     // Then fetch orders
-    salesReport.value = await orderStore.sales_report({
+    salesReport.value = await orderStore.salesReport({
       filters: {
         dateRange: {
           dateField: 'dueDate',

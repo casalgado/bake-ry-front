@@ -24,4 +24,13 @@ export class OrderService extends BaseService {
       throw this.handleError(error);
     }
   }
+
+  async getHistory(orderId) {
+    try {
+      const response = await this.api.get(`${this.basePath}/orders/${orderId}/history`);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
 }

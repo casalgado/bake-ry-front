@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue';
+import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 
 import OrderForm from '@/components/forms/OrderForm.vue';
@@ -10,11 +10,16 @@ import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import IsPaidCell from '@/components/DataTable/renderers/isPaidCell.vue';
 
-import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift } from '@phosphor-icons/vue';
+import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift, PhClockCounterClockwise } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
+
+// import { useAuthenticationStore  } from '@/stores/authentication';
+
+// const authenticationStore = useAuthenticationStore();
+// const isAdmin = computed(() => authenticationStore.isBakeryAdmin);
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -22,6 +27,8 @@ const unsubscribeRef = ref(null);
 
 const dataTable = ref(null);
 const isFormOpen = ref(false);
+const isHistoryOpen = ref(false);
+const orderHistory = ref([]);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
 const toggleLoading = ref({});
@@ -147,6 +154,14 @@ const tableActions = [
     variant: 'danger',
   },
   {
+    id: 'history',
+    label: 'Historial',
+    icon: PhClockCounterClockwise,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'primary',
+  },
+  {
     id: 'export',
     label: 'Exportar',
     icon: PhExport,
@@ -206,7 +221,11 @@ const handleAction = async ({ actionId, selectedIds }) => {
         dataTable.value?.clearSelection();
       }
       break;
-
+    case 'history':
+      selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
+      orderHistory.value = await orderStore.getHistory(selectedOrder.value.id);
+      isHistoryOpen.value = true;
+      break;
     }
   } catch (error) {
     console.error('Action failed:', error);
@@ -220,14 +239,15 @@ const handleSubmit = async (formData) => {
     if (selectedOrder.value) {
       await orderStore.update(selectedOrder.value.id, formData);
     }
-    closeForm();
+    closeDialog();
   } catch (error) {
     console.error('Failed to update order:', error);
   }
 };
 
-const closeForm = () => {
+const closeDialog = () => {
   isFormOpen.value = false;
+  isHistoryOpen.value = false;
   selectedOrder.value = null;
 };
 
@@ -282,7 +302,7 @@ onUnmounted(() => {
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Pedidos</h2>
+      <h2 class="text-2xl font-bold text-neutral-800">Pedidos {{ isAdmin }}</h2>
       <PeriodSelector />
     </div>
 
@@ -294,7 +314,7 @@ onUnmounted(() => {
     <!-- Edit Form Dialog -->
     <Dialog
       :open="isFormOpen"
-      @close="closeForm"
+      @close="closeDialog"
       class="relative z-50 form-container"
     >
       <!-- Backdrop -->
@@ -312,10 +332,27 @@ onUnmounted(() => {
             :loading="orderStore.loading"
             class="w-full"
             @submit="handleSubmit"
-            @cancel="closeForm"
+            @cancel="closeDialog"
           />
         </DialogPanel>
       </div>
+    </Dialog>
+
+    <!-- History Dialog -->
+    <Dialog
+      :open="isHistoryOpen"
+      @close="closeDialog"
+      class="relative z-50 form-container"
+    >
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+
+      <div class="fixed inset-0 flex items-center justify-center p-4 ">
+        <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <h2 class="text-2xl font-bold text-neutral-800">Historial de Cambios</h2>
+          <pre>{{ orderHistory }}</pre>
+        </DialogPanel>
+      </div>
+
     </Dialog>
 
     <!-- Table -->

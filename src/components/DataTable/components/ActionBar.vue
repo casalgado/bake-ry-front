@@ -29,7 +29,9 @@ const emit = defineEmits(['action', 'clear-selection']);
 const confirmAction = ref(null);
 
 const availableActions = computed(() => {
+
   return props.actions.filter(action => {
+    console.log('action', action);
     if (action.minSelected && props.selectedCount < action.minSelected) return false;
     if (action.maxSelected && props.selectedCount > action.maxSelected) return false;
     if (action.hideIf) return false;
