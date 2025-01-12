@@ -303,7 +303,7 @@ onUnmounted(() => {
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Pedidos {{ isAdmin }}</h2>
+      <h2 class="text-2xl font-bold text-neutral-800">Pedidos</h2>
       <PeriodSelector />
     </div>
 

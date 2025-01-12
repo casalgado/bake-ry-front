@@ -196,7 +196,7 @@ onUnmounted(() => {
         v-if="tooltipContent && showTooltip && !isLoading"
         class="pointer-events-none absolute z-50 px-2 py-1 text-xs text-white bg-primary rounded shadow-lg whitespace-nowrap
                left-1/2 -translate-x-1/2 -top-16
-               lg:left-full lg:ml-2 lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0"
+               lg:left-full lg:ml-2 lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0 z-99999"
       >
         <div class="flex items-center gap-1">
           {{ tooltipContent.prefix }}
