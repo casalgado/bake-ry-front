@@ -15,6 +15,7 @@ import { useOrderStore } from '@/stores/orderStore';
 
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
+import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
 
 // import { useAuthenticationStore  } from '@/stores/authentication';
 
@@ -346,13 +347,12 @@ onUnmounted(() => {
     >
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
 
-      <div class="fixed inset-0 flex items-center justify-center p-4 ">
+      <div class="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <h2 class="text-2xl font-bold text-neutral-800">Historial de Cambios</h2>
-          <pre>{{ orderHistory }}</pre>
+          <h2 class="text-2xl font-bold text-neutral-800 mb-4">Historial de Cambios</h2>
+          <ShowOrderHistory :history="orderHistory" />
         </DialogPanel>
       </div>
-
     </Dialog>
 
     <!-- Table -->
