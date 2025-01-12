@@ -100,12 +100,10 @@ onMounted(async () => {
   fetching.value = true;
   await Promise.all([productStore.fetchAll(), userStore.fetchAll()]);
   fetching.value = false;
-  console.log('initialData', props.initialData);
-  // If we have initialData with a user, populate the user data
+
   if (props.initialData?.userId) {
     const user = userStore.items.find(u => u.id === props.initialData.userId);
     if (user) {
-      console.log('user found');
       handleUserChange(user);
     }
   }
@@ -147,8 +145,8 @@ const handleUserChange = async (user) => {
 
 const addressHasChanged = computed(() => {
   return formData.value.deliveryAddress !== originalAddress.value
-   && formData.value.deliveryAddress !== ''
-   && originalAddress.value !== '';
+    && formData.value.deliveryAddress !== ''
+    && originalAddress.value !== '';
 });
 
 const validate = () => {
@@ -209,9 +207,10 @@ watch(selectedFeeType, (newValue) => {
   }
 });
 
-watch(() => formData.value.preparationDate, (newDate) => {
+// Changed to watch dueDate instead of preparationDate
+watch(() => formData.value.dueDate, (newDate) => {
   if (newDate) {
-    formData.value.dueDate = newDate;
+    formData.value.preparationDate = newDate;
   }
 });
 </script>
@@ -243,27 +242,28 @@ watch(() => formData.value.preparationDate, (newDate) => {
           <span v-if="errors.userId" class="text-danger text-sm">{{ errors.userId }}</span>
         </div>
 
-        <div>
-          <label for="preparation-date">Fecha de Preparación</label>
-          <input
-            id="preparation-date"
-            type="date"
-            v-model="formData.preparationDate"
-            class="w-full"
-          />
-          <span v-if="errors.preparationDate" class="text-danger text-sm">{{ errors.preparationDate }}</span>
-        </div>
-
+        <!-- Swapped order of date inputs -->
         <div>
           <label for="due-date">Fecha de Entrega</label>
           <input
             id="due-date"
             type="date"
             v-model="formData.dueDate"
-            :min="formData.preparationDate"
             class="w-full"
           />
           <span v-if="errors.dueDate" class="text-danger text-sm">{{ errors.dueDate }}</span>
+        </div>
+
+        <div>
+          <label for="preparation-date">Fecha de Preparación</label>
+          <input
+            id="preparation-date"
+            type="date"
+            v-model="formData.preparationDate"
+            :max="formData.dueDate"
+            class="w-full"
+          />
+          <span v-if="errors.preparationDate" class="text-danger text-sm">{{ errors.preparationDate }}</span>
         </div>
       </div>
 
@@ -273,7 +273,6 @@ watch(() => formData.value.preparationDate, (newDate) => {
       />
 
       <div class="base-card flex flex-col gap-2">
-        <!-- Fulfillment Type Section -->
         <RadioButtonGroup
           v-model="formData.fulfillmentType"
           :options="fulfillmentTypes"
@@ -387,7 +386,6 @@ watch(() => formData.value.preparationDate, (newDate) => {
           >
             Cancelar
           </button>
-
         </div>
       </div>
     </form>
