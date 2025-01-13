@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { capitalize } from '@/utils/helpers';
 
 const props = defineProps({
   history: {
@@ -18,26 +19,19 @@ const formatDate = (dateString, { includeTime = true } = {}) => {
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
 
-  // Format time if needed
   const timeString = includeTime ? date.toLocaleTimeString('es-CO', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
   }).toLowerCase() : '';
 
-  // Build date parts
   let formattedDate;
 
-  // Check if date is today
   if (date.toDateString() === now.toDateString()) {
     formattedDate = 'Hoy';
-  }
-  // Check if date is yesterday
-  else if (date.toDateString() === yesterday.toDateString()) {
+  } else if (date.toDateString() === yesterday.toDateString()) {
     formattedDate = 'Ayer';
-  }
-  // Format older dates
-  else {
+  } else {
     const dateOptions = {
       weekday: 'long',
       day: 'numeric',
@@ -46,11 +40,9 @@ const formatDate = (dateString, { includeTime = true } = {}) => {
     };
 
     formattedDate = date.toLocaleDateString('es-CO', dateOptions);
-    // Capitalize first letter
     formattedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
   }
 
-  // Combine date and time
   return includeTime ? `${formattedDate} a las ${timeString}` : formattedDate;
 };
 
@@ -76,36 +68,6 @@ const status = {
   2: 'Preparada',
   3: 'En Camino',
   4: 'Completada',
-};
-
-const formatOrderItemChange = (from, to) => {
-  const changes = [];
-
-  // Check for quantity changes
-  if (from.quantity !== to.quantity) {
-    changes.push(`Cantidad: ${from.quantity} → ${to.quantity}`);
-  }
-
-  // Check for price changes
-  if (from.currentPrice !== to.currentPrice) {
-    changes.push(`Precio: ${formatCurrency(from.currentPrice)} → ${formatCurrency(to.currentPrice)}`);
-  }
-
-  // Check for variation changes
-  if (JSON.stringify(from.variation) !== JSON.stringify(to.variation)) {
-    const fromVar = from.variation?.name || 'ninguna';
-    const toVar = to.variation?.name || 'ninguna';
-    changes.push(`Variación: ${fromVar} → ${toVar}`);
-  }
-
-  // Check for status changes
-  if (from.status !== to.status) {
-    changes.push(`Estado: ${status[from.status]} → ${status[to.status]}`);
-  }
-
-  return changes.length > 0
-    ? `${from.productName}: ${changes.join(', ')}`
-    : null;
 };
 
 const formatChange = (change, field) => {
@@ -146,10 +108,9 @@ const formatChange = (change, field) => {
   case 'deliveryCost':
   case 'subtotal':
   case 'total': {
-    return `${field === 'deliveryFee' ? 'Costo de domicilio' :
-      field === 'deliveryCost' ? 'Costo para la panadería' :
-        field === 'subtotal' ? 'Subtotal' : 'Total'}: 
-        ${formatCurrency(change.from)} → ${formatCurrency(change.to)}`;
+    return `${field === 'deliveryFee' ? 'Domicilio cobrado a cliente' :
+      field === 'deliveryCost' ? 'Domicilio pagado a proveedor' :
+        field === 'subtotal' ? 'Subtotal' : 'Total'}: ${formatCurrency(change.from)} → ${formatCurrency(change.to)}`;
   }
 
   // Text fields
@@ -172,22 +133,24 @@ const formatChange = (change, field) => {
     return `Número de bolsas: ${change.from} → ${change.to}`;
   }
 
-  // Complex fields
   case 'orderItems': {
-
     if (!change.from || !change.to) return null;
 
-    const itemChanges = [];
+    const changes = {
+      removed: [],
+      added: [],
+      modified: [],
+    };
 
     // Find removed items
-    const removedItems = change.from.filter(fromItem =>
-      !change.to.find(toItem => toItem.id === fromItem.id),
-    );
+    changes.removed = change.from
+      .filter(fromItem => !change.to.find(toItem => toItem.id === fromItem.id))
+      .map(item => capitalize(item.productName));
 
     // Find added items
-    const addedItems = change.to.filter(toItem =>
-      !change.from.find(fromItem => fromItem.id === toItem.id),
-    );
+    changes.added = change.to
+      .filter(toItem => !change.from.find(fromItem => fromItem.id === toItem.id))
+      .map(item => capitalize(item.productName));
 
     // Find modified items
     const modifiedItems = change.to.filter(toItem => {
@@ -195,27 +158,41 @@ const formatChange = (change, field) => {
       return fromItem && JSON.stringify(fromItem) !== JSON.stringify(toItem);
     });
 
-    // Add changes to array
-    if (removedItems.length > 0) {
-      itemChanges.push(`Productos eliminados: ${removedItems.map(item => item.productName).join(', ')}`);
+    changes.modified = modifiedItems
+      .map(toItem => {
+        const fromItem = change.from.find(item => item.id === toItem.id);
+        const itemChanges = [];
+
+        if (fromItem.quantity !== toItem.quantity) {
+          itemChanges.push(`${capitalize(toItem.productName)}: Cantidad ${fromItem.quantity} → ${toItem.quantity}`);
+        }
+
+        if (fromItem.currentPrice !== toItem.currentPrice) {
+          itemChanges.push(`${capitalize(toItem.productName)}: Precio ${formatCurrency(fromItem.currentPrice)} → ${formatCurrency(toItem.currentPrice)}`);
+        }
+
+        if (JSON.stringify(fromItem.variation) !== JSON.stringify(toItem.variation)) {
+          const fromVar = fromItem.variation?.name || 'ninguna';
+          const toVar = toItem.variation?.name || 'ninguna';
+          itemChanges.push(`${capitalize(toItem.productName)}: Variación ${fromVar} → ${toVar}`);
+        }
+
+        return itemChanges;
+      })
+      .flat()
+      .filter(Boolean);
+
+    if (changes.removed.length || changes.added.length || changes.modified.length) {
+      return {
+        type: 'orderItems',
+        changes,
+      };
     }
-
-    if (addedItems.length > 0) {
-      itemChanges.push(`Productos agregados: ${addedItems.map(item => item.productName).join(', ')}`);
-    }
-
-    modifiedItems.forEach(toItem => {
-      const fromItem = change.from.find(item => item.id === toItem.id);
-      const itemChange = formatOrderItemChange(fromItem, toItem);
-      if (itemChange) itemChanges.push(itemChange);
-    });
-
-    return itemChanges.join('\n');
-  }
-
-  default: {
     return null;
   }
+
+  default:
+    return null;
   }
 };
 </script>
@@ -229,17 +206,69 @@ const formatChange = (change, field) => {
           <span class="text-xs text-neutral-500">{{ entry.editor.email }}</span>
         </div>
 
-        <div class="space-y-1">
+        <div class="space-y-2">
           <template v-for="(change, field) in entry.changes" :key="field">
-            <div v-if="formatChange(change, field)" class="text-sm whitespace-pre-line">
+            <!-- Special handling for orderItems -->
+            <div v-if="field === 'orderItems' && formatChange(change, field)" class="text-sm">
+              <div class="text-sm text-neutral-700">Productos:</div>
+              <div class="space-y-1 ml-4">
+                <!-- Removed items -->
+                <div v-if="formatChange(change, field).changes.removed.length" class="space-y-1">
+                  <div class="text-sm text-neutral-700">Eliminados:</div>
+                  <div v-for="item in formatChange(change, field).changes.removed"
+                       :key="item"
+                       class="ml-2 text-neutral-700">
+                    • {{ item }}
+                  </div>
+                </div>
+
+                <!-- Added items -->
+                <div v-if="formatChange(change, field).changes.added.length" class="space-y-1">
+                  <div class="text-sm text-neutral-700">Agregados:</div>
+                  <div v-for="item in formatChange(change, field).changes.added"
+                       :key="item"
+                       class="ml-2 text-neutral-700">
+                    • {{ item }}
+                  </div>
+                </div>
+
+                <!-- Modified items -->
+                <div v-if="formatChange(change, field).changes.modified.length" class="space-y-1">
+                  <div class="text-sm text-neutral-700">Modificaciones:</div>
+                  <div v-for="item in formatChange(change, field).changes.modified"
+                       :key="item"
+                       class="ml-2 text-neutral-700">
+                    • {{ item }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Other changes -->
+            <div v-else-if="formatChange(change, field)" class="text-sm text-neutral-700">
               {{ formatChange(change, field) }}
             </div>
           </template>
         </div>
       </div>
     </template>
-    <div v-else>
-      <p class="text-sm text-neutral-500">No hay historial de cambios para este pedido.</p>
+
+    <div v-else class="text-sm text-neutral-500">
+      No hay historial de cambios para este pedido.
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 1rem;
+}
+
+.space-y-2 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.5rem;
+}
+
+.space-y-1 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.25rem;
+}
+</style>
