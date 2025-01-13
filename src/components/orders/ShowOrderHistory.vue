@@ -8,14 +8,50 @@ const props = defineProps({
   },
 });
 
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleString('es-CO', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+const formatDate = (dateString, { includeTime = true } = {}) => {
+  if (!dateString) return '-';
+
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '-';
+
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // Format time if needed
+  const timeString = includeTime ? date.toLocaleTimeString('es-CO', {
     hour: '2-digit',
     minute: '2-digit',
-  });
+    hour12: true,
+  }).toLowerCase() : '';
+
+  // Build date parts
+  let formattedDate;
+
+  // Check if date is today
+  if (date.toDateString() === now.toDateString()) {
+    formattedDate = 'Hoy';
+  }
+  // Check if date is yesterday
+  else if (date.toDateString() === yesterday.toDateString()) {
+    formattedDate = 'Ayer';
+  }
+  // Format older dates
+  else {
+    const dateOptions = {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: now.getFullYear() === date.getFullYear() ? undefined : 'numeric',
+    };
+
+    formattedDate = date.toLocaleDateString('es-CO', dateOptions);
+    // Capitalize first letter
+    formattedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+  }
+
+  // Combine date and time
+  return includeTime ? `${formattedDate} a las ${timeString}` : formattedDate;
 };
 
 const formatCurrency = (value) => {
@@ -102,7 +138,7 @@ const formatChange = (change, field) => {
   // Date fields
   case 'preparationDate':
   case 'dueDate': {
-    return `${field === 'preparationDate' ? 'Fecha de preparación' : 'Fecha de entrega'}: ${formatDate(change.from)} → ${formatDate(change.to)}`;
+    return `${field === 'preparationDate' ? 'Fecha de preparación' : 'Fecha de entrega'}: ${formatDate(change.from, { includeTime: false })} → ${formatDate(change.to, { includeTime: false })}`;
   }
 
   // Currency fields
@@ -138,6 +174,9 @@ const formatChange = (change, field) => {
 
   // Complex fields
   case 'orderItems': {
+
+    if (!change.from || !change.to) return null;
+
     const itemChanges = [];
 
     // Find removed items

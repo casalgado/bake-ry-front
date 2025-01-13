@@ -47,6 +47,12 @@ const uniqueCollections = computed(() => {
 // Column definitions
 const columns = [
   {
+    id: 'productionBatch',
+    label: 'Tanda',
+    field: 'productionBatch',
+    sortable: true,
+  },
+  {
     id: 'collectionName',
     label: 'Colección',
     field: 'collectionName',
@@ -58,12 +64,7 @@ const columns = [
     field: 'productName',
     sortable: true,
   },
-  {
-    id: 'quantity',
-    label: 'Ctd',
-    field: 'quantity',
-    sortable: true,
-  },
+
   {
     id: 'variation',
     label: 'Variación',
@@ -76,11 +77,12 @@ const columns = [
     }),
   },
   {
-    id: 'productionBatch',
-    label: 'Tanda',
-    field: 'productionBatch',
+    id: 'quantity',
+    label: 'Ctd',
+    field: 'quantity',
     sortable: true,
   },
+
   {
     id: 'status',
     label: 'Estado',

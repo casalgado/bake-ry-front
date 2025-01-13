@@ -53,13 +53,22 @@ const handleSearchInput = (event) => {
   emit('update:search', event.target.value);
 };
 
-const toggleSearch = () => {
+const focusSearchInput = async () => {
+  await nextTick();
+  if (searchInput.value) {
+    searchInput.value.focus();
+  }
+};
+
+const toggleSearch = async () => {
   showSearch.value = !showSearch.value;
   if (!showSearch.value) {
     if (searchInput.value) {
       searchInput.value.value = '';
     }
     emit('update:search', '');
+  } else {
+    await focusSearchInput();
   }
 };
 
