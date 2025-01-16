@@ -80,9 +80,7 @@ const columns = [
     type: 'toggle',
     options: [
       { value: 'cash', displayText: 'efectivo', icon: PhMoney },
-      { value: 'bold', displayText: 'bold', icon: PhCreditCard },
       { value: 'transfer', displayText: 'transferencia', icon: PhDeviceMobile },
-      { value: 'complimentary', displayText: 'regalo', icon: PhGift },
     ],
   },
   {
