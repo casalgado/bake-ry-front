@@ -46,7 +46,7 @@ const selectedProduct = ref(null);
 const selectedVariation = ref(null);
 const selectedQuantity = ref(null);
 const highlightedIndex = ref(null);
-const isShiftPressed = ref(false);
+const customQuantityMode = ref(false);
 const customQuantity = ref('');
 
 // Get unique categories
@@ -117,7 +117,7 @@ const productName = computed(() => {
 
 const displayedQuantity = computed(() => {
   if (currentStep.value !== 'quantity') return '';
-  if (isShiftPressed.value && customQuantity.value) {
+  if (customQuantityMode.value && customQuantity.value) {
     return customQuantity.value;
   }
   return selectedQuantity.value || '#';
@@ -195,7 +195,7 @@ const resetSelection = () => {
   selectedQuantity.value = null;
   highlightedIndex.value = null;
   customQuantity.value = '';
-  isShiftPressed.value = false;
+  customQuantityMode.value = false;
 };
 
 const handleBackKey = () => {
@@ -224,15 +224,15 @@ const handleKeydown = (event) => {
   // Toggle custom quantity mode with Shift
   if (event.key === 'Shift' && currentStep.value === 'quantity') {
     event.preventDefault();
-    isShiftPressed.value = !isShiftPressed.value; // Toggle the mode
-    if (!isShiftPressed.value) {
+    customQuantityMode.value = !customQuantityMode.value; // Toggle the mode
+    if (!customQuantityMode.value) {
       customQuantity.value = ''; // Clear if exiting custom mode
     }
     return;
   }
 
   // If in custom quantity mode
-  if (isShiftPressed.value && currentStep.value === 'quantity') {
+  if (customQuantityMode.value && currentStep.value === 'quantity') {
     // Handle number inputs
     if (/^[0-9]$/.test(event.key)) {
       event.preventDefault();
@@ -266,14 +266,14 @@ const handleKeydown = (event) => {
     // Handle Escape to exit custom mode
     if (event.key === 'Escape') {
       event.preventDefault();
-      isShiftPressed.value = false;
+      customQuantityMode.value = false;
       customQuantity.value = '';
       return;
     }
   }
 
   // Regular numpad behavior (when not in custom mode)
-  if (!isShiftPressed.value) {
+  if (!customQuantityMode.value) {
     const index = getKeyIndex(event.key);
     if (index !== null) {
       event.preventDefault();
@@ -287,7 +287,7 @@ const handleKeydown = (event) => {
 
 const handleKeyup = (event) => {
   // Only handle key up for regular numpad mode
-  if (!isShiftPressed.value) {
+  if (!customQuantityMode.value) {
     const index = getKeyIndex(event.key);
     if (index !== null) {
       event.preventDefault();
@@ -392,7 +392,7 @@ const getOptionDisplay = (option, index) => {
         class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
         :class="{
           'cursor-pointer': currentStep !== 'quantity',
-          'animate-pulse': isShiftPressed
+          'animate-pulse': customQuantityMode
         }"
         @click="handleBreadcrumbClick('quantity')"
         :disabled="currentStep === 'quantity'"
@@ -402,10 +402,10 @@ const getOptionDisplay = (option, index) => {
 
       <!-- Optional: Add an indicator when shift is pressed -->
       <span
-        v-if="currentStep === 'quantity' && isShiftPressed"
+        v-if="currentStep === 'quantity' && customQuantityMode"
         class="text-[8px] text-primary-600 ml-1"
       >
-        typing...
+        ...
       </span>
     </div>
   </div>
