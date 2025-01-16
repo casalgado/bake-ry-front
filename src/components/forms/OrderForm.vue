@@ -7,6 +7,7 @@ import OrderItemsManager from './OrderItemsManager.vue';
 import NewClientDialog from './NewClientDialog.vue';
 import RadioButtonGroup from './RadioButtonGroup.vue';
 import { formatMoney } from '@/utils/helpers';
+import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
 
 const props = defineProps({
   title: {
@@ -31,6 +32,8 @@ const isNewClientDialogOpen = ref(false);
 const originalAddress = ref('');
 const fetching = ref(false);
 const userCombox = ref(null);
+const userHistory = ref([]);
+const currentHistoryIndex = ref(0);
 
 // Get tomorrow's date
 const tomorrow = new Date();
@@ -135,6 +138,16 @@ const handleUserChange = async (user) => {
   formData.value.userPhone = user.phone;
   formData.value.deliveryAddress = user.address;
   originalAddress.value = user.address;
+
+  // Fetch history and set initial order if exists
+  userHistory.value = await userStore.getHistory(user.id);
+  if (userHistory.value.length > 0) {
+    currentHistoryIndex.value = 0;
+    formData.value.orderItems = userHistory.value[0].orderItems;
+  }
+
+  console.log(userHistory.value);
+  originalAddress.value = user.address;
   await nextTick();
   setTimeout(() => {
     const firstFulfillmentRadio = document.querySelector('input[name="fulfillment-type"]');
@@ -214,6 +227,29 @@ watch(() => formData.value.dueDate, (newDate) => {
     formData.value.preparationDate = newDate;
   }
 });
+
+// Navigation methods
+const handlePrevOrder = () => {
+  if (currentHistoryIndex.value < userHistory.value.length - 1) {
+    currentHistoryIndex.value++;
+    formData.value.orderItems = userHistory.value[currentHistoryIndex.value].orderItems;
+  }
+};
+
+const handleNextOrder = () => {
+  if (currentHistoryIndex.value > 0) {
+    currentHistoryIndex.value--;
+    formData.value.orderItems = userHistory.value[currentHistoryIndex.value].orderItems;
+  }
+};
+
+// Format date helper
+const formatOrderDate = (date) => {
+  return new Date(date).toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'short',
+  }).replace('.', '');
+};
 </script>
 
 <template>
@@ -336,6 +372,30 @@ watch(() => formData.value.dueDate, (newDate) => {
           name="payment-method"
           label="Método de Pago"
         />
+      </div>
+
+      <div class="flex justify-end mb-2" v-if="userHistory.length">
+        <div class="inline-flex items-center gap-2 bg-neutral-50 p-1 rounded-lg border border-neutral-200">
+          <button
+            @click="handlePrevOrder"
+            :disabled="currentHistoryIndex === userHistory.length - 1"
+            class="p-1 hover:bg-white rounded disabled:opacity-50 disabled:hover:bg-transparent"
+          >
+            <PhCaretLeft class="w-4 h-4 text-neutral-600" />
+          </button>
+
+          <span class="text-sm font-medium text-neutral-600 min-w-[60px] text-center">
+            {{ formatOrderDate(userHistory[currentHistoryIndex].createdAt) }}
+          </span>
+
+          <button
+            @click="handleNextOrder"
+            :disabled="currentHistoryIndex === 0"
+            class="p-1 hover:bg-white rounded disabled:opacity-50 disabled:hover:bg-transparent"
+          >
+            <PhCaretRight class="w-4 h-4 text-neutral-600" />
+          </button>
+        </div>
       </div>
 
       <OrderItemsManager

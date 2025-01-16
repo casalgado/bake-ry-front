@@ -10,3 +10,20 @@ const { getBakeryId } = storeToRefs(authStore);
 const service = new BakeryUserService(getBakeryId.value);
 
 export const useBakeryUserStore = createResourceStore('users', service);
+
+const store = useBakeryUserStore();
+
+store.getHistory = async (userId) => {
+  store.setLoading(true);
+  store.clearError();
+
+  try {
+    const response = await service.getHistory(userId);
+    return response.data;
+  } catch (err) {
+    store.setError(err);
+    throw err;
+  } finally {
+    store.setLoading(false);
+  }
+};
