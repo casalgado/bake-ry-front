@@ -220,32 +220,34 @@ const handleBackKey = () => {
   }
   highlightedIndex.value = null;
 };
-
 const handleKeydown = (event) => {
-  // Set shift state
-  console.log(event.key);
-  if (event.key === 'Shift') {
+  // Toggle custom quantity mode with Shift
+  if (event.key === 'Shift' && currentStep.value === 'quantity') {
     event.preventDefault();
-    isShiftPressed.value = true;
+    isShiftPressed.value = !isShiftPressed.value; // Toggle the mode
+    if (!isShiftPressed.value) {
+      customQuantity.value = ''; // Clear if exiting custom mode
+    }
     return;
   }
 
-  // Handle top row numbers with Shift for custom quantity
+  // If in custom quantity mode
   if (isShiftPressed.value && currentStep.value === 'quantity') {
+    // Handle number inputs
     if (/^[0-9]$/.test(event.key)) {
       event.preventDefault();
       customQuantity.value += event.key;
       return;
     }
 
-    // Handle backspace for custom quantity
+    // Handle backspace
     if (event.key === 'Backspace' && customQuantity.value) {
       event.preventDefault();
       customQuantity.value = customQuantity.value.slice(0, -1);
       return;
     }
 
-    // Handle Enter to confirm custom quantity
+    // Handle Enter to confirm
     if (event.key === 'Enter' && customQuantity.value) {
       event.preventDefault();
       const quantity = parseInt(customQuantity.value, 10);
@@ -260,9 +262,17 @@ const handleKeydown = (event) => {
       }
       return;
     }
+
+    // Handle Escape to exit custom mode
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      isShiftPressed.value = false;
+      customQuantity.value = '';
+      return;
+    }
   }
 
-  // Regular numpad behavior (no shift)
+  // Regular numpad behavior (when not in custom mode)
   if (!isShiftPressed.value) {
     const index = getKeyIndex(event.key);
     if (index !== null) {
@@ -276,28 +286,7 @@ const handleKeydown = (event) => {
 };
 
 const handleKeyup = (event) => {
-  // Handle shift key release
-  if (event.key === 'Shift') {
-    event.preventDefault();
-    isShiftPressed.value = false;
-    // If we have a custom quantity when shift is released, apply it
-    if (customQuantity.value && currentStep.value === 'quantity') {
-      const quantity = parseInt(customQuantity.value, 10);
-      if (quantity > 0) {
-        emit('select', {
-          category: selectedCategory.value,
-          product: selectedProduct.value,
-          variation: selectedVariation.value,
-          quantity: quantity,
-        });
-        resetSelection();
-      }
-    }
-    customQuantity.value = '';
-    return;
-  }
-
-  // Handle regular numpad selection (no shift)
+  // Only handle key up for regular numpad mode
   if (!isShiftPressed.value) {
     const index = getKeyIndex(event.key);
     if (index !== null) {
