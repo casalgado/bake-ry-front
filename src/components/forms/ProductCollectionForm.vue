@@ -1,5 +1,9 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { cleanString } from '@/utils/helpers';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const props = defineProps({
   title: {
@@ -57,7 +61,9 @@ const validate = () => {
 
 const handleSubmit = () => {
   if (!validate()) return;
+  formData.value.name = cleanString(formData.value.name);
   emit('submit', formData.value);
+
 };
 
 const resetForm = () => {
@@ -73,12 +79,10 @@ const resetForm = () => {
 
 <template>
   <div class="form-container">
-    <h2 class="text-2xl font-bold text-neutral-800 mb-4">{{ title }}</h2>
 
     <form @submit.prevent="handleSubmit">
       <!-- Basic Information -->
       <div class="base-card">
-        <h4 class="text-lg font-semibold text-neutral-700 mb-4">Basic Information</h4>
 
         <!-- Name -->
         <div class="mb-4">
@@ -86,7 +90,7 @@ const resetForm = () => {
             for="name"
             class="block text-sm font-medium text-neutral-700 mb-1"
           >
-            Name
+            Nombre
           </label>
           <input
             id="name"
@@ -110,7 +114,7 @@ const resetForm = () => {
             for="description"
             class="block text-sm font-medium text-neutral-700 mb-1"
           >
-            Description
+            Descripción
           </label>
           <textarea
             id="description"

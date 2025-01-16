@@ -5,6 +5,9 @@ import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import DataTable from '@/components/DataTable/index.vue';
 import { PhPen, PhTrash } from '@phosphor-icons/vue';
 import ProductCollectionForm from '@/components/forms/ProductCollectionForm.vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const productCollectionStore = useProductCollectionStore();
 const isFormOpen = ref(false);
@@ -101,11 +104,24 @@ const handleCancel = () => {
   isFormOpen.value = false;
   selectedCollection.value = null;
 };
+
+const navigateToCreate = () => {
+  router.push('/dashboard/product-collections/create');
+};
 </script>
 
 <template>
   <div class="container p-4 px-0 lg:px-4">
-    <h2 class="text-2xl font-bold mb-4 text-neutral-800">Colecciones</h2>
+    <div class="flex justify-between items-center mb-1">
+      <h2 class="text-2xl font-bold mb-0">Colecciones</h2>
+      <button
+        label="Crear Colección"
+        class="action-btn"
+        @click="navigateToCreate"
+      >
+        Crear Colección
+      </button>
+    </div>
 
     <!-- Loading State -->
     <div

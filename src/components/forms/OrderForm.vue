@@ -8,6 +8,7 @@ import NewClientDialog from './NewClientDialog.vue';
 import RadioButtonGroup from './RadioButtonGroup.vue';
 import { formatMoney } from '@/utils/helpers';
 import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
+import { cleanString } from '@/utils/helpers';
 
 const props = defineProps({
   title: {
@@ -170,7 +171,11 @@ const handleUserChange = async (user) => {
   formData.value.userName = user.name;
   formData.value.userEmail = user.email;
   formData.value.userPhone = user.phone;
-  formData.value.deliveryAddress = user.address;
+  if (props.initialData) {
+    formData.value.deliveryAddress = props.initialData.deliveryAddress;
+  } else {
+    formData.value.deliveryAddress = user.address;
+  }
   originalAddress.value = user.address;
 
   // Only fetch and set history for new orders
@@ -216,6 +221,7 @@ const validate = () => {
 
 const handleSubmit = () => {
   if (!validate()) return;
+  formData.value.deliveryAddress = cleanString(formData.value.deliveryAddress);
   emit('submit', formData.value);
 };
 

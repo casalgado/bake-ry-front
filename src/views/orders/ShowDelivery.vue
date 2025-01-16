@@ -7,15 +7,11 @@ import DataTable from '@/components/DataTable/index.vue';
 import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
-import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
+import DeliveryAddressCell from '@/components/DataTable/renderers/DeliveryAddressCell.vue';
 
 import {
   PhPen,
   PhTrash,
-  PhMoney,
-  PhCreditCard,
-  PhDeviceMobile,
-  PhGift,
   PhCurrencyDollar,
   PhMapPin,
 } from '@phosphor-icons/vue';
@@ -69,6 +65,11 @@ const columns = [
     label: 'Dirección',
     field: 'deliveryAddress',
     sortable: true,
+    component: DeliveryAddressCell,
+    getProps: (row) => ({
+      address: row.deliveryAddress,
+      show: row.fulfillmentType === 'delivery',
+    }),
   },
   {
     id: 'deliveryCost',

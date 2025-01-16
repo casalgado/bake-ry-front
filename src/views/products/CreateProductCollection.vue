@@ -13,6 +13,7 @@ const handleSubmit = async (formData) => {
   } catch (error) {
     console.error('Failed to create product collection:', error);
   }
+  router.push('/dashboard/product-collections');
 };
 
 const handleCancel = () => {

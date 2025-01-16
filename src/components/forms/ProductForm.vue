@@ -5,6 +5,7 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import RecipeSelector from './RecipeSelector.vue';
 import ProductVariationEditor from './ProductVariationEditor.vue';
 import YesNoToggle from './YesNoToggle.vue';
+import { cleanString } from '@/utils/helpers';
 
 const emit = defineEmits(['submit', 'cancel']);
 
@@ -193,6 +194,7 @@ watch(
 const handleSubmit = () => {
   let finalVariations = [...formData.value.variations, getFixedVariation()];
   if (!formData.value.hasVariations) finalVariations = [];
+  formData.value.name = cleanString(formData.value.name);
   formData.value.collectionId = formData.value.collection;
   formData.value.currentPrice = formData.value.basePrice;
   formData.value.collectionName = collectionStore.items.find(
