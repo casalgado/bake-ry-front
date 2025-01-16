@@ -24,6 +24,35 @@ const props = defineProps({
   },
 });
 
+// Add this near the top with other utility functions
+const addBasePricesToOrderItems = (orderItems, products) => {
+  return orderItems.map(item => {
+    const product = products.find(p => p.id === item.productId);
+    if (!product) return item;
+
+    if (product.variations?.length > 0) {
+      if (item.variation?.id) {
+        const matchingVariation = product.variations.find(v => v.id === item.variation.id);
+        if (matchingVariation) {
+          return {
+            ...item,
+            basePrice: matchingVariation.basePrice,
+          };
+        }
+      }
+      return {
+        ...item,
+        basePrice: product.variations[0].basePrice,
+      };
+    }
+
+    return {
+      ...item,
+      basePrice: product.basePrice,
+    };
+  });
+};
+
 const emit = defineEmits(['submit', 'cancel']);
 
 const productStore = useProductStore();
@@ -69,6 +98,7 @@ const formData = ref(
       ...props.initialData,
       preparationDate: formatDateForInput(props.initialData.preparationDate),
       dueDate: formatDateForInput(props.initialData.dueDate),
+      orderItems: addBasePricesToOrderItems(props.initialData.orderItems, productStore.items),
     }
     : getInitialFormState(),
 );
@@ -143,7 +173,7 @@ const handleUserChange = async (user) => {
   userHistory.value = await userStore.getHistory(user.id);
   if (userHistory.value.length > 0) {
     currentHistoryIndex.value = 0;
-    formData.value.orderItems = userHistory.value[0].orderItems;
+    formData.value.orderItems = addBasePricesToOrderItems(userHistory.value[0].orderItems, productStore.items);
   }
 
   console.log(userHistory.value);
@@ -232,14 +262,14 @@ watch(() => formData.value.dueDate, (newDate) => {
 const handlePrevOrder = () => {
   if (currentHistoryIndex.value < userHistory.value.length - 1) {
     currentHistoryIndex.value++;
-    formData.value.orderItems = userHistory.value[currentHistoryIndex.value].orderItems;
+    formData.value.orderItems = addBasePricesToOrderItems(userHistory.value[currentHistoryIndex.value].orderItems, productStore.items);
   }
 };
 
 const handleNextOrder = () => {
   if (currentHistoryIndex.value > 0) {
     currentHistoryIndex.value--;
-    formData.value.orderItems = userHistory.value[currentHistoryIndex.value].orderItems;
+    formData.value.orderItems = addBasePricesToOrderItems(userHistory.value[currentHistoryIndex.value].orderItems, productStore.items);
   }
 };
 
@@ -379,19 +409,19 @@ const formatOrderDate = (date) => {
           <button
             @click="handlePrevOrder"
             :disabled="currentHistoryIndex === userHistory.length - 1"
-            class="p-1 hover:bg-white rounded disabled:opacity-50 disabled:hover:bg-transparent"
+            class="p-1 my-0 hover:bg-white rounded disabled:opacity-50 disabled:hover:bg-transparent"
           >
             <PhCaretLeft class="w-4 h-4 text-neutral-600" />
           </button>
 
           <span class="text-sm font-medium text-neutral-600 min-w-[60px] text-center">
-            {{ formatOrderDate(userHistory[currentHistoryIndex].createdAt) }}
+            {{ formatOrderDate(userHistory[currentHistoryIndex].dueDate) }}
           </span>
 
           <button
             @click="handleNextOrder"
             :disabled="currentHistoryIndex === 0"
-            class="p-1 hover:bg-white rounded disabled:opacity-50 disabled:hover:bg-transparent"
+            class="p-1 my-0 hover:bg-white rounded disabled:opacity-50 disabled:hover:bg-transparent"
           >
             <PhCaretRight class="w-4 h-4 text-neutral-600" />
           </button>
