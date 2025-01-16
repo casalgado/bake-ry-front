@@ -53,6 +53,8 @@ const selectedProduct = ref(null);
 const selectedVariation = ref(null);
 const selectedQuantity = ref(null);
 const highlightedIndex = ref(null);
+const isShiftPressed = ref(false);
+const customQuantity = ref('');
 
 // Get unique categories
 const categories = computed(() =>
@@ -118,6 +120,14 @@ const currentOptions = computed(() => {
 const productName = computed(() => {
   if (!selectedProduct.value) return '';
   return selectedProduct.value.name || '';
+});
+
+const displayedQuantity = computed(() => {
+  if (currentStep.value !== 'quantity') return '';
+  if (isShiftPressed.value && customQuantity.value) {
+    return customQuantity.value;
+  }
+  return selectedQuantity.value || '#';
 });
 
 const handleSelection = (index) => {
@@ -197,6 +207,8 @@ const resetSelection = () => {
   selectedVariation.value = null;
   selectedQuantity.value = null;
   highlightedIndex.value = null;
+  customQuantity.value = '';
+  isShiftPressed.value = false;
 };
 
 const handleBackKey = () => {
@@ -223,8 +235,27 @@ const handleBackKey = () => {
 };
 
 const handleKeydown = (event) => {
-  const index = getKeyIndex(event.key);
+  // Handle shift key press
+  if (event.key === 'Shift') {
+    event.preventDefault();
+    isShiftPressed.value = true;
+    return;
+  }
 
+  // If in quantity step and shift is pressed, handle number input
+  if (currentStep.value === 'quantity' && isShiftPressed.value) {
+    if (/^[0-9]$/.test(event.key)) {
+      event.preventDefault();
+      customQuantity.value += event.key;
+    } else if (event.key === 'Backspace') {
+      event.preventDefault();
+      customQuantity.value = customQuantity.value.slice(0, -1);
+    }
+    return;
+  }
+
+  // Original numpad behavior
+  const index = getKeyIndex(event.key);
   if (index !== null) {
     event.preventDefault();
     highlightedIndex.value = index;
@@ -235,17 +266,40 @@ const handleKeydown = (event) => {
 };
 
 const handleKeyup = (event) => {
-  const index = getKeyIndex(event.key);
+  if (event.key === 'Shift') {
+    event.preventDefault();
+    isShiftPressed.value = false;
 
-  if (index !== null) {
-    event.preventDefault();
-    if (highlightedIndex.value === index) {
-      handleSelection(index);
+    // If we have a custom quantity, use it
+    if (customQuantity.value && currentStep.value === 'quantity') {
+      const quantity = parseInt(customQuantity.value, 10);
+      if (quantity > 0) {
+        emit('select', {
+          category: selectedCategory.value,
+          product: selectedProduct.value,
+          variation: selectedVariation.value,
+          quantity: quantity,
+        });
+        resetSelection();
+      }
     }
-    highlightedIndex.value = null;
-  } else if (event.key === '0' || event.key === ' ') {
-    event.preventDefault();
-    handleBackKey();
+    customQuantity.value = '';
+    return;
+  }
+
+  // Original numpad behavior when shift is not pressed
+  if (!isShiftPressed.value) {
+    const index = getKeyIndex(event.key);
+    if (index !== null) {
+      event.preventDefault();
+      if (highlightedIndex.value === index) {
+        handleSelection(index);
+      }
+      highlightedIndex.value = null;
+    } else if (event.key === '0' || event.key === ' ') {
+      event.preventDefault();
+      handleBackKey();
+    }
   }
 };
 
@@ -298,14 +352,14 @@ const getOptionDisplay = (option, index) => {
     </div>
 
     <!-- Breadcrumb -->
-    <div class="m-2 mt-0 py-1 px-2 text-[10px] flex items-center min-h-[24px]  whitespace-nowrap">
+    <div class="m-2 mt-0 py-1 px-2 text-[10px] flex items-center min-h-[24px] whitespace-nowrap">
       <button
         class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
         :class="{ 'cursor-pointer': currentStep !== 'category' }"
         @click="handleBreadcrumbClick('category')"
         :disabled="currentStep === 'category'"
       >
-        {{ abbreviateText (selectedCategory) || '>' }}
+        {{ abbreviateText(selectedCategory) || '>' }}
       </button>
 
       <span v-if="selectedCategory" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
@@ -317,7 +371,7 @@ const getOptionDisplay = (option, index) => {
         @click="handleBreadcrumbClick('product')"
         :disabled="currentStep === 'product'"
       >
-        {{ abbreviateText (productName) || '#' }}
+        {{ abbreviateText(productName) || '#' }}
       </button>
 
       <span v-if="selectedProduct && productVariations.length > 0" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
@@ -329,7 +383,7 @@ const getOptionDisplay = (option, index) => {
         @click="handleBreadcrumbClick('variation')"
         :disabled="currentStep === 'variation'"
       >
-        {{ abbreviateText (selectedVariation?.name) || '#' }}
+        {{ abbreviateText(selectedVariation?.name) || '#' }}
       </button>
 
       <span v-if="currentStep === 'quantity'" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
@@ -337,12 +391,23 @@ const getOptionDisplay = (option, index) => {
       <button
         v-if="currentStep === 'quantity'"
         class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
-        :class="{ 'cursor-pointer': currentStep !== 'quantity' }"
+        :class="{
+          'cursor-pointer': currentStep !== 'quantity',
+          'animate-pulse': isShiftPressed
+        }"
         @click="handleBreadcrumbClick('quantity')"
         :disabled="currentStep === 'quantity'"
       >
-        {{ selectedQuantity || '#' }}
+        {{ displayedQuantity }}
       </button>
+
+      <!-- Optional: Add an indicator when shift is pressed -->
+      <span
+        v-if="currentStep === 'quantity' && isShiftPressed"
+        class="text-[8px] text-primary-600 ml-1"
+      >
+        typing...
+      </span>
     </div>
   </div>
 </template>
@@ -358,5 +423,14 @@ const getOptionDisplay = (option, index) => {
   }
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+  animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 </style>
