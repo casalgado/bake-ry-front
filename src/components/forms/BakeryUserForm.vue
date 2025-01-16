@@ -90,7 +90,7 @@ const validate = () => {
 
 // Computed property for submit button text
 const submitButtonText = computed(() => {
-  return props.initialData.id ? 'Actualizar Cliente' : 'Crear Cliente';
+  return props.initialData.id ? 'Actualizar Usuario' : 'Crear Usuario';
 });
 
 // Computed property for loading text

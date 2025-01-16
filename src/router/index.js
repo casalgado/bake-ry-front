@@ -228,6 +228,12 @@ router.beforeEach(async (to, from, next) => {
       return;
     }
 
+    // System admin has access to all routes
+    if (userRole === 'system_admin') {
+      next();
+      return;
+    }
+
     // Check role-based access
     if (to.meta.allowedRoles && !to.meta.allowedRoles.includes(userRole)) {
       console.warn('Access denied: User role not authorized');

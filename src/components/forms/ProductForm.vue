@@ -191,8 +191,10 @@ watch(
 );
 
 const handleSubmit = () => {
-  const finalVariations = [...formData.value.variations, getFixedVariation()];
+  let finalVariations = [...formData.value.variations, getFixedVariation()];
+  if (!formData.value.hasVariations) finalVariations = [];
   formData.value.collectionId = formData.value.collection;
+  formData.value.currentPrice = formData.value.basePrice;
   formData.value.collectionName = collectionStore.items.find(
     (c) => c.id === formData.value.collection,
   )?.name;
@@ -346,7 +348,7 @@ onMounted(async () => {
           />
         </div>
 
-        <div v-if="!isEditMode">
+        <div v-if="isEditMode">
           <YesNoToggle
             v-model="formData.hasVariations"
             label="¿Tiene variaciones?"
@@ -355,7 +357,7 @@ onMounted(async () => {
       </div>
 
       <!-- Variations Section -->
-      <div v-if="formData.hasVariations || isEditMode" class="base-card">
+      <div v-if="formData.hasVariations" class="base-card">
         <h4>Variaciones del Producto</h4>
 
         <!-- Variation Type Selection - only show in create mode -->
@@ -410,7 +412,7 @@ onMounted(async () => {
       </div>
 
       <!-- Non-variation product details -->
-      <div v-if="!formData.hasVariations && !isEditMode" class="base-card">
+      <div v-if="!formData.hasVariations" class="base-card">
         <h4>Detalles</h4>
 
         <div>

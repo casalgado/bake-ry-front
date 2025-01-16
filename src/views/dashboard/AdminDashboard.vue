@@ -17,8 +17,7 @@ onMounted(async () => {
 
 <template>
   <section v-if="!authStore.hasAssignedBakery">
-    <h2>Welcome! Get Started with Your Bakery</h2>
-    <CreateBakery @success="handleSuccess" />
+    <h2>Bienvenido!</h2>
   </section>
   <section v-else class="relative grid lg:grid-cols-[200px_1fr] transition-all">
     <AdminSidebar />

@@ -15,6 +15,7 @@ const API_URL = development
   : import.meta.env.VITE_API_URL_REMOTE;
 
 const VALID_ROLES = {
+  SYSTEM_ADMIN: 'system_admin',
   BAKERY_ADMIN: 'bakery_admin',
   BAKERY_STAFF: 'bakery_staff',
   BAKERY_CUSTOMER: 'bakery_customer',
@@ -166,6 +167,7 @@ export const useAuthenticationStore = defineStore('authentication', {
         this.loading = false;
       }
     },
+
     async login({ email, password }) {
       this.loading = true;
       this.error = null;
