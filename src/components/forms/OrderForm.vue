@@ -296,8 +296,33 @@ const handleNextOrder = () => {
   }
 };
 
-// Format date helper
+// Add this utility function to compare order items
+const areOrderItemsEqual = (items1, items2) => {
+  if (items1.length !== items2.length) return false;
+
+  return items1.every(item1 => {
+    const item2 = items2.find(i => i.productId === item1.productId);
+    if (!item2) return false;
+
+    return item1.quantity === item2.quantity &&
+           item1.variation?.id === item2.variation?.id &&
+           item1.currentPrice === item2.currentPrice;
+  });
+};
+
+// Add computed property to check if current items match historical items
+const isCurrentOrderModified = computed(() => {
+  if (!userHistory.value.length) return false;
+
+  const historicalOrder = userHistory.value[currentHistoryIndex.value];
+  return !areOrderItemsEqual(formData.value.orderItems, historicalOrder.orderItems);
+});
+
+// Modify the formatOrderDate function
 const formatOrderDate = (date) => {
+  if (isCurrentOrderModified.value) {
+    return 'nueva';
+  }
   return new Date(date).toLocaleDateString('es-ES', {
     day: 'numeric',
     month: 'short',
