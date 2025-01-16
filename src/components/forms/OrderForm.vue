@@ -53,6 +53,10 @@ const addBasePricesToOrderItems = (orderItems, products) => {
   });
 };
 
+const showHistoryNavigation = computed(() => {
+  return !props.initialData && userHistory.value.length > 0;
+});
+
 const emit = defineEmits(['submit', 'cancel']);
 
 const productStore = useProductStore();
@@ -169,14 +173,17 @@ const handleUserChange = async (user) => {
   formData.value.deliveryAddress = user.address;
   originalAddress.value = user.address;
 
-  // Fetch history and set initial order if exists
-  userHistory.value = await userStore.getHistory(user.id);
-  if (userHistory.value.length > 0) {
-    currentHistoryIndex.value = 0;
-    formData.value.orderItems = addBasePricesToOrderItems(userHistory.value[0].orderItems, productStore.items);
+  // Only fetch and set history for new orders
+  if (!props.initialData) {
+    userHistory.value = await userStore.getHistory(user.id);
+    if (userHistory.value.length > 0) {
+      currentHistoryIndex.value = 0;
+      const historicalOrder = userHistory.value[0];
+      formData.value.orderItems = addBasePricesToOrderItems(historicalOrder.orderItems, productStore.items);
+    }
   }
 
-  console.log(userHistory.value);
+  await nextTick();
   originalAddress.value = user.address;
   await nextTick();
   setTimeout(() => {
@@ -262,14 +269,30 @@ watch(() => formData.value.dueDate, (newDate) => {
 const handlePrevOrder = () => {
   if (currentHistoryIndex.value < userHistory.value.length - 1) {
     currentHistoryIndex.value++;
-    formData.value.orderItems = addBasePricesToOrderItems(userHistory.value[currentHistoryIndex.value].orderItems, productStore.items);
+    const historicalOrder = userHistory.value[currentHistoryIndex.value];
+    formData.value.orderItems = addBasePricesToOrderItems(historicalOrder.orderItems, productStore.items);
+    // Update the dates
+    if (historicalOrder.dueDate) {
+      formData.value.dueDate = formatDateForInput(historicalOrder.dueDate);
+    }
+    if (historicalOrder.preparationDate) {
+      formData.value.preparationDate = formatDateForInput(historicalOrder.preparationDate);
+    }
   }
 };
 
 const handleNextOrder = () => {
   if (currentHistoryIndex.value > 0) {
     currentHistoryIndex.value--;
-    formData.value.orderItems = addBasePricesToOrderItems(userHistory.value[currentHistoryIndex.value].orderItems, productStore.items);
+    const historicalOrder = userHistory.value[currentHistoryIndex.value];
+    formData.value.orderItems = addBasePricesToOrderItems(historicalOrder.orderItems, productStore.items);
+    // Update the dates
+    if (historicalOrder.dueDate) {
+      formData.value.dueDate = formatDateForInput(historicalOrder.dueDate);
+    }
+    if (historicalOrder.preparationDate) {
+      formData.value.preparationDate = formatDateForInput(historicalOrder.preparationDate);
+    }
   }
 };
 
@@ -404,9 +427,10 @@ const formatOrderDate = (date) => {
         />
       </div>
 
-      <div class="flex justify-end mb-2" v-if="userHistory.length">
+      <div class="flex justify-end mb-2"   v-if="showHistoryNavigation">
         <div class="inline-flex items-center gap-2 bg-neutral-50 p-1 rounded-lg border border-neutral-200">
           <button
+            type="button"
             @click="handlePrevOrder"
             :disabled="currentHistoryIndex === userHistory.length - 1"
             class="p-1 my-0 hover:bg-white rounded disabled:opacity-50 disabled:hover:bg-transparent"
@@ -419,6 +443,7 @@ const formatOrderDate = (date) => {
           </span>
 
           <button
+            type="button"
             @click="handleNextOrder"
             :disabled="currentHistoryIndex === 0"
             class="p-1 my-0 hover:bg-white rounded disabled:opacity-50 disabled:hover:bg-transparent"
