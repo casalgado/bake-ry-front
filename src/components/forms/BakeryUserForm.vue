@@ -99,9 +99,7 @@ const loadingText = computed(() => {
 });
 
 const handleSubmit = () => {
-  if (formData.value.email === '' || formData.value.email === null || formData.value.email === undefined) {
-    formData.value.email = `pendiente-${Math.random().toString(36).substring(2, 5)}@${formData.value.name}.com`;
-  }
+
   const submitData = {
     ...formData.value,
     ...parseSpanishName(formData.value.name, formData.value.category),
