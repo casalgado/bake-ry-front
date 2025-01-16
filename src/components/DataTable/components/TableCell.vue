@@ -52,9 +52,10 @@ const isLoading = computed(() => {
 // Get next toggle value
 const getNextToggleValue = computed(() => {
   if (props.column.type !== 'toggle' || !props.column.options) return null;
+  const availableOptions = props.column.options.filter(opt => !opt.skipWhenToggled);
   const currentValue = props.row[props.column.field];
-  const currentIndex = props.column.options.findIndex(opt => opt.value === currentValue);
-  return props.column.options[(currentIndex + 1) % props.column.options.length];
+  const currentIndex = availableOptions.findIndex(opt => opt.value === currentValue);
+  return availableOptions[(currentIndex + 1) % availableOptions.length];
 });
 
 const currentOption = computed(() => {

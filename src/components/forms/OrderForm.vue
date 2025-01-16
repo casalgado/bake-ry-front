@@ -212,9 +212,6 @@ const validate = () => {
   if (!formData.value.orderItems.length) errors.value.orderItems = 'Se requiere al menos un producto';
   if (!formData.value.preparationDate) errors.value.preparationDate = 'Fecha de preparación es requerida';
   if (!formData.value.dueDate) errors.value.dueDate = 'Fecha de entrega es requerida';
-  if (formData.value.fulfillmentType === 'delivery' && !formData.value.deliveryAddress) {
-    errors.value.deliveryAddress = 'Dirección de entrega es requerida';
-  }
 
   return Object.keys(errors.value).length === 0;
 };

@@ -81,6 +81,8 @@ const columns = [
     options: [
       { value: 'cash', displayText: 'efectivo', icon: PhMoney },
       { value: 'transfer', displayText: 'transferencia', icon: PhDeviceMobile },
+      { value: 'card', displayText: 'bold', icon: PhCreditCard, skipWhenToggled: true },
+      { value: 'complimentary', displayText: 'regalo', icon: PhGift, skipWhenToggled: true },
     ],
   },
   {
