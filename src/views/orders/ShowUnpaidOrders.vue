@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
-
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
@@ -9,22 +8,16 @@ import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import IsPaidCell from '@/components/DataTable/renderers/isPaidCell.vue';
-
 import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift, PhClockCounterClockwise } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
-
-import PeriodSelector from '@/components/common/PeriodSelector.vue';
-import { usePeriodStore } from '@/stores/periodStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
+import { formatMoney } from '@/utils/helpers';
 
-// import { useAuthenticationStore  } from '@/stores/authentication';
-
-// const authenticationStore = useAuthenticationStore();
-// const isAdmin = computed(() => authenticationStore.isBakeryAdmin);
-
-const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
+const settingsStore = useBakerySettingsStore();
 const unsubscribeRef = ref(null);
+const b2bClients = ref([]);
 
 const dataTable = ref(null);
 const isFormOpen = ref(false);
@@ -35,7 +28,45 @@ const actionLoading = ref({});
 const toggleLoading = ref({});
 const searchableColumns = ref(['userName', 'items']);
 
-// Column definitions / "id must be the same as field for sorting to work"
+// Process orders to add userCategory
+const processedOrders = computed(() => {
+  // Log B2B client IDs
+  console.log('B2B Client IDs:', b2bClients.value.map(client => client.id));
+
+  return orderStore.items.map(order => {
+    // Log each order for inspection
+    console.log('Processing Order:', {
+      orderId: order.id,
+      userId: order.userId,
+      userName: order.userName,
+      isB2B: b2bClients.value.map(client => client.id).includes(order.userId),
+    });
+
+    return {
+      ...order,
+      userCategory: b2bClients.value.map(client => client.id).includes(order.userId) ? 'B2B' : 'B2C',
+    };
+  });
+});
+
+// Compute totals
+const totals = computed(() => {
+  const b2bTotal = processedOrders.value
+    .filter(order => order.userCategory === 'B2B')
+    .reduce((sum, order) => sum + order.total, 0);
+
+  const b2cTotal = processedOrders.value
+    .filter(order => order.userCategory === 'B2C')
+    .reduce((sum, order) => sum + order.total, 0);
+
+  return {
+    b2b: b2bTotal,
+    b2c: b2cTotal,
+    total: b2bTotal + b2cTotal,
+  };
+});
+
+// Column definitions
 const columns = [
   {
     id: 'userName',
@@ -47,6 +78,12 @@ const columns = [
       name: row.userName,
       comment: row.internalNotes,
     }),
+  },
+  {
+    id: 'userCategory',
+    label: 'Tipo',
+    field: 'userCategory',
+    sortable: true,
   },
   {
     id: 'dueDate',
@@ -119,19 +156,13 @@ const columns = [
 
 const tableFilters = [
   {
-    field: 'fulfillmentType',
+    field: 'userCategory',
     options: [
-      { label: 'recogen', value: 'pickup' },
-      { label: 'domicilio', value: 'delivery' },
+      { label: 'B2B', value: 'B2B' },
+      { label: 'B2C', value: 'B2C' },
     ],
   },
-  {
-    field: 'isPaid',
-    options: [
-      { label: 'pagado', value: true },
-      { label: 'por cobrar', value: false },
-    ],
-  },
+
 ];
 
 // Table actions
@@ -250,35 +281,19 @@ const closeDialog = () => {
   selectedOrder.value = null;
 };
 
-// Watch for period changes and fetch new data
-watch(
-  () => periodStore.periodRange,
-  async (newRange) => {
-    try {
-      await orderStore.fetchAll({
-        filters: {
-          dateRange: {
-            dateField: 'dueDate',
-            startDate: newRange.start.toISOString(),
-            endDate: newRange.end.toISOString(),
-          }, isPaid: false,
-        },
-      });
-    } catch (error) {
-      console.error('Failed to fetch orders:', error);
-    }
-  },
-  { deep: true },
-);
-
 onMounted(async () => {
-
   try {
+    // First fetch settings to get B2B clients
+    await settingsStore.fetchById('default');
+    b2bClients.value = await settingsStore.b2b_clients;
+
+    // Then fetch unpaid orders
     await orderStore.fetchAll({
       filters: {
         isPaid: false,
       },
     });
+
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for orders');
   } catch (error) {
@@ -297,8 +312,23 @@ onUnmounted(() => {
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Pedidos</h2>
-      <PeriodSelector />
+      <h2 class="text-2xl font-bold text-neutral-800">Pedidos por Cobrar</h2>
+
+      <!-- Totals Summary -->
+      <div class="flex items-center gap-6 bg-white px-6 py-3 rounded-lg shadow-sm">
+        <div class="flex items-center gap-2">
+          <span class="text-neutral-700">B2B:</span>
+          <span class="font-bold text-neutral-800">{{ formatMoney(totals.b2b) }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-neutral-700">B2C:</span>
+          <span class="font-bold text-neutral-800">{{ formatMoney(totals.b2c) }}</span>
+        </div>
+        <div class="flex items-center gap-2 border-l pl-6 border-neutral-200">
+          <span class="text-neutral-700">Total:</span>
+          <span class="font-bold text-neutral-800">{{ formatMoney(totals.total) }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Error State -->
@@ -353,7 +383,7 @@ onUnmounted(() => {
     <div>
       <DataTable
         ref="dataTable"
-        :data="orderStore.items"
+        :data="processedOrders"
         :columns="columns"
         :searchable-columns="searchableColumns"
         :filters="tableFilters"
@@ -364,7 +394,7 @@ onUnmounted(() => {
         @selection-change="handleSelectionChange"
         @toggle-update="handleToggleUpdate"
         @action="handleAction"
-        :wrapper-class="`bg-white shadow-lg rounded-lg`"
+        class="bg-white shadow-lg rounded-lg"
       />
     </div>
   </div>
