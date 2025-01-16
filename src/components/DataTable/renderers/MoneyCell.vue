@@ -1,5 +1,7 @@
 <!-- components/DataTable/renderers/MoneyCell.vue -->
 <script setup>
+import { formatMoney } from '@/utils/helpers';
+
 defineProps({
   value: Number,
   currency: {
@@ -8,13 +10,6 @@ defineProps({
   },
 });
 
-const formatMoney = (value) => {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(value);
-};
 </script>
 
 <template>

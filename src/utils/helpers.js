@@ -98,6 +98,14 @@ const parseSpanishName = (fullName, category) => {
   };
 };
 
+const formatMoney = (value) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+  }).format(value);
+};
+
 // Helper function to capitalize words
 const capitalize = (str) => {
   if (!str) return '';
@@ -112,4 +120,4 @@ const capitalize = (str) => {
     .join(' ');
 };
 
-export { abbreviateText, parseSpanishName, capitalize };
+export { abbreviateText, parseSpanishName, capitalize, formatMoney };

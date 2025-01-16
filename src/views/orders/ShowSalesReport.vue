@@ -5,6 +5,7 @@ import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { formatMoney } from '@/utils/helpers';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -109,13 +110,6 @@ onUnmounted(() => {
   }
 });
 
-const formatMoney = (value) => {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(value);
-};
 </script>
 
 <template>

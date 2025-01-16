@@ -143,6 +143,11 @@ const router = createRouter({
           name: 'create-product-collections',
           component: () => import('../views/products/CreateProductCollection.vue'),
         },
+        {
+          path: 'orders/unpaid',
+          name: 'unpaidOrders',
+          component: () => import('../views/orders/ShowUnpaidOrders.vue'),
+        },
       ],
     },
     {

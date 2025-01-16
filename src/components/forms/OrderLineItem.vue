@@ -39,8 +39,15 @@ const handleQuantityChange = (delta) => {
   }
 };
 
+const handleQuantityInput = (event) => {
+  const newValue = parseInt(event.target.value) || 1; // Default to 1 if invalid
+  if (newValue >= 1) {
+    emit('update:quantity', props.index, newValue);
+  }
+};
+
 const handlePriceChange = (event) => {
-  emit('update:price', props.index, Number(event.target.value));  // Added Number conversion
+  emit('update:price', props.index, Number(event.target.value));
 };
 
 const handleToggleComplimentary = () => {
@@ -53,7 +60,7 @@ const handleRemove = () => {
 </script>
 
 <template>
-  <div class="flex flex-row items-center justify-between py-1.5  mb-3  border-neutral-300 last:border-b-0">
+  <div class="flex flex-row items-center justify-between py-1.5 mb-3 border-neutral-300 last:border-b-0">
     <!-- Left Content -->
     <div class="flex-grow">
       <div class="flex items-center justify-between gap-2">
@@ -62,7 +69,6 @@ const handleRemove = () => {
           {{ item.productName }}
           <span v-if="item.variation" class="text-xs">- {{ item.variation.name }}</span>
         </div>
-
       </div>
 
       <div class="flex items-center gap-2 mt-0.5">
@@ -70,21 +76,28 @@ const handleRemove = () => {
           <button
             type="button"
             @click="handleQuantityChange(-1)"
-            class="px-1.5 py-0.5 text-xs bg-gray-100 rounded"
+            class="px-0 md:px-1.5 py-0.5 text-xs bg-gray-100 rounded"
             :disabled="item.quantity <= 1"
           >-</button>
-          <span class="text-sm min-w-[1.5rem] text-center">{{ item.quantity }}</span>
+          <input
+            type="number"
+            :value="item.quantity"
+            @input="handleQuantityInput"
+            class="w-8 text-sm text-center bg-transparent outline-none p-0 border-none"
+            min="1"
+            step="1"
+          />
           <button
             type="button"
             @click="handleQuantityChange(1)"
-            class="px-1.5 py-0.5 text-xs bg-gray-100 rounded"
+            class="px-0 md:px-1.5 py-0.5 text-xs bg-gray-100 rounded"
           >+</button>
         </div>
         <input
           type="number"
           :value="item.currentPrice"
           @input="handlePriceChange"
-          class="w-20 px-1 py-0.5 text-right border rounded text-sm"
+          class="w-20 px-0 md:px-1 py-0.5 text-right border rounded text-sm"
           :class="{ 'price-modified': isPriceModified, 'opacity-20': item.isComplimentary }"
           step="1000"
           :disabled="item.isComplimentary"
@@ -93,7 +106,7 @@ const handleRemove = () => {
         <button
           type="button"
           @click="handleToggleComplimentary"
-          class="px-2 py-0.5 text-xs rounded"
+          class="px-0 md:px-2 py-0.5 text-xs rounded"
           :class="{
             'bg-gray-200': item.isComplimentary,
             'bg-gray-100': !item.isComplimentary
@@ -101,21 +114,15 @@ const handleRemove = () => {
         >
           <PhGift v-if="!item.isComplimentary" class="w-4 h-4" weight="light" />
           <PhGift v-else class="w-4 h-4" weight="fill" />
-
         </button>
         <button
           type="button"
           @click="handleRemove"
-          class="px-2 py-0.5 text-xs text-red-500 hover:bg-red-50 rounded"
+          class="px-0 md:px-2 py-0.5 text-xs text-red-500 hover:bg-red-50 rounded"
         >
           <PhTrash class="w-4 h-4" />
         </button>
       </div>
-    </div>
-
-    <!-- Right Actions -->
-    <div class="flex gap-1 items-center ml-2">
-
     </div>
   </div>
 </template>
@@ -123,5 +130,16 @@ const handleRemove = () => {
 <style scoped lang="scss">
 .price-modified {
   @apply bg-yellow-50 border-yellow-300;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
 }
 </style>

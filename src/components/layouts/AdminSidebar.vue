@@ -15,6 +15,7 @@ import {
   PhHandshake,
   PhStorefront,
   PhTreeStructure,
+  PhHandCoins,
 
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
@@ -41,6 +42,12 @@ const links = [
     icon: PhChartDonut,
     text: 'Venta',
     path: '/dashboard/salesReport',
+  },
+  {
+    id: 'por_cobrar',
+    icon: PhHandCoins,
+    text: 'Por Cobrar',
+    path: '/dashboard/orders/unpaid',
   },
   {
     id: 'produccion',

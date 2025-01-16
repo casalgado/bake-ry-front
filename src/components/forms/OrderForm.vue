@@ -6,6 +6,7 @@ import UserCombox from '@/components/forms/UserCombox.vue';
 import OrderItemsManager from './OrderItemsManager.vue';
 import NewClientDialog from './NewClientDialog.vue';
 import RadioButtonGroup from './RadioButtonGroup.vue';
+import { formatMoney } from '@/utils/helpers';
 
 const props = defineProps({
   title: {
@@ -358,15 +359,15 @@ watch(() => formData.value.dueDate, (newDate) => {
         <div class="flex flex-col gap-1 mb-4">
           <div class="flex justify-between">
             <span>Subtotal:</span>
-            <span>{{ subtotal }}</span>
+            <span>{{ formatMoney(subtotal) }}</span>
           </div>
           <div class="flex justify-between">
             <span>Envío:</span>
-            <span>{{ formData.deliveryFee }}</span>
+            <span>{{ formatMoney(formData.deliveryFee) }}</span>
           </div>
           <div class="flex justify-between font-bold">
             <span>Total:</span>
-            <span>{{ total }}</span>
+            <span>{{ formatMoney(total) }}</span>
           </div>
         </div>
 
