@@ -42,6 +42,9 @@ const handleSubmit = async (e) => {
 
   try {
     formData.value.role = 'bakery_customer';
+    if (formData.value.email === '' || formData.value.email === null || formData.value.email === undefined) {
+      formData.value.email = `pendiente-${Math.random().toString(36).substring(2, 5)}@${formData.value.name}.com`;
+    }
     const submitData = {
       ...formData.value,
       ...parseSpanishName(formData.value.name, formData.value.category),
@@ -52,7 +55,7 @@ const handleSubmit = async (e) => {
     emit('update:isOpen', false);
     resetForm();
   } catch (err) {
-    error.value = err.message || 'Error creating client';
+    error.value = err.message || 'Error creando cliente';
   } finally {
     loading.value = false;
   }
@@ -140,7 +143,6 @@ onUnmounted(() => {
               </label>
               <input
                 type="email"
-                required
                 v-model="formData.email"
                 class=""
               />
@@ -152,7 +154,6 @@ onUnmounted(() => {
               </label>
               <input
                 type="tel"
-                required
                 v-model="formData.phone"
                 class=""
               />
@@ -163,7 +164,6 @@ onUnmounted(() => {
                 Dirección
               </label>
               <textarea
-                required
                 v-model="formData.address"
                 rows="2"
                 class=""

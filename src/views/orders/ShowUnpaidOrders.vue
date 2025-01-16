@@ -22,6 +22,7 @@ const b2bClients = ref([]);
 const dataTable = ref(null);
 const isFormOpen = ref(false);
 const isHistoryOpen = ref(false);
+const isLoading = ref(false);
 const orderHistory = ref([]);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
@@ -31,16 +32,9 @@ const searchableColumns = ref(['userName', 'items']);
 // Process orders to add userCategory
 const processedOrders = computed(() => {
   // Log B2B client IDs
-  console.log('B2B Client IDs:', b2bClients.value.map(client => client.id));
 
   return orderStore.items.map(order => {
     // Log each order for inspection
-    console.log('Processing Order:', {
-      orderId: order.id,
-      userId: order.userId,
-      userName: order.userName,
-      isB2B: b2bClients.value.map(client => client.id).includes(order.userId),
-    });
 
     return {
       ...order,
@@ -282,6 +276,7 @@ const closeDialog = () => {
 };
 
 onMounted(async () => {
+  isLoading.value = true;
   try {
     // First fetch settings to get B2B clients
     await settingsStore.fetchById('default');
@@ -291,8 +286,10 @@ onMounted(async () => {
     await orderStore.fetchAll({
       filters: {
         isPaid: false,
+        isComplimentary: false,
       },
     });
+    isLoading.value = false;
 
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for orders');
@@ -390,7 +387,7 @@ onUnmounted(() => {
         :actions="tableActions"
         :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
-        :data-loading="orderStore.loading"
+        :data-loading="orderStore.loading || isLoading"
         @selection-change="handleSelectionChange"
         @toggle-update="handleToggleUpdate"
         @action="handleAction"

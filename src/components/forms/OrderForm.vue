@@ -232,7 +232,7 @@ const total = computed(() => {
 const paymentMethods = [
   { value: 'cash', label: 'Efectivo' },
   { value: 'transfer', label: 'Transferencia' },
-  { value: 'card', label: 'Tarjeta' },
+  { value: 'card', label: 'Bold' },
   { value: 'complimentary', label: 'Regalo' },
 ];
 

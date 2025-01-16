@@ -324,6 +324,7 @@ onUnmounted(() => {
           :toggle-loading="toggleLoading"
           @row-select="handleRowSelect"
           @toggle-update="handleToggleUpdate"
+          :class="{ 'opacity-20': dataLoading }"
         />
       </table>
     </div>

@@ -39,7 +39,7 @@ export const createResourceStore = (resourceName, resourceService) => {
 
     // Real-time update handler
     function handleRealtimeUpdate(changes) {
-
+      console.log('handleRealtimeUpdate', changes);
       changes.forEach((change) => {
         switch (change.type) {
         case 'added': {
@@ -48,7 +48,7 @@ export const createResourceStore = (resourceName, resourceService) => {
           // the changes < 5 are to prevent the initial load from setting the store to all items.
           // it could be less < 1 here because only one order is added a a time, chose < 5 for safety
 
-          if (index === -1 && changes.length < 5) {
+          if (index === -1 && changes.length < 3) {
             // Add to beginning of array to match typical Firestore behavior
             items.value.push(change.data);
 
