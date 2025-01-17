@@ -1,4 +1,5 @@
 <script setup>
+import { formatMoney } from '@/utils/helpers';
 defineProps({
   variations: {
     type: Array,
@@ -6,11 +7,6 @@ defineProps({
   },
 });
 
-const formatPrice = (price) => new Intl.NumberFormat('es-CO', {
-  style: 'currency',
-  currency: 'COP',
-  minimumFractionDigits: 0,
-}).format(price);
 </script>
 
 <template>
@@ -30,7 +26,7 @@ const formatPrice = (price) => new Intl.NumberFormat('es-CO', {
           </td>
 
           <td class="px-3 py-2 text-sm text-right font-medium">
-            {{ formatPrice(item.currentPrice) }}
+            {{ formatMoney(item.currentPrice) }}
           </td>
         </tr>
       </tbody>

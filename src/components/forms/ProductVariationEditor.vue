@@ -69,7 +69,7 @@ const getValueStep = () => (props.variationType === 'WEIGHT' ? '50' : '1');
       />
     </div>
 
-    <div>
+    <!-- <div>
       <label>{{ getValueLabel() }}</label>
       <input
         type="number"
@@ -78,7 +78,7 @@ const getValueStep = () => (props.variationType === 'WEIGHT' ? '50' : '1');
         :step="getValueStep()"
         :disabled="disabled"
       />
-    </div>
+    </div> -->
 
     <div>
       <label>Precio</label>

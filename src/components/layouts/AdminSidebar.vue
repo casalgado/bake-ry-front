@@ -34,7 +34,7 @@ const links = [
   {
     id: 'nuevo_pedido',
     icon: PhShoppingBagOpen,
-    text: 'Nuevo Pedido',
+    text: 'Crear Pedido',
     path: '/dashboard/orders/create',
   },
   {
@@ -62,6 +62,12 @@ const links = [
     path: '/dashboard/orders/delivery',
   },
   {
+    id: 'clientes',
+    icon: PhUsersThree,
+    text: 'Clientes',
+    path: '/dashboard/users',
+  },
+  {
     id: 'usuarios_activos',
     icon: PhHandshake,
     text: 'Clientes Activos',
@@ -73,13 +79,6 @@ const links = [
     text: 'Crear Usuario',
     path: '/dashboard/users/create',
   },
-  {
-    id: 'clientes',
-    icon: PhUsersThree,
-    text: 'Usuarios',
-    path: '/dashboard/users',
-  },
-
   {
     id: 'colecciones',
     icon: PhDresser,

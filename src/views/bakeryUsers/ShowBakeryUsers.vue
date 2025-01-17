@@ -15,25 +15,25 @@ const actionLoading = ref({});
 const columns = [
   {
     id: 'name',
-    label: 'Name',
+    label: 'Nombre',
     field: 'name',
     sortable: true,
   },
   {
     id: 'email',
-    label: 'Email',
+    label: 'Mail',
     field: 'email',
     sortable: true,
   },
   {
     id: 'address',
-    label: 'Address',
+    label: 'Dir',
     field: 'address',
     sortable: true,
   },
   {
     id: 'birthday',
-    label: 'Birthday',
+    label: 'Cump',
     field: 'birthday',
     sortable: true,
   },
@@ -45,13 +45,13 @@ const columns = [
   },
   {
     id: 'phone',
-    label: 'Phone',
+    label: 'Tel',
     field: 'phone',
     sortable: true,
   },
   {
     id: 'national_id',
-    label: 'National ID',
+    label: 'Cédula',
     field: 'national_id',
     sortable: true,
   },
@@ -130,7 +130,7 @@ const closeForm = () => {
 
 onMounted(async () => {
   try {
-    await bakeryUserStore.fetchAll();
+    await bakeryUserStore.fetchAll({ sort: { field: 'name', direction: 'asc' } });
   } catch (error) {
     console.error('Failed to fetch clients:', error);
   }
@@ -140,7 +140,7 @@ onMounted(async () => {
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row  justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Usuarios</h2>
+      <h2 class="text-2xl font-bold text-neutral-800">Clientes</h2>
     </div>
 
     <!-- Error State -->
@@ -181,7 +181,7 @@ onMounted(async () => {
     <div>
       <DataTable
         ref="dataTable"
-        :data="bakeryUserStore.items"
+        :data="bakeryUserStore.items.filter(user => user.category !== 'PER')"
         :columns="columns"
         :actions="tableActions"
         :filters="tableFilters"

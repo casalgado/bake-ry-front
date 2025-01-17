@@ -141,11 +141,6 @@ onUnmounted(() => {
       {{ orderStore.error }}
     </div>
 
-    <!-- Empty State -->
-    <div v-else-if="!salesReport?.summary" class="text-center py-4">
-      <p class="text-neutral-600">No hay datos disponibles para el período seleccionado</p>
-    </div>
-
     <!-- Data States -->
     <template v-else>
       <!-- Summary Table -->

@@ -8,10 +8,14 @@ defineProps({
     type: String,
     default: 'COP',
   },
+  hide: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 </script>
 
 <template>
-  <span>{{ value && value > 0 ? formatMoney(value) : ''}}</span>
+  <span v-if="!hide">{{ value && value > 0 ? formatMoney(value) : ''}}</span>
 </template>

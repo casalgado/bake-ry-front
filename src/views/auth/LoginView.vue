@@ -6,11 +6,13 @@ import { PhGraph } from '@phosphor-icons/vue';
 
 const authStore = useAuthenticationStore();
 const router = useRouter();
+const loading = ref(false);
 
 const email = ref('');
 const password = ref('');
 
 const handleLogin = async () => {
+  loading.value = true;
   try {
     await authStore.login({
       email: email.value,
@@ -26,12 +28,15 @@ const handleLogin = async () => {
     }
   } catch (error) {
     console.error('Login failed:', error);
+  } finally {
+    loading.value = false;
   }
+
 };
 </script>
 
 <template>
-  <div class="min-h-[90vh] flex items-center justify-center px-4">
+  <div class="min-h-[90vh] flex items-center justify-center px-4" :class="{ 'opacity-50': loading }">
     <div class="base-card w-full max-w-md p-8">
       <!-- Logo and Header -->
       <div class="text-center mb-8">
@@ -83,7 +88,7 @@ const handleLogin = async () => {
           class="action-btn w-full py-2.5 text-base transition-colors"
           :disabled="authStore.loading"
         >
-          {{ authStore.loading ? 'Iniciando sesión...' : 'Iniciar sesión' }}
+          {{ authStore.loading || loading ? 'Iniciando sesión...' : 'Iniciar sesión' }}
         </button>
       </form>
     </div>

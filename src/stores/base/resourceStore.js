@@ -133,6 +133,10 @@ export const createResourceStore = (resourceName, resourceService) => {
           });
         }
 
+        if (request.sort) {
+          queryBuilder.setSort(request.sort.field, request.sort.direction);
+        }
+
         const query = queryBuilder.build();
         const response = await resourceService.getAll(query);
 

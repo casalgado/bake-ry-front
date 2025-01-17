@@ -74,7 +74,6 @@ const errors = ref({});
 const validate = () => {
   errors.value = {};
 
-  if (!formData.value.email) errors.value.email = 'El correo electrónico es requerido';
   if (!formData.value.role) errors.value.role = 'El rol es requerido';
   if (!formData.value.name) errors.value.name = 'El nombre es requerido';
 

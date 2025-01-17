@@ -10,7 +10,7 @@ const handleSubmit = async (formData) => {
   try {
     console.log('Creating product:', formData);
     await productStore.create(formData);
-    router.push('/dashboard/products');
+    window.alert('Producto creado correctamente');
   } catch (error) {
     console.error('Failed to create product:', error);
   }

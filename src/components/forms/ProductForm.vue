@@ -350,7 +350,7 @@ onMounted(async () => {
           />
         </div>
 
-        <div v-if="isEditMode">
+        <div>
           <YesNoToggle
             v-model="formData.hasVariations"
             label="¿Tiene variaciones?"

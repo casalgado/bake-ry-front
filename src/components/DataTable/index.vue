@@ -105,8 +105,9 @@ const handleRowSelect = ({ row, shift }) => {
 
 // Handles toggling between options in a toggle column
 const getNextToggleValue = (currentValue, options) => {
-  const currentIndex = options.filter(opt => !opt.skipWhenToggled).findIndex(opt => opt.value === currentValue);
-  return options[(currentIndex + 1) % options.length].value;
+  const availableOptions = options.filter(opt => !opt.skipWhenToggled);
+  const currentIndex = availableOptions.findIndex(opt => opt.value === currentValue);
+  return availableOptions[(currentIndex + 1) % availableOptions.length].value;
 };
 const handleToggleUpdate = async ({ row, column }) => {
   try {

@@ -70,6 +70,7 @@ const columns = [
     component: MoneyCell,
     getProps: (row) => ({
       value: row.basePrice,
+      hide: row.variations.length > 0,
     }),
   },
   {

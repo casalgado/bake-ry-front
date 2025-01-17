@@ -1,13 +1,24 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { capitalize } from '@/utils/helpers';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
+const settingsStore = useBakerySettingsStore();
 const props = defineProps({
   history: {
     type: Array,
     required: true,
   },
 });
+
+const staffData = ref([]);
+
+const getDriverName = (driverId) => {
+  if (!driverId) return '-';
+  // Access the staff list directly from the store
+  const driver = staffData.value?.find(member => member.id === driverId);
+  return driver ? `${driver.first_name}` : driverId;
+};
 
 const formatDate = (dateString, { includeTime = true } = {}) => {
   if (!dateString) return '-';
@@ -57,7 +68,7 @@ const formatCurrency = (value) => {
 
 const methods = {
   cash: 'efectivo',
-  bold: 'bold',
+  card: 'bold',
   transfer: 'transferencia',
   complimentary: 'regalo',
 };
@@ -70,7 +81,7 @@ const status = {
   4: 'Completada',
 };
 
-const formatChange = (change, field) => {
+const formatChange = (change, field, currentEntry) => {
   switch (field) {
   // Boolean fields
   case 'isPaid': {
@@ -78,9 +89,6 @@ const formatChange = (change, field) => {
   }
   case 'isDeliveryPaid': {
     return change.to ? 'Domicilio marcado como pagado' : 'Domicilio marcado como no pagado';
-  }
-  case 'isComplimentary': {
-    return change.to ? 'Marcado como regalo' : 'Marcado como no regalo';
   }
   case 'isDeleted': {
     return change.to ? 'Pedido eliminado' : 'Pedido restaurado';
@@ -103,14 +111,20 @@ const formatChange = (change, field) => {
     return `${field === 'preparationDate' ? 'Fecha de preparación' : 'Fecha de entrega'}: ${formatDate(change.from, { includeTime: false })} → ${formatDate(change.to, { includeTime: false })}`;
   }
 
-  // Currency fields
+  // Currency fields 1
   case 'deliveryFee':
-  case 'deliveryCost':
+  case 'deliveryCost':{
+    return `${field === 'deliveryFee' ? 'Domicilio cobrado a cliente' : 'Domicilio pagado a proveedor'
+    }: ${formatCurrency(change.from)} → ${formatCurrency(change.to)}`;
+  }
+
+  // Currency fields 2
   case 'subtotal':
   case 'total': {
-    return `${field === 'deliveryFee' ? 'Domicilio cobrado a cliente' :
-      field === 'deliveryCost' ? 'Domicilio pagado a proveedor' :
-        field === 'subtotal' ? 'Subtotal' : 'Total'}: ${formatCurrency(change.from)} → ${formatCurrency(change.to)}`;
+    // Check if any of the changes include isComplimentary
+    const hasComplimentaryChange = currentEntry && Object.keys(currentEntry.changes).includes('isComplimentary');
+    if (hasComplimentaryChange) return null;
+    return `${field === 'subtotal' ? 'Subtotal' : 'Total'}: ${formatCurrency(change.from)} → ${formatCurrency(change.to)}`;
   }
 
   // Text fields
@@ -127,7 +141,7 @@ const formatChange = (change, field) => {
     return `Instrucciones de entrega: "${change.from || '-'}" → "${change.to || '-'}"`;
   }
   case 'deliveryDriverId': {
-    return `Repartidor: ${change.from || '-'} → ${change.to || '-'}`;
+    return `Repartidor: ${getDriverName(change.from) || '-'} → ${getDriverName(change.to) || '-'}`;
   }
   case 'numberOfBags': {
     return `Número de bolsas: ${change.from} → ${change.to}`;
@@ -195,10 +209,16 @@ const formatChange = (change, field) => {
     return null;
   }
 };
+
+onMounted(async () => {
+  await settingsStore.fetchById('default');
+  staffData.value = await settingsStore.staff;
+});
 </script>
 
 <template>
   <div class="space-y-4">
+
     <template v-if="history.length > 0">
       <div v-for="entry in history" :key="entry.id" class="p-3 border-b border-neutral-200 last:border-0">
         <div class="flex justify-between items-start mb-2">
@@ -209,13 +229,13 @@ const formatChange = (change, field) => {
         <div class="space-y-2">
           <template v-for="(change, field) in entry.changes" :key="field">
             <!-- Special handling for orderItems -->
-            <div v-if="field === 'orderItems' && formatChange(change, field)" class="text-sm">
+            <div v-if="field === 'orderItems' && formatChange(change, field, entry)" class="text-sm">
               <div class="text-sm text-neutral-700">Productos:</div>
               <div class="space-y-1 ml-4">
                 <!-- Removed items -->
-                <div v-if="formatChange(change, field).changes.removed.length" class="space-y-1">
+                <div v-if="formatChange(change, field, entry).changes.removed.length" class="space-y-1">
                   <div class="text-sm text-neutral-700">Eliminados:</div>
-                  <div v-for="item in formatChange(change, field).changes.removed"
+                  <div v-for="item in formatChange(change, field, entry).changes.removed"
                        :key="item"
                        class="ml-2 text-neutral-700">
                     • {{ item }}
@@ -223,9 +243,9 @@ const formatChange = (change, field) => {
                 </div>
 
                 <!-- Added items -->
-                <div v-if="formatChange(change, field).changes.added.length" class="space-y-1">
+                <div v-if="formatChange(change, field, entry).changes.added.length" class="space-y-1">
                   <div class="text-sm text-neutral-700">Agregados:</div>
-                  <div v-for="item in formatChange(change, field).changes.added"
+                  <div v-for="item in formatChange(change, field, entry).changes.added"
                        :key="item"
                        class="ml-2 text-neutral-700">
                     • {{ item }}
@@ -233,9 +253,9 @@ const formatChange = (change, field) => {
                 </div>
 
                 <!-- Modified items -->
-                <div v-if="formatChange(change, field).changes.modified.length" class="space-y-1">
+                <div v-if="formatChange(change, field, entry).changes.modified.length" class="space-y-1">
                   <div class="text-sm text-neutral-700">Modificaciones:</div>
-                  <div v-for="item in formatChange(change, field).changes.modified"
+                  <div v-for="item in formatChange(change, field, entry).changes.modified"
                        :key="item"
                        class="ml-2 text-neutral-700">
                     • {{ item }}
@@ -245,8 +265,8 @@ const formatChange = (change, field) => {
             </div>
 
             <!-- Other changes -->
-            <div v-else-if="formatChange(change, field)" class="text-sm text-neutral-700">
-              {{ formatChange(change, field) }}
+            <div v-else-if="formatChange(change, field, entry)" class="text-sm text-neutral-700">
+              {{ formatChange(change, field, entry) }}
             </div>
           </template>
         </div>
