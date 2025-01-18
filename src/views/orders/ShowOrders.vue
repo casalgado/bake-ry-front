@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
-
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
@@ -9,22 +8,20 @@ import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import IsPaidCell from '@/components/DataTable/renderers/isPaidCell.vue';
-
 import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift, PhClockCounterClockwise } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
-
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
-
-// import { useAuthenticationStore  } from '@/stores/authentication';
-
-// const authenticationStore = useAuthenticationStore();
-// const isAdmin = computed(() => authenticationStore.isBakeryAdmin);
+import TotalsSummary from '@/components/common/TotalsSummary.vue';
+import { formatMoney } from '@/utils/helpers';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
+const settingsStore = useBakerySettingsStore();
 const unsubscribeRef = ref(null);
+const b2bClients = ref([]);
 
 const dataTable = ref(null);
 const isFormOpen = ref(false);
@@ -35,7 +32,27 @@ const actionLoading = ref({});
 const toggleLoading = ref({});
 const searchableColumns = ref(['userName', 'items']);
 
-// Column definitions / "id must be the same as field for sorting to work"
+// Process orders to add userCategory
+const processedOrders = computed(() => {
+  return orderStore.items.map(order => ({
+    ...order,
+    userCategory: b2bClients.value.map(client => client.id).includes(order.userId) ? 'B2B' : 'B2C',
+  }));
+});
+
+// Compute totals
+const totals = computed(() => {
+  const orders = processedOrders.value;
+
+  // Helper function to calculate sales without delivery
+  const calcSalesWithoutDelivery = (ordersArray) =>
+    ordersArray.reduce((sum, order) => sum + order.subtotal, 0);
+
+  return [
+    { label: 'Venta', value: calcSalesWithoutDelivery(orders) },
+  ];
+});
+
 const columns = [
   {
     id: 'userName',
@@ -115,6 +132,8 @@ const columns = [
     component: MoneyCell,
     getProps: (row) => ({
       value: row.total,
+      valueBelow: row.deliveryFee,
+      hideBelow: row.fulfillmentType === 'pickup',
     }),
   },
 ];
@@ -136,7 +155,6 @@ const tableFilters = [
   },
 ];
 
-// Table actions
 const tableActions = [
   {
     id: 'edit',
@@ -171,7 +189,6 @@ const tableActions = [
   },
 ];
 
-// Handlers
 const handleSelectionChange = (selectedIds) => {
   if (selectedIds.length === 1) {
     selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
@@ -182,24 +199,20 @@ const handleSelectionChange = (selectedIds) => {
 
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
-    // Set loading state for all affected rows
     rowIds.forEach(id => {
       toggleLoading.value[`${id}-${field}`] = true;
     });
 
-    // Prepare updates array
     const updates = rowIds.map(id => ({
       id,
       data: { [field]: value },
     }));
 
-    // Single API call
     await orderStore.patchAll(updates);
     await nextTick();
   } catch (error) {
     console.error('Failed to update orders:', error);
   } finally {
-    // Clear loading state
     rowIds.forEach(id => {
       toggleLoading.value[`${id}-${field}`] = false;
     });
@@ -252,7 +265,6 @@ const closeDialog = () => {
   selectedOrder.value = null;
 };
 
-// Watch for period changes and fetch new data
 watch(
   () => periodStore.periodRange,
   async (newRange) => {
@@ -274,8 +286,11 @@ watch(
 );
 
 onMounted(async () => {
-
   try {
+    // First fetch settings to get B2B clients
+    await settingsStore.fetchById('default');
+    b2bClients.value = await settingsStore.b2b_clients;
+
     await orderStore.fetchAll({
       filters: {
         dateRange: {
@@ -302,8 +317,8 @@ onUnmounted(() => {
 
 <template>
   <div class="container p-4 px-0 lg:px-4">
-    <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Pedidos</h2>
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-4 gap-2">
+      <TotalsSummary :categories="totals" :format-value="formatMoney"/>
       <PeriodSelector />
     </div>
 

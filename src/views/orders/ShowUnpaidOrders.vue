@@ -12,6 +12,7 @@ import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
+import TotalsSummary from '@/components/common/TotalsSummary.vue';
 import { formatMoney } from '@/utils/helpers';
 
 const orderStore = useOrderStore();
@@ -53,11 +54,11 @@ const totals = computed(() => {
     .filter(order => order.userCategory === 'B2C')
     .reduce((sum, order) => sum + order.total, 0);
 
-  return {
-    b2b: b2bTotal,
-    b2c: b2cTotal,
-    total: b2bTotal + b2cTotal,
-  };
+  return [
+    { label: 'B2B', value: b2bTotal },
+    { label: 'B2C', value: b2cTotal },
+    { label: 'Total', value: b2bTotal + b2cTotal },
+  ];
 });
 
 // Column definitions
@@ -313,21 +314,7 @@ onUnmounted(() => {
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Pedidos por Cobrar</h2>
 
-      <!-- Totals Summary -->
-      <div class="flex items-center gap-6 bg-white px-6 py-3 rounded-lg shadow-sm">
-        <div class="flex items-center gap-2">
-          <span class="text-neutral-700">B2B:</span>
-          <span class="font-bold text-neutral-800">{{ formatMoney(totals.b2b) }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-neutral-700">B2C:</span>
-          <span class="font-bold text-neutral-800">{{ formatMoney(totals.b2c) }}</span>
-        </div>
-        <div class="flex items-center gap-2 pl-6 border-neutral-200">
-          <span class="text-neutral-700">Total:</span>
-          <span class="font-bold text-neutral-800">{{ formatMoney(totals.total) }}</span>
-        </div>
-      </div>
+      <TotalsSummary :categories="totals" :format-value="formatMoney"/>
     </div>
 
     <!-- Error State -->
