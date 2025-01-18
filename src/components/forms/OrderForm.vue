@@ -365,7 +365,7 @@ const formatOrderDate = (date) => {
 
         <!-- Swapped order of date inputs -->
         <div>
-          <label for="due-date">Fecha de Entrega</label>
+          <label for="due-date">Fecha de Preparación</label>
           <input
             id="due-date"
             type="date"
@@ -375,7 +375,7 @@ const formatOrderDate = (date) => {
           <span v-if="errors.dueDate" class="text-danger text-sm">{{ errors.dueDate }}</span>
         </div>
 
-        <div>
+        <div class="hidden">
           <label for="preparation-date">Fecha de Preparación</label>
           <input
             id="preparation-date"
@@ -383,6 +383,7 @@ const formatOrderDate = (date) => {
             v-model="formData.preparationDate"
             :max="formData.dueDate"
             class="w-full"
+            hidden
           />
           <span v-if="errors.preparationDate" class="text-danger text-sm">{{ errors.preparationDate }}</span>
         </div>

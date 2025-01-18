@@ -323,7 +323,7 @@ onUnmounted(() => {
           <span class="text-neutral-700">B2C:</span>
           <span class="font-bold text-neutral-800">{{ formatMoney(totals.b2c) }}</span>
         </div>
-        <div class="flex items-center gap-2 border-l pl-6 border-neutral-200">
+        <div class="flex items-center gap-2 pl-6 border-neutral-200">
           <span class="text-neutral-700">Total:</span>
           <span class="font-bold text-neutral-800">{{ formatMoney(totals.total) }}</span>
         </div>
