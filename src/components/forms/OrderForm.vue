@@ -69,9 +69,24 @@ const userCombox = ref(null);
 const userHistory = ref([]);
 const currentHistoryIndex = ref(0);
 
-// Get tomorrow's date
-const tomorrow = new Date();
-tomorrow.setDate(tomorrow.getDate() + 1);
+// Get next business day
+const getNextBusinessDay = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 1); // Start with tomorrow
+
+  // If it's Saturday (6), add 2 days to get to Monday
+  if (date.getDay() === 6) {
+    date.setDate(date.getDate() + 2);
+  }
+  // If it's Sunday (0), add 1 day to get to Monday
+  else if (date.getDay() === 0) {
+    date.setDate(date.getDate() + 1);
+  }
+
+  return date;
+};
+
+const tomorrow = getNextBusinessDay();
 const tomorrowString = tomorrow.toISOString().split('T')[0];
 
 const formatDateForInput = (dateString) => {
@@ -212,6 +227,9 @@ const validate = () => {
   if (!formData.value.orderItems.length) errors.value.orderItems = 'Se requiere al menos un producto';
   if (!formData.value.preparationDate) errors.value.preparationDate = 'Fecha de preparación es requerida';
   if (!formData.value.dueDate) errors.value.dueDate = 'Fecha de entrega es requerida';
+  if (formData.value.dueDate < formData.value.preparationDate) {
+    errors.value.dueDate = 'La fecha de entrega no puede ser anterior a la fecha de preparación';
+  }
 
   return Object.keys(errors.value).length === 0;
 };
@@ -265,9 +283,9 @@ watch(selectedFeeType, (newValue) => {
 });
 
 // Changed to watch dueDate instead of preparationDate
-watch(() => formData.value.dueDate, (newDate) => {
+watch(() => formData.value.preparationDate, (newDate) => {
   if (newDate) {
-    formData.value.preparationDate = newDate;
+    formData.value.dueDate = newDate;
   }
 });
 
@@ -278,8 +296,8 @@ const handlePrevOrder = () => {
     const historicalOrder = userHistory.value[currentHistoryIndex.value];
     formData.value.orderItems = addBasePricesToOrderItems(historicalOrder.orderItems, productStore.items);
     // Update the dates
-    if (historicalOrder.dueDate) {
-      formData.value.dueDate = formatDateForInput(historicalOrder.dueDate);
+    if (historicalOrder.preparationDate) {
+      formData.value.preparationDate = formatDateForInput(historicalOrder.preparationDate);
     }
     if (historicalOrder.preparationDate) {
       formData.value.preparationDate = formatDateForInput(historicalOrder.preparationDate);
@@ -293,8 +311,8 @@ const handleNextOrder = () => {
     const historicalOrder = userHistory.value[currentHistoryIndex.value];
     formData.value.orderItems = addBasePricesToOrderItems(historicalOrder.orderItems, productStore.items);
     // Update the dates
-    if (historicalOrder.dueDate) {
-      formData.value.dueDate = formatDateForInput(historicalOrder.dueDate);
+    if (historicalOrder.preparationDate) {
+      formData.value.preparationDate = formatDateForInput(historicalOrder.preparationDate);
     }
     if (historicalOrder.preparationDate) {
       formData.value.preparationDate = formatDateForInput(historicalOrder.preparationDate);
@@ -363,30 +381,30 @@ const formatOrderDate = (date) => {
           <span v-if="errors.userId" class="text-danger text-sm">{{ errors.userId }}</span>
         </div>
 
-        <!-- Swapped order of date inputs -->
         <div>
-          <label for="due-date">Fecha de Preparación</label>
-          <input
-            id="due-date"
-            type="date"
-            v-model="formData.dueDate"
-            class="w-full"
-          />
-          <span v-if="errors.dueDate" class="text-danger text-sm">{{ errors.dueDate }}</span>
-        </div>
-
-        <div class="hidden">
           <label for="preparation-date">Fecha de Preparación</label>
           <input
             id="preparation-date"
             type="date"
             v-model="formData.preparationDate"
-            :max="formData.dueDate"
+
             class="w-full"
-            hidden
           />
           <span v-if="errors.preparationDate" class="text-danger text-sm">{{ errors.preparationDate }}</span>
         </div>
+
+        <div>
+          <label for="due-date">Fecha de Entrega</label>
+          <input
+            id="due-date"
+            type="date"
+            v-model="formData.dueDate"
+            :min="formData.preparationDate"
+            class="w-full"
+          />
+          <span v-if="errors.dueDate" class="text-danger text-sm">{{ errors.dueDate }}</span>
+        </div>
+
       </div>
 
       <NewClientDialog
