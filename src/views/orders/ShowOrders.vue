@@ -66,13 +66,13 @@ const columns = [
     }),
   },
   {
-    id: 'dueDate',
-    label: 'Fecha de Entrega',
-    field: 'dueDate',
+    id: 'preparationDate',
+    label: 'Preparación',
+    field: 'preparationDate',
     sortable: true,
     component: DateCell,
     getProps: (row) => ({
-      value: row.dueDate,
+      value: row.preparationDate,
       showTime: true,
     }),
   },
@@ -272,7 +272,7 @@ watch(
       await orderStore.fetchAll({
         filters: {
           dateRange: {
-            dateField: 'dueDate',
+            dateField: 'preparationDate',
             startDate: newRange.start.toISOString(),
             endDate: newRange.end.toISOString(),
           },
@@ -294,7 +294,7 @@ onMounted(async () => {
     await orderStore.fetchAll({
       filters: {
         dateRange: {
-          dateField: 'dueDate',
+          dateField: 'preparationDate',
           startDate: periodStore.periodRange.start.toISOString(),
           endDate: periodStore.periodRange.end.toISOString(),
         },

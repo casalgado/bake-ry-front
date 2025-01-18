@@ -82,7 +82,7 @@ const columns = [
   },
   {
     id: 'dueDate',
-    label: 'Fecha de Entrega',
+    label: 'Entrega',
     field: 'dueDate',
     sortable: true,
     component: DateCell,
@@ -312,7 +312,7 @@ onUnmounted(() => {
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Pedidos por Cobrar</h2>
+      <h2 class="text-2xl font-bold text-neutral-800">Por Cobrar</h2>
 
       <TotalsSummary :categories="totals" :format-value="formatMoney"/>
     </div>

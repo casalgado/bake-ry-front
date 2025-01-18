@@ -207,9 +207,9 @@ const handleUserChange = async (user) => {
   originalAddress.value = user.address;
   await nextTick();
   setTimeout(() => {
-    const firstFulfillmentRadio = document.querySelector('input[name="fulfillment-type"]');
-    if (firstFulfillmentRadio) {
-      firstFulfillmentRadio.focus();
+    const nextElement = document.querySelector('input[name="preparation-date"]');
+    if (nextElement) {
+      nextElement.focus();
     }
   }, 0);
 };
@@ -282,7 +282,6 @@ watch(selectedFeeType, (newValue) => {
   }
 });
 
-// Changed to watch dueDate instead of preparationDate
 watch(() => formData.value.preparationDate, (newDate) => {
   if (newDate) {
     formData.value.dueDate = newDate;
@@ -387,7 +386,7 @@ const formatOrderDate = (date) => {
             id="preparation-date"
             type="date"
             v-model="formData.preparationDate"
-
+            name="preparation-date"
             class="w-full"
           />
           <span v-if="errors.preparationDate" class="text-danger text-sm">{{ errors.preparationDate }}</span>
@@ -489,7 +488,7 @@ const formatOrderDate = (date) => {
           </button>
 
           <span class="text-sm font-medium text-neutral-600 min-w-[60px] text-center">
-            {{ formatOrderDate(userHistory[currentHistoryIndex].dueDate) }}
+            {{ formatOrderDate(userHistory[currentHistoryIndex].preparationDate ? userHistory[currentHistoryIndex].preparationDate : userHistory[currentHistoryIndex].dueDate) }}
           </span>
 
           <button

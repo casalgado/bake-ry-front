@@ -7,7 +7,7 @@ defineProps({
 </script>
 
 <template>
-  <span v-if="show">{{ address ? address : 'no hay dirección' }}</span>
+  <span v-if="show" class="max-w-xs block break-words">{{ address ? address : 'no hay dirección' }}</span>
   <span v-else>
     recogen
   </span>
