@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { capitalize } from '@/utils/helpers';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 

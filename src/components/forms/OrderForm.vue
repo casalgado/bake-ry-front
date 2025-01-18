@@ -229,6 +229,9 @@ const subtotal = computed(() => {
 });
 
 const total = computed(() => {
+  if (formData.value.fulfillmentType === 'pickup') {
+    return subtotal.value;
+  }
   return subtotal.value + formData.value.deliveryFee;
 });
 
@@ -506,11 +509,11 @@ const formatOrderDate = (date) => {
           </div>
           <div class="flex justify-between">
             <span>Envío:</span>
-            <span>{{ formatMoney(formData.deliveryFee) }}</span>
+            <span>{{ formData.fulfillmentType === 'pickup' ? '$0' : formatMoney(formData.deliveryFee) }}</span>
           </div>
           <div class="flex justify-between font-bold">
             <span>Total:</span>
-            <span>{{ formatMoney(total) }}</span>
+            <span>{{  formatMoney(total) }}</span>
           </div>
         </div>
 
