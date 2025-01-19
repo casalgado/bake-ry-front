@@ -109,9 +109,14 @@ const router = createRouter({
           component: () => import('../views/orders/CreateOrder.vue'),
         },
         {
-          path: 'orders/production',
-          name: 'show-production',
-          component: () => import('../views/orders/ShowProduction.vue'),
+          path: 'orders/production/single',
+          name: 'show-production-single',
+          component: () => import('../views/orders/ShowProductionSingleItems.vue'),
+        },
+        {
+          path: 'orders/production/grouped',
+          name: 'show-production-grouped',
+          component: () => import('../views/orders/ShowProductionGroupedItems.vue'),
         },
         {
           path: 'orders/delivery',
@@ -185,12 +190,12 @@ const router = createRouter({
         {
           path: 'orders',
           name: 'productionOrders',
-          component: () => import('../views/orders/ShowProductionOrders.vue'),
+          component: () => import('../views/orders/ShowProductionAssistantOrders.vue'),
         },
         {
           path: 'summary',
           name: 'productionSummary',
-          component: () => import('../views/orders/ShowProductionSummary.vue'),
+          component: () => import('../views/orders/ShowProductionAssistantSummary.vue'),
         },
       ],
     },

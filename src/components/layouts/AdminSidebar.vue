@@ -15,6 +15,7 @@ import {
   PhStorefront,
   PhTreeStructure,
   PhHandCoins,
+  PhBread,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -58,9 +59,15 @@ const navigationSections = [
     items: [
       {
         id: 'produccion',
+        icon: PhBread,
+        text: 'Por Producto',
+        path: '/dashboard/orders/production/single',
+      },
+      {
+        id: 'produccion',
         icon: PhOven,
-        text: 'Produccion',
-        path: '/dashboard/orders/production',
+        text: 'Agrupado',
+        path: '/dashboard/orders/production/grouped',
       },
     ],
   },
