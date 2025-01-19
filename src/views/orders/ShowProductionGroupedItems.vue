@@ -47,8 +47,9 @@ const uniqueCollections = computed(() => {
 // Group items by product and variation
 const groupedOrderItems = computed(() => {
   const groups = flattenedOrderItems.value.reduce((acc, item) => {
-    // Create a composite key for product + variation combination
-    const key = `${item.productId}-${item.variation.id}`;
+    // Safely create composite key, handling cases where variation might be null
+    const variationId = item.variation?.id || 'no-variation';
+    const key = `${item.productId}-${variationId}`;
 
     if (!acc[key]) {
       acc[key] = {
@@ -56,7 +57,7 @@ const groupedOrderItems = computed(() => {
         productId: item.productId,
         productName: item.productName,
         collectionName: item.collectionName,
-        variation: item.variation,
+        variation: item.variation || { name: '-' },
         totalQuantity: 0,
         originalItems: [],
         batches: new Set(),
@@ -73,12 +74,11 @@ const groupedOrderItems = computed(() => {
     return acc;
   }, {});
 
-  // Convert to array and add derived properties
   return Object.values(groups).map(group => ({
     ...group,
     productionBatch: group.batches.size === 1
       ? Array.from(group.batches)[0]
-      : 'Mixed',
+      : Array.from(group.batches).sort((a, b) => a - b).join(','),
     status: group.statuses.size === 1
       ? Array.from(group.statuses)[0]
       : 'Mixed',
@@ -93,7 +93,6 @@ const columns = [
     label: 'Tanda',
     field: 'productionBatch',
     sortable: true,
-    render: (row) => row.batches,
   },
   {
     id: 'collectionName',
@@ -134,7 +133,7 @@ const columns = [
       { value: 0, displayText: '-' },
       { value: 1, displayText: 'producido' },
       { value: 2, displayText: 'entregado' },
-      { value: 'Mixed', displayText: '⋯', skipWhenToggled: true },
+      { value: 'Mixed', displayText: 'M', skipWhenToggled: true },
     ],
   },
 ];
@@ -338,6 +337,8 @@ onUnmounted(() => {
     <div v-if="orderStore.error" class="text-danger text-center py-4">
       {{ orderStore.error }}
     </div>
+
+    {{ uniqueCollections }}
 
     <!-- Batch Selection Dialog -->
     <Dialog
