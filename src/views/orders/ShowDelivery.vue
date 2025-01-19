@@ -5,7 +5,7 @@ import { Dialog, DialogPanel } from '@headlessui/vue';
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
-import DateCell from '@/components/DataTable/renderers/DateCell.vue';
+import { PhCheckSquare, PhMinus } from '@phosphor-icons/vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import DeliveryAddressCell from '@/components/DataTable/renderers/DeliveryAddressCell.vue';
 
@@ -82,14 +82,12 @@ const columns = [
     }),
   },
   {
-    id: 'dueDate',
-    label: 'Fecha de Entrega',
-    field: 'dueDate',
+    id: 'isDeliveryPaid',
+    label: 'Pagado',
+    field: 'isDeliveryPaid',
     sortable: true,
-    component: DateCell,
-    getProps: (row) => ({
-      value: row.dueDate,
-    }),
+    type: 'toggle',
+    options: [{ value: true, icon: PhCheckSquare }, { value: false, icon: PhMinus }],
   },
   {
     id: 'items',
@@ -349,7 +347,7 @@ onUnmounted(() => {
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row  justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Entrega</h2>
-      <PeriodSelector />
+      <PeriodSelector onlyFor="day" />
     </div>
 
     <!-- Error State -->

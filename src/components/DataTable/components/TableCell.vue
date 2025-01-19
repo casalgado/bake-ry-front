@@ -171,10 +171,11 @@ onUnmounted(() => {
         />
         <div v-else class="flex items-center gap-2">
           <component
+            v-if="currentOption.icon"
             :is="currentOption.icon"
             class="w-5 h-5"
           />
-          <span>{{ currentOption.displayText }}</span>
+          <span v-if="currentOption.displayText">{{ currentOption.displayText }}</span>
         </div>
       </template>
       <component

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { capitalize } from '@/utils/helpers';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
@@ -71,6 +71,12 @@ const methods = {
   card: 'bold',
   transfer: 'transferencia',
   complimentary: 'regalo',
+};
+
+const orderItemStatus = {
+  0: '-',
+  1: 'producido',
+  2: 'entregado',
 };
 
 const status = {
@@ -191,6 +197,10 @@ const formatChange = (change, field, currentEntry) => {
           itemChanges.push(`${capitalize(toItem.productName)}: Variación ${fromVar} → ${toVar}`);
         }
 
+        if (fromItem.status !== toItem.status) {
+          itemChanges.push(`${capitalize(toItem.productName)}: Estado ${orderItemStatus[fromItem.status]} → ${orderItemStatus[toItem.status]}`);
+        }
+
         return itemChanges;
       })
       .flat()
@@ -214,13 +224,20 @@ onMounted(async () => {
   await settingsStore.fetchById('default');
   staffData.value = await settingsStore.staff;
 });
+
+const filteredHistory = computed(() =>
+  props.history.filter(entry =>
+    !Object.values(entry.changes).every(change =>
+      Object.keys(change).length === 0 || (Array.isArray(change) && change.length === 0),
+    ),
+  ),
+);
 </script>
 
 <template>
   <div class="space-y-4">
-
-    <template v-if="history.length > 0">
-      <div v-for="entry in history" :key="entry.id" class="p-3 border-b border-neutral-200 last:border-0">
+    <template v-if="filteredHistory.length > 0">
+      <div v-for="entry in filteredHistory" :key="entry.id" class="p-3 border-b border-neutral-200 last:border-0">
         <div class="flex justify-between items-start mb-2">
           <span class="text-sm text-neutral-600">{{ formatDate(entry.timestamp) }}</span>
           <span class="text-xs text-neutral-500">{{ entry.editor.email }}</span>
@@ -229,7 +246,8 @@ onMounted(async () => {
         <div class="space-y-2">
           <template v-for="(change, field) in entry.changes" :key="field">
             <!-- Special handling for orderItems -->
-            <div v-if="field === 'orderItems' && formatChange(change, field, entry)" class="text-sm">
+            <div v-if="field === 'orderItems' && formatChange(change, field, entry) " class="text-sm">
+
               <div class="text-sm text-neutral-700">Productos:</div>
               <div class="space-y-1 ml-4">
                 <!-- Removed items -->
@@ -266,6 +284,7 @@ onMounted(async () => {
 
             <!-- Other changes -->
             <div v-else-if="formatChange(change, field, entry)" class="text-sm text-neutral-700">
+
               {{ formatChange(change, field, entry) }}
             </div>
           </template>
