@@ -145,4 +145,15 @@ const capitalize = (str) => {
     .join(' ');
 };
 
-export { abbreviateText, parseSpanishName, capitalize, formatMoney, cleanString };
+// Keep the categoryOrder map
+const categoryOrder = {
+  'sourdough': 1,
+  'baguette': 2,
+  'tortillas': 3,
+  'untables': 4,
+  'panaderia tradicional': 5,
+  'congelados': 6,
+  'cafe el diario': 7,
+};
+
+export { abbreviateText, parseSpanishName, capitalize, formatMoney, cleanString, categoryOrder };

@@ -7,6 +7,8 @@ import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 import { PhPlusMinus } from '@phosphor-icons/vue';
+import { categoryOrder } from '@/utils/helpers';
+import CombinedProductionInfoCell from '@/components/DataTable/renderers/CombinedProductionInfoCell.vue';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -44,12 +46,14 @@ const uniqueCollections = computed(() => {
   return Array.from(collections);
 });
 
-// Group items by product and variation
+// Then modify the groupedOrderItems to include the sorting value and make sorting case-insensitive
 const groupedOrderItems = computed(() => {
   const groups = flattenedOrderItems.value.reduce((acc, item) => {
-    // Safely create composite key, handling cases where variation might be null
     const variationId = item.variation?.id || 'no-variation';
     const key = `${item.productId}-${variationId}`;
+
+    // Convert collection name to lowercase for matching
+    const collectionName = item.collectionName?.toLowerCase();
 
     if (!acc[key]) {
       acc[key] = {
@@ -57,7 +61,8 @@ const groupedOrderItems = computed(() => {
         productId: item.productId,
         productName: item.productName,
         collectionName: item.collectionName,
-        variation: item.variation || { name: '-' },
+        collectionOrder: categoryOrder[collectionName] || 999, // Case-insensitive lookup
+        variation: item.variation || { name: 'Sin variación' },
         totalQuantity: 0,
         originalItems: [],
         batches: new Set(),
@@ -65,25 +70,33 @@ const groupedOrderItems = computed(() => {
       };
     }
 
-    // Add to totals and store original item reference
     acc[key].totalQuantity += item.quantity;
     acc[key].originalItems.push(item);
-    acc[key].batches.add(item.productionBatch);
+    if (item.productionBatch) acc[key].batches.add(item.productionBatch);
     acc[key].statuses.add(item.status);
 
     return acc;
   }, {});
 
-  return Object.values(groups).map(group => ({
-    ...group,
-    productionBatch: group.batches.size === 1
-      ? Array.from(group.batches)[0]
-      : Array.from(group.batches).sort((a, b) => a - b).join(','),
-    status: group.statuses.size === 1
-      ? Array.from(group.statuses)[0]
-      : 'Mixed',
-    batches: Array.from(group.batches).sort().join(','),
-  }));
+  return Object.values(groups)
+    .sort((a, b) => {
+      // First sort by collection order
+      if (a.collectionOrder !== b.collectionOrder) {
+        return a.collectionOrder - b.collectionOrder;
+      }
+      // Then by product name
+      return a.productName.localeCompare(b.productName);
+    })
+    .map(group => ({
+      ...group,
+      productionBatch: group.batches.size === 1
+        ? Array.from(group.batches)[0]
+        : Array.from(group.batches).sort((a, b) => a - b).join(','),
+      status: group.statuses.size === 1
+        ? Array.from(group.statuses)[0]
+        : 'Mixed',
+      batches: Array.from(group.batches).sort().join(','),
+    }));
 });
 
 // Column definitions
@@ -101,27 +114,16 @@ const columns = [
     sortable: true,
   },
   {
-    id: 'productName',
-    label: 'Producto',
+    id: 'combinedInfo',
+    label: 'Prdoucto',
     field: 'productName',
     sortable: true,
-  },
-  {
-    id: 'variation',
-    label: 'Variación',
-    field: 'variation',
-    sortable: false,
-    component: ShowValuesCell,
+    component: CombinedProductionInfoCell,
     getProps: (row) => ({
-      object: row.variation,
-      fields: ['name'],
+      productName: row.productName,
+      variation: row.variation,
+      totalQuantity: row.totalQuantity,
     }),
-  },
-  {
-    id: 'totalQuantity',
-    label: 'Cantidad',
-    field: 'totalQuantity',
-    sortable: true,
   },
   {
     id: 'status',
@@ -337,8 +339,6 @@ onUnmounted(() => {
     <div v-if="orderStore.error" class="text-danger text-center py-4">
       {{ orderStore.error }}
     </div>
-
-    {{ uniqueCollections }}
 
     <!-- Batch Selection Dialog -->
     <Dialog

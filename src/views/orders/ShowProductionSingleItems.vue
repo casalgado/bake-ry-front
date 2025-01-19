@@ -7,6 +7,8 @@ import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 import { PhPlusMinus } from '@phosphor-icons/vue';
+import { categoryOrder } from '@/utils/helpers';
+import CombinedProductionInfoCell from '@/components/DataTable/renderers/CombinedProductionInfoCell.vue';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -18,17 +20,27 @@ const actionLoading = ref({});
 const isBatchDialogOpen = ref(false);
 const selectedIds = ref([]);
 
-// Computed property to flatten order items
+// Modified flattenedOrderItems with sorting
 const flattenedOrderItems = computed(() => {
-  return orderStore.items.flatMap(order =>
-    order.orderItems.map(item => ({
-      ...item,
-      id: item.id,
-      orderId: order.id,
-      productionBatch: item.productionBatch || 0,
-      status: item.status || 0,
-    })),
-  );
+  return orderStore.items
+    .flatMap(order =>
+      order.orderItems.map(item => ({
+        ...item,
+        id: item.id,
+        orderId: order.id,
+        productionBatch: item.productionBatch || 0,
+        status: item.status || 0,
+        collectionOrder: categoryOrder[item.collectionName?.toLowerCase()] || 999,
+      })),
+    )
+    .sort((a, b) => {
+      // First sort by collection order
+      if (a.collectionOrder !== b.collectionOrder) {
+        return a.collectionOrder - b.collectionOrder;
+      }
+      // Then by product name
+      return a.productName.localeCompare(b.productName);
+    });
 });
 
 // Computed property to get unique collection names
@@ -59,30 +71,17 @@ const columns = [
     sortable: true,
   },
   {
-    id: 'productName',
-    label: 'Producto',
+    id: 'combinedInfo',
+    label: 'Prdoucto',
     field: 'productName',
     sortable: true,
-  },
-
-  {
-    id: 'variation',
-    label: 'Variación',
-    field: 'variation',
-    sortable: false,
-    component: ShowValuesCell,
+    component: CombinedProductionInfoCell,
     getProps: (row) => ({
-      object: row.variation,
-      fields: ['name'],
+      productName: row.productName,
+      variation: row.variation,
+      totalQuantity: row.quantity,
     }),
   },
-  {
-    id: 'quantity',
-    label: 'Ctd',
-    field: 'quantity',
-    sortable: true,
-  },
-
   {
     id: 'status',
     label: 'Estado',
