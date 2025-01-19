@@ -18,7 +18,7 @@ const actionLoading = ref({});
 const isBatchDialogOpen = ref(false);
 const selectedIds = ref([]);
 
-// Computed property to flatten order items
+// Flattened order items with additional references
 const flattenedOrderItems = computed(() => {
   return orderStore.items.flatMap(order =>
     order.orderItems.map(item => ({
@@ -44,6 +44,48 @@ const uniqueCollections = computed(() => {
   return Array.from(collections);
 });
 
+// Group items by product and variation
+const groupedOrderItems = computed(() => {
+  const groups = flattenedOrderItems.value.reduce((acc, item) => {
+    // Create a composite key for product + variation combination
+    const key = `${item.productId}-${item.variation.id}`;
+
+    if (!acc[key]) {
+      acc[key] = {
+        id: key,
+        productId: item.productId,
+        productName: item.productName,
+        collectionName: item.collectionName,
+        variation: item.variation,
+        totalQuantity: 0,
+        originalItems: [],
+        batches: new Set(),
+        statuses: new Set(),
+      };
+    }
+
+    // Add to totals and store original item reference
+    acc[key].totalQuantity += item.quantity;
+    acc[key].originalItems.push(item);
+    acc[key].batches.add(item.productionBatch);
+    acc[key].statuses.add(item.status);
+
+    return acc;
+  }, {});
+
+  // Convert to array and add derived properties
+  return Object.values(groups).map(group => ({
+    ...group,
+    productionBatch: group.batches.size === 1
+      ? Array.from(group.batches)[0]
+      : 'Mixed',
+    status: group.statuses.size === 1
+      ? Array.from(group.statuses)[0]
+      : 'Mixed',
+    batches: Array.from(group.batches).sort().join(','),
+  }));
+});
+
 // Column definitions
 const columns = [
   {
@@ -51,6 +93,7 @@ const columns = [
     label: 'Tanda',
     field: 'productionBatch',
     sortable: true,
+    render: (row) => row.batches,
   },
   {
     id: 'collectionName',
@@ -64,7 +107,6 @@ const columns = [
     field: 'productName',
     sortable: true,
   },
-
   {
     id: 'variation',
     label: 'Variación',
@@ -77,12 +119,11 @@ const columns = [
     }),
   },
   {
-    id: 'quantity',
-    label: 'Ctd',
-    field: 'quantity',
+    id: 'totalQuantity',
+    label: 'Cantidad',
+    field: 'totalQuantity',
     sortable: true,
   },
-
   {
     id: 'status',
     label: 'Estado',
@@ -93,6 +134,7 @@ const columns = [
       { value: 0, displayText: '-' },
       { value: 1, displayText: 'producido' },
       { value: 2, displayText: 'entregado' },
+      { value: 'Mixed', displayText: '⋯', skipWhenToggled: true },
     ],
   },
 ];
@@ -128,27 +170,33 @@ const tableFilters = computed(() => [
 
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
-    rowIds.forEach(id => {
-      toggleLoading.value[`${id}-${field}`] = true;
+    // Find all original items that need to be updated
+    const itemsToUpdate = rowIds.flatMap(groupId =>
+      groupedOrderItems.value
+        .find(group => group.id === groupId)
+        ?.originalItems || [],
+    );
+
+    // Set loading state for all items
+    itemsToUpdate.forEach(item => {
+      toggleLoading.value[`${item.id}-${field}`] = true;
     });
 
-    const orderUpdates = rowIds.reduce((acc, itemId) => {
-      const orderItem = flattenedOrderItems.value.find(item => item.id === itemId);
-      if (!orderItem) return acc;
-
-      if (!acc[orderItem.orderId]) {
-        acc[orderItem.orderId] = {
+    // Group updates by order
+    const orderUpdates = itemsToUpdate.reduce((acc, item) => {
+      if (!acc[item.orderId]) {
+        acc[item.orderId] = {
           itemIds: new Set(),
           orderItems: orderStore.items
-            .find(order => order.id === orderItem.orderId)
+            .find(order => order.id === item.orderId)
             .orderItems,
         };
       }
-
-      acc[orderItem.orderId].itemIds.add(itemId);
+      acc[item.orderId].itemIds.add(item.id);
       return acc;
     }, {});
 
+    // Prepare updates
     const updates = Object.entries(orderUpdates).map(([orderId, { orderItems, itemIds }]) => ({
       id: orderId,
       data: {
@@ -159,13 +207,15 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
       },
     }));
 
+    // Execute updates
     await orderStore.patchAll(updates);
     await nextTick();
   } catch (error) {
-    console.error('Failed to update order items:', error);
+    console.error('Failed to update items:', error);
   } finally {
-    rowIds.forEach(id => {
-      toggleLoading.value[`${id}-${field}`] = false;
+    // Clear loading states
+    Object.keys(toggleLoading.value).forEach(key => {
+      toggleLoading.value[key] = false;
     });
   }
 };
@@ -295,10 +345,7 @@ onUnmounted(() => {
       @close="isBatchDialogOpen = false"
       class="relative z-50"
     >
-      <!-- Backdrop -->
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
-
-      <!-- Dialog content -->
       <div class="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel class="bg-white rounded-lg p-6 max-w-sm w-full">
           <h3 class="text-lg font-medium text-neutral-800 mb-4 text-center">
@@ -309,7 +356,8 @@ onUnmounted(() => {
               v-for="batch in [1, 2, 3, 4, 5, 6]"
               :key="batch"
               @click="handleBatchSelect(batch)"
-              class="utility-btn "
+              class="p-2 text-center bg-neutral-100 hover:bg-primary-100
+                     rounded-md transition-colors duration-200"
             >
               {{ batch }}
             </button>
@@ -322,7 +370,7 @@ onUnmounted(() => {
     <div>
       <DataTable
         ref="dataTable"
-        :data="flattenedOrderItems"
+        :data="groupedOrderItems"
         :columns="columns"
         :actions="tableActions"
         :action-loading="actionLoading"
