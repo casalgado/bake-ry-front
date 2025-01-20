@@ -1,8 +1,9 @@
 // views/delivery/DeliverySummary.vue
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { usePeriodStore } from '@/stores/periodStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
@@ -13,20 +14,22 @@ import _ from 'lodash';
 
 const orderStore = useOrderStore();
 const periodStore = usePeriodStore();
+const settingsStore = useBakerySettingsStore();
 const expandedDriver = ref(null);
 const unsubscribeRef = ref(null);
 const toggleLoading = ref({});
+const drivers = ref([]);
 
 // Transform orders into driver summary
 const driverSummaries = computed(() => {
-  const driverGroups = _.groupBy(orderStore.items, 'deliveryDriverId');
+  const driverGroups = _.groupBy(orderStore.items.filter(order => order.fulfillmentType == 'delivery'), 'deliveryDriverId');
 
-  return Object.entries(driverGroups).map(([driverId, driverOrders]) => {
+  return Object.entries(driverGroups).map(([deliveryDriverId, driverOrders]) => {
     const paidDeliveries = driverOrders.filter(order => order.isDeliveryPaid).length;
 
     return {
-      id: driverId,
-      name: driverOrders[0]?.driverName || 'Sin Asignar',
+      id: deliveryDriverId,
+      name: drivers.value.find(driver => driver.id == deliveryDriverId)?.name || 'Sin Asignar',
       summary: {
         totalDeliveries: driverOrders.length,
         totalAmount: _.sumBy(driverOrders, 'deliveryCost'),
@@ -136,20 +139,46 @@ const handleMarkPeriodPaid = async (driverId) => {
   }
 };
 
+watch(
+  () => periodStore.periodRange,
+  async (newRange) => {
+    try {
+      await orderStore.fetchAll({
+        filters: {
+          dateRange: {
+            dateField: 'dueDate',
+            startDate: newRange.start.toISOString(),
+            endDate: newRange.end.toISOString(),
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    }
+  },
+  { deep: true },
+);
+
 onMounted(async () => {
   try {
+    // First fetch settings to get B2B clients
+    await settingsStore.fetchById('default');
+    drivers.value = await settingsStore.staff;
+    drivers.value = drivers.value.filter(driver => driver.role == 'delivery_assistant');
+
     await orderStore.fetchAll({
       filters: {
         dateRange: {
-          dateField: 'dueDate',
-          startDate: periodStore.periodRange.value.start.toISOString(),
-          endDate: periodStore.periodRange.value.end.toISOString(),
+          dateField: 'preparationDate',
+          startDate: periodStore.periodRange.start.toISOString(),
+          endDate: periodStore.periodRange.end.toISOString(),
         },
       },
     });
     unsubscribeRef.value = await orderStore.subscribeToChanges();
+    console.log('🔄 Real-time updates enabled for orders');
   } catch (error) {
-    console.error('Failed to initialize delivery summary:', error);
+    console.error('Failed to initialize orders:', error);
   }
 });
 
@@ -164,6 +193,7 @@ onUnmounted(() => {
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <!-- Header -->
+    {{  drivers }}
     <div class="flex flex-col lg:flex-row justify-between items-center mb-6">
       <h2 class="text-2xl font-bold text-neutral-800">Resumen de Domicilios</h2>
       <PeriodSelector onlyFor="week" />
