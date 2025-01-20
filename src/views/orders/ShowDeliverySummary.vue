@@ -26,6 +26,8 @@ const driverSummaries = computed(() => {
 
   return Object.entries(driverGroups).map(([deliveryDriverId, driverOrders]) => {
     const paidDeliveries = driverOrders.filter(order => order.isDeliveryPaid).length;
+    const unpaidOrders = driverOrders.filter(order => !order.isDeliveryPaid);
+    const unpaidAmount = _.sumBy(unpaidOrders, 'deliveryCost');
 
     return {
       id: deliveryDriverId,
@@ -35,6 +37,7 @@ const driverSummaries = computed(() => {
         totalAmount: _.sumBy(driverOrders, 'deliveryCost'),
         paidDeliveries,
         unpaidDeliveries: driverOrders.length - paidDeliveries,
+        unpaidAmount,
         isPeriodPaid: false,
       },
       deliveries: driverOrders,
@@ -47,6 +50,7 @@ const globalSummary = computed(() => ({
   totalDeliveries: _.sumBy(driverSummaries.value, 'summary.totalDeliveries'),
   totalAmount: _.sumBy(driverSummaries.value, 'summary.totalAmount'),
   totalPending: _.sumBy(driverSummaries.value, 'summary.unpaidDeliveries'),
+  totalPendingAmount: _.sumBy(driverSummaries.value, 'summary.unpaidAmount'),
 }));
 
 // Summary categories for TotalsSummary components
@@ -55,7 +59,7 @@ const deliveriesSummary = computed(() => ([
 ]));
 
 const pendingSummary = computed(() => ([
-  { label: 'Por Pagar', value: globalSummary.value.totalPending },
+  { label: 'Por Pagar', value: `$${globalSummary.value.totalPendingAmount.toLocaleString()}  (${globalSummary.value.totalPending})` },
 ]));
 
 const amountSummary = computed(() => ([
@@ -206,7 +210,6 @@ onUnmounted(() => {
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <!-- Header -->
-    {{ globalSummary }}
     <div class="flex flex-col lg:flex-row justify-between items-center mb-6">
       <h2 class="text-2xl font-bold text-neutral-800">Resumen de Domicilios</h2>
       <PeriodSelector onlyFor="week" />
@@ -224,11 +227,11 @@ onUnmounted(() => {
       <div
         v-for="driver in driverSummaries"
         :key="driver.id"
-        class="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden"
+        class="bg-neutral-50 rounded-lg shadow-sm border border-neutral-200 overflow-hidden"
       >
         <!-- Driver Summary -->
         <div
-          class="p-4 flex flex-wrap items-center gap-4 cursor-pointer hover:bg-neutral-50"
+          class="p-4 flex flex-wrap items-center gap-4 cursor-pointer hover:bg-neutral-100"
           @click="expandedDriver = expandedDriver === driver.id ? null : driver.id"
         >
           <div class="flex-1">
@@ -238,17 +241,20 @@ onUnmounted(() => {
 
           <div class="flex items-center gap-8">
             <div class="text-center">
-              <p class="text-sm text-neutral-600">Por Pagar</p>
-              <p class="font-semibold text-neutral-800">{{ driver.summary.unpaidDeliveries }}</p>
+              <p class="text-sm text-neutral-600">Total</p>
+              <p class="font-semibold text-neutral-800">
+                ${{ driver.summary.totalAmount.toLocaleString() }}
+
+              </p>
             </div>
             <div class="text-center">
               <p class="text-sm text-neutral-600">Pagados</p>
-              <p class="font-semibold text-neutral-800">{{ driver.summary.paidDeliveries }}</p>
+              <p class="font-semibold text-neutral-800">{{ driver.summary.paidDeliveries }} / {{ driver.summary.totalDeliveries }}</p>
             </div>
             <div class="text-right">
-              <p class="text-sm text-neutral-600">Total</p>
+              <p class="text-sm text-neutral-600">Por Pagar</p>
               <p class="font-bold text-lg text-neutral-800">
-                ${{ driver.summary.totalAmount.toLocaleString() }}
+                ${{ driver.summary.unpaidAmount.toLocaleString() }}
               </p>
             </div>
           </div>
