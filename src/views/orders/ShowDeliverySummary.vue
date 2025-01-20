@@ -1,4 +1,3 @@
-// views/delivery/DeliverySummary.vue
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useOrderStore } from '@/stores/orderStore';
@@ -10,6 +9,7 @@ import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import DeliveryAddressCell from '@/components/DataTable/renderers/DeliveryAddressCell.vue';
 import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import { PhCheckSquare, PhMinus } from '@phosphor-icons/vue';
+import TotalsSummary from '@/components/common/TotalsSummary.vue';
 import _ from 'lodash';
 
 const orderStore = useOrderStore();
@@ -48,6 +48,19 @@ const globalSummary = computed(() => ({
   totalAmount: _.sumBy(driverSummaries.value, 'summary.totalAmount'),
   totalPending: _.sumBy(driverSummaries.value, 'summary.unpaidDeliveries'),
 }));
+
+// Summary categories for TotalsSummary components
+const deliveriesSummary = computed(() => ([
+  { label: 'Total Domicilios', value: globalSummary.value.totalDeliveries },
+]));
+
+const pendingSummary = computed(() => ([
+  { label: 'Por Pagar', value: globalSummary.value.totalPending },
+]));
+
+const amountSummary = computed(() => ([
+  { label: 'Total Semana', value: `$${globalSummary.value.totalAmount.toLocaleString()}` },
+]));
 
 // Table Columns for expanded view
 const columns = [
@@ -193,34 +206,17 @@ onUnmounted(() => {
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <!-- Header -->
-    {{  drivers }}
+    {{ globalSummary }}
     <div class="flex flex-col lg:flex-row justify-between items-center mb-6">
       <h2 class="text-2xl font-bold text-neutral-800">Resumen de Domicilios</h2>
       <PeriodSelector onlyFor="week" />
     </div>
 
-    <!-- Global Summary Cards -->
+    <!-- Global Summary -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-      <div class="bg-primary-100 p-4 rounded-lg">
-        <h3 class="text-lg font-semibold text-primary-800">Total Domicilios</h3>
-        <p class="text-3xl font-bold text-primary-600">
-          {{ globalSummary.totalDeliveries }}
-        </p>
-      </div>
-
-      <div class="bg-neutral-100 p-4 rounded-lg">
-        <h3 class="text-lg font-semibold text-neutral-800">Por Cobrar</h3>
-        <p class="text-3xl font-bold text-neutral-600">
-          {{ globalSummary.totalPending }}
-        </p>
-      </div>
-
-      <div class="bg-success/10 p-4 rounded-lg">
-        <h3 class="text-lg font-semibold text-success">Total a Pagar</h3>
-        <p class="text-3xl font-bold text-success">
-          ${{ globalSummary.totalAmount.toLocaleString() }}
-        </p>
-      </div>
+      <TotalsSummary :categories="deliveriesSummary" />
+      <TotalsSummary :categories="pendingSummary" />
+      <TotalsSummary :categories="amountSummary" />
     </div>
 
     <!-- Driver Cards -->
@@ -242,16 +238,16 @@ onUnmounted(() => {
 
           <div class="flex items-center gap-8">
             <div class="text-center">
-              <p class="text-sm text-neutral-600">Por Cobrar</p>
-              <p class="font-semibold text-warning">{{ driver.summary.unpaidDeliveries }}</p>
+              <p class="text-sm text-neutral-600">Por Pagar</p>
+              <p class="font-semibold text-neutral-800">{{ driver.summary.unpaidDeliveries }}</p>
             </div>
             <div class="text-center">
-              <p class="text-sm text-neutral-600">Cobrados</p>
-              <p class="font-semibold text-success">{{ driver.summary.paidDeliveries }}</p>
+              <p class="text-sm text-neutral-600">Pagados</p>
+              <p class="font-semibold text-neutral-800">{{ driver.summary.paidDeliveries }}</p>
             </div>
             <div class="text-right">
               <p class="text-sm text-neutral-600">Total</p>
-              <p class="font-bold text-lg text-primary-600">
+              <p class="font-bold text-lg text-neutral-800">
                 ${{ driver.summary.totalAmount.toLocaleString() }}
               </p>
             </div>
@@ -268,7 +264,7 @@ onUnmounted(() => {
             <div class="flex gap-2">
               <button
                 @click="handleMarkPeriodPaid(driver.id)"
-                class="px-3 py-1 text-sm bg-success/10 text-success rounded-md hover:bg-success/20"
+                class="utility-btn"
               >
                 Marcar Todo Pagado
               </button>
