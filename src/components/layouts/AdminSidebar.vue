@@ -2,7 +2,7 @@
 <script setup>
 import { useRouter, useRoute } from 'vue-router';
 import {
-  PhChartDonut,
+  PhChartLineUp,
   PhOven,
   PhPersonArmsSpread,
   PhCashRegister,
@@ -16,6 +16,7 @@ import {
   PhTreeStructure,
   PhHandCoins,
   PhBread,
+  PhCalculator,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -42,7 +43,7 @@ const navigationSections = [
       },
       {
         id: 'venta',
-        icon: PhChartDonut,
+        icon: PhChartLineUp,
         text: 'Venta',
         path: '/dashboard/salesReport',
       },
@@ -79,6 +80,12 @@ const navigationSections = [
         icon: PhMopedFront,
         text: 'Entrega',
         path: '/dashboard/orders/delivery',
+      },
+      {
+        id: 'entrega-resumen',
+        icon: PhCalculator,
+        text: 'Resumen',
+        path: '/dashboard/orders/delivery/summary',
       },
     ],
   },
