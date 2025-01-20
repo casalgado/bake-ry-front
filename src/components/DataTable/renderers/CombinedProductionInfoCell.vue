@@ -5,10 +5,6 @@ defineProps({
     type: String,
     required: true,
   },
-  collectionName: {
-    type: String,
-    required: true,
-  },
   variation: {
     type: Object,
     required: true,

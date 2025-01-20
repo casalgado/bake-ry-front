@@ -25,7 +25,7 @@ const props = defineProps({
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center  gap-6 bg-neutral-50 px-6 py-3 rounded-lg shadow-sm">
+  <div class="flex flex-wrap items-center justify-center gap-6 bg-neutral-50 px-6 py-3 rounded-lg shadow-sm">
     <!-- Regular categories -->
     <div
       v-for="category in categories"

@@ -21,9 +21,9 @@ const actionLoading = ref({});
 // Table configuration
 const columns = [
   {
-    id: 'first_name',
+    id: 'firstName',
     label: 'Nombre',
-    field: 'first_name',
+    field: 'firstName',
     sortable: true,
   },
   {
@@ -32,7 +32,7 @@ const columns = [
     field: 'role',
     sortable: true,
     displayText: {
-      'admin': 'Admin',
+      'bakery_admin': 'Admin',
       'bakery_staff': 'Staff',
       'delivery_assistant': 'Domiciliario',
       'production_assistant': 'Producción',
