@@ -392,7 +392,6 @@ onUnmounted(() => {
   }
 });
 </script>
-
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row  justify-between items-center mb-4">
@@ -442,11 +441,23 @@ onUnmounted(() => {
         <DialogPanel class="form-container bg-white rounded-lg p-6 max-w-md w-full">
           <h3 class="text-lg font-medium mb-4">Número de Bolsas</h3>
 
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <button
+              v-for="number in [1, 2, 3, 4, 5, 6]"
+              :key="number"
+              @click="selectedNumberOfBags = number"
+              class="utility-btn-inactive py-1 px-2 rounded-md hover:utility-btn-active"
+              :class="{ 'utility-btn-active': selectedNumberOfBags === number }"
+            >
+              {{ number }}
+            </button>
+          </div>
+
           <input
             type="number"
             v-model="selectedNumberOfBags"
             min="0"
-            placeholder="Número de bolsas"
+            placeholder="Otro"
             class="w-full mb-4 p-2 border rounded"
           />
 
