@@ -5,15 +5,13 @@ import { Dialog, DialogPanel } from '@headlessui/vue';
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
-import { PhCheckSquare, PhMinus, PhMoped, PhPackage } from '@phosphor-icons/vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
+import DriverCell from '@/components/DataTable/renderers/DriverCell.vue';
 import DeliveryAddressCell from '@/components/DataTable/renderers/DeliveryAddressCell.vue';
+import NumberOfBagsCell from '@/components/DataTable/renderers/NumberOfBagsCell.vue';
 
 import {
-  PhPen,
-  PhTrash,
-  PhCurrencyDollar,
-  PhMapPin,
+  PhPen, PhTrash, PhCurrencyDollar, PhMapPin, PhCheckSquare, PhMinus, PhMoped, PhPackage,
 } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
@@ -31,6 +29,7 @@ const dataTable = ref(null);
 const isFormOpen = ref(false);
 const isDeliveryPriceDialogOpen = ref(false);
 const isNumberOfBagsDialogOpen = ref(false);
+const isDriverDialogOpen = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
 const toggleLoading = ref({});
@@ -49,7 +48,7 @@ const deliveryFeeOptions = [
   { value: 8000, label: '8000' },
 ];
 
-// Column definitions / "id must be the same as field for sorting to work"
+// Column definitions
 const columns = [
   {
     id: 'userName',
@@ -114,19 +113,28 @@ const columns = [
     ],
   },
   {
-    id: 'deliveryDriverId',
-    label: 'Conductor',
-    field: 'deliveryDriverId',
-    sortable: true,
-    type: 'toggle',
-    options: [{ value: '-', displayText: '-' }],
-  },
-  {
     id: 'numberOfBags',
     label: 'Bolsas',
     field: 'numberOfBags',
     sortable: true,
+    component: NumberOfBagsCell,
+    getProps: (row) => ({
+      numberOfBags: row.numberOfBags,
+      show: row.fulfillmentType === 'delivery',
+    }),
   },
+  {
+    id: 'deliveryDriverId',
+    label: 'Conductor',
+    field: 'deliveryDriverId',
+    sortable: true,
+    component: DriverCell,
+    getProps: (row) => ({
+      driverId: row.deliveryDriverId,
+      drivers: deliveryDrivers.value,
+    }),
+  },
+
   {
     id: 'status',
     label: 'Estado',
@@ -172,8 +180,15 @@ const tableActions = [
   },
   {
     id: 'set_number_of_bags',
-    label: '# Bolsas',
+    label: 'Bolsas',
     icon: PhPackage,
+    minSelected: 1,
+    variant: 'primary',
+  },
+  {
+    id: 'set_driver',
+    label: 'Conductor',
+    icon: PhMoped,
     minSelected: 1,
     variant: 'primary',
   },
@@ -202,6 +217,23 @@ const handleDeliveryPriceSubmit = async () => {
     console.error('Failed to update delivery prices:', error);
   } finally {
     actionLoading.value['set_delivery_price'] = false;
+  }
+};
+
+const handleDriverSubmit = async (driverId) => {
+  try {
+    actionLoading.value['set_driver'] = true;
+    const updates = selectedIds.value.map(id => ({
+      id,
+      data: { deliveryDriverId: driverId },
+    }));
+
+    await orderStore.patchAll(updates);
+    isDriverDialogOpen.value = false;
+  } catch (error) {
+    console.error('Failed to update driver:', error);
+  } finally {
+    actionLoading.value['set_driver'] = false;
   }
 };
 
@@ -247,26 +279,26 @@ const closeNumberOfBagsDialog = () => {
   selectedNumberOfBags.value = 0;
 };
 
+const closeDriverDialog = () => {
+  isDriverDialogOpen.value = false;
+};
+
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
-    // Set loading state for all affected rows
     rowIds.forEach(id => {
       toggleLoading.value[`${id}-${field}`] = true;
     });
 
-    // Prepare updates array
     const updates = rowIds.map(id => ({
       id,
       data: { [field]: value },
     }));
 
-    // Single API call
     await orderStore.patchAll(updates);
     await nextTick();
   } catch (error) {
     console.error('Failed to update orders:', error);
   } finally {
-    // Clear loading state
     rowIds.forEach(id => {
       toggleLoading.value[`${id}-${field}`] = false;
     });
@@ -282,13 +314,13 @@ const handleAction = async ({ actionId, selectedIds: ids }) => {
       selectedOrder.value = orderStore.items.find(order => order.id === ids[0]);
       isFormOpen.value = true;
       break;
-    case 'delete':
-      if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
-        selectedOrder.value = orderStore.items.find(order => order.id === ids[0]);
-        await orderStore.remove(selectedOrder.value.id);
-        dataTable.value?.clearSelection();
-      }
-      break;
+    // case 'delete':
+    //   if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
+    //     selectedOrder.value = orderStore.items.find(order => order.id === ids[0]);
+    //     await orderStore.remove(selectedOrder.value.id);
+    //     dataTable.value?.clearSelection();
+    //   }
+    //   break;
     case 'set_delivery_price':
       selectedDeliveryCost.value = 5000;
       selectedIds.value = ids;
@@ -298,6 +330,10 @@ const handleAction = async ({ actionId, selectedIds: ids }) => {
       selectedNumberOfBags.value = 0;
       selectedIds.value = ids;
       isNumberOfBagsDialogOpen.value = true;
+      break;
+    case 'set_driver':
+      selectedIds.value = ids;
+      isDriverDialogOpen.value = true;
       break;
     case 'set_address':
       selectedOrder.value = orderStore.items.find(order => order.id === ids[0]);
@@ -355,13 +391,6 @@ watch(
   { deep: true },
 );
 
-watch(deliveryDrivers, (newDrivers) => {
-  const driverColumn = columns.find(col => col.id === 'deliveryDriverId');
-  if (driverColumn) {
-    driverColumn.options = [{ value: '-', displayText: '-' }, ...newDrivers];
-  }
-}, { deep: true });
-
 onMounted(async () => {
   try {
     await orderStore.fetchAll({
@@ -376,10 +405,12 @@ onMounted(async () => {
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for orders');
     const staff = await settingsStore.staff;
-    deliveryDrivers.value = staff.filter(staff => staff.role === 'delivery_assistant').map(staff => ({
-      value: staff.id,
-      displayText: `${staff.first_name}`,
-    }));
+    deliveryDrivers.value = staff
+      .filter(staff => staff.role === 'delivery_assistant')
+      .map(staff => ({
+        value: staff.id,
+        displayText: staff.firstName,
+      }));
   } catch (error) {
     console.error('Failed to initialize orders:', error);
   }
@@ -426,6 +457,48 @@ onUnmounted(() => {
             @submit="handleSubmit"
             @cancel="closeForm"
           />
+        </DialogPanel>
+      </div>
+    </Dialog>
+
+    <!-- Driver Selection Dialog -->
+    <Dialog
+      :open="isDriverDialogOpen"
+      @close="closeDriverDialog"
+      class="relative z-50"
+    >
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel class="form-container bg-white rounded-lg p-6 max-w-md w-full">
+          <h3 class="text-lg font-medium mb-4">Asignar Conductor</h3>
+
+          <div class="grid grid-cols-2 gap-2 mb-4">
+            <button
+              v-for="driver in deliveryDrivers"
+              :key="driver.value"
+              @click="handleDriverSubmit(driver.value)"
+              :disabled="actionLoading.set_driver"
+              class="utility-btn-inactive py-2 px-3 rounded-md hover:utility-btn-active"
+            >
+              {{ driver.displayText }}
+            </button>
+            <button
+              @click="handleDriverSubmit('-')"
+              :disabled="actionLoading.set_driver"
+              class="utility-btn-inactive py-2 px-3 rounded-md hover:utility-btn-active col-span-2"
+            >
+              Sin Asignar
+            </button>
+          </div>
+
+          <div class="flex justify-end">
+            <button
+              @click="closeDriverDialog"
+              class="utility-btn"
+            >
+              Cancelar
+            </button>
+          </div>
         </DialogPanel>
       </div>
     </Dialog>

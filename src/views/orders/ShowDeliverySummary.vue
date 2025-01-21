@@ -212,7 +212,7 @@ onUnmounted(() => {
     <!-- Header -->
     <div class="flex flex-col lg:flex-row justify-between items-center mb-6">
       <h2 class="text-2xl font-bold text-neutral-800">Resumen de Domicilios</h2>
-      <PeriodSelector onlyFor="week" />
+      <PeriodSelector  />
     </div>
 
     <!-- Global Summary -->

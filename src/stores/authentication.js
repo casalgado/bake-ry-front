@@ -182,7 +182,6 @@ export const useAuthenticationStore = defineStore('authentication', {
         console.log('userCredential', userCredential);
         const firebaseUser = userCredential.user;
         const idToken = await firebaseUser.getIdToken(true);
-        console.log('idToken', idToken);
         try {
           const response = await axios.post(
             `${API_URL}/auth/login`,
