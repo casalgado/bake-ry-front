@@ -62,7 +62,7 @@ const groupedOrderItems = computed(() => {
         productName: item.productName,
         collectionName: item.collectionName,
         collectionOrder: categoryOrder[collectionName] || 999, // Case-insensitive lookup
-        variation: item.variation || { name: 'Sin variación' },
+        variation: item.variation || { name: '' },
         totalQuantity: 0,
         originalItems: [],
         batches: new Set(),
@@ -103,7 +103,7 @@ const groupedOrderItems = computed(() => {
 const columns = [
   {
     id: 'productionBatch',
-    label: 'Tanda',
+    label: 'T',
     field: 'productionBatch',
     sortable: true,
   },
@@ -115,7 +115,7 @@ const columns = [
   },
   {
     id: 'combinedInfo',
-    label: 'Prdoucto',
+    label: 'Producto',
     field: 'productName',
     sortable: true,
     component: CombinedProductionInfoCell,
@@ -226,6 +226,7 @@ const handleAction = async ({ actionId, selectedIds: rowIds }) => {  // Changed 
   try {
     switch (actionId) {
     case 'setBatch':
+
       selectedIds.value = rowIds;  // Now correctly assigns the selected IDs
       isBatchDialogOpen.value = true;
       break;
@@ -238,13 +239,18 @@ const handleAction = async ({ actionId, selectedIds: rowIds }) => {  // Changed 
 };
 
 const handleBatchSelect = async (batchNumber) => {
-  if (!selectedIds.value?.length) return;  // Add safety check
+  if (!selectedIds.value?.length) return;
 
   try {
-    const orderUpdates = selectedIds.value.reduce((acc, itemId) => {
-      const orderItem = flattenedOrderItems.value.find(item => item.id === itemId);
-      if (!orderItem) return acc;
+    // First, get all original items that need to be updated from the selected groups
+    const itemsToUpdate = selectedIds.value.flatMap(groupId =>
+      groupedOrderItems.value
+        .find(group => group.id === groupId)
+        ?.originalItems || [],
+    );
 
+    // Now group updates by order using the actual order items
+    const orderUpdates = itemsToUpdate.reduce((acc, orderItem) => {
       if (!acc[orderItem.orderId]) {
         acc[orderItem.orderId] = {
           itemIds: new Set(),
@@ -254,7 +260,7 @@ const handleBatchSelect = async (batchNumber) => {
         };
       }
 
-      acc[orderItem.orderId].itemIds.add(itemId);
+      acc[orderItem.orderId].itemIds.add(orderItem.id);
       return acc;
     }, {});
 
@@ -267,14 +273,14 @@ const handleBatchSelect = async (batchNumber) => {
         })),
       },
     }));
+
     isBatchDialogOpen.value = false;
     await orderStore.patchAll(updates);
     await nextTick();
   } catch (error) {
     console.error('Failed to update production batch:', error);
   } finally {
-
-    selectedIds.value = [];  // Clear selected IDs
+    selectedIds.value = [];
     if (dataTable.value) {
       dataTable.value.clearSelection();
     }

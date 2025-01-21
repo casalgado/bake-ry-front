@@ -5,7 +5,7 @@ import { Dialog, DialogPanel } from '@headlessui/vue';
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
 import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
-import { PhCheckSquare, PhMinus } from '@phosphor-icons/vue';
+import { PhCheckSquare, PhMinus, PhMoped, PhPackage } from '@phosphor-icons/vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import DeliveryAddressCell from '@/components/DataTable/renderers/DeliveryAddressCell.vue';
 
@@ -30,10 +30,12 @@ const unsubscribeRef = ref(null);
 const dataTable = ref(null);
 const isFormOpen = ref(false);
 const isDeliveryPriceDialogOpen = ref(false);
+const isNumberOfBagsDialogOpen = ref(false);
 const selectedOrder = ref(null);
 const actionLoading = ref({});
 const toggleLoading = ref({});
 const selectedDeliveryCost = ref(5000);
+const selectedNumberOfBags = ref(0);
 const selectedIds = ref([]);
 const isAddressDialogOpen = ref(false);
 const editingAddress = ref('');
@@ -119,6 +121,20 @@ const columns = [
     type: 'toggle',
     options: [{ value: '-', displayText: '-' }],
   },
+  {
+    id: 'numberOfBags',
+    label: 'Bolsas',
+    field: 'numberOfBags',
+    sortable: true,
+  },
+  {
+    id: 'status',
+    label: 'Estado',
+    field: 'status',
+    sortable: true,
+    type: 'toggle',
+    options: [{ value: 0, displayText: '-' }, { value: 2, displayText: '', icon: PhMoped }],
+  },
 ];
 
 // Table actions
@@ -154,6 +170,13 @@ const tableActions = [
     maxSelected: 1,
     variant: 'primary',
   },
+  {
+    id: 'set_number_of_bags',
+    label: '# Bolsas',
+    icon: PhPackage,
+    minSelected: 1,
+    variant: 'primary',
+  },
 ];
 
 // Handlers
@@ -182,6 +205,23 @@ const handleDeliveryPriceSubmit = async () => {
   }
 };
 
+const handleNumberOfBagsSubmit = async () => {
+  try {
+    actionLoading.value['set_number_of_bags'] = true;
+    const updates = selectedIds.value.map(id => ({
+      id,
+      data: { numberOfBags: selectedNumberOfBags.value },
+    }));
+
+    await orderStore.patchAll(updates);
+    isNumberOfBagsDialogOpen.value = false;
+  } catch (error) {
+    console.error('Failed to update number of bags:', error);
+  } finally {
+    actionLoading.value['set_number_of_bags'] = false;
+  }
+};
+
 // Add handler for address updates
 const handleAddressSubmit = async () => {
   try {
@@ -200,6 +240,11 @@ const handleAddressSubmit = async () => {
 const closeAddressDialog = () => {
   isAddressDialogOpen.value = false;
   editingAddress.value = '';
+};
+
+const closeNumberOfBagsDialog = () => {
+  isNumberOfBagsDialogOpen.value = false;
+  selectedNumberOfBags.value = 0;
 };
 
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
@@ -248,6 +293,11 @@ const handleAction = async ({ actionId, selectedIds: ids }) => {
       selectedDeliveryCost.value = 5000;
       selectedIds.value = ids;
       isDeliveryPriceDialogOpen.value = true;
+      break;
+    case 'set_number_of_bags':
+      selectedNumberOfBags.value = 0;
+      selectedIds.value = ids;
+      isNumberOfBagsDialogOpen.value = true;
       break;
     case 'set_address':
       selectedOrder.value = orderStore.items.find(order => order.id === ids[0]);
@@ -381,6 +431,44 @@ onUnmounted(() => {
       </div>
     </Dialog>
 
+    <!-- Number of Bags Dialog -->
+    <Dialog
+      :open="isNumberOfBagsDialogOpen"
+      @close="closeNumberOfBagsDialog"
+      class="relative z-50"
+    >
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel class="form-container bg-white rounded-lg p-6 max-w-md w-full">
+          <h3 class="text-lg font-medium mb-4">Número de Bolsas</h3>
+
+          <input
+            type="number"
+            v-model="selectedNumberOfBags"
+            min="0"
+            placeholder="Número de bolsas"
+            class="w-full mb-4 p-2 border rounded"
+          />
+
+          <div class="flex justify-end gap-2">
+            <button
+              @click="closeNumberOfBagsDialog"
+              class="utility-btn"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="handleNumberOfBagsSubmit"
+              :disabled="actionLoading.set_number_of_bags"
+              class="action-btn"
+            >
+              {{ actionLoading.set_number_of_bags ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
+
     <!-- Delivery Price Dialog -->
     <Dialog
       :open="isDeliveryPriceDialogOpen"
@@ -432,6 +520,7 @@ onUnmounted(() => {
       </div>
     </Dialog>
 
+    <!-- Address Dialog -->
     <Dialog
       :open="isAddressDialogOpen"
       @close="closeAddressDialog"

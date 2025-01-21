@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
@@ -18,6 +18,33 @@ const selectedUser = ref(null);
 const dataTable = ref(null);
 const actionLoading = ref({});
 
+const sortedStaffData = computed(() => {
+  return [...staffData.value].sort((a, b) => {
+    // Priority names
+    const priorityNames = ['Esteban', 'Jesus'];
+
+    // Check if either name starts with a priority name
+    const aIsPriority = priorityNames.findIndex(name =>
+      a.name.toLowerCase().startsWith(name.toLowerCase()),
+    );
+    const bIsPriority = priorityNames.findIndex(name =>
+      b.name.toLowerCase().startsWith(name.toLowerCase()),
+    );
+
+    // If both are priority names, sort by their order in priorityNames
+    if (aIsPriority !== -1 && bIsPriority !== -1) {
+      return aIsPriority - bIsPriority;
+    }
+
+    // If only one is a priority name, it should come first
+    if (aIsPriority !== -1) return -1;
+    if (bIsPriority !== -1) return 1;
+
+    // Otherwise, sort alphabetically
+    return a.firstName.localeCompare(b.firstName);
+  });
+});
+
 // Table configuration
 const columns = [
   {
@@ -32,10 +59,11 @@ const columns = [
     field: 'role',
     sortable: true,
     displayText: {
-      'bakery_admin': 'Admin',
-      'bakery_staff': 'Staff',
-      'delivery_assistant': 'Domiciliario',
-      'production_assistant': 'Producción',
+      'bakery_admin': 'Gerente',
+      'bakery_staff': 'Equipo',
+      'system_admin': 'Equipo',
+      'delivery_assistant': 'Asistente Domicilio',
+      'production_assistant': 'Asistente Producción',
     },
   },
   {
@@ -131,7 +159,7 @@ onMounted(async () => {
     <div>
       <DataTable
         ref="dataTable"
-        :data="staffData"
+        :data="sortedStaffData"
         :columns="columns"
         :actions="tableActions"
         :action-loading="actionLoading"

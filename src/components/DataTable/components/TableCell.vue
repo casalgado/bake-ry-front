@@ -142,7 +142,7 @@ onUnmounted(() => {
 
 <template>
   <td
-    class="px-0 lg:px-4 text-xs lg:text-sm py-2 relative group select-none"
+    class="px-0 pl-1 lg:px-4 text-xs lg:text-sm py-2 relative group select-none"
     @click="handleClick"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"

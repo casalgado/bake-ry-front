@@ -7,7 +7,6 @@ defineProps({
   },
   variation: {
     type: Object,
-    required: true,
   },
   totalQuantity: {
     type: Number,

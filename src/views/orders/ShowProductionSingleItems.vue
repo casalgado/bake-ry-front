@@ -20,7 +20,6 @@ const actionLoading = ref({});
 const isBatchDialogOpen = ref(false);
 const selectedIds = ref([]);
 
-// Modified flattenedOrderItems with sorting
 const flattenedOrderItems = computed(() => {
   return orderStore.items
     .flatMap(order =>
@@ -39,10 +38,18 @@ const flattenedOrderItems = computed(() => {
         return a.collectionOrder - b.collectionOrder;
       }
       // Then by product name
-      return a.productName.localeCompare(b.productName);
+      const productCompare = a.productName.localeCompare(b.productName);
+      if (productCompare !== 0) {
+        return productCompare;
+      }
+      // Finally by variation name if present
+      if (a.variationName && b.variationName) {
+        return a.variationName.localeCompare(b.variationName);
+      }
+      // If only one has variation, sort it after the non-variation item
+      return (a.variationName ? 1 : 0) - (b.variationName ? 1 : 0);
     });
 });
-
 // Computed property to get unique collection names
 const uniqueCollections = computed(() => {
   const collections = new Set();
@@ -60,7 +67,7 @@ const uniqueCollections = computed(() => {
 const columns = [
   {
     id: 'productionBatch',
-    label: 'Tanda',
+    label: 'T',
     field: 'productionBatch',
     sortable: true,
   },
@@ -72,7 +79,7 @@ const columns = [
   },
   {
     id: 'combinedInfo',
-    label: 'Prdoucto',
+    label: 'Producto',
     field: 'productName',
     sortable: true,
     component: CombinedProductionInfoCell,
