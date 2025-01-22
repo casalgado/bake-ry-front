@@ -415,7 +415,7 @@ const clearUser = () => {
           <span v-if="errors.preparationDate" class="text-danger text-sm">{{ errors.preparationDate }}</span>
         </div>
 
-        <div>
+        <div class="hidden">
           <label for="due-date">Fecha de Entrega</label>
           <input
             id="due-date"

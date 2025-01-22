@@ -16,7 +16,6 @@ const props = defineProps({
     default: '',
   },
   users: {
-    // Parent just passes the users array
     type: Array,
     required: true,
   },
@@ -32,19 +31,26 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'change']);
 
-// Keep search/filter logic in the component
 const query = ref('');
-const filteredUsers = computed(() => {
-  const filtered =
-    query.value === ''
-      ? props.users
-      : props.users.filter((user) => {
-        const searchQuery = query.value.toLowerCase();
-        const userName = user.name.toLowerCase();
-        return userName.includes(searchQuery); // Using startsWith instead of includes
-      });
 
-  return filtered.slice(0, 50); // Only show first 50 results
+// Normalize text to ignore accents except ñ
+const normalizeText = (text) => {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u0302\u0304-\u036f]/g, '')
+    .normalize('NFC')
+    .toLowerCase();
+};
+
+const filteredUsers = computed(() => {
+  if (query.value === '') return props.users.slice(0, 50);
+
+  const normalizedQuery = normalizeText(query.value);
+
+  return props.users.filter((user) => {
+    const normalizedName = normalizeText(user.name);
+    return normalizedName.includes(normalizedQuery);
+  }).slice(0, 50);
 });
 
 const handleSelect = (userId) => {
@@ -53,7 +59,6 @@ const handleSelect = (userId) => {
   emit('change', user);
 };
 
-// Watch filteredUsers for single result
 watch(
   filteredUsers,
   (users) => {
@@ -73,7 +78,6 @@ const focus = () => {
 
 onMounted(async () => {
   await nextTick();
-  // Find the actual input element
   focus();
 });
 

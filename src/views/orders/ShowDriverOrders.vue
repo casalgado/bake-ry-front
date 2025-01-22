@@ -108,6 +108,16 @@ const columns = [
       isChecked: row.isPaid,
     }),
   },
+  {
+    id: 'total',
+    label: 'Total',
+    field: 'total',
+    sortable: true,
+    component: MoneyCell,
+    getProps: (row) => ({
+      value: row.total,
+    }),
+  },
 ];
 
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
