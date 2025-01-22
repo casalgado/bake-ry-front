@@ -1,14 +1,15 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
+import DataTable, {
+  ClientCell,
+  ItemsCell,
+  DriverCell,
+  DeliveryAddressCell,
+  NumberOfBagsCell,
+} from '@carsalhaz/vue-data-table';
 
 import OrderForm from '@/components/forms/OrderForm.vue';
-import DataTable from '@/components/DataTable/index.vue';
-import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
-import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
-import DriverCell from '@/components/DataTable/renderers/DriverCell.vue';
-import DeliveryAddressCell from '@/components/DataTable/renderers/DeliveryAddressCell.vue';
-import NumberOfBagsCell from '@/components/DataTable/renderers/NumberOfBagsCell.vue';
 
 import {
   PhPen, PhTrash, PhCurrencyDollar, PhMapPin, PhCheckSquare, PhMinus, PhMoped, PhPackage,

@@ -2,12 +2,13 @@
 import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import OrderForm from '@/components/forms/OrderForm.vue';
-import DataTable from '@/components/DataTable/index.vue';
-import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
-import DateCell from '@/components/DataTable/renderers/DateCell.vue';
-import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
-import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
-import IsPaidCell from '@/components/DataTable/renderers/isPaidCell.vue';
+import   DataTable, {
+  ClientCell,
+  DateCell,
+  ItemsCell,
+  MoneyCell,
+  IsPaidCell,
+} from '@carsalhaz/vue-data-table';
 import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift, PhClockCounterClockwise } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
