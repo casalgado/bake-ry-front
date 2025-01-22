@@ -7,7 +7,7 @@ import OrderItemsManager from './OrderItemsManager.vue';
 import NewClientDialog from './NewClientDialog.vue';
 import RadioButtonGroup from './RadioButtonGroup.vue';
 import { formatMoney } from '@/utils/helpers';
-import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
+import { PhCaretLeft, PhCaretRight, PhX } from '@phosphor-icons/vue';
 import { cleanString } from '@/utils/helpers';
 
 const props = defineProps({
@@ -351,6 +351,20 @@ const formatOrderDate = (date) => {
     month: 'short',
   }).replace('.', '');
 };
+
+const clearUser = () => {
+  formData.value.userId = '';
+  formData.value.userName = '';
+  formData.value.userEmail = '';
+  formData.value.userPhone = '';
+  formData.value.deliveryAddress = '';
+  userHistory.value = [];
+  currentHistoryIndex.value = 0;
+
+  nextTick(() => {
+    userCombox.value?.focus();
+  });
+};
 </script>
 
 <template>
@@ -360,7 +374,7 @@ const formatOrderDate = (date) => {
       <div class="base-card flex flex-col gap-2">
         <div>
           <label for="client-select">{{ fetching ? 'Clientes...' : "Clientes" }}</label>
-          <div class="grid grid-cols-[1fr_auto] gap-2">
+          <div class="grid grid-cols-[1fr_auto_auto] gap-2">
             <UserCombox
               ref="userCombox"
               v-model="formData.userId"
@@ -369,6 +383,15 @@ const formatOrderDate = (date) => {
               :required="true"
               @change="handleUserChange"
             />
+            <button
+              type="button"
+              class="utility-btn m-0"
+              :class="{ 'utility-btn-inactive': !formData.userId }"
+              @click="clearUser"
+              :disabled="!formData.userId"
+            >
+              <PhX class="" />
+            </button>
             <button
               type="button"
               class="utility-btn m-0"

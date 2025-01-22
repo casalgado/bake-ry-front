@@ -24,7 +24,7 @@ const WEEK_OPTIONS = { locale: es, weekStartsOn: 1 };
 
 export const usePeriodStore = defineStore('period', () => {
   // State remains the same
-  const periodType = ref('week');
+  const periodType = ref('day');
   const currentDate = ref(new Date());
   const customStartDate = ref(null);
   const customEndDate = ref(null);

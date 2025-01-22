@@ -17,7 +17,7 @@ const getDriverName = (driverId) => {
   if (!driverId) return '-';
   // Access the staff list directly from the store
   const driver = staffData.value?.find(member => member.id === driverId);
-  return driver ? `${driver.first_name}` : driverId;
+  return driver ? `${driver.firstName}` : driverId;
 };
 
 const formatDate = (dateString, { includeTime = true } = {}) => {
