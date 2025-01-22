@@ -20,9 +20,28 @@ const unsubscribeRef = ref(null);
 const toggleLoading = ref({});
 const drivers = ref([]);
 
+const props = defineProps({
+  singleDriverMode: { type: Boolean, default: false },
+  driverId: { type: String, default: null },
+});
+
 // Transform orders into driver summary
 const driverSummaries = computed(() => {
-  const driverGroups = _.groupBy(orderStore.items.filter(order => order.fulfillmentType == 'delivery'), 'deliveryDriverId');
+
+  // Step 1: Get base list of delivery orders
+  let orders = orderStore.items.filter(order =>
+    order.fulfillmentType === 'delivery',
+  );
+
+  // Step 2: Apply driver filter when in single-driver mode
+  if (props.singleDriverMode && props.driverId) {
+    orders = orders.filter(order =>
+      order.deliveryDriverId === props.driverId,
+    );
+  }
+
+  // Step 3: Group the filtered orders by driver
+  const driverGroups = _.groupBy(orders, 'deliveryDriverId');
 
   return Object.entries(driverGroups).map(([deliveryDriverId, driverOrders]) => {
     const paidDeliveries = driverOrders.filter(order => order.isDeliveryPaid).length;
@@ -112,6 +131,10 @@ const columns = [
     ],
   },
 ];
+
+const tableColumns = computed(() => {
+  return columns.filter(col => !(props.singleDriverMode && col.id === 'isDeliveryPaid'));
+});
 
 // Handle toggle updates
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
@@ -211,7 +234,8 @@ onUnmounted(() => {
   <div class="container p-4 px-0 lg:px-4">
     <!-- Header -->
     <div class="flex flex-col lg:flex-row justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold text-neutral-800">Resumen de Domicilios</h2>
+      <h2 class="text-2xl font-bold text-neutral-800">{{ props.singleDriverMode ? 'Resumen de Domicilios' : 'Resumen de Domicilios' }}</h2>
+
       <PeriodSelector  />
     </div>
 
@@ -267,7 +291,7 @@ onUnmounted(() => {
         >
           <div class="flex justify-between mb-4">
             <h4 class="font-semibold text-neutral-700">Detalle de Domicilios</h4>
-            <div class="flex gap-2">
+            <div v-if="!props.singleDriverMode" class="flex gap-2">
               <button
                 @click="handleMarkPeriodPaid(driver.id)"
                 class="utility-btn"
@@ -279,7 +303,7 @@ onUnmounted(() => {
 
           <DataTable
             :data="driver.deliveries"
-            :columns="columns"
+            :columns="tableColumns"
             :toggle-loading="toggleLoading"
             :data-loading="orderStore.loading"
             @toggle-update="handleToggleUpdate"

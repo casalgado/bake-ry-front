@@ -18,7 +18,9 @@ const homeRoute = computed(() => {
 
 const handleAuthClick = () => {
   if (authStore.isLoggedIn) {
+    router.push('/');
     authStore.logout();
+
   } else {
     router.push('/login');
   }
