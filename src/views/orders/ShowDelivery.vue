@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import DataTable, {
   ClientCell,
@@ -8,38 +8,33 @@ import DataTable, {
   DeliveryAddressCell,
   NumberOfBagsCell,
   MoneyCell,
+  useDataTable,
 } from '@carsalhaz/vue-data-table';
-
 import OrderForm from '@/components/forms/OrderForm.vue';
-
 import {
-  PhPen, PhCurrencyDollar, PhMapPin, PhCheckSquare, PhMinus, PhMoped, PhPackage, PhStorefront, PhMopedFront,
+  PhPen, PhCurrencyDollar, PhMapPin, PhCheckSquare, PhMinus,
+  PhMoped, PhPackage, PhStorefront, PhMopedFront,
 } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
-
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const settingsStore = useBakerySettingsStore();
-const unsubscribeRef = ref(null);
 
-const dataTable = ref(null);
+// Dialog states
 const isFormOpen = ref(false);
 const isDeliveryPriceDialogOpen = ref(false);
 const isNumberOfBagsDialogOpen = ref(false);
 const isDriverDialogOpen = ref(false);
-const selectedOrder = ref(null);
-const actionLoading = ref({});
-const toggleLoading = ref({});
+const isAddressDialogOpen = ref(false);
+
+// Dialog-specific state
 const selectedDeliveryCost = ref(5000);
 const selectedNumberOfBags = ref(0);
-const selectedIds = ref([]);
-const isAddressDialogOpen = ref(false);
 const editingAddress = ref('');
-
 const deliveryDrivers = ref([]);
 
 const deliveryFeeOptions = [
@@ -48,6 +43,61 @@ const deliveryFeeOptions = [
   { value: 7000, label: '7000' },
   { value: 8000, label: '8000' },
 ];
+
+// Initialize useDataTable with custom handlers
+const {
+  dataTable,
+  toggleLoading,
+  actionLoading,
+  selectedItems,
+  isLoading,
+  tableData,
+  handleSelectionChange,
+  handleToggleUpdate,
+  handleAction,
+  clearSelection,
+} = useDataTable(orderStore, {
+  filters: {
+    dateRange: {
+      dateField: 'dueDate',
+      startDate: periodStore.periodRange.start.toISOString(),
+      endDate: periodStore.periodRange.end.toISOString(),
+    },
+  },
+  // Initial setup before fetching data
+  async onBeforeFetch() {
+    const staff = await settingsStore.staff;
+    deliveryDrivers.value = staff
+      .filter(staff => staff.role === 'delivery_assistant')
+      .map(staff => ({
+        value: staff.id,
+        displayText: staff.firstName,
+      }));
+  },
+  // Action handler
+  async onAction({ actionId, selectedItems: items }) {
+    switch (actionId) {
+    case 'edit':
+      isFormOpen.value = true;
+      break;
+    case 'set_delivery_price':
+      selectedDeliveryCost.value = 5000;
+      isDeliveryPriceDialogOpen.value = true;
+      break;
+    case 'set_number_of_bags':
+      selectedNumberOfBags.value = 0;
+      isNumberOfBagsDialogOpen.value = true;
+      break;
+    case 'set_driver':
+      isDriverDialogOpen.value = true;
+      break;
+    case 'set_address':
+      editingAddress.value = items[0].deliveryAddress || '';
+      isAddressDialogOpen.value = true;
+      break;
+    }
+  },
+});
 
 // Column definitions
 const columns = [
@@ -148,7 +198,6 @@ const columns = [
 
 // Table actions
 const tableActions = [
-
   // {
   //   id: 'delete',
   //   label: 'Eliminar',
@@ -195,24 +244,14 @@ const tableActions = [
     variant: 'primary',
   },
 ];
-
-// Handlers
-const handleSelectionChange = (selectedIds) => {
-  if (selectedIds.length === 1) {
-    selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
-  } else {
-    selectedOrder.value = null;
-  }
-};
-
+// Dialog handlers
 const handleDeliveryPriceSubmit = async () => {
   try {
     actionLoading.value['set_delivery_price'] = true;
-    const updates = selectedIds.value.map(id => ({
-      id,
+    const updates = selectedItems.value.map(item => ({
+      id: item.id,
       data: { deliveryCost: selectedDeliveryCost.value },
     }));
-
     await orderStore.patchAll(updates);
     isDeliveryPriceDialogOpen.value = false;
   } catch (error) {
@@ -225,11 +264,10 @@ const handleDeliveryPriceSubmit = async () => {
 const handleDriverSubmit = async (driverId) => {
   try {
     actionLoading.value['set_driver'] = true;
-    const updates = selectedIds.value.map(id => ({
-      id,
+    const updates = selectedItems.value.map(item => ({
+      id: item.id,
       data: { deliveryDriverId: driverId },
     }));
-
     await orderStore.patchAll(updates);
     isDriverDialogOpen.value = false;
   } catch (error) {
@@ -242,11 +280,10 @@ const handleDriverSubmit = async (driverId) => {
 const handleNumberOfBagsSubmit = async () => {
   try {
     actionLoading.value['set_number_of_bags'] = true;
-    const updates = selectedIds.value.map(id => ({
-      id,
+    const updates = selectedItems.value.map(item => ({
+      id: item.id,
       data: { numberOfBags: selectedNumberOfBags.value },
     }));
-
     await orderStore.patchAll(updates);
     isNumberOfBagsDialogOpen.value = false;
   } catch (error) {
@@ -256,11 +293,10 @@ const handleNumberOfBagsSubmit = async () => {
   }
 };
 
-// Add handler for address updates
 const handleAddressSubmit = async () => {
   try {
     actionLoading.value['set_address'] = true;
-    await orderStore.update(selectedIds.value[0], {
+    await orderStore.update(selectedItems.value[0].id, {
       deliveryAddress: editingAddress.value,
     });
     isAddressDialogOpen.value = false;
@@ -269,6 +305,12 @@ const handleAddressSubmit = async () => {
   } finally {
     actionLoading.value['set_address'] = false;
   }
+};
+
+// Dialog close handlers
+const closeForm = () => {
+  isFormOpen.value = false;
+  clearSelection();
 };
 
 const closeAddressDialog = () => {
@@ -285,76 +327,16 @@ const closeDriverDialog = () => {
   isDriverDialogOpen.value = false;
 };
 
-const handleToggleUpdate = async ({ rowIds, field, value }) => {
-  try {
-    rowIds.forEach(id => {
-      toggleLoading.value[`${id}-${field}`] = true;
-    });
-
-    const updates = rowIds.map(id => ({
-      id,
-      data: { [field]: value },
-    }));
-
-    await orderStore.patchAll(updates);
-    await nextTick();
-  } catch (error) {
-    console.error('Failed to update orders:', error);
-  } finally {
-    rowIds.forEach(id => {
-      toggleLoading.value[`${id}-${field}`] = false;
-    });
-  }
+const closeDeliveryPriceDialog = () => {
+  isDeliveryPriceDialogOpen.value = false;
+  selectedDeliveryCost.value = 5000;
 };
 
-const handleAction = async ({ actionId, selectedIds: ids }) => {
-  actionLoading.value[actionId] = true;
-
-  try {
-    switch (actionId) {
-    case 'edit':
-      selectedOrder.value = orderStore.items.find(order => order.id === ids[0]);
-      isFormOpen.value = true;
-      break;
-    // case 'delete':
-    //   if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
-    //     selectedOrder.value = orderStore.items.find(order => order.id === ids[0]);
-    //     await orderStore.remove(selectedOrder.value.id);
-    //     dataTable.value?.clearSelection();
-    //   }
-    //   break;
-    case 'set_delivery_price':
-      selectedDeliveryCost.value = 5000;
-      selectedIds.value = ids;
-      isDeliveryPriceDialogOpen.value = true;
-      break;
-    case 'set_number_of_bags':
-      selectedNumberOfBags.value = 0;
-      selectedIds.value = ids;
-      isNumberOfBagsDialogOpen.value = true;
-      break;
-    case 'set_driver':
-      selectedIds.value = ids;
-      isDriverDialogOpen.value = true;
-      break;
-    case 'set_address':
-      selectedOrder.value = orderStore.items.find(order => order.id === ids[0]);
-      editingAddress.value = selectedOrder.value.deliveryAddress || '';
-      selectedIds.value = [ids[0]];
-      isAddressDialogOpen.value = true;
-      break;
-    }
-  } catch (error) {
-    console.error('Action failed:', error);
-  } finally {
-    actionLoading.value[actionId] = false;
-  }
-};
-
+// Form submit handler
 const handleSubmit = async (formData) => {
   try {
-    if (selectedOrder.value) {
-      await orderStore.update(selectedOrder.value.id, formData);
+    if (selectedItems.value[0]) {
+      await orderStore.update(selectedItems.value[0].id, formData);
     }
     closeForm();
   } catch (error) {
@@ -362,17 +344,7 @@ const handleSubmit = async (formData) => {
   }
 };
 
-const closeForm = () => {
-  isFormOpen.value = false;
-  selectedOrder.value = null;
-};
-
-const closeDeliveryPriceDialog = () => {
-  isDeliveryPriceDialogOpen.value = false;
-  selectedDeliveryCost.value = 5000;
-};
-
-// Watch for period changes and fetch new data
+// Watch period changes
 watch(
   () => periodStore.periodRange,
   async (newRange) => {
@@ -392,42 +364,10 @@ watch(
   },
   { deep: true },
 );
-
-onMounted(async () => {
-  try {
-    await orderStore.fetchAll({
-      filters: {
-        dateRange: {
-          dateField: 'dueDate',
-          startDate: periodStore.periodRange.start.toISOString(),
-          endDate: periodStore.periodRange.end.toISOString(),
-        },
-      },
-    });
-    unsubscribeRef.value = await orderStore.subscribeToChanges();
-    console.log('🔄 Real-time updates enabled for orders');
-    const staff = await settingsStore.staff;
-    deliveryDrivers.value = staff
-      .filter(staff => staff.role === 'delivery_assistant')
-      .map(staff => ({
-        value: staff.id,
-        displayText: staff.firstName,
-      }));
-  } catch (error) {
-    console.error('Failed to initialize orders:', error);
-  }
-});
-
-onUnmounted(() => {
-  if (unsubscribeRef.value) {
-    unsubscribeRef.value();
-    orderStore.unsubscribe();
-  }
-});
 </script>
 <template>
   <div class="container p-4 px-0 lg:px-4">
-    <div class="flex flex-col lg:flex-row  justify-between items-center mb-4">
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Entrega</h2>
       <PeriodSelector onlyFor="day" />
     </div>
@@ -450,10 +390,10 @@ onUnmounted(() => {
       <div class="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <OrderForm
-            v-if="selectedOrder"
+            v-if="selectedItems[0]"
             :title="'Editar Pedido'"
-            :key="selectedOrder.id"
-            :initial-data="selectedOrder"
+            :key="selectedItems[0].id"
+            :initial-data="selectedItems[0]"
             :loading="orderStore.loading"
             class="w-full"
             @submit="handleSubmit"
@@ -648,12 +588,12 @@ onUnmounted(() => {
       <DataTable
         ref="dataTable"
         :key="deliveryDrivers.length"
-        :data="orderStore.items"
+        :data="tableData"
         :columns="columns"
         :actions="tableActions"
         :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
-        :data-loading="orderStore.loading"
+        :data-loading="orderStore.loading || isLoading"
         @selection-change="handleSelectionChange"
         @toggle-update="handleToggleUpdate"
         @action="handleAction"
