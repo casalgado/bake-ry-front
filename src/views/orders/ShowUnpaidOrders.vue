@@ -1,16 +1,16 @@
 //ShowUnpaidOrders.vue
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import OrderForm from '@/components/forms/OrderForm.vue';
-import DataTable from '@/components/DataTable/index.vue';
-import { useDataTable } from '@/components/DataTable/composables/useDataTable';
-import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
-import DateCell from '@/components/DataTable/renderers/DateCell.vue';
-import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
-import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
-import IsPaidCell from '@/components/DataTable/renderers/IsPaidCell.vue';
-import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift, PhClockCounterClockwise, PhStorefront, PhMopedFront } from '@phosphor-icons/vue';
+import   DataTable, {
+  ClientCell,
+  DateCell,
+  ItemsCell,
+  MoneyCell,
+  IsPaidCell,
+  useDataTable,
+} from '@carsalhaz/vue-data-table';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
@@ -19,7 +19,6 @@ import { formatMoney } from '@/utils/helpers';
 
 const orderStore = useOrderStore();
 const settingsStore = useBakerySettingsStore();
-const unsubscribeRef = ref(null);
 const b2bClients = ref([]);
 
 // Dialog state
@@ -51,6 +50,16 @@ const {
 } = useDataTable(orderStore, {
   searchableColumns: ['userName', 'items', 'userCategory'],
   processData,
+  filters: {
+    isPaid: false,
+    isComplimentary: false,
+  },
+  // Initial setup before fetching data
+  async onBeforeFetch() {
+    await settingsStore.fetchById('default');
+    b2bClients.value = await settingsStore.b2b_clients;
+  },
+  // Action handler
   async onAction({ actionId, selectedItems }) {
     const selectedOrder = selectedItems[0];
 
@@ -242,34 +251,6 @@ const closeDialog = () => {
   clearSelection();
 };
 
-// Lifecycle hooks
-onMounted(async () => {
-  isLoading.value = true;
-  try {
-    await settingsStore.fetchById('default');
-    b2bClients.value = await settingsStore.b2b_clients;
-
-    await orderStore.fetchAll({
-      filters: {
-        isPaid: false,
-        isComplimentary: false,
-      },
-    });
-
-    unsubscribeRef.value = await orderStore.subscribeToChanges();
-  } catch (error) {
-    console.error('Failed to initialize orders:', error);
-  } finally {
-    isLoading.value = false;
-  }
-});
-
-onUnmounted(() => {
-  if (unsubscribeRef.value) {
-    unsubscribeRef.value();
-    orderStore.unsubscribe();
-  }
-});
 </script>
 
 <template>

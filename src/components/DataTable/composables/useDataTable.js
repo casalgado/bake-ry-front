@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 export const useDataTable = (store, options = {}) => {
   // Common refs
@@ -8,6 +8,7 @@ export const useDataTable = (store, options = {}) => {
   const selectedItems = ref([]);
   const searchableColumns = ref(options.searchableColumns || []);
   const isLoading = ref(false);
+  const unsubscribeRef = ref(null);
 
   // Common computed
   const tableData = computed(() => {
@@ -93,6 +94,42 @@ export const useDataTable = (store, options = {}) => {
     selectedItems.value = [];
   };
 
+  // Initialize real-time updates
+  onMounted(async () => {
+    isLoading.value = true;
+    try {
+      // Allow for initial setup if provided
+      if (options.onBeforeFetch) {
+        await options.onBeforeFetch();
+      }
+
+      // Fetch data with provided filters
+      await store.fetchAll(options.filters || {});
+
+      // Setup real-time updates
+      unsubscribeRef.value = await store.subscribeToChanges();
+      console.log('🔄 Real-time updates enabled');
+
+      // Allow for post-fetch operations
+      if (options.onAfterFetch) {
+        await options.onAfterFetch();
+      }
+    } catch (error) {
+      console.error('Failed to initialize data:', error);
+      throw error;
+    } finally {
+      isLoading.value = false;
+    }
+  });
+
+  // Cleanup
+  onUnmounted(() => {
+    if (unsubscribeRef.value) {
+      unsubscribeRef.value();
+      store.unsubscribe();
+    }
+  });
+
   return {
     // Refs
     dataTable,
@@ -101,6 +138,7 @@ export const useDataTable = (store, options = {}) => {
     selectedItems,
     searchableColumns,
     isLoading,
+    unsubscribeRef,
 
     // Computed
     tableData,
