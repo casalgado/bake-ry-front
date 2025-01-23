@@ -11,6 +11,7 @@ import   DataTable, {
   IsPaidCell,
   useDataTable,
 } from '@carsalhaz/vue-data-table';
+import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift, PhClockCounterClockwise, PhStorefront, PhMopedFront } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
@@ -50,9 +51,11 @@ const {
 } = useDataTable(orderStore, {
   searchableColumns: ['userName', 'items', 'userCategory'],
   processData,
-  filters: {
-    isPaid: false,
-    isComplimentary: false,
+  fetchAll: {
+    filters: {
+      isPaid: false,
+      isComplimentary: false,
+    },
   },
   // Initial setup before fetching data
   async onBeforeFetch() {

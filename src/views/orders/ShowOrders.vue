@@ -1,15 +1,27 @@
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import OrderForm from '@/components/forms/OrderForm.vue';
-import   DataTable, {
+import DataTable, {
   ClientCell,
   DateCell,
   ItemsCell,
   MoneyCell,
   IsPaidCell,
+  useDataTable,
 } from '@carsalhaz/vue-data-table';
-import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift, PhClockCounterClockwise, PhMopedFront, PhStorefront } from '@phosphor-icons/vue';
+import {
+  PhPen,
+  PhExport,
+  PhTrash,
+  PhMoney,
+  PhCreditCard,
+  PhDeviceMobile,
+  PhGift,
+  PhClockCounterClockwise,
+  PhMopedFront,
+  PhStorefront,
+} from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
@@ -21,31 +33,76 @@ import { formatMoney } from '@/utils/helpers';
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const settingsStore = useBakerySettingsStore();
-const unsubscribeRef = ref(null);
 const b2bClients = ref([]);
 
-const dataTable = ref(null);
+// Dialog state
 const isFormOpen = ref(false);
 const isHistoryOpen = ref(false);
 const orderHistory = ref([]);
-const selectedOrder = ref(null);
-const actionLoading = ref({});
-const toggleLoading = ref({});
-const searchableColumns = ref(['userName', 'items']);
 
-// Process orders to add userCategory
-const processedOrders = computed(() => {
-  return orderStore.items.map(order => ({
+// Process data function for the table
+const processData = (orders) => {
+  return orders.map(order => ({
     ...order,
     userCategory: b2bClients.value.map(client => client.id).includes(order.userId) ? 'B2B' : 'B2C',
   }));
+};
+
+// Initialize useDataTable with custom handlers
+const {
+  dataTable,
+  toggleLoading,
+  actionLoading,
+  selectedItems,
+  searchableColumns,
+  isLoading,
+  tableData,
+  handleSelectionChange,
+  handleToggleUpdate,
+  handleAction,
+  clearSelection,
+} = useDataTable(orderStore, {
+  searchableColumns: ['userName', 'items'],
+  processData,
+  fetchAll: {
+    filters: {
+      dateRange: {
+        dateField: 'preparationDate',
+        startDate: periodStore.periodRange.start.toISOString(),
+        endDate: periodStore.periodRange.end.toISOString(),
+      },
+    },
+  },
+  // Initial setup before fetching data
+  async onBeforeFetch() {
+    await settingsStore.fetchById('default');
+    b2bClients.value = await settingsStore.b2b_clients;
+  },
+  // Action handler
+  async onAction({ actionId, selectedItems }) {
+    const selectedOrder = selectedItems[0];
+
+    switch (actionId) {
+    case 'edit':
+      isFormOpen.value = true;
+      break;
+    case 'delete':
+      if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
+        await orderStore.remove(selectedOrder.id);
+        clearSelection();
+      }
+      break;
+    case 'history':
+      orderHistory.value = await orderStore.getHistory(selectedOrder.id);
+      isHistoryOpen.value = true;
+      break;
+    }
+  },
 });
 
 // Compute totals
 const totals = computed(() => {
-  const orders = processedOrders.value;
-
-  // Helper function to calculate sales without delivery
+  const orders = tableData.value;
   const calcSalesWithoutDelivery = (ordersArray) =>
     ordersArray.reduce((sum, order) => sum + order.subtotal, 0);
 
@@ -54,6 +111,7 @@ const totals = computed(() => {
   ];
 });
 
+// Column definitions
 const columns = [
   {
     id: 'userName',
@@ -190,69 +248,10 @@ const tableActions = [
   },
 ];
 
-const handleSelectionChange = (selectedIds) => {
-  if (selectedIds.length === 1) {
-    selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
-  } else {
-    selectedOrder.value = null;
-  }
-};
-
-const handleToggleUpdate = async ({ rowIds, field, value }) => {
-  try {
-    rowIds.forEach(id => {
-      toggleLoading.value[`${id}-${field}`] = true;
-    });
-
-    const updates = rowIds.map(id => ({
-      id,
-      data: { [field]: value },
-    }));
-
-    await orderStore.patchAll(updates);
-    await nextTick();
-  } catch (error) {
-    console.error('Failed to update orders:', error);
-  } finally {
-    rowIds.forEach(id => {
-      toggleLoading.value[`${id}-${field}`] = false;
-    });
-  }
-};
-
-const handleAction = async ({ actionId, selectedIds }) => {
-  actionLoading.value[actionId] = true;
-
-  try {
-    switch (actionId) {
-    case 'edit':
-      selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
-      isFormOpen.value = true;
-      break;
-    case 'delete':
-      if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
-        selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
-        await orderStore.remove(selectedOrder.value.id);
-        dataTable.value?.clearSelection();
-      }
-      break;
-    case 'history':
-      selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
-      orderHistory.value = await orderStore.getHistory(selectedOrder.value.id);
-      isHistoryOpen.value = true;
-      break;
-    }
-  } catch (error) {
-    console.error('Action failed:', error);
-  } finally {
-    actionLoading.value[actionId] = false;
-  }
-};
-
 const handleSubmit = async (formData) => {
   try {
-    if (selectedOrder.value) {
-      await orderStore.update(selectedOrder.value.id, formData);
+    if (selectedItems.value[0]) {
+      await orderStore.update(selectedItems.value[0].id, formData);
     }
     closeDialog();
   } catch (error) {
@@ -263,9 +262,10 @@ const handleSubmit = async (formData) => {
 const closeDialog = () => {
   isFormOpen.value = false;
   isHistoryOpen.value = false;
-  selectedOrder.value = null;
+  clearSelection();
 };
 
+// Watch for period changes and refetch data
 watch(
   () => periodStore.periodRange,
   async (newRange) => {
@@ -285,35 +285,6 @@ watch(
   },
   { deep: true },
 );
-
-onMounted(async () => {
-  try {
-    // First fetch settings to get B2B clients
-    await settingsStore.fetchById('default');
-    b2bClients.value = await settingsStore.b2b_clients;
-
-    await orderStore.fetchAll({
-      filters: {
-        dateRange: {
-          dateField: 'preparationDate',
-          startDate: periodStore.periodRange.start.toISOString(),
-          endDate: periodStore.periodRange.end.toISOString(),
-        },
-      },
-    });
-    unsubscribeRef.value = await orderStore.subscribeToChanges();
-    console.log('🔄 Real-time updates enabled for orders');
-  } catch (error) {
-    console.error('Failed to initialize orders:', error);
-  }
-});
-
-onUnmounted(() => {
-  if (unsubscribeRef.value) {
-    unsubscribeRef.value();
-    orderStore.unsubscribe();
-  }
-});
 </script>
 
 <template>
@@ -340,12 +311,11 @@ onUnmounted(() => {
       <!-- Full-screen container for centering -->
       <div class="fixed inset-0 flex items-center justify-center p-4 ">
         <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-
           <OrderForm
-            v-if="selectedOrder"
+            v-if="selectedItems[0]"
             :title="'Editar Pedido'"
-            :key="selectedOrder.id"
-            :initial-data="selectedOrder"
+            :key="selectedItems[0].id"
+            :initial-data="selectedItems[0]"
             :loading="orderStore.loading"
             class="w-full"
             @submit="handleSubmit"
@@ -375,14 +345,14 @@ onUnmounted(() => {
     <div>
       <DataTable
         ref="dataTable"
-        :data="orderStore.items"
+        :data="tableData"
         :columns="columns"
         :searchable-columns="searchableColumns"
         :filters="tableFilters"
         :actions="tableActions"
         :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
-        :data-loading="orderStore.loading"
+        :data-loading="orderStore.loading || isLoading"
         @selection-change="handleSelectionChange"
         @toggle-update="handleToggleUpdate"
         @action="handleAction"
