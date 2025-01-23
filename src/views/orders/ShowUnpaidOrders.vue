@@ -8,7 +8,7 @@ import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import IsPaidCell from '@/components/DataTable/renderers/IsPaidCell.vue';
-import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift, PhClockCounterClockwise } from '@phosphor-icons/vue';
+import { PhPen, PhExport, PhTrash, PhMoney, PhCreditCard, PhDeviceMobile, PhGift, PhClockCounterClockwise, PhStorefront, PhMopedFront } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
@@ -109,10 +109,10 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [
-      { value: 'cash', displayText: 'efectivo', icon: PhMoney },
-      { value: 'transfer', displayText: 'transferencia', icon: PhDeviceMobile },
-      { value: 'card', displayText: 'bold', icon: PhCreditCard, skipWhenToggled: true },
-      { value: 'complimentary', displayText: 'regalo', icon: PhGift, skipWhenToggled: true },
+      { value: 'cash', displayText: 'E', icon: PhMoney },
+      { value: 'transfer', displayText: 'T', icon: PhDeviceMobile },
+      { value: 'card', displayText: 'B', icon: PhCreditCard, skipWhenToggled: true },
+      { value: 'complimentary', displayText: 'R', icon: PhGift, skipWhenToggled: true },
     ],
   },
   {
@@ -122,8 +122,8 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [
-      { value: 'pickup', displayText: 'recogen' },
-      { value: 'delivery', displayText: 'domicilio' },
+      { value: 'pickup', displayText: 'R', icon: PhStorefront },
+      { value: 'delivery', displayText: 'D', icon: PhMopedFront },
     ],
   },
   {

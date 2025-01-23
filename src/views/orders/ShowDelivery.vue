@@ -12,7 +12,7 @@ import DataTable, {
 import OrderForm from '@/components/forms/OrderForm.vue';
 
 import {
-  PhPen, PhTrash, PhCurrencyDollar, PhMapPin, PhCheckSquare, PhMinus, PhMoped, PhPackage,
+  PhPen, PhTrash, PhCurrencyDollar, PhMapPin, PhCheckSquare, PhMinus, PhMoped, PhPackage, PhStorefront, PhMopedFront,
 } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
@@ -109,8 +109,8 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [
-      { value: 'pickup', displayText: 'recogen' },
-      { value: 'delivery', displayText: 'domicilio' },
+      { value: 'pickup', displayText: 'R', icon: PhStorefront },
+      { value: 'delivery', displayText: 'D', icon: PhMopedFront },
     ],
   },
   {
