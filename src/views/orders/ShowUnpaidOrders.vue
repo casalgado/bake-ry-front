@@ -51,6 +51,7 @@ const {
 } = useDataTable(orderStore, {
   searchableColumns: ['userName', 'items', 'userCategory'],
   processData,
+  subscribeToChanges: true,
   fetchAll: {
     filters: {
       isPaid: false,

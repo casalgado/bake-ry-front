@@ -40,6 +40,7 @@ const {
   handleToggleUpdate,
 } = useDataTable(orderStore, {
   processData,
+  subscribeToChanges: true,
   filters: {
     dateRange: {
       dateField: 'dueDate',

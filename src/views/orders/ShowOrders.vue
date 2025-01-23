@@ -64,6 +64,7 @@ const {
 } = useDataTable(orderStore, {
   searchableColumns: ['userName', 'items'],
   processData,
+  subscribeToChanges: true,
   fetchAll: {
     filters: {
       dateRange: {

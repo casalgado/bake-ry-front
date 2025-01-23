@@ -57,6 +57,7 @@ const {
   handleAction,
   clearSelection,
 } = useDataTable(orderStore, {
+  subscribeToChanges: true,
   filters: {
     dateRange: {
       dateField: 'dueDate',
