@@ -1,50 +1,17 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
-import { usePeriodStore } from '@/stores/periodStore';
+import { computed, watch } from 'vue';
+import DataTable, { useDataTable } from '@carsalhaz/vue-data-table';
 import { useOrderStore } from '@/stores/orderStore';
+import { usePeriodStore } from '@/stores/periodStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
-import DataTable from '@/components/DataTable/index.vue';
 
-const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
-const dataTable = ref(null);
+const periodStore = usePeriodStore();
 
-const columns = [
-  {
-    id: 'userName',
-    label: 'Name',
-    field: 'userName',
-    sortable: true,
-  },
-  {
-    id: 'userEmail',
-    label: 'Email',
-    field: 'userEmail',
-    sortable: true,
-  },
-  {
-    id: 'userPhone',
-    label: 'Phone',
-    field: 'userPhone',
-    sortable: true,
-  },
-  {
-    id: 'deliveryAddress',
-    label: 'Address',
-    field: 'deliveryAddress',
-    sortable: true,
-  },
-  {
-    id: 'orderCount',
-    label: 'Orders in Period',
-    field: 'orderCount',
-    sortable: true,
-  },
-];
-
-const activeClients = computed(() => {
+// Process data function for the table
+const processData = (orders) => {
   // Group orders by userId
-  const clientOrders = orderStore.items.reduce((acc, order) => {
+  const clientOrders = orders.reduce((acc, order) => {
     if (!acc[order.userId]) {
       acc[order.userId] = [];
     }
@@ -54,7 +21,6 @@ const activeClients = computed(() => {
 
   // Create client summaries
   return Object.values(clientOrders).map(orders => {
-    // Sort orders by date to get most recent
     const sortedOrders = orders.sort((a, b) =>
       new Date(b.createdAt) - new Date(a.createdAt),
     );
@@ -69,9 +35,61 @@ const activeClients = computed(() => {
       orderCount: orders.length,
     };
   });
+};
+
+// Initialize useDataTable with custom handlers
+const {
+  dataTable,
+  isLoading,
+  tableData,
+} = useDataTable(orderStore, {
+  processData,
+  fetchAll: {
+    filters: {
+      dateRange: {
+        dateField: 'dueDate',
+        startDate: periodStore.periodRange.start.toISOString(),
+        endDate: periodStore.periodRange.end.toISOString(),
+      },
+    },
+  },
 });
 
-// Watch for period changes and fetch new data
+// Column definitions
+const columns = [
+  {
+    id: 'userName',
+    label: 'Nombre',
+    field: 'userName',
+    sortable: true,
+  },
+  {
+    id: 'userEmail',
+    label: 'Mail',
+    field: 'userEmail',
+    sortable: true,
+  },
+  {
+    id: 'userPhone',
+    label: 'Teléfono',
+    field: 'userPhone',
+    sortable: true,
+  },
+  {
+    id: 'deliveryAddress',
+    label: 'Dirección',
+    field: 'deliveryAddress',
+    sortable: true,
+  },
+  {
+    id: 'orderCount',
+    label: '#PED',
+    field: 'orderCount',
+    sortable: true,
+  },
+];
+
+// Watch for period changes and refetch data
 watch(
   () => periodStore.periodRange,
   async (newRange) => {
@@ -91,27 +109,11 @@ watch(
   },
   { deep: true },
 );
-
-onMounted(async () => {
-  try {
-    await orderStore.fetchAll({
-      filters: {
-        dateRange: {
-          dateField: 'dueDate',
-          startDate: periodStore.periodRange.start.toISOString(),
-          endDate: periodStore.periodRange.end.toISOString(),
-        },
-      },
-    });
-  } catch (error) {
-    console.error('Failed to initialize orders:', error);
-  }
-});
 </script>
 
 <template>
   <div class="container p-4 px-0 lg:px-4">
-    <div class="flex flex-col lg:flex-row  justify-between items-center mb-4">
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Active Clients</h2>
       <PeriodSelector />
     </div>
@@ -128,9 +130,9 @@ onMounted(async () => {
     <div>
       <DataTable
         ref="dataTable"
-        :data="activeClients"
+        :data="tableData"
         :columns="columns"
-        :data-loading="orderStore.loading"
+        :data-loading="orderStore.loading || isLoading"
         class="bg-white shadow-lg rounded-lg"
       />
     </div>
