@@ -1,16 +1,19 @@
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
-import DataTable from '@/components/DataTable/index.vue';
-import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
-import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
-import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
-import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
-
+import { ref, computed, watch } from 'vue';
+import DataTable, {
+  ClientCell,
+  ItemsCell,
+  CheckboxCell,
+  MoneyCell,
+  useDataTable,
+} from '@carsalhaz/vue-data-table';
 import {
   PhMoney,
   PhCreditCard,
   PhDeviceMobile,
   PhGift,
+  PhStorefront,
+  PhMopedFront,
 } from '@phosphor-icons/vue';
 
 import { useOrderStore } from '@/stores/orderStore';
@@ -21,16 +24,29 @@ import { usePeriodStore } from '@/stores/periodStore';
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const authStore = useAuthenticationStore();
-const unsubscribeRef = ref(null);
-const toggleLoading = ref({});
 
 const userId = computed(() => authStore.getUserData?.uid);
 
-const driverOrders = computed(() => {
-  const currentUserId = userId.value;
-  return orderStore.items.filter(order =>
-    order.deliveryDriverId === currentUserId,
-  );
+// Data processing function to filter orders by driver
+const processData = (orders) => {
+  return orders.filter(order => order.deliveryDriverId === userId.value);
+};
+
+// Initialize useDataTable with custom handlers
+const {
+  toggleLoading,
+  isLoading,
+  tableData,
+  handleToggleUpdate,
+} = useDataTable(orderStore, {
+  processData,
+  filters: {
+    dateRange: {
+      dateField: 'dueDate',
+      startDate: periodStore.periodRange.start.toISOString(),
+      endDate: periodStore.periodRange.end.toISOString(),
+    },
+  },
 });
 
 // Column definitions
@@ -79,21 +95,21 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [
-      { value: 'cash', displayText: 'efectivo', icon: PhMoney },
-      { value: 'transfer', displayText: 'transferencia', icon: PhDeviceMobile },
-      { value: 'card', displayText: 'bold', icon: PhCreditCard, skipWhenToggled: true },
-      { value: 'complimentary', displayText: 'regalo', icon: PhGift, skipWhenToggled: true },
+      { value: 'cash', displayText: 'E', icon: PhMoney },
+      { value: 'transfer', displayText: 'T', icon: PhDeviceMobile },
+      { value: 'card', displayText: 'B', icon: PhCreditCard, skipWhenToggled: true },
+      { value: 'complimentary', displayText: 'R', icon: PhGift, skipWhenToggled: true },
     ],
   },
   {
     id: 'fulfillmentType',
-    label: 'Tipo Entrega',
+    label: 'Entrega',
     field: 'fulfillmentType',
     sortable: true,
     type: 'toggle',
     options: [
-      { value: 'pickup', displayText: 'recogen' },
-      { value: 'delivery', displayText: 'domicilio' },
+      { value: 'pickup', displayText: 'R', icon: PhStorefront },
+      { value: 'delivery', displayText: 'D', icon: PhMopedFront },
     ],
   },
   {
@@ -119,33 +135,6 @@ const columns = [
     }),
   },
 ];
-
-const handleToggleUpdate = async ({ rowIds, field, value }) => {
-  try {
-    // Set loading state for all affected rows
-    rowIds.forEach(id => {
-      toggleLoading.value[`${id}-${field}`] = true;
-    });
-
-    // Prepare updates array
-    const updates = rowIds.map(id => ({
-      id,
-      data: { [field]: value },
-    }));
-
-    // Single API call
-    await orderStore.patchAll(updates);
-    await nextTick();
-  } catch (error) {
-    console.error('Failed to update orders:', error);
-  } finally {
-    // Clear loading state
-    rowIds.forEach(id => {
-      toggleLoading.value[`${id}-${field}`] = false;
-    });
-  }
-};
-
 // Watch for period changes and fetch new data
 watch(
   () => periodStore.periodRange,
@@ -165,34 +154,7 @@ watch(
     }
   },
   { deep: true },
-);
-
-onMounted(async () => {
-  try {
-    await orderStore.fetchAll({
-      filters: {
-        dateRange: {
-          dateField: 'dueDate',
-          startDate: periodStore.periodRange.start.toISOString(),
-          endDate: periodStore.periodRange.end.toISOString(),
-        },
-      },
-    });
-    unsubscribeRef.value = await orderStore.subscribeToChanges();
-    console.log('🔄 Real-time updates enabled for driver orders');
-  } catch (error) {
-    console.error('Failed to initialize orders:', error);
-  }
-});
-
-onUnmounted(() => {
-  if (unsubscribeRef.value) {
-    unsubscribeRef.value();
-    orderStore.unsubscribe();
-  }
-});
-</script>
-
+);</script>
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
@@ -208,10 +170,10 @@ onUnmounted(() => {
     <!-- Table -->
     <div>
       <DataTable
-        :data="driverOrders"
+        :data="tableData"
         :columns="columns"
         :toggle-loading="toggleLoading"
-        :data-loading="orderStore.loading"
+        :data-loading="orderStore.loading || isLoading"
         @toggle-update="handleToggleUpdate"
         class="bg-white shadow-lg rounded-lg"
       />
