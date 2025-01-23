@@ -1,8 +1,10 @@
+//ShowUnpaidOrders.vue
 <script setup>
-import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import OrderForm from '@/components/forms/OrderForm.vue';
 import DataTable from '@/components/DataTable/index.vue';
+import { useDataTable } from '@/components/DataTable/composables/useDataTable';
 import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
@@ -20,37 +22,63 @@ const settingsStore = useBakerySettingsStore();
 const unsubscribeRef = ref(null);
 const b2bClients = ref([]);
 
-const dataTable = ref(null);
+// Dialog state
 const isFormOpen = ref(false);
 const isHistoryOpen = ref(false);
-const isLoading = ref(false);
 const orderHistory = ref([]);
-const selectedOrder = ref(null);
-const actionLoading = ref({});
-const toggleLoading = ref({});
-const searchableColumns = ref(['userName', 'items']);
 
-// Process orders to add userCategory
-const processedOrders = computed(() => {
-  // Log B2B client IDs
+// Process data function for the table
+const processData = (orders) => {
+  return orders.map(order => ({
+    ...order,
+    userCategory: b2bClients.value.map(client => client.id).includes(order.userId) ? 'B2B' : 'B2C',
+  }));
+};
 
-  return orderStore.items.map(order => {
-    // Log each order for inspection
+// Initialize useDataTable with custom handlers
+const {
+  dataTable,
+  toggleLoading,
+  actionLoading,
+  selectedItems,
+  searchableColumns,
+  isLoading,
+  tableData,
+  handleSelectionChange,
+  handleToggleUpdate,
+  handleAction,
+  clearSelection,
+} = useDataTable(orderStore, {
+  searchableColumns: ['userName', 'items', 'userCategory'],
+  processData,
+  async onAction({ actionId, selectedItems }) {
+    const selectedOrder = selectedItems[0];
 
-    return {
-      ...order,
-      userCategory: b2bClients.value.map(client => client.id).includes(order.userId) ? 'B2B' : 'B2C',
-    };
-  });
+    switch (actionId) {
+    case 'edit':
+      isFormOpen.value = true;
+      break;
+    case 'delete':
+      if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
+        await orderStore.remove(selectedOrder.id);
+        clearSelection();
+      }
+      break;
+    case 'history':
+      orderHistory.value = await orderStore.getHistory(selectedOrder.id);
+      isHistoryOpen.value = true;
+      break;
+    }
+  },
 });
 
-// Compute totals
+// Computed properties
 const totals = computed(() => {
-  const b2bTotal = processedOrders.value
+  const b2bTotal = tableData.value
     .filter(order => order.userCategory === 'B2B')
     .reduce((sum, order) => sum + order.total, 0);
 
-  const b2cTotal = processedOrders.value
+  const b2cTotal = tableData.value
     .filter(order => order.userCategory === 'B2C')
     .reduce((sum, order) => sum + order.total, 0);
 
@@ -197,74 +225,10 @@ const tableActions = [
   },
 ];
 
-// Handlers
-const handleSelectionChange = (selectedIds) => {
-  if (selectedIds.length === 1) {
-    selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
-  } else {
-    selectedOrder.value = null;
-  }
-};
-
-const handleToggleUpdate = async ({ rowIds, field, value }) => {
-  try {
-    // Set loading state for all affected rows
-    rowIds.forEach(id => {
-      toggleLoading.value[`${id}-${field}`] = true;
-    });
-
-    // Prepare updates array
-    const updates = rowIds.map(id => ({
-      id,
-      data: { [field]: value },
-    }));
-
-    // Single API call
-    await orderStore.patchAll(updates);
-    await nextTick();
-  } catch (error) {
-    console.error('Failed to update orders:', error);
-  } finally {
-    // Clear loading state
-    rowIds.forEach(id => {
-      toggleLoading.value[`${id}-${field}`] = false;
-    });
-  }
-};
-
-const handleAction = async ({ actionId, selectedIds }) => {
-  actionLoading.value[actionId] = true;
-
-  try {
-    switch (actionId) {
-    case 'edit':
-      selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
-      isFormOpen.value = true;
-      break;
-    case 'delete':
-      if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
-        selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
-        await orderStore.remove(selectedOrder.value.id);
-        dataTable.value?.clearSelection();
-      }
-      break;
-    case 'history':
-      selectedOrder.value = orderStore.items.find(order => order.id === selectedIds[0]);
-      orderHistory.value = await orderStore.getHistory(selectedOrder.value.id);
-      isHistoryOpen.value = true;
-      break;
-    }
-  } catch (error) {
-    console.error('Action failed:', error);
-  } finally {
-    actionLoading.value[actionId] = false;
-  }
-};
-
 const handleSubmit = async (formData) => {
   try {
-    if (selectedOrder.value) {
-      await orderStore.update(selectedOrder.value.id, formData);
+    if (selectedItems.value[0]) {
+      await orderStore.update(selectedItems.value[0].id, formData);
     }
     closeDialog();
   } catch (error) {
@@ -275,29 +239,28 @@ const handleSubmit = async (formData) => {
 const closeDialog = () => {
   isFormOpen.value = false;
   isHistoryOpen.value = false;
-  selectedOrder.value = null;
+  clearSelection();
 };
 
+// Lifecycle hooks
 onMounted(async () => {
   isLoading.value = true;
   try {
-    // First fetch settings to get B2B clients
     await settingsStore.fetchById('default');
     b2bClients.value = await settingsStore.b2b_clients;
 
-    // Then fetch unpaid orders
     await orderStore.fetchAll({
       filters: {
         isPaid: false,
         isComplimentary: false,
       },
     });
-    isLoading.value = false;
 
     unsubscribeRef.value = await orderStore.subscribeToChanges();
-    console.log('🔄 Real-time updates enabled for orders');
   } catch (error) {
     console.error('Failed to initialize orders:', error);
+  } finally {
+    isLoading.value = false;
   }
 });
 
@@ -313,7 +276,6 @@ onUnmounted(() => {
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Por Cobrar</h2>
-
       <TotalsSummary :categories="totals" :format-value="formatMoney"/>
     </div>
 
@@ -328,18 +290,14 @@ onUnmounted(() => {
       @close="closeDialog"
       class="relative z-50 form-container"
     >
-      <!-- Backdrop -->
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
-
-      <!-- Full-screen container for centering -->
-      <div class="fixed inset-0 flex items-center justify-center p-4 ">
+      <div class="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-
           <OrderForm
-            v-if="selectedOrder"
-            :title="'Editar Pedido'"
-            :key="selectedOrder.id"
-            :initial-data="selectedOrder"
+            v-if="selectedItems[0]"
+            title="Editar Pedido"
+            :key="selectedItems[0].id"
+            :initial-data="selectedItems[0]"
             :loading="orderStore.loading"
             class="w-full"
             @submit="handleSubmit"
@@ -356,7 +314,6 @@ onUnmounted(() => {
       class="relative z-50 form-container"
     >
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
-
       <div class="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <h2 class="text-2xl font-bold text-neutral-800 mb-4">Historial de Cambios</h2>
@@ -369,7 +326,7 @@ onUnmounted(() => {
     <div>
       <DataTable
         ref="dataTable"
-        :data="processedOrders"
+        :data="tableData"
         :columns="columns"
         :searchable-columns="searchableColumns"
         :filters="tableFilters"

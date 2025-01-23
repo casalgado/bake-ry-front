@@ -7,19 +7,19 @@ import DataTable, {
   DriverCell,
   DeliveryAddressCell,
   NumberOfBagsCell,
+  MoneyCell,
 } from '@carsalhaz/vue-data-table';
 
 import OrderForm from '@/components/forms/OrderForm.vue';
 
 import {
-  PhPen, PhTrash, PhCurrencyDollar, PhMapPin, PhCheckSquare, PhMinus, PhMoped, PhPackage, PhStorefront, PhMopedFront,
+  PhPen, PhCurrencyDollar, PhMapPin, PhCheckSquare, PhMinus, PhMoped, PhPackage, PhStorefront, PhMopedFront,
 } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
-import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -148,35 +148,20 @@ const columns = [
 
 // Table actions
 const tableActions = [
-  {
-    id: 'edit',
-    label: 'Editar',
-    icon: PhPen,
-    minSelected: 1,
-    maxSelected: 1,
-    variant: 'primary',
-  },
-  {
-    id: 'delete',
-    label: 'Eliminar',
-    icon: PhTrash,
-    minSelected: 1,
-    maxSelected: 1,
-    variant: 'danger',
-  },
+
+  // {
+  //   id: 'delete',
+  //   label: 'Eliminar',
+  //   icon: PhTrash,
+  //   minSelected: 1,
+  //   maxSelected: 1,
+  //   variant: 'danger',
+  // },
   {
     id: 'set_delivery_price',
     label: 'Valor Domi',
     icon: PhCurrencyDollar,
     minSelected: 1,
-    variant: 'primary',
-  },
-  {
-    id: 'set_address',
-    label: 'Dirección',
-    icon: PhMapPin,
-    minSelected: 1,
-    maxSelected: 1,
     variant: 'primary',
   },
   {
@@ -191,6 +176,22 @@ const tableActions = [
     label: 'Conductor',
     icon: PhMoped,
     minSelected: 1,
+    variant: 'primary',
+  },
+  {
+    id: 'set_address',
+    label: 'Dirección',
+    icon: PhMapPin,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'primary',
+  },
+  {
+    id: 'edit',
+    label: 'Editar Pedido',
+    icon: PhPen,
+    minSelected: 1,
+    maxSelected: 1,
     variant: 'primary',
   },
 ];
@@ -677,9 +678,9 @@ onUnmounted(() => {
 
 * {
   &::-webkit-scrollbar {
-    display: none;
+    display: none !important;
   }
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 </style>
