@@ -1,6 +1,8 @@
 <script setup>
-import { computed } from 'vue';
-import { PhGift, PhTrash } from '@phosphor-icons/vue';
+import { ref, computed } from 'vue';
+import { PhGift, PhTrash, PhPercent, PhCurrencyDollar } from '@phosphor-icons/vue';
+
+const discount = ref(null);
 
 const props = defineProps({
   item: {
@@ -16,17 +18,10 @@ const props = defineProps({
 const emit = defineEmits([
   'update:quantity',
   'update:price',
+  'update:discount',
   'toggle-complimentary',
   'remove',
 ]);
-
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(price);
-};
 
 const isPriceModified = computed(() => {
   return props.item.currentPrice !== props.item.basePrice;
@@ -40,14 +35,22 @@ const handleQuantityChange = (delta) => {
 };
 
 const handleQuantityInput = (event) => {
-  const newValue = parseInt(event.target.value) || 1; // Default to 1 if invalid
+  const newValue = parseInt(event.target.value) || 1;
   if (newValue >= 1) {
     emit('update:quantity', props.index, newValue);
   }
 };
 
 const handlePriceChange = (event) => {
-  emit('update:price', props.index, Number(event.target.value));
+  const newPrice = Number(event.target.value);
+  discount.value = Math.round(((props.item.basePrice - newPrice) / props.item.basePrice) * 100);
+  emit('update:price', props.index, newPrice);
+};
+
+const handleDiscountChange = (event) => {
+  discount.value = Math.min(100, Math.max(0, Number(event.target.value)));
+  const newPrice = props.item.basePrice * (1 - discount.value / 100);
+  emit('update:price', props.index, Math.round(newPrice));
 };
 
 const handleToggleComplimentary = () => {
@@ -61,7 +64,6 @@ const handleRemove = () => {
 
 <template>
   <div class="flex flex-row items-center justify-between py-1.5 mb-3 border-neutral-300 last:border-b-0">
-    <!-- Left Content -->
     <div class="flex-grow">
       <div class="flex items-center justify-between gap-2">
         <div class="text-xs text-neutral-700 text-pill">{{ item.collectionName }}</div>
@@ -72,7 +74,7 @@ const handleRemove = () => {
       </div>
 
       <div class="flex items-center gap-2 mt-0.5">
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-1 max-w-24">
           <button
             type="button"
             @click="handleQuantityChange(-1)"
@@ -93,15 +95,34 @@ const handleRemove = () => {
             class="px-0 md:px-1.5 py-0.5 text-xs bg-gray-100 rounded"
           >+</button>
         </div>
-        <input
-          type="number"
-          :value="item.currentPrice"
-          @input="handlePriceChange"
-          class="w-20 px-0 md:px-1 py-0.5 text-right border rounded text-sm"
-          :class="{ 'price-modified': isPriceModified, 'opacity-20': item.isComplimentary }"
-          step="1000"
-          :disabled="item.isComplimentary"
-        />
+
+        <div class="flex items-center gap-1">
+          <div class="flex items-center">
+            <input
+              type="number"
+              @input="handleDiscountChange"
+              :value="discount"
+              class="w-12 px-1 py-0.5 text-right border rounded text-xs max-w-12"
+              :disabled="item.isComplimentary"
+              min="0"
+              max="100"
+
+            />
+            <PhPercent class="absolute left-1.5 w-3 h-3" />
+          </div>
+          <div class="flex items-center">
+            <input
+              type="number"
+              :value="item.currentPrice"
+              @input="handlePriceChange"
+              class="w-20 px-0 md:px-1 py-0.5 text-right border rounded text-sm"
+              :class="{ 'price-modified': isPriceModified, 'opacity-20': item.isComplimentary }"
+              step="1000"
+              :disabled="item.isComplimentary"
+            />
+            <PhCurrencyDollar class="absolute left-1.5 w-3 h-3" />
+          </div>
+        </div>
 
         <button
           type="button"
@@ -118,7 +139,7 @@ const handleRemove = () => {
         <button
           type="button"
           @click="handleRemove"
-          class="px-0 md:px-2 py-0.5 text-xs text-red-500 hover:bg-red-50 rounded"
+          class="px-0 md:px-2 py-0.5 text-xs text-red-700 hover:bg-red-50 rounded"
         >
           <PhTrash class="w-4 h-4" />
         </button>
@@ -140,6 +161,5 @@ input[type="number"] {
     -webkit-appearance: none;
     margin: 0;
   }
-
 }
 </style>
