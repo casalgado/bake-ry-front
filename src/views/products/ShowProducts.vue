@@ -5,10 +5,11 @@ import { useProductStore } from '@/stores/productStore';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import { useRouter } from 'vue-router';
 import ProductForm from '@/components/forms/ProductForm.vue';
-import DataTable from '@/components/DataTable/index.vue';
-import VariationsCell from '@/components/DataTable/renderers/VariationsCell.vue';
-import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
-import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
+import DataTable, {
+  VariationsCell,
+  CheckboxCell,
+  MoneyCell,
+} from '@carsalhaz/vue-data-table';
 import { PhPen, PhTrash } from '@phosphor-icons/vue';
 
 const router = useRouter();

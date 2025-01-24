@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
-import DataTable from '@/components/DataTable/index.vue';
+import DataTable from '@carsalhaz/vue-data-table';
 import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';

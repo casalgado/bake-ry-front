@@ -1,14 +1,14 @@
 <script setup>
 import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
-import DataTable from '@/components/DataTable/index.vue';
-import ShowValuesCell from '@/components/DataTable/renderers/ShowValuesCell.vue';
+import DataTable, {
+  CombinedProductionInfoCell,
+} from '@carsalhaz/vue-data-table';
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 import { PhPlusMinus } from '@phosphor-icons/vue';
 import { categoryOrder } from '@/utils/helpers';
-import CombinedProductionInfoCell from '@/components/DataTable/renderers/CombinedProductionInfoCell.vue';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();

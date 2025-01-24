@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
-import DataTable from '@/components/DataTable/index.vue';
+import DataTable from '@carsalhaz/vue-data-table';
 import { PhPen, PhTrash } from '@phosphor-icons/vue';
 import ProductCollectionForm from '@/components/forms/ProductCollectionForm.vue';
 import { useRouter } from 'vue-router';

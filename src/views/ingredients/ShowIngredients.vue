@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue';
 import { useIngredientStore } from '@/stores/ingredientStore';
-import DataTable from '@/components/DataTable/index.vue';
+import DataTable from '@carsalhaz/vue-data-table';
 import { PhPen, PhExport } from '@phosphor-icons/vue';
 
 const ingredientStore = useIngredientStore();

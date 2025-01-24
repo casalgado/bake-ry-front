@@ -149,7 +149,7 @@ onUnmounted(() => {
     @touchstart="handleTouchStart"
     @touchend="handleTouchEnd"
     :class="{
-      'border-neutral-300 border-2 border-dashed': props.column.type === 'toggle',
+      'border-neutral-400 border-[3px] border-dashed': props.column.type === 'toggle',
       'cursor-not-allowed': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id)
     }"
   >

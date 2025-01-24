@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
-import DataTable from '@/components/DataTable/index.vue';
+import DataTable from '@carsalhaz/vue-data-table';
 import BakeryUserForm from '@/components/forms/BakeryUserForm.vue';
 import { PhPen } from '@phosphor-icons/vue';
 

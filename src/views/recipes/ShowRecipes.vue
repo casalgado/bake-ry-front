@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRecipeStore } from '@/stores/recipeStore';
 import { useRouter } from 'vue-router';
 import RecipeForm from '@/components/forms/RecipeForm.vue';
-import DataTable from '@/components/DataTable/index.vue';
+import DataTable from '@carsalhaz/vue-data-table';
 
 const router = useRouter();
 const recipeStore = useRecipeStore();
