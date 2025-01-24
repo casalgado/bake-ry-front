@@ -74,12 +74,8 @@ const getNextBusinessDay = () => {
   const date = new Date();
   date.setDate(date.getDate() + 1); // Start with tomorrow
 
-  // If it's Saturday (6), add 2 days to get to Monday
-  if (date.getDay() === 6) {
-    date.setDate(date.getDate() + 2);
-  }
   // If it's Sunday (0), add 1 day to get to Monday
-  else if (date.getDay() === 0) {
+  if (date.getDay() === 0) {
     date.setDate(date.getDate() + 1);
   }
 

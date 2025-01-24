@@ -102,25 +102,25 @@ const handleRemove = () => {
               type="number"
               @input="handleDiscountChange"
               :value="discount"
-              class="w-12 px-1 py-0.5 text-right border rounded text-xs max-w-12"
+              class="w-12 px-1 py-0.5 text-right border rounded text-xs max-w-12 min-w-8"
               :disabled="item.isComplimentary"
               min="0"
               max="100"
 
             />
-            <PhPercent class="absolute left-1.5 w-3 h-3" />
+            <PhPercent class="absolute left-1.5 w-3 h-3 hidden md:block" />
           </div>
           <div class="flex items-center">
             <input
               type="number"
               :value="item.currentPrice"
               @input="handlePriceChange"
-              class="w-20 px-0 md:px-1 py-0.5 text-right border rounded text-sm"
+              class="w-20 px-0 md:px-1 py-0.5 text-right border rounded text-sm min-w-16"
               :class="{ 'price-modified': isPriceModified, 'opacity-20': item.isComplimentary }"
               step="1000"
               :disabled="item.isComplimentary"
             />
-            <PhCurrencyDollar class="absolute left-1.5 w-3 h-3" />
+            <PhCurrencyDollar class="absolute left-1.5 w-3 h-3 hidden md:block" />
           </div>
         </div>
 

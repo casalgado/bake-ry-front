@@ -361,11 +361,6 @@ table {
   border-spacing: 0;
 }
 
-:deep(th),
-:deep(td) {
-  border-bottom: 1px solid #e5e7eb;
-}
-
 /* Animation for loading indicator */
 @keyframes delayedFadeIn {
   0%, 99% { opacity: 0; }

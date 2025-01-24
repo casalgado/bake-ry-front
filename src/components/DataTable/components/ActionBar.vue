@@ -65,10 +65,10 @@ const actionBarStyle = computed(() => ({
 <template>
   <div
     v-if="selectedCount > 0"
-    class="fixed bottom-10 right-4 h-16 bg-white border-t rounded-lg shadow-lg z-40"
+    class="fixed bottom-10 right-0 lg:right-4 bg-white border-t rounded-lg shadow-lg z-40 max-w-full"
     :style="actionBarStyle"
   >
-    <div class="h-full px-4 flex items-center gap-2 justify-between">
+    <div class="px-4 flex items-center gap-2 justify-between">
       <button
         @click="emit('clear-selection')"
         class="button utility-btn-active"
@@ -77,7 +77,7 @@ const actionBarStyle = computed(() => ({
 
       </button>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 overflow-x-auto">
         <button
           v-for="action in availableActions"
           :key="action.id"
