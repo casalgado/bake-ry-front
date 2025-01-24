@@ -83,7 +83,7 @@ const isCellHighlighted = (row, column) => {
           selectedRows.has(row.id)
             ? 'bg-neutral hover:bg-neutral-600 text-white'
             : [
-              'odd:bg-neutral-200',
+              'odd:bg-neutral-100',
               'hover:bg-neutral-200'
             ]
         ]"

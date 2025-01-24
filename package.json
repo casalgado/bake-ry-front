@@ -10,6 +10,7 @@
     "deploy": "firebase deploy --only hosting:bake-ry"
   },
   "dependencies": {
+    "@carsalhaz/vue-data-table": "^1.0.9",
     "@headlessui/vue": "^1.7.23",
     "@phosphor-icons/vue": "^2.2.1",
     "@tanstack/vue-form": "^0.35.0",
