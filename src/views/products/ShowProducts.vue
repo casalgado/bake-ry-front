@@ -1,15 +1,23 @@
 <script setup>
+// Vue & Router
 import { ref, onMounted, computed } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
+import { useRouter } from 'vue-router';
+
+// DataTable
+import DataTable from '@/components/DataTable/index.vue';
+import VariationsCell from '@/components/DataTable/renderers/VariationsCell.vue';
+import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
+import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
+
+// Components
+import ProductForm from '@/components/forms/ProductForm.vue';
+
+// Stores
 import { useProductStore } from '@/stores/productStore';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
-import { useRouter } from 'vue-router';
-import ProductForm from '@/components/forms/ProductForm.vue';
-import DataTable, {
-  VariationsCell,
-  CheckboxCell,
-  MoneyCell,
-} from '@carsalhaz/vue-data-table';
+
+// Icons
 import { PhPen, PhTrash } from '@phosphor-icons/vue';
 
 const router = useRouter();

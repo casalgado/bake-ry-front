@@ -1,9 +1,17 @@
 <script setup>
-import { computed, watch } from 'vue';
-import DataTable, { useDataTable } from '@carsalhaz/vue-data-table';
+// Vue Core
+import { watch } from 'vue';
+
+// DataTable Core
+import DataTable from '@/components/DataTable/index.vue';
+import { useDataTable } from '@/components/DataTable/composables/useDataTable.js';
+
+// Components
+import PeriodSelector from '@/components/common/PeriodSelector.vue';
+
+// Stores
 import { useOrderStore } from '@/stores/orderStore';
 import { usePeriodStore } from '@/stores/periodStore';
-import PeriodSelector from '@/components/common/PeriodSelector.vue';
 
 const orderStore = useOrderStore();
 const periodStore = usePeriodStore();

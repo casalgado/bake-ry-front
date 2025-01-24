@@ -1,15 +1,31 @@
 <script setup>
+// Vue and Headless UI
 import { ref, computed, watch } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
+
+// DataTable Core
+import DataTable from '@/components/DataTable/index.vue';
+import { useDataTable } from '@/components/DataTable/composables/useDataTable.js';
+
+// DataTable Renderers
+import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
+import DateCell from '@/components/DataTable/renderers/DateCell.vue';
+import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
+import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
+import IsPaidCell from '@/components/DataTable/renderers/IsPaidCell.vue';
+
+// Components
 import OrderForm from '@/components/forms/OrderForm.vue';
-import DataTable, {
-  ClientCell,
-  DateCell,
-  ItemsCell,
-  MoneyCell,
-  IsPaidCell,
-  useDataTable,
-} from '@carsalhaz/vue-data-table';
+import PeriodSelector from '@/components/common/PeriodSelector.vue';
+import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
+import TotalsSummary from '@/components/common/TotalsSummary.vue';
+
+// Stores
+import { useOrderStore } from '@/stores/orderStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { usePeriodStore } from '@/stores/periodStore';
+
+// Icons
 import {
   PhPen,
   PhExport,
@@ -22,12 +38,8 @@ import {
   PhMopedFront,
   PhStorefront,
 } from '@phosphor-icons/vue';
-import { useOrderStore } from '@/stores/orderStore';
-import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
-import PeriodSelector from '@/components/common/PeriodSelector.vue';
-import { usePeriodStore } from '@/stores/periodStore';
-import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
-import TotalsSummary from '@/components/common/TotalsSummary.vue';
+
+// Utils
 import { formatMoney } from '@/utils/helpers';
 
 const periodStore = usePeriodStore();

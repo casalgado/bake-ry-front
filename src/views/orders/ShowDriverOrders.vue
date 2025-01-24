@@ -1,12 +1,18 @@
 <script setup>
+// Vue Core
 import { ref, computed, watch } from 'vue';
-import DataTable, {
-  ClientCell,
-  ItemsCell,
-  CheckboxCell,
-  MoneyCell,
-  useDataTable,
-} from '@carsalhaz/vue-data-table';
+
+// DataTable Core
+import DataTable from '@/components/DataTable/index.vue';
+import { useDataTable } from '@/components/DataTable/composables/useDataTable.js';
+
+// DataTable Renderers
+import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
+import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
+import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
+import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
+
+// Icons
 import {
   PhMoney,
   PhCreditCard,
@@ -15,11 +21,6 @@ import {
   PhStorefront,
   PhMopedFront,
 } from '@phosphor-icons/vue';
-
-import { useOrderStore } from '@/stores/orderStore';
-import { useAuthenticationStore } from '@/stores/authentication';
-import PeriodSelector from '@/components/common/PeriodSelector.vue';
-import { usePeriodStore } from '@/stores/periodStore';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();

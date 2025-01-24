@@ -1,7 +1,7 @@
 <!-- components/b2b/B2BClientsTable.vue -->
 <script setup>
 import { ref } from 'vue';
-import DataTable from '@carsalhaz/vue-data-table';
+import DataTable from '@/components/DataTable/index.vue';
 import { PhPen, PhTrash } from '@phosphor-icons/vue';
 
 const props = defineProps({

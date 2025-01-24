@@ -1,10 +1,20 @@
 <script setup>
+// Vue and Headless UI
 import { ref } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
-import { PhPen } from '@phosphor-icons/vue';
-import { useBakeryUserStore } from '@/stores/bakeryUserStore';
-import DataTable, { useDataTable } from '@carsalhaz/vue-data-table';
+
+// DataTable Core
+import DataTable from '@/components/DataTable/index.vue';
+import { useDataTable } from '@/components/DataTable/composables/useDataTable.js';
+
+// Components
 import BakeryUserForm from '@/components/forms/BakeryUserForm.vue';
+
+// Stores
+import { useBakeryUserStore } from '@/stores/bakeryUserStore';
+
+// Icons
+import { PhPen } from '@phosphor-icons/vue';
 
 const bakeryUserStore = useBakeryUserStore();
 const isFormOpen = ref(false);

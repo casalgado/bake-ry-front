@@ -104,11 +104,14 @@ export const useDataTable = (store, options = {}) => {
       }
 
       // Fetch data with provided filters
-      await store.fetchAll(options.filters || {});
+
+      await store.fetchAll(options.fetchAll || {});
 
       // Setup real-time updates
-      unsubscribeRef.value = await store.subscribeToChanges();
-      console.log('🔄 Real-time updates enabled');
+      if (options.subscribeToChanges) {
+        unsubscribeRef.value = await store.subscribeToChanges();
+        console.log('🔄 Real-time updates enabled');
+      }
 
       // Allow for post-fetch operations
       if (options.onAfterFetch) {
@@ -124,7 +127,7 @@ export const useDataTable = (store, options = {}) => {
 
   // Cleanup
   onUnmounted(() => {
-    if (unsubscribeRef.value) {
+    if (unsubscribeRef.value && options.subscribeToChanges) {
       unsubscribeRef.value();
       store.unsubscribe();
     }

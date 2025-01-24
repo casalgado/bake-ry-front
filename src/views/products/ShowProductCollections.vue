@@ -1,11 +1,20 @@
 <script setup>
+// Vue & Router
 import { ref, onMounted } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
-import { useProductCollectionStore } from '@/stores/productCollectionStore';
-import DataTable from '@carsalhaz/vue-data-table';
-import { PhPen, PhTrash } from '@phosphor-icons/vue';
-import ProductCollectionForm from '@/components/forms/ProductCollectionForm.vue';
 import { useRouter } from 'vue-router';
+
+// DataTable
+import DataTable from '@/components/DataTable/index.vue';
+
+// Components
+import ProductCollectionForm from '@/components/forms/ProductCollectionForm.vue';
+
+// Store
+import { useProductCollectionStore } from '@/stores/productCollectionStore';
+
+// Icons
+import { PhPen, PhTrash } from '@phosphor-icons/vue';
 
 const router = useRouter();
 

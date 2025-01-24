@@ -1,10 +1,19 @@
 <script setup>
+// Vue and Headless UI
 import { ref, onMounted } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
+
+// DataTable Core
+import DataTable from '@/components/DataTable/index.vue';
+
+// Components
+import BakeryUserForm from '@/components/forms/BakeryUserForm.vue';
+
+// Stores
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
-import DataTable from '@/components/DataTable/index.vue';
-import BakeryUserForm from '@/components/forms/BakeryUserForm.vue';
+
+// Icons
 import { PhPen, PhTrash } from '@phosphor-icons/vue';
 
 // Store initialization
