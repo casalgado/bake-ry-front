@@ -75,11 +75,13 @@ const {
   clearSelection,
 } = useDataTable(orderStore, {
   subscribeToChanges: true,
-  filters: {
-    dateRange: {
-      dateField: 'dueDate',
-      startDate: periodStore.periodRange.start.toISOString(),
-      endDate: periodStore.periodRange.end.toISOString(),
+  fetchAll: {
+    filters: {
+      dateRange: {
+        dateField: 'dueDate',
+        startDate: periodStore.periodRange.start.toISOString(),
+        endDate: periodStore.periodRange.end.toISOString(),
+      },
     },
   },
   // Initial setup before fetching data
