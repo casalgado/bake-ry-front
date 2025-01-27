@@ -42,6 +42,7 @@ const {
     switch (actionId) {
     case 'edit':
       isFormOpen.value = true;
+      console.log(selectedClient);
       break;
     }
   },
@@ -155,7 +156,7 @@ const closeForm = () => {
         <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <BakeryUserForm
             v-if="selectedItems[0]"
-            :title="'Edit Client'"
+            :title="'Editar Cliente'"
             :key="selectedItems[0].id"
             :initial-data="selectedItems[0]"
             :loading="bakeryUserStore.loading"

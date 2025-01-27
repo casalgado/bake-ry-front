@@ -4,7 +4,7 @@ class QueryBuilder {
     this.query = {
       pagination: {
         page: 1,
-        perPage: 1000,
+        perPage: 5000,
       },
       sort: {
         field: 'createdAt',
