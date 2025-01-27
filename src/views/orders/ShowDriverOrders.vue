@@ -12,6 +12,14 @@ import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 
+// Stores
+import { usePeriodStore } from '@/stores/periodStore';
+import { useOrderStore } from '@/stores/orderStore';
+import { useAuthenticationStore } from '@/stores/authentication';
+
+// Components
+import PeriodSelector from '@/components/common/PeriodSelector.vue';
+
 // Icons
 import {
   PhMoney,
@@ -42,11 +50,13 @@ const {
 } = useDataTable(orderStore, {
   processData,
   subscribeToChanges: true,
-  filters: {
-    dateRange: {
-      dateField: 'dueDate',
-      startDate: periodStore.periodRange.start.toISOString(),
-      endDate: periodStore.periodRange.end.toISOString(),
+  fetchAll: {
+    filters: {
+      dateRange: {
+        dateField: 'dueDate',
+        startDate: periodStore.periodRange.start.toISOString(),
+        endDate: periodStore.periodRange.end.toISOString(),
+      },
     },
   },
 });

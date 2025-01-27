@@ -212,7 +212,7 @@ const columns = [
     field: 'status',
     sortable: true,
     type: 'toggle',
-    options: [{ value: 0, displayText: '-' }, { value: 2, displayText: '', icon: PhMoped }],
+    options: [{ value: 0, displayText: '0' }, { value: 2, displayText: '', icon: PhMoped }],
   },
 ];
 

@@ -124,7 +124,7 @@ const errors = ref({});
 const resetForm = () => {
   formData.value = getInitialFormState();
   errors.value = {};
-  selectedFeeType.value = deliveryFeeOptions[0].value;
+  selectedDeliveryFee.value = deliveryFeeOptions[0].value;
 
   nextTick(() => {
     setTimeout(() => {
@@ -163,9 +163,9 @@ onMounted(async () => {
     option => option.value === formData.value.deliveryFee,
   );
   if (matchingOption) {
-    selectedFeeType.value = matchingOption.value;
+    selectedDeliveryFee.value = matchingOption.value;
   } else if (formData.value.deliveryFee) {
-    selectedFeeType.value = 'custom';
+    selectedDeliveryFee.value = 'custom';
   }
 });
 
@@ -176,7 +176,6 @@ const handleNewClientClick = () => {
 const handleClientCreated = (newClient) => {
   handleUserChange(newClient);
 };
-
 const handleUserChange = async (user) => {
   formData.value.userId = user.id;
   formData.value.userName = user.name;
@@ -196,6 +195,15 @@ const handleUserChange = async (user) => {
       currentHistoryIndex.value = 0;
       const historicalOrder = userHistory.value[0];
       formData.value.orderItems = addBasePricesToOrderItems(historicalOrder.orderItems, productStore.items);
+      formData.value.fulfillmentType = historicalOrder.fulfillmentType;
+      formData.value.deliveryFee = historicalOrder.deliveryFee;
+      formData.value.paymentMethod = historicalOrder.paymentMethod;
+
+      // Update selectedFeeType based on the historical delivery fee
+      const matchingOption = deliveryFeeOptions.find(
+        option => option.value === historicalOrder.deliveryFee,
+      );
+      selectedDeliveryFee.value = matchingOption ? matchingOption.value : 'custom';
     }
   }
 
@@ -270,12 +278,22 @@ const deliveryFeeOptions = [
   { value: 'custom', label: 'Otro' },
 ];
 
-const selectedFeeType = ref(deliveryFeeOptions[0].value);
+const selectedDeliveryFee = ref(deliveryFeeOptions[0].value);
 
-watch(selectedFeeType, (newValue) => {
-  if (newValue !== 'custom') {
-    formData.value.deliveryFee = newValue;
+watch(selectedDeliveryFee, (newValue) => {
+  if (newValue === 'custom') {
+    // Don't modify the delivery fee if it's a custom value
+    return;
   }
+  formData.value.deliveryFee = newValue;
+});
+
+// Add a watch for deliveryFee to update selectedFeeType
+watch(() => formData.value.deliveryFee, (newValue) => {
+  const matchingOption = deliveryFeeOptions.find(
+    option => option.value === newValue,
+  );
+  selectedDeliveryFee.value = matchingOption ? matchingOption.value : 'custom';
 });
 
 watch(() => formData.value.preparationDate, (newDate) => {
@@ -468,7 +486,7 @@ const clearUser = () => {
 
         <RadioButtonGroup
           v-if="formData.fulfillmentType === 'delivery'"
-          v-model="selectedFeeType"
+          v-model="selectedDeliveryFee"
           :options="deliveryFeeOptions"
           name="delivery-fee"
           label="Costo de Envío"
@@ -476,6 +494,7 @@ const clearUser = () => {
           custom-option-value="custom"
         >
           <template #custom-input>
+
             <input
               type="number"
               v-model="formData.deliveryFee"
