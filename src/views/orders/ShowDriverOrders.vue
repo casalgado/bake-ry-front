@@ -26,8 +26,8 @@ import {
   PhCreditCard,
   PhDeviceMobile,
   PhGift,
-  PhStorefront,
-  PhMopedFront,
+  PhMoped,
+  PhBuilding,
 } from '@phosphor-icons/vue';
 
 const periodStore = usePeriodStore();
@@ -82,7 +82,7 @@ const columns = [
   },
   {
     id: 'deliveryCost',
-    label: 'Valor Domi',
+    label: 'Domi',
     field: 'deliveryCost',
     sortable: true,
     component: MoneyCell,
@@ -99,6 +99,16 @@ const columns = [
     getProps: (row) => ({
       items: row.orderItems,
       maxDisplay: 10,
+    }),
+  },
+  {
+    id: 'total',
+    label: '$Tot',
+    field: 'total',
+    sortable: true,
+    component: MoneyCell,
+    getProps: (row) => ({
+      value: row.total,
     }),
   },
   {
@@ -127,14 +137,12 @@ const columns = [
     }),
   },
   {
-    id: 'total',
-    label: 'Total',
-    field: 'total',
+    id: 'status',
+    label: 'Estado',
+    field: 'status',
     sortable: true,
-    component: MoneyCell,
-    getProps: (row) => ({
-      value: row.total,
-    }),
+    type: 'toggle',
+    options: [{ value: 0, displayText: '0', lockedValue: true, skipWhenToggled: true }, { value: 2, displayText: '', icon: PhMoped }, { value: 3, displayText: '', icon: PhBuilding }],
   },
 ];
 // Watch for period changes and fetch new data
@@ -169,7 +177,7 @@ watch(
       {{ orderStore.error }}
     </div>
 
-    <pre>{{ tableData.map(order => ({id: order.id, client: order.userName, driverMarkedAsPaid: order.driverMarkedAsPaid, isPaid: order.isPaid}) ) }}</pre>
+    <!-- <pre>{{ tableData.map(order => ({id: order.id, client: order.userName, driverMarkedAsPaid: order.driverMarkedAsPaid, isPaid: order.isPaid}) ) }}</pre> -->
     <!-- Table -->
     <div>
       <DataTable

@@ -35,6 +35,7 @@ import {
   PhPackage,
   PhStorefront,
   PhMopedFront,
+  PhBuilding,
 } from '@phosphor-icons/vue';
 
 const periodStore = usePeriodStore();
@@ -156,14 +157,6 @@ const columns = [
     }),
   },
   {
-    id: 'isDeliveryPaid',
-    label: 'Pagado',
-    field: 'isDeliveryPaid',
-    sortable: true,
-    type: 'toggle',
-    options: [{ value: true, icon: PhCheckSquare }, { value: false, icon: PhMinus }],
-  },
-  {
     id: 'items',
     label: 'Items',
     field: 'items',
@@ -174,17 +167,7 @@ const columns = [
       maxDisplay: 10,
     }),
   },
-  {
-    id: 'fulfillmentType',
-    label: 'Tipo Entrega',
-    field: 'fulfillmentType',
-    sortable: true,
-    type: 'toggle',
-    options: [
-      { value: 'pickup', displayText: 'R', icon: PhStorefront },
-      { value: 'delivery', displayText: 'D', icon: PhMopedFront },
-    ],
-  },
+
   {
     id: 'numberOfBags',
     label: 'Bolsas',
@@ -207,14 +190,32 @@ const columns = [
       drivers: deliveryDrivers.value,
     }),
   },
-
+  {
+    id: 'fulfillmentType',
+    label: 'Tipo Entrega',
+    field: 'fulfillmentType',
+    sortable: true,
+    type: 'toggle',
+    options: [
+      { value: 'pickup', displayText: 'R', icon: PhStorefront },
+      { value: 'delivery', displayText: 'D', icon: PhMopedFront },
+    ],
+  },
+  {
+    id: 'isDeliveryPaid',
+    label: 'Pagado',
+    field: 'isDeliveryPaid',
+    sortable: true,
+    type: 'toggle',
+    options: [{ value: true, icon: PhCheckSquare }, { value: false, icon: PhMinus }],
+  },
   {
     id: 'status',
     label: 'Estado',
     field: 'status',
     sortable: true,
     type: 'toggle',
-    options: [{ value: 0, displayText: '0' }, { value: 2, displayText: '', icon: PhMoped }],
+    options: [{ value: 0, displayText: '0'  }, { value: 2, displayText: '', icon: PhMoped }, { value: 3, displayText: '', icon: PhBuilding }],
   },
 ];
 

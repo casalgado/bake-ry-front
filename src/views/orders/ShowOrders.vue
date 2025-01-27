@@ -160,6 +160,31 @@ const columns = [
     }),
   },
   {
+    id: 'total',
+    label: 'Total',
+    field: 'total',
+    sortable: true,
+    component: MoneyCell,
+    getProps: (row) => ({
+      value: row.total,
+      valueBelow: row.deliveryFee,
+      hideBelow: row.fulfillmentType === 'pickup',
+    }),
+  },
+  {
+    id: 'isPaid',
+    label: 'Pagado',
+    field: 'isPaid',
+    sortable: true,
+    type: 'toggle',
+    options: [{ value: true, displayText: '✓' }, { value: false, displayText: '-' }],
+    component: IsPaidCell,
+    getProps: (row) => ({
+      isPaid: row.isPaid,
+      isComplimentary: row.isComplimentary,
+    }),
+  },
+  {
     id: 'paymentMethod',
     label: 'Pago',
     field: 'paymentMethod',
@@ -182,31 +207,6 @@ const columns = [
       { value: 'pickup', displayText: 'R', icon: PhStorefront },
       { value: 'delivery', displayText: 'D', icon: PhMopedFront },
     ],
-  },
-  {
-    id: 'isPaid',
-    label: 'Pagado',
-    field: 'isPaid',
-    sortable: true,
-    type: 'toggle',
-    options: [{ value: true, displayText: '✓' }, { value: false, displayText: '-' }],
-    component: IsPaidCell,
-    getProps: (row) => ({
-      isPaid: row.isPaid,
-      isComplimentary: row.isComplimentary,
-    }),
-  },
-  {
-    id: 'total',
-    label: 'Total',
-    field: 'total',
-    sortable: true,
-    component: MoneyCell,
-    getProps: (row) => ({
-      value: row.total,
-      valueBelow: row.deliveryFee,
-      hideBelow: row.fulfillmentType === 'pickup',
-    }),
   },
 ];
 

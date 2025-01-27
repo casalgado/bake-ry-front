@@ -41,6 +41,11 @@ const handleClick = (event) => {
 const isClickEnabled = computed(() => {
   if (props.column.type !== 'toggle') return false;
   if (props.column.field === 'isPaid' && props.row.isComplimentary) return false;
+  if (props.column.options) {
+    const currentValue = props.row[props.column.field];
+    const currentOption = props.column.options.find(opt => opt.value === currentValue);
+    if (currentOption?.lockedValue) return false;
+  }
   return !props.selectedRows.size || props.selectedRows.has(props.row.id);
 });
 
@@ -149,7 +154,7 @@ onUnmounted(() => {
     @touchstart="handleTouchStart"
     @touchend="handleTouchEnd"
     :class="{
-      'border-neutral-400 border-[2px] border-dashed': props.column.type === 'toggle',
+      'border-neutral-400 border-[2px] border-dashed': props.column.type === 'toggle' && isClickEnabled,
       'cursor-not-allowed': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id)
     }"
   >
