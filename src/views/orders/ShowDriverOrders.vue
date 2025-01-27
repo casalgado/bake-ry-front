@@ -71,6 +71,7 @@ const columns = [
     component: ClientCell,
     getProps: (row) => ({
       name: row.userName,
+      phone: row.userPhone,
     }),
   },
   {
@@ -114,26 +115,15 @@ const columns = [
     ],
   },
   {
-    id: 'fulfillmentType',
-    label: 'Entrega',
-    field: 'fulfillmentType',
-    sortable: true,
-    type: 'toggle',
-    options: [
-      { value: 'pickup', displayText: 'R', icon: PhStorefront },
-      { value: 'delivery', displayText: 'D', icon: PhMopedFront },
-    ],
-  },
-  {
-    id: 'isPaid',
+    id: 'driverMarkedAsPaid',
     label: 'Pagado',
-    field: 'isPaid',
+    field: 'driverMarkedAsPaid',
     sortable: true,
     type: 'toggle',
     options: [{ value: true, displayText: '✓' }, { value: false, displayText: '-' }],
     component: CheckboxCell,
     getProps: (row) => ({
-      isChecked: row.isPaid,
+      isChecked: row.driverMarkedAsPaid,
     }),
   },
   {
@@ -179,6 +169,7 @@ watch(
       {{ orderStore.error }}
     </div>
 
+    <pre>{{ tableData.map(order => ({id: order.id, client: order.userName, driverMarkedAsPaid: order.driverMarkedAsPaid, isPaid: order.isPaid}) ) }}</pre>
     <!-- Table -->
     <div>
       <DataTable

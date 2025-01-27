@@ -130,6 +130,7 @@ const columns = [
     getProps: (row) => ({
       name: row.userName,
       comment: row.internalNotes,
+      phone: row.userPhone,
     }),
   },
   {
@@ -141,6 +142,7 @@ const columns = [
     getProps: (row) => ({
       address: row.deliveryAddress,
       show: row.fulfillmentType === 'delivery',
+
     }),
   },
   {

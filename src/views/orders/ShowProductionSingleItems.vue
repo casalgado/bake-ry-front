@@ -106,7 +106,6 @@ const columns = [
     options: [
       { value: 0, displayText: '-' },
       { value: 1, displayText: 'producido' },
-      { value: 2, displayText: 'entregado' },
     ],
   },
 ];

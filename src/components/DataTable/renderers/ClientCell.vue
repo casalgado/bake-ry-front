@@ -12,7 +12,7 @@ defineProps({
 
 <template>
   <div class="flex flex-col">
-    {{ name }}
+    {{ name }} {{ phone ? ` ${phone}` : '' }}
     <span v-if="comment" class="text-xs text-neutral-500">{{ comment }}</span>
   </div>
 </template>
