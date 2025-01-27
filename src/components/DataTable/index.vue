@@ -211,6 +211,7 @@ const clearSelection = () => {
 // Make clearSelection available externally
 defineExpose({
   clearSelection,
+  addToHistory,
 });
 
 const emitSelectionChange = () => {

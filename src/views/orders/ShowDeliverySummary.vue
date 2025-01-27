@@ -19,6 +19,7 @@ const expandedDriver = ref(null);
 const unsubscribeRef = ref(null);
 const toggleLoading = ref({});
 const drivers = ref([]);
+const dataTableRef = ref(null);
 
 const props = defineProps({
   singleDriverMode: { type: Boolean, default: false },
@@ -164,16 +165,44 @@ const handleMarkPeriodPaid = async (driverId) => {
   if (!driverSummary) return;
 
   try {
-    const updates = driverSummary.deliveries
-      .filter(order => !order.isDeliveryPaid)
-      .map(order => ({
-        id: order.id,
-        data: { isDeliveryPaid: true },
-      }));
+    // Get unpaid deliveries
+    const unpaidDeliveries = driverSummary.deliveries.filter(order => !order.isDeliveryPaid);
 
-    if (updates.length > 0) {
-      await orderStore.patchAll(updates);
-    }
+    if (unpaidDeliveries.length === 0) return;
+
+    // Store the previous state
+    const previousState = unpaidDeliveries.map(order => ({
+      id: order.id,
+      isDeliveryPaid: false,
+    }));
+
+    // Create updates
+    const updates = unpaidDeliveries.map(order => ({
+      id: order.id,
+      data: { isDeliveryPaid: true },
+    }));
+
+    // Add to undo history
+    console.log(dataTableRef.value[0]);
+    dataTableRef.value[0]?.addToHistory({
+      type: 'markPeriodPaid',
+      description: `Mark period paid for ${driverSummary.name}`,
+      undo: async () => {
+        // Restore previous state
+        const undoUpdates = previousState.map(state => ({
+          id: state.id,
+          data: { isDeliveryPaid: state.isDeliveryPaid },
+        }));
+        await orderStore.patchAll(undoUpdates);
+      },
+      redo: async () => {
+        // Reapply the changes
+        await orderStore.patchAll(updates);
+      },
+    });
+
+    // Execute the updates
+    await orderStore.patchAll(updates);
   } catch (error) {
     console.error('Failed to mark period as paid:', error);
   }
@@ -302,6 +331,7 @@ onUnmounted(() => {
           </div>
 
           <DataTable
+            ref="dataTableRef"
             :data="driver.deliveries"
             :columns="tableColumns"
             :toggle-loading="toggleLoading"
