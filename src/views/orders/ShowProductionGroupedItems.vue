@@ -60,50 +60,43 @@ const groupedOrderItems = computed(() => {
     const variationId = item.variation?.id || 'no-variation';
     const key = `${item.productId}-${variationId}`;
 
-    // Convert collection name to lowercase for matching
-    const collectionName = item.collectionName?.toLowerCase();
-
     if (!acc[key]) {
       acc[key] = {
         id: key,
         productId: item.productId,
         productName: item.productName,
         collectionName: item.collectionName,
-        collectionOrder: categoryOrder[collectionName] || 999, // Case-insensitive lookup
+        collectionOrder: categoryOrder[item.collectionName?.toLowerCase()] || 999,
         variation: item.variation || { name: '' },
         totalQuantity: 0,
         originalItems: [],
-        batches: new Set(),
-        statuses: new Set(),
+        producedCount: 0,
+        totalItems: 0,
       };
     }
 
     acc[key].totalQuantity += item.quantity;
     acc[key].originalItems.push(item);
-    if (item.productionBatch) acc[key].batches.add(item.productionBatch);
-    acc[key].statuses.add(item.status);
+    acc[key].totalItems++;
+    if (item.status === 1) { // 1 represents 'producido'
+      acc[key].producedCount++;
+    }
 
     return acc;
   }, {});
 
   return Object.values(groups)
     .sort((a, b) => {
-      // First sort by collection order
       if (a.collectionOrder !== b.collectionOrder) {
         return a.collectionOrder - b.collectionOrder;
       }
-      // Then by product name
       return a.productName.localeCompare(b.productName);
     })
     .map(group => ({
       ...group,
-      productionBatch: group.batches.size === 1
-        ? Array.from(group.batches)[0]
-        : Array.from(group.batches).sort((a, b) => a - b).join(','),
-      status: group.statuses.size === 1
-        ? Array.from(group.statuses)[0]
-        : 'Mixed',
-      batches: Array.from(group.batches).sort().join(','),
+      status: group.producedCount === group.totalItems ? 1 :
+        group.producedCount === 0 ? 0 :
+          `${group.producedCount}/${group.totalItems}`,
     }));
 });
 
@@ -140,9 +133,14 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [
-      { value: 0, displayText: '-' },
+
       { value: 1, displayText: 'producido' },
-      { value: 'Mixed', displayText: 'M', skipWhenToggled: true },
+      { value: 0, displayText: '-' },
+      {
+        test: (value) => typeof value === 'string' && value.includes('/'),
+        displayText: (value) => value,
+        skipWhenToggled: true,
+      },
     ],
   },
 ];

@@ -115,7 +115,7 @@ onClickOutside(searchContainer, () => {
     <!-- Filters -->
     <div class="flex items-center gap-2 flex-grow justify-end">
       <!-- Desktop view -->
-      <div class="flex items-center gap-2" v-if="visibleFilters">
+      <div class="hidden lg:flex items-center gap-2" v-if="visibleFilters">
         <template v-for="filter in filters" :key="filter.field">
           <div class="flex items-center gap-1">
             <template v-for="option in filter.options" :key="option.value">
@@ -133,7 +133,7 @@ onClickOutside(searchContainer, () => {
       </div>
 
       <!-- Mobile dropdown -->
-      <div class="" v-else>
+      <div class="">
         <Menu as="div" class="relative inline-block text-left" v-slot="{ open }">
           <MenuButton class="inline-flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-neutral-100"
             :class="{ 'bg-neutral-100': open }">

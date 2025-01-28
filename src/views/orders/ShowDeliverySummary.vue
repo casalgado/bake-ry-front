@@ -354,6 +354,7 @@ onUnmounted(() => {
             :toggle-loading="toggleLoading"
             :data-loading="orderStore.loading"
             :visible-filters="true"
+            :filters="tableFilters"
             @toggle-update="handleToggleUpdate"
             class="bg-white"
           />
