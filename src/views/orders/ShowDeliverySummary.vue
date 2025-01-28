@@ -105,7 +105,7 @@ const pendingSummary = computed(() => ([
 ]));
 
 const amountSummary = computed(() => ([
-  { label: 'Total Semana', value: `$${(globalSummary.value.totalAmount || 0).toLocaleString()}` },
+  { label: 'Total Periodo', value: `$${(globalSummary.value.totalAmount || 0).toLocaleString()}` },
 ]));
 
 const tableFilters = [
@@ -306,7 +306,7 @@ const handleCardClick = async (card, id) => {
   }
 
   expandedCard.value = card;
-  console.log(expandedDriver.value);
+  console.log(expandedCard.value);
   await nextTick();
 
   if (card == 'earlyWeek') {
@@ -435,7 +435,11 @@ onUnmounted(() => {
         <!-- Expanded Details -->
         <div v-if="expandedDriver === driver.id" class="border-t border-neutral-200 p-4">
           <div class="flex justify-between mb-4">
-            <h4 class="font-semibold text-neutral-700">Detalle de Domicilios</h4>
+            <div class="flex flex-col items-start gap-0">
+              <h4 class="m-0 font-semibold text-neutral-700">Detalle de Domicilios </h4>
+              <h6 class="m-0 font-semibold text-neutral-700">{{ expandedCard == 'total' ? 'Total Periodo' : expandedCard == 'earlyWeek' ? 'Lunes - Miércoles' : expandedCard == 'lateWeek' ? 'Jueves - Sábado' : '' }}</h6>
+
+            </div>
             <div v-if="!props.singleDriverMode" class="flex gap-2">
               <button @click="handleMarkPeriodPaid(driver.id)" class="utility-btn">
                 Marcar Todo Pagado
