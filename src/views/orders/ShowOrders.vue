@@ -41,6 +41,7 @@ import {
 
 // Utils
 import { formatMoney } from '@/utils/helpers';
+import  exportOrders  from '@/utils/exportOrders';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -109,18 +110,35 @@ const {
       orderHistory.value = await orderStore.getHistory(selectedOrder.id);
       isHistoryOpen.value = true;
       break;
+    case 'export':
+      console.log('Selected items for export:', selectedItems.value);
+      exportOrders(selectedItems.value);
+      break;
     }
   },
 });
 
 // Compute totals
 const totals = computed(() => {
-  const orders = tableData.value;
+  // Use selected orders if any are selected, otherwise use all table data
+  const ordersToCalculate = selectedItems.value.length > 0
+    ? selectedItems.value
+    : tableData.value;
+
   const calcSalesWithoutDelivery = (ordersArray) =>
     ordersArray.reduce((sum, order) => sum + order.subtotal, 0);
+  const calcSalesWithDelivery = (ordersArray) =>
+    ordersArray.reduce((sum, order) => sum + order.total, 0);
 
   return [
-    { label: 'Venta', value: calcSalesWithoutDelivery(orders) },
+    {
+      label: 'Venta',
+      value: calcSalesWithoutDelivery(ordersToCalculate),
+    },
+    {
+      label: 'Ingreso',
+      value: calcSalesWithDelivery(ordersToCalculate),
+    },
   ];
 });
 
@@ -256,7 +274,7 @@ const tableActions = [
     id: 'export',
     label: 'Exportar',
     icon: PhExport,
-    minSelected: 2,
+    minSelected: 1,
     variant: 'primary',
   },
 ];
@@ -302,8 +320,8 @@ watch(
 
 <template>
   <div class="container p-4 px-0 lg:px-4">
-    <div class="flex flex-col lg:flex-row justify-between items-center mb-4 gap-2">
-      <TotalsSummary :categories="totals" :format-value="formatMoney"/>
+    <div class="flex flex-col lg:flex-row-reverse justify-between items-center mb-4 gap-2">
+      <TotalsSummary class="relative md:fixed md:bottom-10 md:left-10 z-[999]" :categories="totals" :format-value="formatMoney"/>
       <PeriodSelector />
     </div>
 
