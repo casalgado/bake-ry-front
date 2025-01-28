@@ -334,26 +334,26 @@ onUnmounted(() => {
           </div>
 
           <!-- Stats Grid -->
-          <div class="grid grid-cols-3 gap-4 w-full">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
 
             <!-- Early Week -->
             <div class="space-y-1 p-3 bg-white rounded-lg">
-              <h4 class="text-sm font-medium ">Lunes - Miércoles</h4>
+              <h4 class="text-sm font-medium text-center">Lunes - Miércoles</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Total</p>
-                  <p class="font-semibold text-neutral-800">${{ driver.summaries.earlyWeek.totalAmount.toLocaleString()
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.earlyWeek.totalAmount.toLocaleString()
                     }}</p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pagados</p>
-                  <p class="font-semibold text-neutral-800">
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">
                     {{ driver.summaries.earlyWeek.paidDeliveries }}/{{ driver.summaries.earlyWeek.totalDeliveries }}
                   </p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pendiente</p>
-                  <p class="font-semibold text-neutral-800">${{ driver.summaries.earlyWeek.unpaidAmount.toLocaleString()
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.earlyWeek.unpaidAmount.toLocaleString()
                     }}</p>
                 </div>
               </div>
@@ -361,22 +361,22 @@ onUnmounted(() => {
 
             <!-- Late Week -->
             <div class="space-y-1 p-3 bg-white rounded-lg">
-              <h4 class="text-sm font-medium ">Jueves - Sábado</h4>
+              <h4 class="text-sm font-medium text-center">Jueves - Sábado</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Total</p>
-                  <p class="font-semibold text-neutral-800">${{ driver.summaries.lateWeek.totalAmount.toLocaleString()
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.lateWeek.totalAmount.toLocaleString()
                     }}</p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pagados</p>
-                  <p class="font-semibold text-neutral-800">
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">
                     {{ driver.summaries.lateWeek.paidDeliveries }}/{{ driver.summaries.lateWeek.totalDeliveries }}
                   </p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pendiente</p>
-                  <p class="font-semibold text-neutral-800">${{ driver.summaries.lateWeek.unpaidAmount.toLocaleString()
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.lateWeek.unpaidAmount.toLocaleString()
                     }}</p>
                 </div>
               </div>
@@ -384,22 +384,22 @@ onUnmounted(() => {
 
             <!-- Total Period -->
             <div class="space-y-1 p-3 bg-white rounded-lg">
-              <h4 class="text-sm font-medium ">Semana Completa</h4>
+              <h4 class="text-sm font-medium text-center">Semana Completa</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Total</p>
-                  <p class="font-semibold text-neutral-800">${{ driver.summaries.total.totalAmount.toLocaleString() }}
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.total.totalAmount.toLocaleString() }}
                   </p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pagados</p>
-                  <p class="font-semibold text-neutral-800">
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">
                     {{ driver.summaries.total.paidDeliveries }}/{{ driver.summaries.total.totalDeliveries }}
                   </p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pendiente</p>
-                  <p class="font-semibold text-neutral-800">${{ driver.summaries.total.unpaidAmount.toLocaleString() }}
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.total.unpaidAmount.toLocaleString() }}
                   </p>
                 </div>
               </div>
