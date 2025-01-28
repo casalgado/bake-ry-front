@@ -7,10 +7,10 @@ const transformOrderToCSVRows = (order, index) => {
     pago_recibido: order.isPaid ? 'si' : 'no',
     metodo: getPaymentMethodText(order.paymentMethod),
     cliente: order.userName || '',
-    correo: order.email || '',
-    cedula: order.document || '',
-    direccion: order.address || '',
-    telefono: order.phone || '',
+    correo: order.userEmail || '',
+    cedula: '',
+    direccion: order.deliveryAddress || '',
+    telefono: order.userPhone || '',
     producto: '',
     cantidad: '',
     subtotal: '',
@@ -18,22 +18,32 @@ const transformOrderToCSVRows = (order, index) => {
   };
 
   // Create rows for each order item
-  const itemRows = order.orderItems.map(item => ({
-    o: '',
-    id: '',
-    fecha_venta: '',
-    pago_recibido: '',
-    metodo: '',
-    cliente: '',
-    correo: '',
-    cedula: '',
-    direccion: '',
-    telefono: '',
-    producto: item.name,
-    cantidad: item.quantity,
-    subtotal: item.price * item.quantity,
-    total: '',
-  }));
+  const itemRows = [];
+  if (Array.isArray(order.orderItems)) {
+    order.orderItems.forEach(item => {
+      const productName = [
+        item.productName || '',
+        item.variation?.name || '',
+      ].filter(Boolean).join(' ');
+
+      itemRows.push({
+        o: '',
+        id: '',
+        fecha_venta: '',
+        pago_recibido: '',
+        metodo: '',
+        cliente: '',
+        correo: '',
+        cedula: '',
+        direccion: '',
+        telefono: '',
+        producto: productName,
+        cantidad: item.quantity || '',
+        subtotal: item.subtotal || '',
+        total: '',
+      });
+    });
+  }
 
   // If there's delivery, add it as an item
   if (order.fulfillmentType === 'delivery' && order.deliveryFee) {
@@ -93,29 +103,29 @@ const exportOrders = (orders) => {
   const ordersArray = Array.isArray(orders) ? orders : [];
 
   // Transform all orders into CSV rows
-  const allRows = ordersArray.flatMap((order, index) => {
-    // Ensure orderItems exists
-    const safeOrder = {
-      ...order,
-      orderItems: Array.isArray(order.orderItems) ? order.orderItems : [],
-    };
-    return transformOrderToCSVRows(safeOrder, index);
-  });
+  const allRows = ordersArray.flatMap((order, index) =>
+    transformOrderToCSVRows(order, index),
+  );
 
   // Convert to CSV string
-  const headers = ['o', 'id', 'fecha_venta', 'fecha_cancelacion', 'metodo',
+  const headers = ['o', 'id', 'fecha_venta', 'pago_recibido', 'metodo',
     'cliente', 'correo', 'cedula', 'direccion', 'telefono', 'producto',
     'cantidad', 'subtotal', 'total'];
 
   const csvContent = [
     headers.join(','),
     ...allRows.map(row =>
-      headers.map(header =>
-      // Escape commas and quotes in values
-        row[header] !== undefined && row[header] !== null
-          ? `"${String(row[header]).replace(/"/g, '""')}"`
-          : '',
-      ).join(','),
+      headers.map(header => {
+        const value = row[header];
+        if (value === undefined || value === null || value === '') return '';
+
+        // Convert value to string and escape special characters
+        const stringValue = String(value)
+          .replace(/"/g, '""') // Escape quotes
+          .replace(/\n/g, ' '); // Replace newlines with spaces
+
+        return `"${stringValue}"`;
+      }).join(','),
     ),
   ].join('\n');
 
