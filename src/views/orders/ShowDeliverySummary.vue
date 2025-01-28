@@ -25,7 +25,6 @@ const props = defineProps({
   singleDriverMode: { type: Boolean, default: false },
   driverId: { type: String, default: null },
 });
-
 // Helper function to filter orders by day range
 const filterOrdersByDays = (orders, days) => {
   return orders.filter(order => {
@@ -36,21 +35,26 @@ const filterOrdersByDays = (orders, days) => {
   });
 };
 
-const computeSummary = (orders) => {
+// Compute summary for a set of orders with default values
+const computeSummary = (orders = []) => {
   const paidDeliveries = orders.filter(order => order.isDeliveryPaid).length;
   const unpaidOrders = orders.filter(order => !order.isDeliveryPaid);
-  const unpaidAmount = _.sumBy(unpaidOrders, 'deliveryCost');
+  const unpaidAmount = _.sumBy(unpaidOrders, 'deliveryCost') || 0;
 
   return {
     totalDeliveries: orders.length,
-    totalAmount: _.sumBy(orders, 'deliveryCost'),
+    totalAmount: _.sumBy(orders, 'deliveryCost') || 0,
     paidDeliveries,
     unpaidDeliveries: orders.length - paidDeliveries,
     unpaidAmount,
   };
 };
+
+// Modified driverSummaries computed property with error handling
 const driverSummaries = computed(() => {
-  let orders = orderStore.items
+  if (!orderStore.items) return [];
+
+  let orders = (orderStore.items || [])
     .filter(order => order.fulfillmentType === 'delivery')
     .map(order => ({
       ...order,
@@ -82,25 +86,25 @@ const driverSummaries = computed(() => {
   });
 });
 
-// Global summary computed
+// Global summary computed with error handling
 const globalSummary = computed(() => ({
-  totalDeliveries: _.sumBy(driverSummaries.value, 'summary.totalDeliveries'),
-  totalAmount: _.sumBy(driverSummaries.value, 'summary.totalAmount'),
-  totalPending: _.sumBy(driverSummaries.value, 'summary.unpaidDeliveries'),
-  totalPendingAmount: _.sumBy(driverSummaries.value, 'summary.unpaidAmount'),
+  totalDeliveries: _.sumBy(driverSummaries.value, 'summaries.total.totalDeliveries') || 0,
+  totalAmount: _.sumBy(driverSummaries.value, 'summaries.total.totalAmount') || 0,
+  totalPending: _.sumBy(driverSummaries.value, 'summaries.total.unpaidDeliveries') || 0,
+  totalPendingAmount: _.sumBy(driverSummaries.value, 'summaries.total.unpaidAmount') || 0,
 }));
 
-// Summary categories for TotalsSummary components
+// Summary categories with error handling
 const deliveriesSummary = computed(() => ([
-  { label: 'Total Domicilios', value: globalSummary.value.totalDeliveries },
+  { label: 'Total Domicilios', value: globalSummary.value.totalDeliveries || 0 },
 ]));
 
 const pendingSummary = computed(() => ([
-  { label: 'Por Pagar', value: `$${globalSummary.value.totalPendingAmount.toLocaleString()}  (${globalSummary.value.totalPending})` },
+  { label: 'Por Pagar', value: `$${(globalSummary.value.totalPendingAmount || 0).toLocaleString()}  (${globalSummary.value.totalPending || 0})` },
 ]));
 
 const amountSummary = computed(() => ([
-  { label: 'Total Semana', value: `$${globalSummary.value.totalAmount.toLocaleString()}` },
+  { label: 'Total Semana', value: `$${(globalSummary.value.totalAmount || 0).toLocaleString()}` },
 ]));
 
 const tableFilters = [
@@ -330,28 +334,6 @@ onUnmounted(() => {
 
           <!-- Stats Grid -->
           <div class="grid grid-cols-3 gap-4">
-            <!-- Total Period -->
-            <div class="space-y-1 p-3 bg-white rounded-lg">
-              <h4 class="text-sm font-medium text-neutral-600">Semana Completa</h4>
-              <div class="grid grid-cols-3 gap-2">
-                <div class="text-center">
-                  <p class="text-xs text-neutral-500">Total</p>
-                  <p class="font-semibold text-neutral-800">${{ driver.summaries.total.totalAmount.toLocaleString() }}
-                  </p>
-                </div>
-                <div class="text-center">
-                  <p class="text-xs text-neutral-500">Pagados</p>
-                  <p class="font-semibold text-neutral-800">
-                    {{ driver.summaries.total.paidDeliveries }}/{{ driver.summaries.total.totalDeliveries }}
-                  </p>
-                </div>
-                <div class="text-center">
-                  <p class="text-xs text-neutral-500">Pendiente</p>
-                  <p class="font-semibold text-neutral-800">${{ driver.summaries.total.unpaidAmount.toLocaleString() }}
-                  </p>
-                </div>
-              </div>
-            </div>
 
             <!-- Early Week -->
             <div class="space-y-1 p-3 bg-white rounded-lg">
@@ -395,6 +377,29 @@ onUnmounted(() => {
                   <p class="text-xs text-neutral-500">Pendiente</p>
                   <p class="font-semibold text-neutral-800">${{ driver.summaries.lateWeek.unpaidAmount.toLocaleString()
                     }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Total Period -->
+            <div class="space-y-1 p-3 bg-white rounded-lg">
+              <h4 class="text-sm font-medium text-neutral-600">Semana Completa</h4>
+              <div class="grid grid-cols-3 gap-2">
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Total</p>
+                  <p class="font-semibold text-neutral-800">${{ driver.summaries.total.totalAmount.toLocaleString() }}
+                  </p>
+                </div>
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Pagados</p>
+                  <p class="font-semibold text-neutral-800">
+                    {{ driver.summaries.total.paidDeliveries }}/{{ driver.summaries.total.totalDeliveries }}
+                  </p>
+                </div>
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Pendiente</p>
+                  <p class="font-semibold text-neutral-800">${{ driver.summaries.total.unpaidAmount.toLocaleString() }}
+                  </p>
                 </div>
               </div>
             </div>
