@@ -111,8 +111,8 @@ const {
       isHistoryOpen.value = true;
       break;
     case 'export':
-      console.log('Selected items for export:', selectedItems.value);
-      exportOrders(selectedItems.value);
+      console.log('Selected items for export:', selectedItems);
+      exportOrders(selectedItems);
       break;
     }
   },

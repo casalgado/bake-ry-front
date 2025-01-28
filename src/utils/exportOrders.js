@@ -89,13 +89,21 @@ const getPaymentMethodText = (method) => {
 
 // Main export function
 const exportOrders = (orders) => {
+  // Ensure orders is an array
+  const ordersArray = Array.isArray(orders) ? orders : [];
+
   // Transform all orders into CSV rows
-  const allRows = orders.flatMap((order, index) =>
-    transformOrderToCSVRows(order, index),
-  );
+  const allRows = ordersArray.flatMap((order, index) => {
+    // Ensure orderItems exists
+    const safeOrder = {
+      ...order,
+      orderItems: Array.isArray(order.orderItems) ? order.orderItems : [],
+    };
+    return transformOrderToCSVRows(safeOrder, index);
+  });
 
   // Convert to CSV string
-  const headers = ['o', 'id', 'fecha_venta', 'pago_recibido', 'metodo',
+  const headers = ['o', 'id', 'fecha_venta', 'fecha_cancelacion', 'metodo',
     'cliente', 'correo', 'cedula', 'direccion', 'telefono', 'producto',
     'cantidad', 'subtotal', 'total'];
 
