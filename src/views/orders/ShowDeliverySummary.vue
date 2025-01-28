@@ -61,7 +61,7 @@ const driverSummaries = computed(() => {
       weekday: new Date(order.preparationDate)
         .toLocaleDateString('es-ES', { weekday: 'long' })
         .toLowerCase(),
-    }));
+    })).sort((a, b) => a.preparationDate.localeCompare(b.preparationDate));
 
   if (props.singleDriverMode && props.driverId) {
     orders = orders.filter(order => order.deliveryDriverId === props.driverId);
@@ -113,11 +113,11 @@ const tableFilters = [
     options: [
       {
         label: 'Lunes-Miércoles',
-        value: ['lunes', 'martes', 'miercoles'],  // Group first three days
+        value: ['lunes', 'martes', 'miércoles'],  // Group first three days
       },
       {
         label: 'Jueves-Sábado',
-        value: ['jueves', 'viernes', 'sabado'],   // Group last three days
+        value: ['jueves', 'viernes', 'sábado'],   // Group last three days
       },
     ],
   },
@@ -287,6 +287,7 @@ onMounted(async () => {
           endDate: periodStore.periodRange.end.toISOString(),
         },
       },
+      sort: { field: 'preparationDate', direction: 'asc' },
     });
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for orders');
@@ -323,21 +324,21 @@ onUnmounted(() => {
     <!-- Driver Cards -->
     <div class="space-y-4">
       <div v-for="driver in driverSummaries" :key="driver.id"
-        class="bg-neutral-50 rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+        class="bg-neutral-100 rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
         <!-- Driver Summary -->
-        <div class="p-4 flex flex-wrap items-center gap-4 cursor-pointer hover:bg-neutral-100"
+        <div class="p-4 flex flex-wrap items-center gap-0 cursor-pointer "
           @click="expandedDriver = expandedDriver === driver.id ? null : driver.id">
           <!-- Driver Name -->
-          <div class="mb-4">
+          <div class="">
             <h3 class="text-lg font-semibold text-neutral-800">{{ driver.name }}</h3>
           </div>
 
           <!-- Stats Grid -->
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-3 gap-4 w-full">
 
             <!-- Early Week -->
             <div class="space-y-1 p-3 bg-white rounded-lg">
-              <h4 class="text-sm font-medium text-neutral-600">Lunes - Miércoles</h4>
+              <h4 class="text-sm font-medium ">Lunes - Miércoles</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Total</p>
@@ -360,7 +361,7 @@ onUnmounted(() => {
 
             <!-- Late Week -->
             <div class="space-y-1 p-3 bg-white rounded-lg">
-              <h4 class="text-sm font-medium text-neutral-600">Jueves - Sábado</h4>
+              <h4 class="text-sm font-medium ">Jueves - Sábado</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Total</p>
@@ -383,7 +384,7 @@ onUnmounted(() => {
 
             <!-- Total Period -->
             <div class="space-y-1 p-3 bg-white rounded-lg">
-              <h4 class="text-sm font-medium text-neutral-600">Semana Completa</h4>
+              <h4 class="text-sm font-medium ">Semana Completa</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Total</p>
