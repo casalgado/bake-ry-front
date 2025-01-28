@@ -70,7 +70,10 @@ export default [
       // Add some Vue-specific rules
       'vue/html-indent': 'off',
       'vue/html-quotes': ['error', 'double'],
-
+      'vue/max-attributes-per-line': 'off',
+      'vue/first-attribute-linebreak': 'off',
+      'vue/singleline-html-element-content-newline': 'off',
+      'vue/multiline-html-element-content-newline': 'off',
       'vue/component-name-in-template-casing': ['error', 'PascalCase'],
       'vue/multi-word-component-names': 'off',  // This should now take precedence
     },
