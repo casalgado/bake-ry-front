@@ -68,7 +68,6 @@ export default [
       'eol-last': ['error', 'always'],
 
       // Add some Vue-specific rules
-      'vue/html-indent': 'off',
       'vue/html-quotes': ['error', 'double'],
       'vue/max-attributes-per-line': 'off',
       'vue/first-attribute-linebreak': 'off',

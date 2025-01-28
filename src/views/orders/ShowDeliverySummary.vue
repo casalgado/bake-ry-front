@@ -26,42 +26,56 @@ const props = defineProps({
   driverId: { type: String, default: null },
 });
 
-// Transform orders into driver summary
+// Helper function to filter orders by day range
+const filterOrdersByDays = (orders, days) => {
+  return orders.filter(order => {
+    const weekday = new Date(order.preparationDate)
+      .toLocaleDateString('es-ES', { weekday: 'long' })
+      .toLowerCase();
+    return days.includes(weekday);
+  });
+};
+
+const computeSummary = (orders) => {
+  const paidDeliveries = orders.filter(order => order.isDeliveryPaid).length;
+  const unpaidOrders = orders.filter(order => !order.isDeliveryPaid);
+  const unpaidAmount = _.sumBy(unpaidOrders, 'deliveryCost');
+
+  return {
+    totalDeliveries: orders.length,
+    totalAmount: _.sumBy(orders, 'deliveryCost'),
+    paidDeliveries,
+    unpaidDeliveries: orders.length - paidDeliveries,
+    unpaidAmount,
+  };
+};
 const driverSummaries = computed(() => {
+  let orders = orderStore.items
+    .filter(order => order.fulfillmentType === 'delivery')
+    .map(order => ({
+      ...order,
+      weekday: new Date(order.preparationDate)
+        .toLocaleDateString('es-ES', { weekday: 'long' })
+        .toLowerCase(),
+    }));
 
-  // Step 1: Get base list of delivery orders
-  let orders = orderStore.items.filter(order =>
-    order.fulfillmentType === 'delivery',
-  ).map(order => ({
-    ...order,
-    weekday: new Date(order.preparationDate).toLocaleDateString('es-ES', { weekday: 'long' }),
-  }));
-
-  // Step 2: Apply driver filter when in single-driver mode
   if (props.singleDriverMode && props.driverId) {
-    orders = orders.filter(order =>
-      order.deliveryDriverId === props.driverId,
-    );
+    orders = orders.filter(order => order.deliveryDriverId === props.driverId);
   }
 
-  // Step 3: Group the filtered orders by driver
   const driverGroups = _.groupBy(orders, 'deliveryDriverId');
 
   return Object.entries(driverGroups).map(([deliveryDriverId, driverOrders]) => {
-    const paidDeliveries = driverOrders.filter(order => order.isDeliveryPaid).length;
-    const unpaidOrders = driverOrders.filter(order => !order.isDeliveryPaid);
-    const unpaidAmount = _.sumBy(unpaidOrders, 'deliveryCost');
+    const earlyWeekOrders = filterOrdersByDays(driverOrders, ['lunes', 'martes', 'miércoles']);
+    const lateWeekOrders = filterOrdersByDays(driverOrders, ['jueves', 'viernes', 'sábado']);
 
     return {
       id: deliveryDriverId,
       name: drivers.value.find(driver => driver.id == deliveryDriverId)?.name || 'Sin Asignar',
-      summary: {
-        totalDeliveries: driverOrders.length,
-        totalAmount: _.sumBy(driverOrders, 'deliveryCost'),
-        paidDeliveries,
-        unpaidDeliveries: driverOrders.length - paidDeliveries,
-        unpaidAmount,
-        isPeriodPaid: false,
+      summaries: {
+        total: computeSummary(driverOrders),
+        earlyWeek: computeSummary(earlyWeekOrders),
+        lateWeek: computeSummary(lateWeekOrders),
       },
       deliveries: driverOrders,
     };
@@ -309,31 +323,83 @@ onUnmounted(() => {
         <!-- Driver Summary -->
         <div class="p-4 flex flex-wrap items-center gap-4 cursor-pointer hover:bg-neutral-100"
           @click="expandedDriver = expandedDriver === driver.id ? null : driver.id">
-          <div class="flex-1">
+          <!-- Driver Name -->
+          <div class="mb-4">
             <h3 class="text-lg font-semibold text-neutral-800">{{ driver.name }}</h3>
-            <p class="text-sm text-neutral-600">{{ driver.summary.totalDeliveries }} domicilios</p>
           </div>
 
-          <div class="flex items-center gap-8">
-            <div class="text-center">
-              <p class="text-sm text-neutral-600">Total</p>
-              <p class="font-semibold text-neutral-800">
-                ${{ driver.summary.totalAmount.toLocaleString() }}
+          <!-- Stats Grid -->
+          <div class="grid grid-cols-3 gap-4">
+            <!-- Total Period -->
+            <div class="space-y-1 p-3 bg-white rounded-lg">
+              <h4 class="text-sm font-medium text-neutral-600">Semana Completa</h4>
+              <div class="grid grid-cols-3 gap-2">
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Total</p>
+                  <p class="font-semibold text-neutral-800">${{ driver.summaries.total.totalAmount.toLocaleString() }}
+                  </p>
+                </div>
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Pagados</p>
+                  <p class="font-semibold text-neutral-800">
+                    {{ driver.summaries.total.paidDeliveries }}/{{ driver.summaries.total.totalDeliveries }}
+                  </p>
+                </div>
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Pendiente</p>
+                  <p class="font-semibold text-neutral-800">${{ driver.summaries.total.unpaidAmount.toLocaleString() }}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-              </p>
+            <!-- Early Week -->
+            <div class="space-y-1 p-3 bg-white rounded-lg">
+              <h4 class="text-sm font-medium text-neutral-600">Lunes - Miércoles</h4>
+              <div class="grid grid-cols-3 gap-2">
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Total</p>
+                  <p class="font-semibold text-neutral-800">${{ driver.summaries.earlyWeek.totalAmount.toLocaleString()
+                    }}</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Pagados</p>
+                  <p class="font-semibold text-neutral-800">
+                    {{ driver.summaries.earlyWeek.paidDeliveries }}/{{ driver.summaries.earlyWeek.totalDeliveries }}
+                  </p>
+                </div>
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Pendiente</p>
+                  <p class="font-semibold text-neutral-800">${{ driver.summaries.earlyWeek.unpaidAmount.toLocaleString()
+                    }}</p>
+                </div>
+              </div>
             </div>
-            <div class="text-center">
-              <p class="text-sm text-neutral-600">Pagados</p>
-              <p class="font-semibold text-neutral-800">{{ driver.summary.paidDeliveries }} / {{
-                driver.summary.totalDeliveries }}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-sm text-neutral-600">Por Pagar</p>
-              <p class="font-bold text-lg text-neutral-800">
-                ${{ driver.summary.unpaidAmount.toLocaleString() }}
-              </p>
+
+            <!-- Late Week -->
+            <div class="space-y-1 p-3 bg-white rounded-lg">
+              <h4 class="text-sm font-medium text-neutral-600">Jueves - Sábado</h4>
+              <div class="grid grid-cols-3 gap-2">
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Total</p>
+                  <p class="font-semibold text-neutral-800">${{ driver.summaries.lateWeek.totalAmount.toLocaleString()
+                    }}</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Pagados</p>
+                  <p class="font-semibold text-neutral-800">
+                    {{ driver.summaries.lateWeek.paidDeliveries }}/{{ driver.summaries.lateWeek.totalDeliveries }}
+                  </p>
+                </div>
+                <div class="text-center">
+                  <p class="text-xs text-neutral-500">Pendiente</p>
+                  <p class="font-semibold text-neutral-800">${{ driver.summaries.lateWeek.unpaidAmount.toLocaleString()
+                    }}</p>
+                </div>
+              </div>
             </div>
           </div>
+
         </div>
 
         <!-- Expanded Details -->
@@ -347,17 +413,9 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <DataTable
-            ref="dataTableRef"
-            :data="driver.deliveries"
-            :columns="tableColumns"
-            :toggle-loading="toggleLoading"
-            :data-loading="orderStore.loading"
-            :visible-filters="true"
-            :filters="tableFilters"
-            @toggle-update="handleToggleUpdate"
-            class="bg-white"
-          />
+          <DataTable ref="dataTableRef" :data="driver.deliveries" :columns="tableColumns"
+            :toggle-loading="toggleLoading" :data-loading="orderStore.loading" :visible-filters="true"
+            :filters="tableFilters" @toggle-update="handleToggleUpdate" class="bg-white" />
         </div>
       </div>
     </div>
