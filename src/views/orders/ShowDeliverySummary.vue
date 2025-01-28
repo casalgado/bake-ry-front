@@ -32,7 +32,10 @@ const driverSummaries = computed(() => {
   // Step 1: Get base list of delivery orders
   let orders = orderStore.items.filter(order =>
     order.fulfillmentType === 'delivery',
-  );
+  ).map(order => ({
+    ...order,
+    weekday: new Date(order.preparationDate).toLocaleDateString('es-ES', { weekday: 'long' }),
+  }));
 
   // Step 2: Apply driver filter when in single-driver mode
   if (props.singleDriverMode && props.driverId) {
@@ -86,8 +89,31 @@ const amountSummary = computed(() => ([
   { label: 'Total Semana', value: `$${globalSummary.value.totalAmount.toLocaleString()}` },
 ]));
 
+const tableFilters = [
+  {
+    field: 'weekday',
+    options: [
+      {
+        label: 'Lunes-Miércoles',
+        value: ['lunes', 'martes', 'miercoles'],  // Group first three days
+      },
+      {
+        label: 'Jueves-Sábado',
+        value: ['jueves', 'viernes', 'sabado'],   // Group last three days
+      },
+    ],
+  },
+];
+
 // Table Columns for expanded view
 const columns = [
+  {
+    id: 'weekday',
+    label: 'Día',
+    field: 'weekday',
+    sortable: true,
+
+  },
   {
     id: 'userName',
     label: 'Cliente',
@@ -263,9 +289,10 @@ onUnmounted(() => {
   <div class="container p-4 px-0 lg:px-4">
     <!-- Header -->
     <div class="flex flex-col lg:flex-row justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold text-neutral-800">{{ props.singleDriverMode ? 'Resumen de Domicilios' : 'Resumen de Domicilios' }}</h2>
+      <h2 class="text-2xl font-bold text-neutral-800">
+        {{ props.singleDriverMode ? 'Resumen de Domicilios' : 'Resumen de Domicilios' }}</h2>
 
-      <PeriodSelector  />
+      <PeriodSelector />
     </div>
 
     <!-- Global Summary -->
@@ -277,16 +304,11 @@ onUnmounted(() => {
 
     <!-- Driver Cards -->
     <div class="space-y-4">
-      <div
-        v-for="driver in driverSummaries"
-        :key="driver.id"
-        class="bg-neutral-50 rounded-lg shadow-sm border border-neutral-200 overflow-hidden"
-      >
+      <div v-for="driver in driverSummaries" :key="driver.id"
+        class="bg-neutral-50 rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
         <!-- Driver Summary -->
-        <div
-          class="p-4 flex flex-wrap items-center gap-4 cursor-pointer hover:bg-neutral-100"
-          @click="expandedDriver = expandedDriver === driver.id ? null : driver.id"
-        >
+        <div class="p-4 flex flex-wrap items-center gap-4 cursor-pointer hover:bg-neutral-100"
+          @click="expandedDriver = expandedDriver === driver.id ? null : driver.id">
           <div class="flex-1">
             <h3 class="text-lg font-semibold text-neutral-800">{{ driver.name }}</h3>
             <p class="text-sm text-neutral-600">{{ driver.summary.totalDeliveries }} domicilios</p>
@@ -302,7 +324,8 @@ onUnmounted(() => {
             </div>
             <div class="text-center">
               <p class="text-sm text-neutral-600">Pagados</p>
-              <p class="font-semibold text-neutral-800">{{ driver.summary.paidDeliveries }} / {{ driver.summary.totalDeliveries }}</p>
+              <p class="font-semibold text-neutral-800">{{ driver.summary.paidDeliveries }} / {{
+                driver.summary.totalDeliveries }}</p>
             </div>
             <div class="text-right">
               <p class="text-sm text-neutral-600">Por Pagar</p>
@@ -314,17 +337,11 @@ onUnmounted(() => {
         </div>
 
         <!-- Expanded Details -->
-        <div
-          v-if="expandedDriver === driver.id"
-          class="border-t border-neutral-200 p-4"
-        >
+        <div v-if="expandedDriver === driver.id" class="border-t border-neutral-200 p-4">
           <div class="flex justify-between mb-4">
             <h4 class="font-semibold text-neutral-700">Detalle de Domicilios</h4>
             <div v-if="!props.singleDriverMode" class="flex gap-2">
-              <button
-                @click="handleMarkPeriodPaid(driver.id)"
-                class="utility-btn"
-              >
+              <button @click="handleMarkPeriodPaid(driver.id)" class="utility-btn">
                 Marcar Todo Pagado
               </button>
             </div>
@@ -336,6 +353,7 @@ onUnmounted(() => {
             :columns="tableColumns"
             :toggle-loading="toggleLoading"
             :data-loading="orderStore.loading"
+            :visible-filters="true"
             @toggle-update="handleToggleUpdate"
             class="bg-white"
           />

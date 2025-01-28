@@ -30,6 +30,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  visibleFilters: {
+    type: Boolean,
+    default: false,
+  },
   actions: {
     type: Array,
     default: () => [],
@@ -284,6 +288,7 @@ onUnmounted(() => {
           :filters="filters"
           :active-filters="activeFilters"
           :has-active-filters="hasActiveFilters"
+          :visible-filters="visibleFilters"
           v-model:search="searchQuery"
           @toggle-filter="toggleFilter"
           @clear-all="clearAll"

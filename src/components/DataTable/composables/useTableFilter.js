@@ -35,12 +35,22 @@ export const useTableFilter = (options = {}) => {
   });
 
   // Filter data based on search and filters
+  // composables/useTableFilter.js
   const filterData = (data, searchableColumns) => {
     return data.filter(item => {
-      // First check if item passes all active filters
+    // First check if item passes all active filters
       const passesFilters = Array.from(activeFilters.value.entries())
         .every(([field, activeValues]) => {
-          return activeValues.size === 0 || activeValues.has(item[field]);
+          if (activeValues.size === 0) return true;
+
+          return Array.from(activeValues).some(value => {
+          // Handle array values (for grouped days)
+            if (Array.isArray(value)) {
+              return value.includes(item[field].toLowerCase());
+            }
+            // Handle regular single values
+            return item[field].toLowerCase() === value;
+          });
         });
 
       if (!passesFilters) return false;

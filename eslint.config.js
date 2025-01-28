@@ -68,8 +68,9 @@ export default [
       'eol-last': ['error', 'always'],
 
       // Add some Vue-specific rules
-      'vue/html-indent': ['error', 2],
+      'vue/html-indent': 'off',
       'vue/html-quotes': ['error', 'double'],
+
       'vue/component-name-in-template-casing': ['error', 'PascalCase'],
       'vue/multi-word-component-names': 'off',  // This should now take precedence
     },
