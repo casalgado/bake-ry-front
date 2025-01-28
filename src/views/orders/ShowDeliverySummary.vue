@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { usePeriodStore } from '@/stores/periodStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
@@ -16,6 +16,7 @@ const orderStore = useOrderStore();
 const periodStore = usePeriodStore();
 const settingsStore = useBakerySettingsStore();
 const expandedDriver = ref(null);
+const expandedCard = ref(null);
 const unsubscribeRef = ref(null);
 const toggleLoading = ref({});
 const drivers = ref([]);
@@ -296,6 +297,29 @@ onMounted(async () => {
   }
 });
 
+const handleCardClick = async (card, id) => {
+  // Only toggle collapse if it's the same card
+  if (card === expandedCard.value) {
+    expandedDriver.value = expandedDriver.value === id ? null : id;
+  } else {
+    expandedDriver.value = id;  // Always expand for a different card
+  }
+
+  expandedCard.value = card;
+  console.log(expandedDriver.value);
+  await nextTick();
+
+  if (card == 'earlyWeek') {
+    dataTableRef.value[0]?.clearAll();
+    dataTableRef.value[0]?.toggleFilter('weekday', ['lunes', 'martes', 'miércoles']);
+  } else if (card == 'lateWeek') {
+    dataTableRef.value[0]?.clearAll();
+    dataTableRef.value[0]?.toggleFilter('weekday', ['jueves', 'viernes', 'sábado']);
+  } else if (card == 'total') {
+    dataTableRef.value[0]?.clearAll();
+  }
+};
+
 onUnmounted(() => {
   if (unsubscribeRef.value) {
     unsubscribeRef.value();
@@ -327,17 +351,17 @@ onUnmounted(() => {
         class="bg-neutral-100 rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
         <!-- Driver Summary -->
         <div class="p-4 flex flex-wrap items-center gap-0 cursor-pointer "
-          @click="expandedDriver = expandedDriver === driver.id ? null : driver.id">
+          >
           <!-- Driver Name -->
           <div class="">
             <h3 class="text-lg font-semibold text-neutral-800">{{ driver.name }}</h3>
           </div>
 
           <!-- Stats Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full" :class="{ '': periodStore.periodType !== 'week' }">
 
             <!-- Early Week -->
-            <div class="space-y-1 p-3 bg-white rounded-lg">
+            <div class="space-y-1 p-3 bg-white rounded-lg" v-if="periodStore.periodType == 'week'" @click="handleCardClick('earlyWeek', driver.id)">
               <h4 class="text-sm font-medium text-center">Lunes - Miércoles</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
@@ -360,7 +384,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Late Week -->
-            <div class="space-y-1 p-3 bg-white rounded-lg">
+            <div class="space-y-1 p-3 bg-white rounded-lg" v-if="periodStore.periodType == 'week'" @click="handleCardClick('lateWeek', driver.id)">
               <h4 class="text-sm font-medium text-center">Jueves - Sábado</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
@@ -383,8 +407,8 @@ onUnmounted(() => {
             </div>
 
             <!-- Total Period -->
-            <div class="space-y-1 p-3 bg-white rounded-lg">
-              <h4 class="text-sm font-medium text-center">Semana Completa</h4>
+            <div class="space-y-1 p-3 bg-white rounded-lg" @click="handleCardClick('total', driver.id)">
+              <h4 class="text-sm font-medium text-center" v-if="periodStore.periodType == 'week'">Semana Completa</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Total</p>
@@ -419,9 +443,15 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <DataTable ref="dataTableRef" :data="driver.deliveries" :columns="tableColumns"
-            :toggle-loading="toggleLoading" :data-loading="orderStore.loading" :visible-filters="true"
-            :filters="tableFilters" @toggle-update="handleToggleUpdate" class="bg-white" />
+          <DataTable ref="dataTableRef"
+            :data="driver.deliveries"
+            :columns="tableColumns"
+            :toggle-loading="toggleLoading"
+            :data-loading="orderStore.loading"
+            :visible-filters="true"
+            :filters="tableFilters"
+            @toggle-update="handleToggleUpdate" class="bg-white"
+           />
         </div>
       </div>
     </div>

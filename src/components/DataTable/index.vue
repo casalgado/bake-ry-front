@@ -216,6 +216,8 @@ const clearSelection = () => {
 defineExpose({
   clearSelection,
   addToHistory,
+  toggleFilter,
+  clearAll,
 });
 
 const emitSelectionChange = () => {
