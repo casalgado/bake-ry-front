@@ -237,10 +237,12 @@ const tableFilters = [
     ],
   },
   {
-    field: 'isPaid',
+    field: 'paymentMethod',
     options: [
-      { label: 'pagado', value: true },
-      { label: 'por cobrar', value: false },
+      { label: 'efectivo', value: 'cash' },
+      { label: 'transferencia', value: 'transfer' },
+      { label: 'bold', value: 'card' },
+      { label: 'regalo', value: 'complimentary' },
     ],
   },
 ];

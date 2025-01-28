@@ -1,7 +1,7 @@
 // Function to transform order data into CSV rows
-const transformOrderToCSVRows = (order, index) => {
+const transformOrderToCSVRows = (order, orderIndex) => {
   const baseRow = {
-    o: index + 1,
+    pedido: orderIndex + 1, // Order-level index
     id: order.id,
     fecha_venta: new Date(order.preparationDate).toISOString().split('T')[0],
     pago_recibido: order.isPaid ? 'si' : 'no',
@@ -20,14 +20,14 @@ const transformOrderToCSVRows = (order, index) => {
   // Create rows for each order item
   const itemRows = [];
   if (Array.isArray(order.orderItems)) {
-    order.orderItems.forEach(item => {
+    order.orderItems.forEach((item, itemIndex) => {
       const productName = [
         item.productName || '',
         item.variation?.name || '',
       ].filter(Boolean).join(' ');
 
       itemRows.push({
-        o: '',
+        pedido: orderIndex + 1, // Order-level index
         id: '',
         fecha_venta: '',
         pago_recibido: '',
@@ -48,7 +48,7 @@ const transformOrderToCSVRows = (order, index) => {
   // If there's delivery, add it as an item
   if (order.fulfillmentType === 'delivery' && order.deliveryFee) {
     itemRows.push({
-      o: '',
+      pedido: orderIndex + 1, // Order-level index
       id: '',
       fecha_venta: '',
       pago_recibido: '',
@@ -67,7 +67,7 @@ const transformOrderToCSVRows = (order, index) => {
 
   // Add empty row after items
   const emptyRow = {
-    o: '',
+    pedido: orderIndex + 1, // Order-level index
     id: '',
     fecha_venta: '',
     pago_recibido: '',
@@ -103,18 +103,24 @@ const exportOrders = (orders) => {
   const ordersArray = Array.isArray(orders) ? orders : [];
 
   // Transform all orders into CSV rows
-  const allRows = ordersArray.flatMap((order, index) =>
-    transformOrderToCSVRows(order, index),
+  const allRows = ordersArray.flatMap((order, orderIndex) =>
+    transformOrderToCSVRows(order, orderIndex),
   );
 
+  // Add a global index to each row
+  const indexedRows = allRows.map((row, orden) => ({
+    orden: orden + 1, // Add a global index starting from 1
+    ...row,
+  }));
+
   // Convert to CSV string
-  const headers = ['o', 'id', 'fecha_venta', 'pago_recibido', 'metodo',
+  const headers = ['orden', 'pedido', 'id', 'fecha_venta', 'pago_recibido', 'metodo',
     'cliente', 'correo', 'cedula', 'direccion', 'telefono', 'producto',
     'cantidad', 'subtotal', 'total'];
 
   const csvContent = [
     headers.join(','),
-    ...allRows.map(row =>
+    ...indexedRows.map(row =>
       headers.map(header => {
         const value = row[header];
         if (value === undefined || value === null || value === '') return '';
