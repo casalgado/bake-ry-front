@@ -112,14 +112,12 @@ const tableFilters = [
   {
     field: 'weekday',
     options: [
-      {
-        label: 'Lunes-Miércoles',
-        value: ['lunes', 'martes', 'miércoles'],  // Group first three days
-      },
-      {
-        label: 'Jueves-Sábado',
-        value: ['jueves', 'viernes', 'sábado'],   // Group last three days
-      },
+      { label: 'Lunes', value: 'lunes' },
+      { label: 'Martes', value: 'martes' },
+      { label: 'Miércoles', value: 'miércoles' },
+      { label: 'Jueves', value: 'jueves' },
+      { label: 'Viernes', value: 'viernes' },
+      { label: 'Sábado', value: 'sábado' },
     ],
   },
 ];
@@ -141,7 +139,7 @@ const columns = [
     component: ClientCell,
     getProps: (row) => ({
       name: row.userName,
-      comment: row.internalNotes,
+      comment: props.singleDriverMode ? '' : row.internalNotes,
     }),
   },
   {
@@ -172,14 +170,14 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [
-      { value: true, icon: PhCheckSquare },
-      { value: false, icon: PhMinus },
+      { value: true, icon: PhCheckSquare, lockedValue: props.singleDriverMode },
+      { value: false, icon: PhMinus, lockedValue: props.singleDriverMode },
     ],
   },
 ];
 
 const tableColumns = computed(() => {
-  return columns.filter(col => !(props.singleDriverMode && col.id === 'isDeliveryPaid'));
+  return columns;
 });
 
 // Handle toggle updates
@@ -311,10 +309,14 @@ const handleCardClick = async (card, id) => {
 
   if (card == 'earlyWeek') {
     dataTableRef.value[0]?.clearAll();
-    dataTableRef.value[0]?.toggleFilter('weekday', ['lunes', 'martes', 'miércoles']);
+    dataTableRef.value[0]?.toggleFilter('weekday', 'lunes');
+    dataTableRef.value[0]?.toggleFilter('weekday', 'martes');
+    dataTableRef.value[0]?.toggleFilter('weekday', 'miércoles');
   } else if (card == 'lateWeek') {
     dataTableRef.value[0]?.clearAll();
-    dataTableRef.value[0]?.toggleFilter('weekday', ['jueves', 'viernes', 'sábado']);
+    dataTableRef.value[0]?.toggleFilter('weekday', 'jueves');
+    dataTableRef.value[0]?.toggleFilter('weekday', 'viernes');
+    dataTableRef.value[0]?.toggleFilter('weekday', 'sábado');
   } else if (card == 'total') {
     dataTableRef.value[0]?.clearAll();
   }
@@ -350,7 +352,7 @@ onUnmounted(() => {
       <div v-for="driver in driverSummaries" :key="driver.id"
         class="bg-neutral-100 rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
         <!-- Driver Summary -->
-        <div class="p-4 flex flex-wrap items-center gap-0 cursor-pointer "
+        <div class="p-4 flex flex-col items-center gap-0 cursor-pointer "
           >
           <!-- Driver Name -->
           <div class="">
@@ -407,7 +409,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Total Period -->
-            <div class="space-y-1 p-3 bg-white rounded-lg" @click="handleCardClick('total', driver.id)">
+            <div class="space-y-1 p-3 bg-white rounded-lg" @click="handleCardClick('total', driver.id)" :class="{'col-start-1 md:col-start-2': periodStore.periodType !== 'week'}">
               <h4 class="text-sm font-medium text-center" v-if="periodStore.periodType == 'week'">Semana Completa</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
