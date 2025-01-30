@@ -132,6 +132,7 @@ const columns = [
       name: row.userName,
       comment: row.internalNotes,
       phone: row.userPhone,
+      showIsPaid: row.isPaid,
     }),
   },
   {

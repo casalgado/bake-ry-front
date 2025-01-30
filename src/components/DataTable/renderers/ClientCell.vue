@@ -1,8 +1,14 @@
 <!-- components/DataTable/renderers/ClientCell.vue -->
 <script setup>
+import { PhCheckFat } from '@phosphor-icons/vue';
+
 defineProps({
   name: String,
   phone: String,
+  showIsPaid: {
+    type: Boolean,
+    default: false,
+  },
   comment: {
     type: String,
     default: null,
@@ -28,5 +34,6 @@ const formatPhoneNumber = (phone) => {
       {{ phone }}
     </a>
     <span v-if="comment" class="text-xs text-neutral-500">{{ comment }}</span>
+    <PhCheckFat v-if="showIsPaid" weight="fill"  class="absolute top-[2px] left-[-16px]" />
   </div>
 </template>
