@@ -176,7 +176,7 @@ const columns = [
     component: NumberOfBagsCell,
     getProps: (row) => ({
       numberOfBags: row.numberOfBags,
-      show: row.fulfillmentType === 'delivery',
+      show: true,
     }),
   },
   {
@@ -214,6 +214,7 @@ const columns = [
     label: 'Estado',
     field: 'status',
     sortable: true,
+
     type: 'toggle',
     options: [{ value: 0, displayText: '0'  }, { value: 2, displayText: '', icon: PhMoped }, { value: 3, displayText: '', icon: PhBuilding }],
   },

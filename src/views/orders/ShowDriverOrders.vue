@@ -11,6 +11,7 @@ import ClientCell from '@/components/DataTable/renderers/ClientCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import CheckboxCell from '@/components/DataTable/renderers/CheckboxCell.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
+import NumberOfBagsCell from '@/components/DataTable/renderers/NumberOfBagsCell.vue';
 
 // Stores
 import { usePeriodStore } from '@/stores/periodStore';
@@ -99,6 +100,17 @@ const columns = [
     getProps: (row) => ({
       items: row.orderItems,
       maxDisplay: 10,
+    }),
+  },
+  {
+    id: 'numberOfBags',
+    label: 'Bolsas',
+    field: 'numberOfBags',
+    sortable: true,
+    component: NumberOfBagsCell,
+    getProps: (row) => ({
+      numberOfBags: row.numberOfBags,
+      show: true,
     }),
   },
   {
