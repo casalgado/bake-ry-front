@@ -103,12 +103,6 @@ const groupedOrderItems = computed(() => {
 // Column definitions
 const columns = [
   {
-    id: 'productionBatch',
-    label: 'T',
-    field: 'productionBatch',
-    sortable: true,
-  },
-  {
     id: 'collectionName',
     label: 'Colección',
     field: 'collectionName',

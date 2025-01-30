@@ -1,6 +1,7 @@
 <script setup>
 // Vue Core
 import { ref, computed, watch } from 'vue';
+import { Dialog, DialogPanel } from '@headlessui/vue';
 
 // DataTable Core
 import DataTable from '@/components/DataTable/index.vue';
@@ -29,11 +30,14 @@ import {
   PhGift,
   PhMoped,
   PhBuilding,
+  PhListNumbers,
 } from '@phosphor-icons/vue';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const authStore = useAuthenticationStore();
+const isSequenceDialogOpen = ref(false);
+const selectedSequence = ref(1);
 
 const userId = computed(() => authStore.getUserData?.uid);
 
@@ -45,12 +49,26 @@ const processData = (orders) => {
 // Initialize useDataTable with custom handlers
 const {
   toggleLoading,
+  actionLoading,
+  selectedItems,
   isLoading,
   tableData,
+  handleSelectionChange,
   handleToggleUpdate,
+  handleAction,
+  clearSelection,
 } = useDataTable(orderStore, {
   processData,
   subscribeToChanges: true,
+  async onAction({ actionId }) {
+    switch (actionId) {
+    case 'set_sequence':
+      selectedSequence.value = 1;
+      isSequenceDialogOpen.value = true;
+      console.log('set_sequence');
+      break;
+    }
+  },
   fetchAll: {
     filters: {
       dateRange: {
@@ -62,8 +80,52 @@ const {
   },
 });
 
+const closeSequenceDialog = () => {
+  isSequenceDialogOpen.value = false;
+  selectedSequence.value = 0;
+};
+
+// Add with other submit handlers
+const handleSequenceSubmit = async () => {
+  try {
+    actionLoading.value['set_sequence'] = true;
+    const updates = selectedItems.value.map(item => ({
+      id: item.id,
+      data: { deliverySequence: selectedSequence.value },
+    }));
+    await orderStore.patchAll(updates);
+    isSequenceDialogOpen.value = false;
+    clearSelection();
+  } catch (error) {
+    console.error('Failed to update sequence:', error);
+  } finally {
+    actionLoading.value['set_sequence'] = false;
+  }
+};
+
+const tableActions = [
+  {
+    id: 'set_sequence',
+    label: 'Secuencia',
+    icon: PhListNumbers,  // You'll need to import this icon
+    minSelected: 1,
+    variant: 'primary',
+  },
+];
+
 // Column definitions
 const columns = [
+  {
+    id: 'deliverySequence',
+    label: 'ORD',
+    field: 'deliverySequence',
+    sortable: true,
+    type: 'action',  // This makes it clickable
+    onClick: (row) => {
+      selectedSequence.value = row.deliverySequence || 0;
+      isSequenceDialogOpen.value = true;
+    },
+  },
   {
     id: 'userName',
     label: 'Cliente',
@@ -189,15 +251,68 @@ watch(
       {{ orderStore.error }}
     </div>
 
-    <!-- <pre>{{ tableData.map(order => ({id: order.id, client: order.userName, driverMarkedAsPaid: order.driverMarkedAsPaid, isPaid: order.isPaid}) ) }}</pre> -->
+        <!-- Delivery Sequence Dialog -->
+    <Dialog
+      :open="isSequenceDialogOpen"
+      @close="closeSequenceDialog"
+      class="relative z-50"
+    >
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel class="form-container bg-white rounded-lg p-6 max-w-md w-full">
+          <h3 class="text-lg font-medium mb-4">Secuencia de Entrega</h3>
+
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <button
+              v-for="number in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]"
+              :key="number"
+              @click="selectedSequence = number"
+              class="utility-btn-inactive py-1 px-2 rounded-md hover:utility-btn-active"
+              :class="{ 'utility-btn-active': selectedSequence === number }"
+            >
+              {{ number }}
+            </button>
+          </div>
+
+          <input
+            type="number"
+            v-model="selectedSequence"
+            min="0"
+            placeholder="Otro número"
+            class="w-full mb-4 p-2 border rounded"
+          />
+
+          <div class="flex justify-end gap-2">
+            <button
+              @click="closeSequenceDialog"
+              class="utility-btn"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="handleSequenceSubmit"
+              :disabled="actionLoading.set_sequence"
+              class="action-btn"
+            >
+              {{ actionLoading.set_sequence ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
+
     <!-- Table -->
     <div>
       <DataTable
         :data="tableData"
         :columns="columns"
+        :actions="tableActions"
+        :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
         :data-loading="orderStore.loading || isLoading"
+        @selection-change="handleSelectionChange"
         @toggle-update="handleToggleUpdate"
+        @action="handleAction"
         class="bg-white shadow-lg rounded-lg"
       />
     </div>

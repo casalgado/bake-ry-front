@@ -323,7 +323,7 @@ watch(
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row-reverse justify-between items-center mb-4 gap-2">
-      <TotalsSummary class="relative md:fixed md:bottom-10 md:left-10 z-[999]" :categories="totals" :format-value="formatMoney"/>
+      <TotalsSummary class="relative md:fixed md:bottom-10 md:left-10 z-[9]" :categories="totals" :format-value="formatMoney"/>
       <PeriodSelector />
     </div>
 
