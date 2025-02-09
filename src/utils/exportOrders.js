@@ -1,5 +1,6 @@
 // Function to transform order data into CSV rows
 const transformOrderToCSVRows = (order, orderIndex) => {
+  console.log(order);
   const baseRow = {
     pedido: orderIndex + 1, // Order-level index
     id: order.id,
@@ -8,7 +9,7 @@ const transformOrderToCSVRows = (order, orderIndex) => {
     metodo: getPaymentMethodText(order.paymentMethod),
     cliente: order.userName || '',
     correo: order.userEmail || '',
-    cedula: '',
+    nationalId: order.userNationalId || '',
     direccion: order.deliveryAddress || '',
     telefono: order.userPhone || '',
     producto: '',
@@ -34,7 +35,7 @@ const transformOrderToCSVRows = (order, orderIndex) => {
         metodo: '',
         cliente: '',
         correo: '',
-        cedula: '',
+        nationalId: '',
         direccion: '',
         telefono: '',
         producto: productName,
@@ -55,7 +56,7 @@ const transformOrderToCSVRows = (order, orderIndex) => {
       metodo: '',
       cliente: '',
       correo: '',
-      cedula: '',
+      nationalId: '',
       direccion: '',
       telefono: '',
       producto: 'domicilio',
@@ -74,7 +75,7 @@ const transformOrderToCSVRows = (order, orderIndex) => {
     metodo: '',
     cliente: '',
     correo: '',
-    cedula: '',
+    nationalId: '',
     direccion: '',
     telefono: '',
     producto: '',
@@ -115,7 +116,7 @@ const exportOrders = (orders) => {
 
   // Convert to CSV string
   const headers = ['orden', 'pedido', 'id', 'fecha_venta', 'pago_recibido', 'metodo',
-    'cliente', 'correo', 'cedula', 'direccion', 'telefono', 'producto',
+    'cliente', 'correo', 'nationalId', 'direccion', 'telefono', 'producto',
     'cantidad', 'subtotal', 'total'];
 
   const csvContent = [

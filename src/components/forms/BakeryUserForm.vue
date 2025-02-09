@@ -20,7 +20,7 @@ const props = defineProps({
       birthday: '',
       comment: '',
       phone: '',
-      national_id: '',
+      nationalId: '',
     }),
   },
   loading: {
@@ -170,7 +170,7 @@ const handleSubmit = () => {
         <label>Documento de Identidad</label>
         <input
           type="text"
-          v-model="formData.national_id"
+          v-model="formData.nationalId"
 
         />
       </div>

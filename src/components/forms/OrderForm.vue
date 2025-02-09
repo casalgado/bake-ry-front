@@ -96,6 +96,7 @@ const getInitialFormState = () => ({
   userName: '',
   userEmail: '',
   userPhone: '',
+  userNationalId: '', // Added userNationalId field
   orderItems: [],
   preparationDate: tomorrowString,
   dueDate: tomorrowString,
@@ -176,11 +177,13 @@ const handleNewClientClick = () => {
 const handleClientCreated = (newClient) => {
   handleUserChange(newClient);
 };
+
 const handleUserChange = async (user) => {
   formData.value.userId = user.id;
   formData.value.userName = user.name;
   formData.value.userEmail = user.email;
   formData.value.userPhone = user.phone;
+  formData.value.userNationalId = user.nationalId || ''; // Added userNationalId
   if (props.initialData) {
     formData.value.deliveryAddress = props.initialData.deliveryAddress;
   } else {
@@ -371,6 +374,7 @@ const clearUser = () => {
   formData.value.userName = '';
   formData.value.userEmail = '';
   formData.value.userPhone = '';
+  formData.value.userNationalId = ''; // Added userNationalId reset
   formData.value.deliveryAddress = '';
   userHistory.value = [];
   currentHistoryIndex.value = 0;

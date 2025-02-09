@@ -20,6 +20,7 @@ const formData = ref({
   email: '',
   phone: '',
   address: '',
+  nationalId: '',
   category: 'B2C', // Default to B2C
 });
 
@@ -65,6 +66,7 @@ const resetForm = () => {
     email: '',
     phone: '',
     address: '',
+    nationalId: '',
     category: 'B2C',
   };
   selectedClientType.value = 'B2C';
@@ -166,6 +168,17 @@ onUnmounted(() => {
                 rows="2"
                 class=""
               ></textarea>
+            </div>
+
+            <div>
+              <label class="">
+                Documento de Identidad
+              </label>
+              <input
+                type="text"
+                v-model="formData.nationalId"
+                class=""
+              />
             </div>
 
             <div class="flex justify-end gap-2 mt-4">

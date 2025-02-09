@@ -87,9 +87,9 @@ const columns = [
     sortable: true,
   },
   {
-    id: 'national_id',
+    id: 'nationalId',
     label: 'Cédula',
-    field: 'national_id',
+    field: 'nationalId',
     sortable: true,
   },
 ];
