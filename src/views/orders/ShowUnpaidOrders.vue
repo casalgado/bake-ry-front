@@ -109,11 +109,21 @@ const {
 
 // Computed properties
 const totals = computed(() => {
-  const b2bTotal = tableData.value
+
+  const ordersToCalculate = selectedItems.value.length > 0
+    ? selectedItems.value.map(order => ({
+      ...order,
+      userCategory: b2bClients.value.map(client => client.id).includes(order.userId) ? 'B2B' : 'B2C',
+    }))
+    : tableData.value;
+
+  console.log(ordersToCalculate);
+
+  const b2bTotal = ordersToCalculate
     .filter(order => order.userCategory === 'B2B')
     .reduce((sum, order) => sum + order.total, 0);
 
-  const b2cTotal = tableData.value
+  const b2cTotal = ordersToCalculate
     .filter(order => order.userCategory === 'B2C')
     .reduce((sum, order) => sum + order.total, 0);
 
@@ -283,7 +293,7 @@ const closeDialog = () => {
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Por Cobrar</h2>
-      <TotalsSummary :categories="totals" :format-value="formatMoney"/>
+      <TotalsSummary class="relative md:fixed md:bottom-10 md:left-10 z-[9]" :categories="totals" :format-value="formatMoney"/>
     </div>
 
     <!-- Error State -->
