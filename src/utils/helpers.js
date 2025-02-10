@@ -131,8 +131,20 @@ const formatMoney = (value) => {
   }).format(value);
 };
 
+function formatTime(time24) {
+  const [hours, minutes] = time24.split(':');
+  const date = new Date();
+  date.setHours(hours, minutes);
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
 // Helper function to capitalize words
 const capitalize = (str) => {
+
   if (!str) return '';
   return str.split(' ')
     .map(word => {
@@ -156,4 +168,4 @@ const categoryOrder = {
   'cafe el diario': 7,
 };
 
-export { abbreviateText, parseSpanishName, capitalize, formatMoney, cleanString, categoryOrder };
+export { abbreviateText, parseSpanishName, capitalize, formatMoney, cleanString, categoryOrder, formatTime };

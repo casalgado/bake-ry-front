@@ -135,6 +135,8 @@ const columns = [
     getProps: (row) => ({
       name: row.userName,
       phone: row.userPhone,
+      comment: row.deliveryNotes,
+      dueTime: row.dueTime,
     }),
   },
   {

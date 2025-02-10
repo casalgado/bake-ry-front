@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { useProductStore } from '@/stores/productStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
 import OrderItemsManager from './OrderItemsManager.vue';
 import NewClientDialog from './NewClientDialog.vue';
@@ -61,6 +62,7 @@ const showHistoryNavigation = computed(() => {
 const emit = defineEmits(['submit', 'cancel']);
 
 const productStore = useProductStore();
+const bakerySettingsStore = useBakerySettingsStore();
 const userStore = useBakeryUserStore();
 const isNewClientDialogOpen = ref(false);
 const originalAddress = ref('');
@@ -100,11 +102,13 @@ const getInitialFormState = () => ({
   orderItems: [],
   preparationDate: tomorrowString,
   dueDate: tomorrowString,
+  dueTime: '',
   fulfillmentType: 'delivery',
   deliveryAddress: '',
   deliveryFee: 7000,
   paymentMethod: 'cash',
   internalNotes: '',
+  deliveryNotes: '',
   shouldUpdateClientAddress: false,
 });
 
@@ -149,7 +153,7 @@ const loadingText = computed(() => {
 
 onMounted(async () => {
   fetching.value = true;
-  await Promise.all([productStore.fetchAll(), userStore.fetchAll()]);
+  await Promise.all([productStore.fetchAll(), userStore.fetchAll(), bakerySettingsStore.fetchById('default')]);
   fetching.value = false;
 
   if (props.initialData?.userId) {
@@ -168,6 +172,11 @@ onMounted(async () => {
   } else if (formData.value.deliveryFee) {
     selectedDeliveryFee.value = 'custom';
   }
+});
+
+const features = computed(() => {
+  if (!bakerySettingsStore.items.length) return {};
+  return bakerySettingsStore.items[0].features;
 });
 
 const handleNewClientClick = () => {
@@ -445,6 +454,18 @@ const clearUser = () => {
           <span v-if="errors.dueDate" class="text-danger text-sm">{{ errors.dueDate }}</span>
         </div>
 
+        <div :class="{ 'hidden': !features?.order?.timeOfDay }">
+          <label for="due-time">Hora de Entrega</label>
+          <input
+            id="due-time"
+            type="time"
+            v-model="formData.dueTime"
+            step="900"
+            class="w-full"
+          />
+          <span v-if="errors.dueTime" class="text-danger text-sm">{{ errors.dueTime }}</span>
+        </div>
+
       </div>
 
       <NewClientDialog
@@ -551,12 +572,25 @@ const clearUser = () => {
 
       <div class="base-card">
         <div>
-          <label for="internal-notes">Comentarios</label>
+          <label for="internal-notes">Comentarios Produccion</label>
           <textarea
             id="internal-notes"
             v-model="formData.internalNotes"
             class="w-full"
             rows="3"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="base-card">
+        <div>
+          <label for="delivery-notes">Comentarios Domicilio</label>
+          <textarea
+            id="delivery-notes"
+            v-model="formData.deliveryNotes"
+            class="w-full"
+            rows="3"
+
           ></textarea>
         </div>
       </div>
