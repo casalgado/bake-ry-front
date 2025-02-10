@@ -140,6 +140,9 @@ const formatChange = (change, field, currentEntry) => {
   case 'internalNotes': {
     return `Notas internas: "${change.from || '-'}" → "${change.to || '-'}"`;
   }
+  case 'deliveryNotes': {
+    return `Notas de entrega: "${change.from || '-'}" → "${change.to || '-'}"`;
+  }
   case 'deliveryAddress': {
     return `Dirección: "${change.from || '-'}" → "${change.to || '-'}"`;
   }
