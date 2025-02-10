@@ -130,10 +130,11 @@ const columns = [
     component: ClientCell,
     getProps: (row) => ({
       name: row.userName,
-      comment: row.deliveryNotes,
+      comment: `${row.internalNotes}${row.internalNotes ? '.' : ' '}${row.deliveryNotes}`,
       phone: row.userPhone,
       showIsPaid: row.isPaid,
       dueTime: row.dueTime,
+
     }),
   },
 

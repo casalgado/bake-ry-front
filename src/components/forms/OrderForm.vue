@@ -253,6 +253,8 @@ const validate = () => {
 const handleSubmit = () => {
   if (!validate()) return;
   formData.value.deliveryAddress = cleanString(formData.value.deliveryAddress);
+  formData.value.deliveryNotes = cleanString(formData.value.deliveryNotes);
+  formData.value.internalNotes = cleanString(formData.value.internalNotes);
   emit('submit', formData.value);
 };
 
