@@ -1,6 +1,8 @@
 <script setup>
+// ProductWizard.vue
 import { ref, computed } from 'vue';
 import { abbreviateText } from '@/utils/helpers';
+import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
 
 const props = defineProps({
   products: {
@@ -48,6 +50,7 @@ const selectedQuantity = ref(null);
 const highlightedIndex = ref(null);
 const customQuantityMode = ref(false);
 const customQuantity = ref('');
+const currentPage = ref(0);
 
 // Get unique categories
 const categories = computed(() =>
@@ -100,13 +103,37 @@ const currentOptions = computed(() => {
   case 'variation':
     return productVariations.value;
   case 'quantity':
-    return Array.from({ length: 9 }, (_, i) => ({
+    return Array.from({ length: 16 }, (_, i) => ({
       name: `${i + 1}`,
       value: i + 1,
     }));
   default:
     return [];
   }
+});
+
+const paginatedOptions = computed(() => {
+  const options = currentOptions.value;
+  const ITEMS_PER_PAGE = 8; // Show 8 items + 1 navigation button
+  const start = currentPage.value * ITEMS_PER_PAGE;
+  const items = options.slice(start, start + ITEMS_PER_PAGE);
+
+  // Add next/prev button if there are more pages
+  const hasMorePages = options.length > start + ITEMS_PER_PAGE;
+  const hasPreviousPages = currentPage.value > 0;
+
+  if (hasMorePages) {
+    items.push({ isNavigationNext: true });
+  }
+  if (hasPreviousPages && items.length < 9) {
+    items.push({ isNavigationPrev: true });
+  }
+
+  return items;
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(currentOptions.value.length / 8);
 });
 
 // Breadcrumb computed properties
@@ -123,14 +150,29 @@ const displayedQuantity = computed(() => {
   return selectedQuantity.value || '#';
 });
 
+const resetPage = () => {
+  currentPage.value = 0;
+};
+
 const handleSelection = (index) => {
-  const selected = currentOptions.value[index];
+  const selected = paginatedOptions.value[index];
   if (!selected) return;
+
+  // Handle navigation buttons
+  if (selected.isNavigationNext) {
+    currentPage.value++;
+    return;
+  }
+  if (selected.isNavigationPrev) {
+    currentPage.value--;
+    return;
+  }
 
   switch (currentStep.value) {
   case 'category':
     selectedCategory.value = selected;
     currentStep.value = 'product';
+    resetPage();
     break;
 
   case 'product':
@@ -140,11 +182,13 @@ const handleSelection = (index) => {
     } else {
       currentStep.value = 'quantity';
     }
+    resetPage();
     break;
 
   case 'variation':
     selectedVariation.value = selected;
     currentStep.value = 'quantity';
+    resetPage();
     break;
 
   case 'quantity':
@@ -168,17 +212,20 @@ const handleBreadcrumbClick = (step) => {
     selectedProduct.value = null;
     selectedVariation.value = null;
     selectedQuantity.value = null;
+    resetPage();
     break;
   case 'product':
     currentStep.value = 'product';
     selectedProduct.value = null;
     selectedVariation.value = null;
     selectedQuantity.value = null;
+    resetPage();
     break;
   case 'variation':
     currentStep.value = 'variation';
     selectedVariation.value = null;
     selectedQuantity.value = null;
+    resetPage();
     break;
   case 'quantity':
     currentStep.value = 'quantity';
@@ -196,6 +243,7 @@ const resetSelection = () => {
   highlightedIndex.value = null;
   customQuantity.value = '';
   customQuantityMode.value = false;
+  resetPage();
 };
 
 const handleBackKey = () => {
@@ -219,14 +267,16 @@ const handleBackKey = () => {
     break;
   }
   highlightedIndex.value = null;
+  resetPage();
 };
+
 const handleKeydown = (event) => {
   // Toggle custom quantity mode with Shift
   if (event.key === 'Shift' && currentStep.value === 'quantity') {
     event.preventDefault();
-    customQuantityMode.value = !customQuantityMode.value; // Toggle the mode
+    customQuantityMode.value = !customQuantityMode.value;
     if (!customQuantityMode.value) {
-      customQuantity.value = ''; // Clear if exiting custom mode
+      customQuantity.value = '';
     }
     return;
   }
@@ -309,6 +359,9 @@ const handleOptionClick = (index) => {
 const getOptionDisplay = (option, index) => {
   if (!option) return '';
 
+  if (option.isNavigationNext) return 'Más >';
+  if (option.isNavigationPrev) return '< Atrás';
+
   switch (currentStep.value) {
   case 'category':
     return option;
@@ -322,7 +375,6 @@ const getOptionDisplay = (option, index) => {
   }
 };
 </script>
-
 <template>
   <div
     class="relative w-full aspect-square flat-card mb-0"
@@ -330,6 +382,11 @@ const getOptionDisplay = (option, index) => {
     @keydown="handleKeydown"
     @keyup="handleKeyup"
   >
+    <!-- Pagination indicator -->
+    <div v-if="totalPages > 1" class="absolute top-1 right-2 text-xs text-neutral-500">
+      {{ currentPage + 1 }}/{{ totalPages }}
+    </div>
+
     <!-- Grid with numpad layout -->
     <div class="grid grid-cols-3 grid-rows-3 gap-2 h-full p-1">
       <button
@@ -338,15 +395,26 @@ const getOptionDisplay = (option, index) => {
         :key="i"
         class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
         :class="{
-          'invisible': !currentOptions[i-1],
+          'invisible': !paginatedOptions[i-1],
           'utility-btn-active': highlightedIndex === i-1,
-          'bg-neutral-300 hover:bg-neutral-350': currentStep === 'variation' && currentOptions[i-1]?.isWholeGrain
+          'bg-neutral-300 hover:bg-neutral-350': currentStep === 'variation' && paginatedOptions[i-1]?.isWholeGrain,
+          'bg-neutral-300 hover:bg-neutral-350': paginatedOptions[i-1]?.isNavigationNext || paginatedOptions[i-1]?.isNavigationPrev
+
         }"
         tabindex="-1"
         @click="handleOptionClick(i-1)"
       >
-        <span v-if="currentStep !== 'quantity'" class="button-number">{{ getKeyForNumber(i) }}</span>
-        <span class="leading-none text-xs">{{ currentOptions[i-1]?.isWholeGrain ? abbreviateText(getOptionDisplay(currentOptions[i-1], i-1), {firstWordLength: 3, lastWordLength: 2, separator: ' '}) : getOptionDisplay(currentOptions[i-1], i-1) }}</span>
+        <span
+          v-if="currentStep !== 'quantity'"
+          class="button-number"
+        >
+          {{ getKeyForNumber(i) }}
+        </span>
+        <span class="leading-none text-xs">
+          {{ paginatedOptions[i-1]?.isWholeGrain
+              ? abbreviateText(getOptionDisplay(paginatedOptions[i-1], i-1), {firstWordLength: 3, lastWordLength: 2, separator: ' '})
+              : getOptionDisplay(paginatedOptions[i-1], i-1) }}
+        </span>
       </button>
     </div>
 
