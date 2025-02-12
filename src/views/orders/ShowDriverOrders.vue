@@ -218,7 +218,7 @@ const columns = [
     field: 'status',
     sortable: true,
     type: 'toggle',
-    options: [{ value: 0, displayText: '0', lockedValue: true, skipWhenToggled: true }, { value: 2, displayText: '', icon: PhMoped }, { value: 3, displayText: '', icon: PhBuilding }],
+    options: [{ value: 0, displayText: '0', skipWhenToggled: true }, { value: 2, displayText: '', icon: PhMoped }, { value: 3, displayText: '', icon: PhBuilding }],
   },
 ];
 // Watch for period changes and fetch new data
