@@ -15,7 +15,7 @@ onMounted(() => {
 
 <template>
   <TheHeader />
-  <main>
+  <main :key="`main-${isLoading}`">
     <div v-if="isLoading">
       <div class="flex justify-center flex-col items-center h-screen absolute inset-0">
         <PhGraph class="animate-pulse h-20 w-20" weight="light" />
