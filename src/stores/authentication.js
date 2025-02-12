@@ -46,6 +46,7 @@ export const useAuthenticationStore = defineStore('authentication', {
   getters: {
     isLoggedIn: (state) => !!state.user && !!state.idToken,
     getUserData: (state) => state.user,
+    isLoading: (state) => state.loading,
     getBakeryId: (state) => state.user?.bakeryId,
     isSystemAdmin: (state) => state.user?.role === 'system_admin',
     isBakeryAdmin: (state) => state.user?.role === VALID_ROLES.BAKERY_ADMIN,
@@ -253,6 +254,8 @@ export const useAuthenticationStore = defineStore('authentication', {
     },
 
     async checkAuth() {
+      console.time('checkAuth');
+      this.loading = true;
       return new Promise((resolve, reject) => {
         const unsubscribe = onAuthStateChanged(
           auth,
@@ -278,7 +281,10 @@ export const useAuthenticationStore = defineStore('authentication', {
                 localStorage.setItem('email', user.email);
                 resolve(this.user);
                 console.log('User authenticated:', this.user);
+                console.timeEnd('checkAuth');
+                this.loading = false;
               } catch (error) {
+                this.loading = false;
                 reject(error);
               }
             } else {
@@ -286,7 +292,9 @@ export const useAuthenticationStore = defineStore('authentication', {
               this.idToken = null;
               resolve(null);
               console.log('User not authenticated');
+
             }
+            this.loading = false;
             unsubscribe();
           },
           (error) => {
@@ -295,6 +303,7 @@ export const useAuthenticationStore = defineStore('authentication', {
           },
         );
       });
+
     },
 
     async refreshToken() {
