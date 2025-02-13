@@ -80,8 +80,16 @@ const {
     filters: {
       dateRange: {
         dateField: 'dueDate',
-        startDate: periodStore.periodRange.start.toISOString(),
-        endDate: periodStore.periodRange.end.toISOString(),
+        startDate: (() => {
+          periodStore.setPeriodType('day');
+          const startDate = new Date(periodStore.periodRange.start);
+          return startDate.toISOString();
+        })(),
+        endDate: (() => {
+          periodStore.setPeriodType('day');
+          const endDate = new Date(periodStore.periodRange.end);
+          return endDate.toISOString();
+        })(),
       },
     },
   },

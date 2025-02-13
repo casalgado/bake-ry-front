@@ -104,7 +104,6 @@ const handleRemove = () => {
               :value="discount"
               class="w-12 px-1 py-0.5 text-right border rounded text-xs max-w-12 min-w-8"
               :disabled="item.isComplimentary"
-              min="0"
               max="100"
 
             />

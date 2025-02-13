@@ -39,7 +39,7 @@ export const createResourceStore = (resourceName, resourceService) => {
 
     // Real-time update handler
     function handleRealtimeUpdate(changes) {
-      console.log('handleRealtimeUpdate', changes);
+      // console.log('handleRealtimeUpdate', changes);
       changes.forEach((change) => {
         switch (change.type) {
         case 'added': {
