@@ -264,7 +264,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="relative rounded-lg border border-neutral-200">
+  <div class="relative rounded-lg border border-neutral-200 mb-10">
     <!-- Selection and Filter controls -->
     <div class="sticky top-0 z-30 bg-neutral-50 px-4 py-0 lg:py-2 flex items-center justify-between border-b">
       <div class="flex items-center gap-4">
