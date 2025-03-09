@@ -98,7 +98,7 @@ const getInitialFormState = () => ({
   userName: '',
   userEmail: '',
   userPhone: '',
-  userNationalId: '', // Added userNationalId field
+  userNationalId: '',
   orderItems: [],
   preparationDate: tomorrowString,
   dueDate: tomorrowString,

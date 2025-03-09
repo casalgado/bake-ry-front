@@ -60,7 +60,7 @@ const formData = ref({
   variationType: '',
   variations: [],
   basePrice: 0,
-  taxPercentage: 0, // Added tax percentage field
+  taxPercentage: 0,
   recipe: {
     recipeSource: null,
     recipeId: null,
@@ -271,7 +271,7 @@ const initializeForm = () => {
       hasVariations: organizedVariations.length > 0,
       variations: organizedVariations,
       basePrice: props.initialData.basePrice || 0,
-      taxPercentage: props.initialData.taxPercentage || 0, // Initialize tax percentage
+      taxPercentage: props.initialData.taxPercentage || 0,
       recipe: props.initialData.recipe || {
         recipeSource: null,
         recipeId: null,
