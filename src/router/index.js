@@ -158,6 +158,11 @@ const router = createRouter({
           name: 'unpaidOrders',
           component: () => import('../views/orders/ShowUnpaidOrders.vue'),
         },
+        {
+          path: 'console',
+          name: 'showConsole',
+          component: () => import('../views/Console.vue'),
+        },
       ],
     },
     {
