@@ -26,7 +26,6 @@ const props = defineProps({
   },
 });
 
-// Add this near the top with other utility functions
 const addBasePricesToOrderItems = (orderItems, products) => {
   return orderItems.map(item => {
     const product = products.find(p => p.id === item.productId);
@@ -322,13 +321,7 @@ const handlePrevOrder = () => {
     currentHistoryIndex.value++;
     const historicalOrder = userHistory.value[currentHistoryIndex.value];
     formData.value.orderItems = addBasePricesToOrderItems(historicalOrder.orderItems, productStore.items);
-    // Update the dates
-    if (historicalOrder.preparationDate) {
-      formData.value.preparationDate = formatDateForInput(historicalOrder.preparationDate);
-    }
-    if (historicalOrder.preparationDate) {
-      formData.value.preparationDate = formatDateForInput(historicalOrder.preparationDate);
-    }
+
   }
 };
 
@@ -337,13 +330,7 @@ const handleNextOrder = () => {
     currentHistoryIndex.value--;
     const historicalOrder = userHistory.value[currentHistoryIndex.value];
     formData.value.orderItems = addBasePricesToOrderItems(historicalOrder.orderItems, productStore.items);
-    // Update the dates
-    if (historicalOrder.preparationDate) {
-      formData.value.preparationDate = formatDateForInput(historicalOrder.preparationDate);
-    }
-    if (historicalOrder.preparationDate) {
-      formData.value.preparationDate = formatDateForInput(historicalOrder.preparationDate);
-    }
+
   }
 };
 
