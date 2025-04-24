@@ -94,10 +94,7 @@ const addTaxToCoffee = async () => {
 
 <template>
   <div class="flex flex-col items-start justify-start overflow-hidden w-full">
-    <button @click="addTaxToCoffee">add Tax to Coffee Items</button>
     <h1>hello</h1>
-    <pre>{{ orderStore.items.length }}</pre>
-    <pre>{{ orderStore.items }}</pre>
   </div>
 </template>
 

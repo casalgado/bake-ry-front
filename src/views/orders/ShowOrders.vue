@@ -200,6 +200,7 @@ const columns = [
     getProps: (row) => ({
       isPaid: row.isPaid,
       isComplimentary: row.isComplimentary,
+      orderStatus: row.status,
     }),
   },
   {

@@ -36,6 +36,7 @@ import {
   PhStorefront,
   PhMopedFront,
   PhBuilding,
+  PhOven,
 } from '@phosphor-icons/vue';
 
 const periodStore = usePeriodStore();
@@ -228,7 +229,7 @@ const columns = [
     sortable: true,
 
     type: 'toggle',
-    options: [{ value: 0, displayText: '0'  }, { value: 2, displayText: '', icon: PhMoped }, { value: 3, displayText: '', icon: PhBuilding }],
+    options: [{ value: 0, displayText: '0'  }, { value: 1, displayText: '', icon: PhOven }, { value: 2, displayText: '', icon: PhMoped }, { value: 3, displayText: '', icon: PhBuilding }],
   },
 ];
 
