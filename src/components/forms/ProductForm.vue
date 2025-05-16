@@ -424,7 +424,7 @@ onMounted(async () => {
             type="number"
             v-model="formData.basePrice"
             min="0"
-            step="100"
+            step="50"
           />
         </div>
       </div>

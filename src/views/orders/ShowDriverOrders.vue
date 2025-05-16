@@ -136,6 +136,7 @@ const columns = [
       name: row.userName,
       phone: row.userPhone,
       comment: row.deliveryNotes,
+      showIsPaid: row.isPaid,
       dueTime: row.dueTime,
     }),
   },
