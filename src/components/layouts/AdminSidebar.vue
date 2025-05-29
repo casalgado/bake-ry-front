@@ -17,6 +17,7 @@ import {
   PhHandCoins,
   PhBread,
   PhCalculator,
+  PhCalendar,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -86,6 +87,12 @@ const navigationSections = [
         icon: PhCalculator,
         text: 'Resumen',
         path: '/dashboard/orders/delivery/summary',
+      },
+      {
+        id: 'entrega-calendario',
+        icon: PhCalendar,
+        text: 'Calendario',
+        path: '/dashboard/orders/delivery-calendar',
       },
     ],
   },

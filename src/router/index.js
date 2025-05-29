@@ -124,6 +124,11 @@ const router = createRouter({
           component: () => import('../views/orders/ShowDelivery.vue'),
         },
         {
+          path: 'orders/delivery-calendar',
+          name: 'show-delivery-calendar',
+          component: () => import('../views/orders/ShowDeliveryCalendar.vue'),
+        },
+        {
           path: 'orders/delivery/summary',
           name: 'deliverySummary',
           component: () => import('../views/orders/ShowDeliverySummary.vue'),
