@@ -2,7 +2,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import CalendarDay from './CalendarDay.vue';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
 const props = defineProps({
   data: {
@@ -33,6 +33,16 @@ const parseRange = computed(() => {
   const end = new Date(props.periodRange.end);
   const difference = differenceInDays(end, start);
   return difference > 7 ? 'month' : 'week';
+});
+
+const startOfPeriod = computed(() => {
+  const start = new Date(props.periodRange.start);
+  return parseRange.value === 'week' ? startOfWeek(start, { weekStartsOn: 1 }) : startOfMonth(start);
+});
+
+const endOfPeriod = computed(() => {
+  const end = new Date(props.periodRange.end);
+  return parseRange.value === 'week' ? endOfWeek(end, { weekStartsOn: 1 }) : endOfMonth(end);
 });
 
 const emit = defineEmits(['row-select', 'toggle-update']);
@@ -85,7 +95,9 @@ const isCellHighlighted = (row, column) => {
 
 <template>
   <tbody>
-
+    <pre>{{ periodRange }}</pre>
+    <pre>{{ parseRange }}</pre>
+    <pre>{{ startOfPeriod }} - {{ endOfPeriod }}</pre>
     <template v-if="!isEmpty">
       <tr
         v-for="row in data"
