@@ -90,15 +90,40 @@ const weekRows = computed(() => {
   return weeks;
 });
 
-// Filter data for a specific day
+// Create a hashmap of data grouped by date (YYYY-MM-DD format)
+// This computed property will only recalculate when props.data changes
+const dataByDate = computed(() => {
+  const hashmap = new Map();
+
+  // Loop through data only once
+  props.data.forEach(item => {
+    try {
+      const itemDate = new Date(item.dueDate);
+      // Skip invalid dates
+      if (isNaN(itemDate.getTime())) {
+        console.warn('Invalid date found in item:', item);
+        return;
+      }
+
+      const dateKey = format(itemDate, 'yyyy-MM-dd');
+
+      if (!hashmap.has(dateKey)) {
+        hashmap.set(dateKey, []);
+      }
+      hashmap.get(dateKey).push(item);
+    } catch (error) {
+      console.warn('Error processing item date:', item, error);
+    }
+  });
+
+  return hashmap;
+});
+
+// Optimized function to get data for a specific day - O(1) lookup
 const getDataForDay = (day) => {
   const dayDate = new Date(day);
-  return props.data.filter(item => {
-    // Assuming your data has a date field - adjust the field name as needed
-    const itemDate = new Date(item.dueDate);
-    console.log(isSameDay(itemDate, dayDate));
-    return isSameDay(itemDate, dayDate);
-  });
+  const dateKey = format(dayDate, 'yyyy-MM-dd');
+  return dataByDate.value.get(dateKey) || [];
 };
 
 const emit = defineEmits(['row-select', 'toggle-update']);
@@ -150,12 +175,8 @@ const isDayOutsideMonth = (day) => {
 </script>
 
 <template>
-
   <tbody>
-    <!-- Debug info -->
-    <pre>{{ weekRows }}</pre>
     <template v-if="!isEmpty">
-      <template>
         <tr
           v-for="(week, weekIndex) in weekRows"
           :key="`week-${weekIndex}`"
@@ -174,7 +195,6 @@ const isDayOutsideMonth = (day) => {
             @hover-change="handleCellHover"
           />
         </tr>
-      </template>
     </template>
 
     <!-- Empty state -->
