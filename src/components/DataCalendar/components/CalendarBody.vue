@@ -2,7 +2,17 @@
 <script setup>
 import { ref, computed } from 'vue';
 import CalendarDay from './CalendarDay.vue';
-import { differenceInDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import {
+  differenceInDays,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  format,
+  isSameDay,
+  isSameWeek,
+} from 'date-fns';
 
 const props = defineProps({
   data: {
@@ -28,6 +38,7 @@ const props = defineProps({
 });
 
 const isEmpty = computed(() => props.data.length === 0);
+
 const parseRange = computed(() => {
   const start = new Date(props.periodRange.start);
   const end = new Date(props.periodRange.end);
@@ -44,6 +55,51 @@ const endOfPeriod = computed(() => {
   const end = new Date(props.periodRange.end);
   return parseRange.value === 'week' ? endOfWeek(end, { weekStartsOn: 1 }) : endOfMonth(end);
 });
+
+// Generate all days in the period
+const periodDays = computed(() => {
+  return eachDayOfInterval({
+    start: startOfPeriod.value,
+    end: endOfPeriod.value,
+  });
+});
+
+const weekRows = computed(() => {
+  if (parseRange.value === 'week') {
+    return [periodDays.value];
+  }
+
+  const days = periodDays.value.map(d => new Date(d));
+
+  if (days.length === 0) return [];
+
+  // Extend range to cover full calendar weeks starting on Monday
+  const calendarStart = startOfWeek(days[0], { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(days[days.length - 1], { weekStartsOn: 1 });
+
+  // Get all days between calendarStart and calendarEnd
+  const fullCalendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+
+  // Group into weeks
+  const weeks = [];
+  for (let i = 0; i < fullCalendarDays.length; i += 7) {
+    const week = fullCalendarDays.slice(i, i + 7).map(day => day.toISOString());
+    weeks.push(week);
+  }
+
+  return weeks;
+});
+
+// Filter data for a specific day
+const getDataForDay = (day) => {
+  const dayDate = new Date(day);
+  return props.data.filter(item => {
+    // Assuming your data has a date field - adjust the field name as needed
+    const itemDate = new Date(item.dueDate);
+    console.log(isSameDay(itemDate, dayDate));
+    return isSameDay(itemDate, dayDate);
+  });
+};
 
 const emit = defineEmits(['row-select', 'toggle-update']);
 
@@ -68,15 +124,6 @@ const handleCellHover = ({ hovering, rowId, columnId }) => {
 
 /**
  * Determines whether a table cell should be highlighted based on hover and selection state
- * @param {Object} row - The row data object containing the cell
- * @param {Object} column - The column configuration object
- * @returns {boolean} - Whether the cell should be highlighted
- *
- * Highlighting behavior:
- * 1. For non-toggle columns: never highlighted
- * 2. When no rows are selected: only highlights the specific hovered cell
- * 3. When rows are selected: highlights all toggle cells in selected rows
- *    when hovering over the toggle column
  */
 const isCellHighlighted = (row, column) => {
   if (!hoveredCell.value || column.type !== 'toggle') return false;
@@ -91,44 +138,49 @@ const isCellHighlighted = (row, column) => {
   return false;
 };
 
+// Check if a day is outside the actual month (for monthly view)
+const isDayOutsideMonth = (day) => {
+  if (parseRange.value === 'week') return false;
+
+  const monthStart = new Date(props.periodRange.start);
+  const monthEnd = new Date(props.periodRange.end);
+
+  return day < startOfMonth(monthStart) || day > endOfMonth(monthEnd);
+};
 </script>
 
 <template>
-  <tbody>
-    <pre>{{ periodRange }}</pre>
-    <pre>{{ parseRange }}</pre>
-    <pre>{{ startOfPeriod }} - {{ endOfPeriod }}</pre>
-    <template v-if="!isEmpty">
-      <tr
-        v-for="row in data"
-        :key="row.id"
-        @click="(event) => handleRowClick(event, row)"
-        :class="[
-          'cursor-pointer border-t border-separate border-spacing-0 border-neutral-400 transition-colors duration-50',          selectedRows.has(row.id)
-            ? 'bg-neutral hover:bg-neutral-600 text-white'
-            : [
-              'odd:bg-neutral-100',
-              'hover:bg-neutral-200'
-            ]
-        ]"
-      >
 
-        <CalendarDay
-          v-for="column in columns"
-          :key="column.id"
-          :column="column"
-          :row="row"
-          :selected-rows="selectedRows"
-          :toggle-loading="toggleLoading"
-          @click="(event) => handleCellClick(event, row, column)"
-          :hovering="isCellHighlighted(row, column)"
-          @hover-change="handleCellHover"
-        />
-      </tr>
+  <tbody>
+    <!-- Debug info -->
+    <pre>{{ weekRows }}</pre>
+    <template v-if="!isEmpty">
+      <template>
+        <tr
+          v-for="(week, weekIndex) in weekRows"
+          :key="`week-${weekIndex}`"
+          class="border-t border-separate border-spacing-0 border-neutral-400"
+        >
+          <CalendarDay
+            v-for="day in week"
+            :key="`week-${weekIndex}-${format(day, 'yyyy-MM-dd')}`"
+            :column="{ ...props.columns[0], day, dayKey: format(day, 'yyyy-MM-dd') }"
+            :day="day"
+            :rows="getDataForDay(day)"
+            :is-outside-month="isDayOutsideMonth(day)"
+            :selected-rows="selectedRows"
+            :toggle-loading="toggleLoading"
+            @click="(event) => handleCellClick(event, null, { ...props.columns[0], day })"
+            @hover-change="handleCellHover"
+          />
+        </tr>
+      </template>
     </template>
+
+    <!-- Empty state -->
     <tr v-else>
       <td
-        :colspan="columns.length"
+        :colspan="parseRange === 'week' ? periodDays.length : 7"
         class="px-4 py-8 text-center text-neutral-500"
       >
         No hay datos disponibles para mostrar.
