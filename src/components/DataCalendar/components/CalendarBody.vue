@@ -1,7 +1,8 @@
 <!-- components/DataTable/components/TableBody.vue -->
 <script setup>
 import { ref, computed } from 'vue';
-import TableCell from './TableCell.vue';
+import CalendarDay from './CalendarDay.vue';
+import { differenceInDays } from 'date-fns';
 
 const props = defineProps({
   data: {
@@ -10,6 +11,10 @@ const props = defineProps({
   },
   columns: {
     type: Array,
+    required: true,
+  },
+  periodRange: {
+    type: Object,
     required: true,
   },
   selectedRows: {
@@ -23,6 +28,13 @@ const props = defineProps({
 });
 
 const isEmpty = computed(() => props.data.length === 0);
+const parseRange = computed(() => {
+  const start = new Date(props.periodRange.start);
+  const end = new Date(props.periodRange.end);
+  const difference = differenceInDays(end, start);
+  return difference > 7 ? 'month' : 'week';
+});
+
 const emit = defineEmits(['row-select', 'toggle-update']);
 
 // Track hover state for toggle cells
@@ -73,6 +85,7 @@ const isCellHighlighted = (row, column) => {
 
 <template>
   <tbody>
+
     <template v-if="!isEmpty">
       <tr
         v-for="row in data"
@@ -88,7 +101,7 @@ const isCellHighlighted = (row, column) => {
         ]"
       >
 
-        <TableCell
+        <CalendarDay
           v-for="column in columns"
           :key="column.id"
           :column="column"

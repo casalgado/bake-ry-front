@@ -2,7 +2,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { PhDisc, PhArrowCounterClockwise, PhArrowClockwise, PhX } from '@phosphor-icons/vue';
-import TableHeader from './components/TableHeader.vue';
+import CalendarHeader from './components/CalendarHeader.vue';
 import CalendarBody from './components/CalendarBody.vue';
 import ActionBar from './components/ActionBar.vue';
 import FilterBar from './components/FilterBar.vue';
@@ -21,6 +21,11 @@ const props = defineProps({
     required: true,
     default: () => [],
     validator: (cols) => cols.every(col => col.id && col.label),
+  },
+  periodRange: {
+    type: Object,
+    required: true,
+    default: () => {},
   },
   searchableColumns: {
     type: Array,
@@ -321,7 +326,7 @@ onUnmounted(() => {
     <!-- Table Container -->
     <div class="overflow-x-auto">
       <table class="w-full text-sm text-left text-neutral-700">
-        <TableHeader
+        <CalendarHeader
           :columns="columns"
           :get-sort-direction="getSortDirection"
           :get-sort-index="getSortIndex"
@@ -330,6 +335,7 @@ onUnmounted(() => {
         <CalendarBody
           :data="processedData"
           :columns="columns"
+          :period-range="periodRange"
           :selected-rows="selectedRows"
           :toggle-loading="toggleLoading"
           @row-select="handleRowSelect"

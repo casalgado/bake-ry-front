@@ -405,8 +405,8 @@ watch(
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Entrega</h2>
-      <PeriodSelector onlyFor="day" />
+      <h2 class="text-2xl font-bold text-neutral-800">Calendario de Entregas</h2>
+      <PeriodSelector />
     </div>
 
     <!-- Error State -->
@@ -622,11 +622,13 @@ watch(
 
     <!-- Table -->
     <div>
+
       <DataCalendar
         ref="dataCalendar"
         :key="deliveryDrivers.length"
         :data="calendarData"
         :columns="columns"
+        :period-range="periodStore.periodRange"
         :actions="tableActions"
         :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
