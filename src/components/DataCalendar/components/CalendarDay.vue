@@ -160,15 +160,28 @@ onUnmounted(() => {
   <td
     class="px-0 pl-1 lg:px-4 text-xs lg:text-sm py-2 relative group select-none border border-neutral-400 align-top"
   >
-    <div class="min-h-20">
+    <div class="min-h-20 w-full">
       <p class="w-full text-center">
         {{ day.toLocaleString("es-CO", { day: "numeric" }) }}
       </p>
 
-      <div v-for="row in rows" :key="row.id" class="bg-primary rounded-lg mb-1 text-xs p-[1px]">
-        <p class="text-center">{{ row.userName }}</p>
-        <p class="text-center bg-white rounded-b-lg" v-for="oi in row.orderItems" :key="oi.id">
-          {{ `${oi.quantity} ${oi.productName} ${oi.variation?.name}` }}
+      <div
+        v-for="row in rows"
+        :key="row.id"
+        class="bg-primary-700 mb-1 text-xs w-full rounded-lg"
+      >
+        <p class="text-center text-gray-200 text-nowrap w-11/12 overflow-hidden m-auto">{{ row.userName }}</p>
+
+        <p
+          v-for="(oi, index) in row.orderItems"
+          :key="oi.id"
+          class="text-center bg-white w-full border border-primary-700"
+          :class="{
+            'rounded-b-lg border-b': index === row.orderItems.length - 1,
+            'border-b-0': index !== row.orderItems.length - 1,
+          }"
+        >
+          {{ `${oi.quantity} ${oi.productName} ${oi.variation? oi.variation.name : ''}` }}
         </p>
       </div>
     </div>
