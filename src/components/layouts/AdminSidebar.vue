@@ -165,6 +165,7 @@ const handleLinkClick = (link) => {
         :key="link.id"
         :icon="link.icon"
         :text="link.text"
+        :to="link.path"
         :isActive="route.path === link.path"
         @click="handleLinkClick(link)"
       />

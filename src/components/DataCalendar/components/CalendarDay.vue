@@ -148,8 +148,9 @@ onUnmounted(() => {
 <template>
   <td
     class="px-0 pl-1 lg:px-4 text-xs lg:text-sm py-2 relative group select-none"
-
   >
-    {{ rows.length }}
+    <div v-for="row in rows" :key="row.id">
+      {{ row.userName }}
+    </div>
   </td>
 </template>
