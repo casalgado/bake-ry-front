@@ -180,7 +180,7 @@ const isDayOutsideMonth = (day) => {
         <tr
           v-for="(week, weekIndex) in weekRows"
           :key="`week-${weekIndex}`"
-          class="border-t border-separate border-spacing-0 border-neutral-400"
+          class="border-t border-separate border-spacing-0 border-neutral-400 bg-neutral-100"
         >
           <CalendarDay
             v-for="day in week"

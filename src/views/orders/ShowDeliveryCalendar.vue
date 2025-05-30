@@ -82,12 +82,12 @@ const {
       dateRange: {
         dateField: 'dueDate',
         startDate: (() => {
-          periodStore.setPeriodType('week');
+          periodStore.setPeriodType('month');
           const startDate = new Date(periodStore.periodRange.start);
           return startDate.toISOString();
         })(),
         endDate: (() => {
-          periodStore.setPeriodType('week');
+          periodStore.setPeriodType('month');
           const endDate = new Date(periodStore.periodRange.end);
           return endDate.toISOString();
         })(),

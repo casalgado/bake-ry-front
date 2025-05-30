@@ -42,12 +42,12 @@ const days = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'];
       <th
         v-for="day in days"
         :key="day"
-        class="pl-3 lg:px-4 py-2 lg:py-4 font-medium whitespace-nowrap"
+        class="lg:px-4 py-2 lg:py-4 font-medium text-cente whitespace-nowrap border-l border-neutral-200"
 
       >
-        <div class="flex items-center gap-1">
+        <p class=" text-center">
           {{ day }}
-        </div>
+        </p>
       </th>
     </tr>
   </thead>

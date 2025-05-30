@@ -324,6 +324,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Table Container -->
+
     <div class="overflow-x-auto">
       <table class="w-full text-sm text-left text-neutral-700 table-fixed">
         <CalendarHeader
@@ -333,6 +334,7 @@ onUnmounted(() => {
           @sort="handleSort"
         />
         <CalendarBody
+          v-if="!dataLoading"
           :data="processedData"
           :columns="columns"
           :period-range="periodRange"
