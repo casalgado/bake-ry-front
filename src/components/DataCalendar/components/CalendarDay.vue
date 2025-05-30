@@ -158,14 +158,18 @@ onUnmounted(() => {
 
 <template>
   <td
-    class="px-0 pl-1 lg:px-4 text-xs lg:text-sm py-2 relative group select-none border border-neutral-400"
+    class="px-0 pl-1 lg:px-4 text-xs lg:text-sm py-2 relative group select-none border border-neutral-400 align-top"
   >
     <div class="min-h-20">
-      <p class="w-full text-center">{{ day.toLocaleString("es-CO", { day: "numeric" }) }}</p>
+      <p class="w-full text-center">
+        {{ day.toLocaleString("es-CO", { day: "numeric" }) }}
+      </p>
 
-      <div v-for="row in rows" :key="row.id" class="text-center bg-primary rounded-lg">
-        <p>{{ row.userName }}</p>
-        <p v-for="oi in row.orderItems" :key="oi.id">{{`${oi.quantity} ${oi.productName} ${oi.variation?.name}`}}</p>
+      <div v-for="row in rows" :key="row.id" class="bg-primary rounded-lg mb-1 text-xs p-[1px]">
+        <p class="text-center">{{ row.userName }}</p>
+        <p class="text-center bg-white rounded-b-lg" v-for="oi in row.orderItems" :key="oi.id">
+          {{ `${oi.quantity} ${oi.productName} ${oi.variation?.name}` }}
+        </p>
       </div>
     </div>
   </td>
