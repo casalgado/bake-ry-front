@@ -83,7 +83,7 @@ const weekRows = computed(() => {
   // Group into weeks
   const weeks = [];
   for (let i = 0; i < fullCalendarDays.length; i += 7) {
-    const week = fullCalendarDays.slice(i, i + 7).map(day => day.toISOString());
+    const week = fullCalendarDays.slice(i, i + 7).map(day => new Date(day));
     weeks.push(week);
   }
 

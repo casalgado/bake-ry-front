@@ -16,9 +16,13 @@ const props = defineProps({
     type: Set,
     required: true,
   },
+  day: {
+    type: Date,
+    required: true,
+  },
   hovering: {
     type: Boolean,
-    required: true,
+    //required: true,
   },
   toggleLoading: {
     type: Object,
@@ -40,10 +44,13 @@ const handleClick = (event) => {
 // Only toggle cells in selected rows are clickable
 const isClickEnabled = computed(() => {
   if (props.column.type !== 'toggle') return false;
-  if (props.column.field === 'isPaid' && props.row.isComplimentary) return false;
+  if (props.column.field === 'isPaid' && props.row.isComplimentary)
+    return false;
   if (props.column.options) {
     const currentValue = props.row[props.column.field];
-    const currentOption = props.column.options.find(opt => opt.value === currentValue);
+    const currentOption = props.column.options.find(
+      (opt) => opt.value === currentValue,
+    );
     if (currentOption?.lockedValue) return false;
   }
   return !props.selectedRows.size || props.selectedRows.has(props.row.id);
@@ -57,15 +64,21 @@ const isLoading = computed(() => {
 // Get next toggle value
 const getNextToggleValue = computed(() => {
   if (props.column.type !== 'toggle' || !props.column.options) return null;
-  const availableOptions = props.column.options.filter(opt => !opt.skipWhenToggled);
+  const availableOptions = props.column.options.filter(
+    (opt) => !opt.skipWhenToggled,
+  );
   const currentValue = props.row[props.column.field];
-  const currentIndex = availableOptions.findIndex(opt => opt.value === currentValue);
+  const currentIndex = availableOptions.findIndex(
+    (opt) => opt.value === currentValue,
+  );
   return availableOptions[(currentIndex + 1) % availableOptions.length];
 });
 
 const currentOption = computed(() => {
   if (props.column.type !== 'toggle' || !props.column.options) return null;
-  return props.column.options.find(opt => opt.value === props.row[props.column.field]);
+  return props.column.options.find(
+    (opt) => opt.value === props.row[props.column.field],
+  );
 });
 
 // Get tooltip content
@@ -111,12 +124,11 @@ const handleMouseLeave = () => {
 
 // Handle touch events for mobile
 const handleTouchStart = () => {
-
   if (props.column.type === 'toggle' && isClickEnabled.value) {
     showTooltip.value = true;
 
     emit('hover-change', {
-      hovering: true,  // Changed to true since this is when interaction starts
+      hovering: true, // Changed to true since this is when interaction starts
       rowId: props.row.id,
       columnId: props.column.id,
     });
@@ -124,7 +136,6 @@ const handleTouchStart = () => {
 };
 
 const handleTouchEnd = () => {
-
   if (touchTimeout) clearTimeout(touchTimeout);
   touchTimeout = setTimeout(() => {
     showTooltip.value = false;
@@ -147,10 +158,15 @@ onUnmounted(() => {
 
 <template>
   <td
-    class="px-0 pl-1 lg:px-4 text-xs lg:text-sm py-2 relative group select-none"
+    class="px-0 pl-1 lg:px-4 text-xs lg:text-sm py-2 relative group select-none border border-neutral-400"
   >
-    <div v-for="row in rows" :key="row.id">
-      {{ row.userName }}
+    <div class="min-h-20">
+      <p class="w-full text-center">{{ day.toLocaleString("es-CO", { day: "numeric" }) }}</p>
+
+      <div v-for="row in rows" :key="row.id" class="text-center bg-primary rounded-lg">
+        <p>{{ row.userName }}</p>
+        <p v-for="oi in row.orderItems" :key="oi.id">{{`${oi.quantity} ${oi.productName} ${oi.variation?.name}`}}</p>
+      </div>
     </div>
   </td>
 </template>

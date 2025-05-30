@@ -325,7 +325,7 @@ onUnmounted(() => {
 
     <!-- Table Container -->
     <div class="overflow-x-auto">
-      <table class="w-full text-sm text-left text-neutral-700">
+      <table class="w-full text-sm text-left text-neutral-700 table-fixed">
         <CalendarHeader
           :columns="columns"
           :get-sort-direction="getSortDirection"
