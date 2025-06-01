@@ -216,7 +216,7 @@ const columns = [
   },
   {
     id: 'isDeliveryPaid',
-    label: 'Pagado',
+    label: 'Domi',
     field: 'isDeliveryPaid',
     sortable: true,
     type: 'toggle',

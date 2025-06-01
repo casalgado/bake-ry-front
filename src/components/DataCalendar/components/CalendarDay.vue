@@ -174,7 +174,7 @@ const toggleShowAllRows = () => {
 
 <template>
   <td
-    class="px-0 pl-1 lg:px-4 text-xs lg:text-sm py-2 relative group select-none border border-neutral-400 align-top"
+    class="px-1 text-xs lg:text-sm py-2 relative group select-none border border-neutral-400 align-top"
   >
     <div class="min-h-20 w-full">
       <p class="w-full text-center">

@@ -18,6 +18,7 @@ import {
   PhBread,
   PhCalculator,
   PhCalendar,
+  PhCalendarCheck,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -53,6 +54,12 @@ const navigationSections = [
         icon: PhHandCoins,
         text: 'Por Cobrar',
         path: '/dashboard/orders/unpaid',
+      },
+      {
+        id: 'fecha_de_pagos',
+        icon: PhCalendarCheck,
+        text: 'Fecha de Pagos',
+        path: '/dashboard/paymentDates',
       },
     ],
   },

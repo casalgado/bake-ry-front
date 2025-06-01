@@ -201,6 +201,7 @@ const columns = [
       isPaid: row.isPaid,
       isComplimentary: row.isComplimentary,
       orderStatus: row.status,
+      paymentDate: row.paymentDate,
     }),
   },
   {
@@ -393,6 +394,7 @@ watch(
         :wrapper-class="`bg-white shadow-lg rounded-lg`"
       />
     </div>
+
   </div>
 </template>
 

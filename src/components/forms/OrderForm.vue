@@ -101,6 +101,7 @@ const getInitialFormState = () => ({
   orderItems: [],
   preparationDate: tomorrowString,
   dueDate: tomorrowString,
+  paymentDate: '',
   dueTime: '',
   fulfillmentType: 'delivery',
   deliveryAddress: '',
@@ -118,7 +119,11 @@ const formData = ref(
       ...props.initialData,
       preparationDate: formatDateForInput(props.initialData.preparationDate),
       dueDate: formatDateForInput(props.initialData.dueDate),
-      orderItems: addBasePricesToOrderItems(props.initialData.orderItems, productStore.items),
+      paymentDate: formatDateForInput(props.initialData.paymentDate),
+      orderItems: addBasePricesToOrderItems(
+        props.initialData.orderItems,
+        productStore.items,
+      ),
     }
     : getInitialFormState(),
 );
@@ -254,6 +259,8 @@ const handleSubmit = () => {
   formData.value.deliveryAddress = cleanString(formData.value.deliveryAddress);
   formData.value.deliveryNotes = cleanString(formData.value.deliveryNotes);
   formData.value.internalNotes = cleanString(formData.value.internalNotes);
+  formData.value.isPaid = !!formData.value.paymentDate;
+  console.log('Form Data:', formData.value);
   emit('submit', formData.value);
 };
 
@@ -343,7 +350,7 @@ const areOrderItemsEqual = (items1, items2) => {
     if (!item2) return false;
 
     return item1.quantity === item2.quantity &&
-           item1.variation?.id === item2.variation?.id &&
+      item1.variation?.id === item2.variation?.id &&
            item1.currentPrice === item2.currentPrice;
   });
 };
@@ -420,7 +427,7 @@ const clearUser = () => {
         </div>
 
         <div>
-          <label for="preparation-date">Fecha de Preparación</label>
+          <label for="preparation-date">Fecha de {{  features.defaultDate && features.defaultDate === 'delivery' ? 'Entrega': 'Preparación' }}</label>
           <input
             id="preparation-date"
             type="date"
@@ -455,6 +462,43 @@ const clearUser = () => {
           <span v-if="errors.dueTime" class="text-danger text-sm">{{ errors.dueTime }}</span>
         </div>
 
+        <div>
+          <label for="payment-date">Fecha de Pago</label>
+          <div class="grid grid-cols-[1fr_auto_auto] gap-2">
+            <input
+              id="payment-date"
+              type="date"
+              v-model="formData.paymentDate"
+              class="w-full"
+            />
+            <button
+              type="button"
+              class="utility-btn m-0"
+              :class="{ 'utility-btn-inactive': !formData.paymentDate }"
+              @click="formData.paymentDate = null"
+              :disabled="!formData.paymentDate"
+            >
+              <PhX class="" />
+            </button>
+            <button
+              class="btn utility-btn m-0"
+              type="button"
+              @click="
+              formData.paymentDate = new Date().toLocaleDateString('es-CO', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit'
+                }).split('/').reverse().join('-')
+              "
+            >
+              Hoy
+            </button>
+          </div>
+
+          <span v-if="errors.payemntDate" class="text-danger text-sm">{{
+            errors.payemntDate
+          }}</span>
+        </div>
       </div>
 
       <NewClientDialog
@@ -579,7 +623,6 @@ const clearUser = () => {
             v-model="formData.deliveryNotes"
             class="w-full"
             rows="3"
-
           ></textarea>
         </div>
       </div>

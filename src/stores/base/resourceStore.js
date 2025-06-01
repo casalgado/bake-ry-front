@@ -259,13 +259,21 @@ export const createResourceStore = (resourceName, resourceService) => {
       try {
         const response = await resourceService.patchAll(updates);
 
-        // Update local state
-        updates.forEach(({ id, data }) => {
-          const index = items.value.findIndex(item => item.id === id);
-          if (index !== -1) {
-            items.value[index] = { ...items.value[index], ...data };
-          }
-        });
+        // Update local state based on successful response
+        if (response.data && response.data.success) {
+          response.data.success.forEach(({ id, changes }) => {
+            const index = items.value.findIndex(item => item.id === id);
+            if (index !== -1) {
+              // Extract the 'to' values from changes and apply them
+              const updatedData = {};
+              Object.keys(changes).forEach(key => {
+                updatedData[key] = changes[key].to;
+              });
+
+              items.value[index] = { ...items.value[index], ...updatedData };
+            }
+          });
+        }
 
         return response;
       } catch (error) {

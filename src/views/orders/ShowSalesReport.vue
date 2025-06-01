@@ -97,6 +97,7 @@ onMounted(async () => {
   try {
     loading.value = true;
     // First fetch settings to get B2B clients
+    periodStore.setPeriodType('month');
     await settingsStore.fetchById('default');
     b2bClients.value = await settingsStore.b2b_clients;
 
