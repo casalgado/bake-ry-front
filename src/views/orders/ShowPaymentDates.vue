@@ -73,12 +73,16 @@ onMounted(async () => {
   }
 });
 
-const reversedOrders = computed(() => {
-  return [...orderStore.items].reverse();
+const sortedOrders = computed(() => {
+  return [...orderStore.items].sort((a, b) => {
+    if (!a.paymentDate && !b.paymentDate) return 0;
+    if (!a.paymentDate) return 1; // a goes after b
+    if (!b.paymentDate) return -1; // b goes after a
+    return new Date(a.paymentDate) - new Date(b.paymentDate);
+  });
 });
 
 onUnmounted(() => {
-
   if (unsubscribeRef.value) {
     unsubscribeRef.value();
     orderStore.unsubscribe();
@@ -102,30 +106,41 @@ onUnmounted(() => {
     <template v-else>
       <!-- Summary Table -->
 
-     <table class="w-full border-collapse border border-neutral-200 bg-white">
-      <thead>
-        <tr class="bg-neutral-100">
-          <th class="p-2 border-r border-neutral-200 text-left">Fecha de Pago</th>
-          <th class="p-2 border-r border-neutral-200 text-left">Nombre de Usuario</th>
-          <th class="p-2 border-r border-neutral-200 text-left">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="o in reversedOrders" :key="o.id"   class="border-b border-neutral-200">
-          <td class="p-2 border-r border-neutral-200">
-          {{   o.paymentDate
-              ? new Date(o.paymentDate).toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })
-              : 'No pagado' }}
-          </td>
-          <td class="p-2 border-r border-neutral-200">{{o.userName}}</td>
-          <td class="p-2 border-r border-neutral-200">
-            {{o.total
-              ? formatMoney(o.total, 'COP')
-              : 'No disponible'}}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+      <table class="w-full border-collapse border border-neutral-200 bg-white">
+        <thead>
+          <tr class="bg-neutral-100">
+            <th class="p-2 border-r border-neutral-200 text-left">
+              Fecha de Pago
+            </th>
+            <th class="p-2 border-r border-neutral-200 text-left">
+              Nombre de Usuario
+            </th>
+            <th class="p-2 border-r border-neutral-200 text-left">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="o in sortedOrders"
+            :key="o.id"
+            class="border-b border-neutral-200"
+          >
+            <td class="p-2 border-r border-neutral-200">
+              {{
+                o.paymentDate
+                  ? new Date(o.paymentDate).toLocaleDateString("es-CO", {
+                      day: "numeric",
+                      month: "long",
+                    })
+                  : "No Asignada"
+              }}
+            </td>
+            <td class="p-2 border-r border-neutral-200">{{ o.userName }}</td>
+            <td class="p-2 border-r border-neutral-200">
+              {{ formatMoney(o.total, "COP") }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </template>
   </div>
 </template>
