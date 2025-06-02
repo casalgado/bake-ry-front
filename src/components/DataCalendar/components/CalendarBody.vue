@@ -135,9 +135,10 @@ const handleRowClick = (event, row) => {
   emit('row-select', { row, shift: event.shiftKey });
 };
 
-const handleCellClick = (event, row, column) => {
-  // only act if cell is a toggle and is in a selected row
-  if (column.type === 'toggle' && (!props.selectedRows.size || props.selectedRows.has(row.id))) {
+const handleCellClick = (payload) => {
+  const { event, row, column } = payload;
+  console.log('Cell clicked:', { event, row, column });
+  if (column && column.type === 'toggle') {
     event.stopPropagation();
     emit('toggle-update', { row, column });
   }
@@ -185,13 +186,13 @@ const isDayOutsideMonth = (day) => {
           <CalendarDay
             v-for="day in week"
             :key="`week-${weekIndex}-${format(day, 'yyyy-MM-dd')}`"
-            :column="{ ...props.columns[0], day, dayKey: format(day, 'yyyy-MM-dd') }"
             :day="day"
+            :columns="props.columns"
             :rows="getDataForDay(day)"
             :is-outside-month="isDayOutsideMonth(day)"
             :selected-rows="selectedRows"
             :toggle-loading="toggleLoading"
-            @click="(event) => handleCellClick(event, null, { ...props.columns[0], day })"
+            @click="handleCellClick"
             @hover-change="handleCellHover"
           />
         </tr>

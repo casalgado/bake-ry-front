@@ -132,104 +132,11 @@ const {
 // Column definitions
 const columns = [
   {
-    id: 'userName',
-    label: 'Cliente',
-    field: 'userName',
-    sortable: true,
-    component: ClientCell,
-    getProps: (row) => ({
-      name: row.userName,
-      comment: `${row.internalNotes}${row.internalNotes ? '. ' : ' '}${row.deliveryNotes}`,
-      phone: row.userPhone,
-      showIsPaid: row.isPaid,
-      dueTime: row.dueTime,
-
-    }),
-  },
-
-  {
-    id: 'deliveryAddress',
-    label: 'Dirección',
-    field: 'deliveryAddress',
-    sortable: true,
-    component: DeliveryAddressCell,
-    getProps: (row) => ({
-      address: row.deliveryAddress,
-      show: row.fulfillmentType === 'delivery',
-
-    }),
-  },
-  {
-    id: 'deliveryCost',
-    label: '$Dom',
-    field: 'deliveryCost',
-    sortable: true,
-    component: MoneyCell,
-    getProps: (row) => ({
-      value: row.deliveryCost,
-    }),
-  },
-  {
-    id: 'items',
-    label: 'Items',
-    field: 'items',
-    sortable: false,
-    component: ItemsCell,
-    getProps: (row) => ({
-      items: row.orderItems,
-      maxDisplay: 10,
-    }),
-  },
-
-  {
-    id: 'numberOfBags',
-    label: 'Bolsas',
-    field: 'numberOfBags',
-    sortable: true,
-    component: NumberOfBagsCell,
-    getProps: (row) => ({
-      numberOfBags: row.numberOfBags,
-      show: true,
-    }),
-  },
-  {
-    id: 'deliveryDriverId',
-    label: 'Conductor',
-    field: 'deliveryDriverId',
-    sortable: true,
-    component: DriverCell,
-    getProps: (row) => ({
-      driverId: row.deliveryDriverId,
-      drivers: deliveryDrivers.value,
-    }),
-  },
-  {
-    id: 'fulfillmentType',
-    label: 'Tipo Entrega',
-    field: 'fulfillmentType',
-    sortable: true,
-    type: 'toggle',
-    options: [
-      { value: 'pickup', displayText: 'R', icon: PhStorefront },
-      { value: 'delivery', displayText: 'D', icon: PhMopedFront },
-    ],
-  },
-  {
-    id: 'isDeliveryPaid',
-    label: 'Pagado',
-    field: 'isDeliveryPaid',
-    sortable: true,
-    type: 'toggle',
-    options: [{ value: true, icon: PhCheckSquare }, { value: false, icon: PhMinus }],
-  },
-  {
     id: 'status',
     label: 'Estado',
     field: 'status',
-    sortable: true,
-
     type: 'toggle',
-    options: [{ value: 0, displayText: '0'  }, { value: 1, displayText: '', icon: PhOven }, { value: 2, displayText: '', icon: PhMoped }, { value: 3, displayText: '', icon: PhBuilding }],
+    options: [{ value: 0, displayText: '0'  }, { value: 1, displayText: '', icon: PhOven }],
   },
 ];
 

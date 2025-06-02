@@ -4,8 +4,8 @@ import { computed, ref, onUnmounted } from 'vue';
 import { PhArrowRight } from '@phosphor-icons/vue';
 
 const props = defineProps({
-  column: {
-    type: Object,
+  columns: {
+    type: Array,
     required: true,
   },
   rows: {
@@ -32,30 +32,6 @@ const props = defineProps({
 const emit = defineEmits(['click', 'hover-change']);
 
 const showAllRows = ref(false);
-
-const handleClick = (event) => {
-  if (props.column.type === 'toggle' && !isClickEnabled.value) {
-    event.stopPropagation();
-    return;
-  }
-  emit('click', event);
-};
-
-// Determine if click is enabled for this cell
-// Only toggle cells in selected rows are clickable
-const isClickEnabled = computed(() => {
-  if (props.column.type !== 'toggle') return false;
-  if (props.column.field === 'isPaid' && props.row.isComplimentary)
-    return false;
-  if (props.column.options) {
-    const currentValue = props.row[props.column.field];
-    const currentOption = props.column.options.find(
-      (opt) => opt.value === currentValue,
-    );
-    if (currentOption?.lockedValue) return false;
-  }
-  return !props.selectedRows.size || props.selectedRows.has(props.row.id);
-});
 
 // Determine if this cell is in loading state
 const isLoading = computed(() => {
@@ -95,66 +71,13 @@ const tooltipContent = computed(() => {
 });
 
 const showTooltip = ref(false);
-let touchTimeout = null;
 
-// Handle mouse events for desktop
-const handleMouseEnter = () => {
-  // Only handle mouse events if not a touch device
-  if (!('ontouchstart' in window)) {
-    if (props.column.type === 'toggle' && isClickEnabled.value) {
-      emit('hover-change', {
-        hovering: true,
-        rowId: props.row.id,
-        columnId: props.column.id,
-      });
-    }
-    showTooltip.value = true;
-  }
+// old methods above
+
+const handleRowClick = (event, row) => {
+  event.stopPropagation();
+  emit('click', { event, row, column: props.columns[0] });
 };
-
-const handleMouseLeave = () => {
-  if (props.column.type === 'toggle' && isClickEnabled.value) {
-    emit('hover-change', {
-      hovering: false,
-      rowId: props.row.id,
-      columnId: props.column.id,
-    });
-  }
-  showTooltip.value = false;
-};
-
-// Handle touch events for mobile
-const handleTouchStart = () => {
-  if (props.column.type === 'toggle' && isClickEnabled.value) {
-    showTooltip.value = true;
-
-    emit('hover-change', {
-      hovering: true, // Changed to true since this is when interaction starts
-      rowId: props.row.id,
-      columnId: props.column.id,
-    });
-  }
-};
-
-const handleTouchEnd = () => {
-  if (touchTimeout) clearTimeout(touchTimeout);
-  touchTimeout = setTimeout(() => {
-    showTooltip.value = false;
-    // Try emitting immediately without the timeout
-    emit('hover-change', {
-      hovering: false,
-      rowId: props.row.id,
-      columnId: props.column.id,
-    });
-  }, 100);
-};
-
-// Clean up timeout on component unmount
-onUnmounted(() => {
-  if (touchTimeout) {
-    clearTimeout(touchTimeout);
-  }
-});
 
 const DEFAULT_ROW_COUNT = 4;
 
@@ -165,7 +88,9 @@ const rowsToDisplay = computed(() => {
   return props.rows.slice(0, DEFAULT_ROW_COUNT);
 });
 
-const remainingRowsCount = computed(() => props.rows.length - DEFAULT_ROW_COUNT);
+const remainingRowsCount = computed(
+  () => props.rows.length - DEFAULT_ROW_COUNT,
+);
 
 const toggleShowAllRows = () => {
   showAllRows.value = !showAllRows.value;
@@ -184,9 +109,18 @@ const toggleShowAllRows = () => {
       <div
         v-for="row in rowsToDisplay"
         :key="row.id"
-        class="bg-primary-700 mb-1 text-xs w-full rounded-lg"
+        class="bg-primary-700 mb-1 text-xs w-full rounded-lg cursor-pointer"
+        @click="handleRowClick($event, row)"
       >
-        <p class="text-center text-gray-200 text-nowrap w-11/12 overflow-hidden m-auto">{{ row.userName }}</p>
+        <p
+          class="text-center text-gray-200 text-nowrap w-11/12 overflow-hidden m-auto"
+          :class="{
+            'line-through bg-white w-full rounded-t-lg border border-primary-700 border-b-0 text-primary-700': row.status !== 0,
+            'border border-transparent border-b-0': row.status === 0,
+          }"
+        >
+          {{ row.userName }}
+        </p>
 
         <p
           v-for="(oi, index) in row.orderItems"
@@ -197,7 +131,9 @@ const toggleShowAllRows = () => {
             'border-b-0': index !== row.orderItems.length - 1,
           }"
         >
-          {{ `${oi.quantity} ${oi.productName}` }} <br />{{ `${oi.variation? oi.variation.name : ''}` }}
+          {{ `${oi.quantity} ${oi.productName}` }} <br />{{
+            `${oi.variation ? oi.variation.name : ""}`
+          }}
         </p>
       </div>
 

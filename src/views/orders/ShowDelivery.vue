@@ -406,7 +406,7 @@ watch(
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Entrega</h2>
-      <PeriodSelector :only-for="['day']" />
+      <PeriodSelector :only-for="['day', 'week', 'month']" />
     </div>
 
     <!-- Error State -->
