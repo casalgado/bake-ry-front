@@ -425,9 +425,8 @@ const clearUser = () => {
           </div>
           <span v-if="errors.userId" class="text-danger text-sm">{{ errors.userId }}</span>
         </div>
-
         <div>
-          <label for="preparation-date">Fecha de {{  features.defaultDate && features.defaultDate === 'delivery' ? 'Entrega': 'Preparación' }}</label>
+          <label for="preparation-date">Fecha de {{  features.order.defaultDate && features.order.defaultDate === 'delivery' ? 'Entrega': 'Preparación' }}</label>
           <input
             id="preparation-date"
             type="date"
