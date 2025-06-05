@@ -47,6 +47,10 @@ const paymentEntries = computed(() => {
   const entries = [];
 
   orderStore.items.forEach((order) => {
+    if (order.isComplimentary) {
+      // Skip complimentary orders
+      return;
+    }
     // Handle partial payments (always show if exists)
     if (order.partialPaymentDate && order.partialPaymentAmount > 0) {
       entries.push({

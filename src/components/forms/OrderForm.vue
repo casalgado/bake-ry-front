@@ -320,9 +320,13 @@ const validate = () => {
     errors.value.partialPaymentAmount =
       'Monto de pago parcial es requerido si se ingresa una fecha';
   }
-  if (formData.value.partialPaymentAmount >= formData.value.total || formData.value.partialPaymentAmount > total.value) {
+  if (formData.value.partialPaymentAmount >  formData.value.partialPaymentAmount > total.value) {
     errors.value.partialPaymentAmount =
       'El monto parcial no puede ser mayor o igual al total';
+  }
+  if (formData.value.paymentDate && formData.value.partialPaymentDate > formData.value.paymentDate) {
+    errors.value.partialPaymentAmount =
+      'La fecha de pago parcial no puede ser posterior a la fecha de pago';
   }
   if (formData.value.dueDate < formData.value.preparationDate) {
     errors.value.dueDate =
@@ -348,12 +352,18 @@ const handleSubmit = () => {
 };
 
 const subtotal = computed(() => {
+  if (formData.value.paymentMethod === 'complimentary') {
+    return 0;
+  }
   return formData.value.orderItems.reduce((sum, item) => {
     return sum + (item.isComplimentary ? 0 : item.quantity * item.currentPrice);
   }, 0);
 });
 
 const total = computed(() => {
+  if (formData.value.paymentMethod === 'complimentary') {
+    return 0;
+  }
   if (formData.value.fulfillmentType === 'pickup') {
     return subtotal.value;
   }
@@ -648,7 +658,7 @@ const clearPartialPayment = () => {
           }}</span>
         </div>
 
-        <div :class="{ hidden: !features?.order?.allowsPartialPayment }">
+        <div :class="{ hidden: !features?.order?.allowPartialPayment }">
           <label>Pago Parcial</label>
           <div
             class="grid grid-cols-[auto_1fr_auto_1fr_auto] gap-2 items-center"

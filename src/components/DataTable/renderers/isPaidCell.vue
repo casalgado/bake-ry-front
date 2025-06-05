@@ -61,7 +61,7 @@ const displayAmount = computed(() => {
     <PhCheckFat v-else-if="isPaid" size="1.1rem" weight="fill" />
     <PhCircleHalf v-else-if="partialPaymentAmount && partialPaymentAmount > 0" size="1.1rem" weight="duotone" />
     <PhMinus v-else size="1rem" />
-    <p v-if="(!isComplimentary && isPaid) || (partialPaymentAmount && partialPaymentAmount>0)" class="text-xs">{{ displayDate }} <span class="text-neutral-500">{{ displayAmount }}</span> </p>
+    <p v-if="!isComplimentary &&( isPaid || (partialPaymentAmount && partialPaymentAmount>0))" class="text-xs">{{ displayDate }} <span class="text-neutral-500">{{ displayAmount }}</span> </p>
     <!-- <pre>{{ {paymentDate: props.paymentDate, partialPaymentDate: partialPaymentDate} }}</pre> -->
   </span>
 </template>
