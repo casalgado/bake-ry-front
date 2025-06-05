@@ -96,6 +96,12 @@ const formatChange = (change, field, currentEntry) => {
   case 'paymentDate': {
     return `Fecha de pago: ${change.from ? formatDate(change.from, { includeTime: false }) : ''} → ${formatDate(change.to, { includeTime: false })}`;
   }
+  case 'partialPaymentDate': {
+    return `Fecha de pago parcial: ${change.from ? formatDate(change.from, { includeTime: false }) : ''} → ${formatDate(change.to, { includeTime: false })}`;
+  }
+  case 'partialPaymentAmount': {
+    return `Valor pago parcial: ${change.from ? formatCurrency(change.from) : ''} → ${formatCurrency(change.to)}`;
+  }
   case 'isDeliveryPaid': {
     return change.to ? 'Domicilio marcado como pagado' : 'Domicilio marcado como no pagado';
   }

@@ -31,7 +31,7 @@ watch(
             startDate: newRange.start.toISOString(),
             endDate: newRange.end.toISOString(),
           },
-          isPaid: true,
+
         },
       });
     } catch (error) {
@@ -59,7 +59,6 @@ onMounted(async () => {
           startDate: periodStore.periodRange.start.toISOString(),
           endDate: periodStore.periodRange.end.toISOString(),
         },
-        isPaid: true,
       },
     });
 
@@ -73,13 +72,52 @@ onMounted(async () => {
   }
 });
 
-const sortedOrders = computed(() => {
-  return [...orderStore.items].sort((a, b) => {
-    if (!a.paymentDate && !b.paymentDate) return 0;
-    if (!a.paymentDate) return 1; // a goes after b
-    if (!b.paymentDate) return -1; // b goes after a
-    return new Date(a.paymentDate) - new Date(b.paymentDate);
+const paymentEntries = computed(() => {
+  const entries = [];
+
+  orderStore.items.forEach((order) => {
+
+    // Handle partial payments
+    if (order.partialPaymentDate && order.partialPaymentAmount > 0) {
+      entries.push({
+        id: `${order.id}-partial`,
+        paymentDate: order.partialPaymentDate,
+        userName: order.userName,
+        total: order.partialPaymentAmount,
+        order: order,
+        paymentType: 'parcial',
+      });
+
+      // Calculate remaining amount
+      const remaining = order.total - order.partialPaymentAmount;
+      if (remaining > 0) {
+        entries.push({
+          id: `${order.id}-final`,
+          paymentDate: order.paymentDate,
+          userName: order.userName,
+          total: remaining,
+          order: order,
+          paymentType: 'saldo',
+        });
+      }
+    }
+    // Handle full payments
+    else if (order.paymentDate) {
+      entries.push({
+        id: order.id,
+        paymentDate: order.paymentDate,
+        userName: order.userName,
+        total: order.total,
+        order: order,
+        paymentType: 'completo',
+      });
+    }
   });
+
+  // Sort by payment date
+  return entries.sort(
+    (a, b) => new Date(a.paymentDate) - new Date(b.paymentDate),
+  );
 });
 
 onUnmounted(() => {
@@ -97,6 +135,17 @@ onUnmounted(() => {
       <PeriodSelector />
     </div>
 
+    <pre>{{
+      orderStore.items.map((e) => ({
+        id: e.id,
+        isPaid: e.isPaid,
+        partialPaymentAmount: e.partialPaymentAmount,
+        paymentDate: e.paymentDate,
+        userName: e.userName,
+        total: e.total,
+        orderId: e.order?.id,
+      }))
+    }}</pre>
     <!-- Error State -->
     <div v-if="orderStore.error" class="text-danger text-center py-4">
       {{ orderStore.error }}
@@ -113,14 +162,19 @@ onUnmounted(() => {
               Fecha de Pago
             </th>
             <th class="p-2 border-r border-neutral-200 text-left">
-              Nombre de Usuario
+              Fecha del Pedido
             </th>
+            <th class="p-2 border-r border-neutral-200 text-left">
+              Tipo de Pago
+            </th>
+
+            <th class="p-2 border-r border-neutral-200 text-left">Cliente</th>
             <th class="p-2 border-r border-neutral-200 text-left">Total</th>
           </tr>
         </thead>
         <tbody>
           <tr
-            v-for="o in sortedOrders"
+            v-for="o in paymentEntries"
             :key="o.id"
             class="border-b border-neutral-200"
           >
@@ -133,6 +187,19 @@ onUnmounted(() => {
                     })
                   : "No Asignada"
               }}
+            </td>
+            <td class="p-2 border-r border-neutral-200">
+              {{
+                o.order.dueDate
+                  ? new Date(o.order.dueDate).toLocaleDateString("es-CO", {
+                      day: "numeric",
+                      month: "long",
+                    })
+                  : "No Asignada"
+              }}
+            </td>
+            <td class="p-2 border-r border-neutral-200">
+              {{ o.paymentType || "-" }}
             </td>
             <td class="p-2 border-r border-neutral-200">{{ o.userName }}</td>
             <td class="p-2 border-r border-neutral-200">
