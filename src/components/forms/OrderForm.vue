@@ -163,13 +163,17 @@ const loadingText = computed(() => {
 });
 
 const clearErrorsOnInput = (fields) => {
-  watch(() => fields.map(field => formData.value[field]), () => {
-    for (const field in errors.value) {
-      if (formData.value[field] && errors.value[field]) {
-        delete errors.value[field];
+  watch(
+    () => fields.map((field) => formData.value[field]),
+    () => {
+      for (const field in errors.value) {
+        if (formData.value[field] && errors.value[field]) {
+          delete errors.value[field];
+        }
       }
-    }
-  }, { deep: true });
+    },
+    { deep: true },
+  );
 };
 
 onMounted(async () => {
@@ -315,16 +319,24 @@ const validate = () => {
   }
   if (
     formData.value.partialPaymentDate &&
-    (!formData.value.partialPaymentAmount || formData.value.partialPaymentAmount <= 0)
+    (!formData.value.partialPaymentAmount ||
+      formData.value.partialPaymentAmount <= 0)
   ) {
     errors.value.partialPaymentAmount =
       'Monto de pago parcial es requerido si se ingresa una fecha';
   }
-  if (formData.value.partialPaymentAmount >  formData.value.partialPaymentAmount > total.value) {
+  if (
+    formData.value.partialPaymentAmount >
+    formData.value.partialPaymentAmount >
+    total.value
+  ) {
     errors.value.partialPaymentAmount =
       'El monto parcial no puede ser mayor o igual al total';
   }
-  if (formData.value.paymentDate && formData.value.partialPaymentDate > formData.value.paymentDate) {
+  if (
+    formData.value.paymentDate &&
+    formData.value.partialPaymentDate > formData.value.paymentDate
+  ) {
     errors.value.partialPaymentAmount =
       'La fecha de pago parcial no puede ser posterior a la fecha de pago';
   }
@@ -566,54 +578,60 @@ const clearPartialPayment = () => {
             errors.userId
           }}</span>
         </div>
-        <div>
-          <label for="preparation-date"
-            >Fecha de
-            {{
-              features.order?.defaultDate &&
-              features.order.defaultDate === "delivery"
-                ? "Entrega"
-                : "Preparación"
-            }}</label
-          >
-          <input
-            id="preparation-date"
-            type="date"
-            v-model="formData.preparationDate"
-            name="preparation-date"
-            class="w-full"
-          />
-          <span v-if="errors.preparationDate" class="text-danger text-sm">{{
-            errors.preparationDate
-          }}</span>
-        </div>
 
-        <div class="hidden">
-          <label for="due-date">Fecha de Entrega</label>
-          <input
-            id="due-date"
-            type="date"
-            v-model="formData.dueDate"
-            :min="formData.preparationDate"
-            class="w-full"
-          />
-          <span v-if="errors.dueDate" class="text-danger text-sm">{{
-            errors.dueDate
-          }}</span>
-        </div>
+        <div
+          class="grid gap-2"
+          :class="features?.order?.timeOfDay ? 'grid-cols-2' : 'grid-cols-1'"
+        >
+          <div>
+            <label for="preparation-date"
+              >Fecha de
+              {{
+                features.order?.defaultDate &&
+                features.order.defaultDate === "delivery"
+                  ? "Entrega"
+                  : "Preparación"
+              }}</label
+            >
+            <input
+              id="preparation-date"
+              type="date"
+              v-model="formData.preparationDate"
+              name="preparation-date"
+              class="w-full"
+            />
+            <span v-if="errors.preparationDate" class="text-danger text-sm">{{
+              errors.preparationDate
+            }}</span>
+          </div>
 
-        <div :class="{ hidden: !features?.order?.timeOfDay }">
-          <label for="due-time">Hora de Entrega</label>
-          <input
-            id="due-time"
-            type="time"
-            v-model="formData.dueTime"
-            step="900"
-            class="w-full"
-          />
-          <span v-if="errors.dueTime" class="text-danger text-sm">{{
-            errors.dueTime
-          }}</span>
+          <div class="hidden">
+            <label for="due-date">Fecha de Entrega</label>
+            <input
+              id="due-date"
+              type="date"
+              v-model="formData.dueDate"
+              :min="formData.preparationDate"
+              class="w-full"
+            />
+            <span v-if="errors.dueDate" class="text-danger text-sm">{{
+              errors.dueDate
+            }}</span>
+          </div>
+
+          <div :class="{ hidden: !features?.order?.timeOfDay }">
+            <label for="due-time">Hora de Entrega</label>
+            <input
+              id="due-time"
+              type="time"
+              v-model="formData.dueTime"
+              step="900"
+              class="w-full"
+            />
+            <span v-if="errors.dueTime" class="text-danger text-sm">{{
+              errors.dueTime
+            }}</span>
+          </div>
         </div>
 
         <div>
@@ -658,46 +676,54 @@ const clearPartialPayment = () => {
           }}</span>
         </div>
 
-        <div :class="{ hidden: !features?.order?.allowPartialPayment }">
-          <label>Pago Parcial</label>
-          <div
-            class="grid grid-cols-[auto_1fr_auto_1fr_auto] gap-2 items-center"
-          >
-            <span class="text-sm">$</span>
-            <input
-              type="number"
-              v-model="formData.partialPaymentAmount"
-              min="0"
-              step="1"
-              placeholder="0"
-              class="w-full"
-              @input="handlePartialAmountChange"
-            />
-            <span class="text-sm">:</span>
-            <input
-              type="date"
-              v-model="formData.partialPaymentDate"
-              class="w-full"
-            />
-            <button
-              type="button"
-              class="utility-btn m-0 self-stretch"
-              :class="{
-                'utility-btn-inactive':
-                  !formData.partialPaymentAmount &&
-                  !formData.partialPaymentDate,
-              }"
-              @click="clearPartialPayment"
-              :disabled="
-                !formData.partialPaymentAmount && !formData.partialPaymentDate
-              "
-            >
-              <PhX class="" />
-            </button>
+        <div
+          class="grid grid-cols-[1fr_1fr] gap-2"
+          :class="{ hidden: !features?.order?.allowPartialPayment }"
+        >
+          <div>
+            <label>Valor Pago Parcial</label>
+            <div class="grid grid-cols-[1fr] gap-2 items-center">
+              <input
+                type="number"
+                v-model="formData.partialPaymentAmount"
+                min="0"
+                step="1"
+                placeholder="0"
+                class="w-full"
+                @input="handlePartialAmountChange"
+              />
+            </div>
           </div>
+
+          <div>
+            <label>Fecha Pago Parcial</label>
+            <div class="grid grid-cols-[1fr_auto] gap-2 items-center">
+              <input
+                type="date"
+                v-model="formData.partialPaymentDate"
+                class="w-full"
+              />
+              <button
+                type="button"
+                class="utility-btn m-0 self-stretch"
+                :class="{
+                  'utility-btn-inactive':
+                    !formData.partialPaymentAmount &&
+                    !formData.partialPaymentDate,
+                }"
+                @click="clearPartialPayment"
+                :disabled="
+                  !formData.partialPaymentAmount && !formData.partialPaymentDate
+                "
+              >
+                <PhX class="" />
+              </button>
+            </div>
+          </div>
+
           <span
             v-if="errors.partialPaymentAmount"
-            class="text-danger text-sm"
+            class="text-danger text-sm col-span-2"
             >{{ errors.partialPaymentAmount }}</span
           >
         </div>

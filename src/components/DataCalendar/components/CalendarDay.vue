@@ -2,6 +2,7 @@
 <script setup>
 import { computed, ref, onUnmounted } from 'vue';
 import { PhArrowRight } from '@phosphor-icons/vue';
+import { formatTime } from '@/utils/helpers';
 
 const props = defineProps({
   columns: {
@@ -121,6 +122,16 @@ const toggleShowAllRows = () => {
         >
           {{ row.userName }}
         </p>
+                <p
+          v-if="row.dueTime"
+             class="text-center text-[11px] text-gray-200 text-nowrap w-11/12 overflow-hidden m-auto"
+          :class="{
+            'line-through bg-white w-full border border-primary-700 border-b-0 border-t-0 text-primary-700': row.status !== 0,
+            'border border-transparent border-b-0': row.status === 0,
+          }"
+        >
+        {{ row.dueTime ? `${formatTime(row.dueTime)}` : '' }}
+         </p>
 
         <p
           v-for="(oi, index) in row.orderItems"
@@ -135,6 +146,7 @@ const toggleShowAllRows = () => {
             `${oi.variation ? oi.variation.name : ""}`
           }}
         </p>
+
       </div>
 
       <div
