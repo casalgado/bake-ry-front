@@ -648,7 +648,7 @@ const clearPartialPayment = () => {
           }}</span>
         </div>
 
-        <div>
+        <div :class="{ hidden: !features?.order?.allowsPartialPayment }">
           <label>Pago Parcial</label>
           <div
             class="grid grid-cols-[auto_1fr_auto_1fr_auto] gap-2 items-center"

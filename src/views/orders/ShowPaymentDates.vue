@@ -31,7 +31,6 @@ watch(
             startDate: newRange.start.toISOString(),
             endDate: newRange.end.toISOString(),
           },
-
         },
       });
     } catch (error) {
@@ -43,6 +42,74 @@ watch(
   },
   { deep: true },
 );
+
+const paymentEntries = computed(() => {
+  const entries = [];
+
+  orderStore.items.forEach((order) => {
+    // Handle partial payments (always show if exists)
+    if (order.partialPaymentDate && order.partialPaymentAmount > 0) {
+      entries.push({
+        id: `${order.id}-partial`,
+        paymentDate: order.partialPaymentDate,
+        userName: order.userName,
+        total: order.partialPaymentAmount,
+        order: order,
+        paymentType: 'parcial',
+      });
+
+      // Only show balance payment if order is fully paid
+      if (order.isPaid) {
+        const remaining = order.total - order.partialPaymentAmount;
+        if (remaining > 0 && order.paymentDate) {
+          entries.push({
+            id: `${order.id}-final`,
+            paymentDate: order.paymentDate,
+            userName: order.userName,
+            total: remaining,
+            order: order,
+            paymentType: 'saldo',
+          });
+        }
+      }
+    }
+    // Handle full payments only for paid orders with payment date
+    else if (order.isPaid && order.paymentDate) {
+      entries.push({
+        id: order.id,
+        paymentDate: order.paymentDate,
+        userName: order.userName,
+        total: order.total,
+        order: order,
+        paymentType: 'completo',
+      });
+    }
+  });
+
+  // Sort by payment date
+  return entries.sort(
+    (a, b) => new Date(a.paymentDate || 0) - new Date(b.paymentDate || 0),
+  );
+});
+
+const shouldAddSpacing = computed(() => {
+  return (index) => {
+    const currentEntry = paymentEntries.value[index];
+    const nextEntry = paymentEntries.value[index + 1];
+
+    console.log(
+      `Checking spacing for index ${index}: currentEntry=${currentEntry?.id}, nextEntry=${nextEntry?.id}`,
+    );
+
+    if (!nextEntry) return false; // Last item, no spacing needed
+
+    // Compare dates (normalize to same day)
+    const currentDate = new Date(currentEntry.paymentDate).toDateString();
+    const nextDate = new Date(nextEntry.paymentDate).toDateString();
+
+    return currentDate !== nextDate;
+  };
+});
 
 onMounted(async () => {
   try {
@@ -72,54 +139,6 @@ onMounted(async () => {
   }
 });
 
-const paymentEntries = computed(() => {
-  const entries = [];
-
-  orderStore.items.forEach((order) => {
-
-    // Handle partial payments
-    if (order.partialPaymentDate && order.partialPaymentAmount > 0) {
-      entries.push({
-        id: `${order.id}-partial`,
-        paymentDate: order.partialPaymentDate,
-        userName: order.userName,
-        total: order.partialPaymentAmount,
-        order: order,
-        paymentType: 'parcial',
-      });
-
-      // Calculate remaining amount
-      const remaining = order.total - order.partialPaymentAmount;
-      if (remaining > 0) {
-        entries.push({
-          id: `${order.id}-final`,
-          paymentDate: order.paymentDate,
-          userName: order.userName,
-          total: remaining,
-          order: order,
-          paymentType: 'saldo',
-        });
-      }
-    }
-    // Handle full payments
-    else if (order.paymentDate) {
-      entries.push({
-        id: order.id,
-        paymentDate: order.paymentDate,
-        userName: order.userName,
-        total: order.total,
-        order: order,
-        paymentType: 'completo',
-      });
-    }
-  });
-
-  // Sort by payment date
-  return entries.sort(
-    (a, b) => new Date(a.paymentDate) - new Date(b.paymentDate),
-  );
-});
-
 onUnmounted(() => {
   if (unsubscribeRef.value) {
     unsubscribeRef.value();
@@ -135,7 +154,7 @@ onUnmounted(() => {
       <PeriodSelector />
     </div>
 
-    <pre>{{
+    <!-- <pre>{{
       orderStore.items.map((e) => ({
         id: e.id,
         isPaid: e.isPaid,
@@ -145,7 +164,7 @@ onUnmounted(() => {
         total: e.total,
         orderId: e.order?.id,
       }))
-    }}</pre>
+    }}</pre> -->
     <!-- Error State -->
     <div v-if="orderStore.error" class="text-danger text-center py-4">
       {{ orderStore.error }}
@@ -173,39 +192,43 @@ onUnmounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="o in paymentEntries"
-            :key="o.id"
-            class="border-b border-neutral-200"
-          >
-            <td class="p-2 border-r border-neutral-200">
-              {{
-                o.paymentDate
-                  ? new Date(o.paymentDate).toLocaleDateString("es-CO", {
-                      day: "numeric",
-                      month: "long",
-                    })
-                  : "No Asignada"
-              }}
-            </td>
-            <td class="p-2 border-r border-neutral-200">
-              {{
-                o.order.dueDate
-                  ? new Date(o.order.dueDate).toLocaleDateString("es-CO", {
-                      day: "numeric",
-                      month: "long",
-                    })
-                  : "No Asignada"
-              }}
-            </td>
-            <td class="p-2 border-r border-neutral-200">
-              {{ o.paymentType || "-" }}
-            </td>
-            <td class="p-2 border-r border-neutral-200">{{ o.userName }}</td>
-            <td class="p-2 border-r border-neutral-200">
-              {{ formatMoney(o.total, "COP") }}
-            </td>
-          </tr>
+          <template v-for="(o, index) in paymentEntries" :key="o.id">
+            <tr class="border-b border-neutral-200">
+              <td class="p-2 border-r border-neutral-200">
+                {{
+                  o.paymentDate
+                    ? new Date(o.paymentDate).toLocaleDateString("es-CO", {
+                        day: "numeric",
+                        month: "long",
+                      })
+                    : "No Asignada"
+                }}
+              </td>
+              <td class="p-2 border-r border-neutral-200">
+                {{
+                  o.order.dueDate
+                    ? new Date(o.order.dueDate).toLocaleDateString("es-CO", {
+                        day: "numeric",
+                        month: "long",
+                      })
+                    : "No Asignada"
+                }}
+              </td>
+              <td class="p-2 border-r border-neutral-200">
+                {{ o.paymentType || "-" }}
+              </td>
+              <td class="p-2 border-r border-neutral-200">{{ o.userName }}</td>
+              <td class="p-2 border-r border-neutral-200">
+                {{ formatMoney(o.total, "COP") }}
+              </td>
+            </tr>
+            <!-- Add divider row when date changes -->
+            <tr v-if="shouldAddSpacing(index)" class="date-divider">
+              <td colspan="5" class="p-0">
+                <div class="bg-neutral-150 h-3"></div>
+              </td>
+            </tr>
+          </template>
         </tbody>
       </table>
     </template>
