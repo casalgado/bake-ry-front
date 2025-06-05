@@ -202,6 +202,8 @@ const columns = [
       isComplimentary: row.isComplimentary,
       orderStatus: row.status,
       paymentDate: row.paymentDate,
+      partialPaymentAmount: row.partialPaymentAmount,
+      partialPaymentDate: row.partialPaymentDate,
     }),
   },
   {

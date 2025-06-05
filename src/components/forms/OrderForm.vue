@@ -104,7 +104,7 @@ const getInitialFormState = () => ({
   preparationDate: tomorrowString,
   dueDate: tomorrowString,
   paymentDate: '',
-  partialPaymentAmount: 0,
+  partialPaymentAmount: null,
   partialPaymentDate: '',
   dueTime: '',
   fulfillmentType: 'delivery',
@@ -312,6 +312,13 @@ const validate = () => {
   ) {
     errors.value.partialPaymentAmount =
       'Fecha de pago parcial es requerida si se ingresa un monto';
+  }
+  if (
+    formData.value.partialPaymentDate &&
+    (!formData.value.partialPaymentAmount || formData.value.partialPaymentAmount <= 0)
+  ) {
+    errors.value.partialPaymentAmount =
+      'Monto de pago parcial es requerido si se ingresa una fecha';
   }
   if (formData.value.partialPaymentAmount >= formData.value.total || formData.value.partialPaymentAmount > total.value) {
     errors.value.partialPaymentAmount =

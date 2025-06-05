@@ -123,7 +123,20 @@ const cleanString = (input) => {
   return cleaned;
 };
 
-const formatMoney = (value) => {
+const formatMoney = (value, { slim = false } = {}) => {
+  if (slim) {
+    const absValue = Math.abs(value);
+    let shortValue;
+
+    if (absValue >= 1000) {
+      shortValue = (value / 1000).toFixed(value % 1000 >= 100 ? 1 : 0) + 'k';
+    } else {
+      shortValue = value.toString();
+    }
+
+    return shortValue;
+  }
+
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
