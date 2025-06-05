@@ -133,6 +133,6 @@ defineExpose({ focus });
       </div>
     </Combobox>
 
-    <p v-if="error">{{ error }}</p>
+    <p class="hidden" v-if="error">{{ error }}</p>
   </div>
 </template>

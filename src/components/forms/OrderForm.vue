@@ -27,13 +27,15 @@ const props = defineProps({
 });
 
 const addBasePricesToOrderItems = (orderItems, products) => {
-  return orderItems.map(item => {
-    const product = products.find(p => p.id === item.productId);
+  return orderItems.map((item) => {
+    const product = products.find((p) => p.id === item.productId);
     if (!product) return item;
 
     if (product.variations?.length > 0) {
       if (item.variation?.id) {
-        const matchingVariation = product.variations.find(v => v.id === item.variation.id);
+        const matchingVariation = product.variations.find(
+          (v) => v.id === item.variation.id,
+        );
         if (matchingVariation) {
           return {
             ...item,
@@ -102,6 +104,8 @@ const getInitialFormState = () => ({
   preparationDate: tomorrowString,
   dueDate: tomorrowString,
   paymentDate: '',
+  partialPaymentAmount: 0,
+  partialPaymentDate: '',
   dueTime: '',
   fulfillmentType: 'delivery',
   deliveryAddress: '',
@@ -120,6 +124,9 @@ const formData = ref(
       preparationDate: formatDateForInput(props.initialData.preparationDate),
       dueDate: formatDateForInput(props.initialData.dueDate),
       paymentDate: formatDateForInput(props.initialData.paymentDate),
+      partialPaymentDate: formatDateForInput(
+        props.initialData.partialPaymentDate,
+      ),
       orderItems: addBasePricesToOrderItems(
         props.initialData.orderItems,
         productStore.items,
@@ -155,13 +162,27 @@ const loadingText = computed(() => {
   return props.initialData ? 'Actualizando...' : 'Creando...';
 });
 
+const clearErrorsOnInput = (fields) => {
+  watch(() => fields.map(field => formData.value[field]), () => {
+    for (const field in errors.value) {
+      if (formData.value[field] && errors.value[field]) {
+        delete errors.value[field];
+      }
+    }
+  }, { deep: true });
+};
+
 onMounted(async () => {
   fetching.value = true;
-  await Promise.all([productStore.fetchAll(), userStore.fetchAll(), bakerySettingsStore.fetchById('default')]);
+  await Promise.all([
+    productStore.fetchAll(),
+    userStore.fetchAll(),
+    bakerySettingsStore.fetchById('default'),
+  ]);
   fetching.value = false;
 
   if (props.initialData?.userId) {
-    const user = userStore.items.find(u => u.id === props.initialData.userId);
+    const user = userStore.items.find((u) => u.id === props.initialData.userId);
     if (user) {
       handleUserChange(user);
     }
@@ -169,13 +190,22 @@ onMounted(async () => {
 
   // Initialize selected fee type if there's an initial value
   const matchingOption = deliveryFeeOptions.find(
-    option => option.value === formData.value.deliveryFee,
+    (option) => option.value === formData.value.deliveryFee,
   );
   if (matchingOption) {
     selectedDeliveryFee.value = matchingOption.value;
   } else if (formData.value.deliveryFee) {
     selectedDeliveryFee.value = 'custom';
   }
+
+  clearErrorsOnInput([
+    'userId',
+    'preparationDate',
+    'dueDate',
+    'partialPaymentAmount',
+    'partialPaymentDate',
+    'deliveryAddress',
+  ]);
 });
 
 const features = computed(() => {
@@ -210,16 +240,21 @@ const handleUserChange = async (user) => {
     if (userHistory.value.length > 0) {
       currentHistoryIndex.value = 0;
       const historicalOrder = userHistory.value[0];
-      formData.value.orderItems = addBasePricesToOrderItems(historicalOrder.orderItems, productStore.items);
+      formData.value.orderItems = addBasePricesToOrderItems(
+        historicalOrder.orderItems,
+        productStore.items,
+      );
       formData.value.fulfillmentType = historicalOrder.fulfillmentType;
       formData.value.deliveryFee = historicalOrder.deliveryFee;
       formData.value.paymentMethod = historicalOrder.paymentMethod;
 
       // Update selectedFeeType based on the historical delivery fee
       const matchingOption = deliveryFeeOptions.find(
-        option => option.value === historicalOrder.deliveryFee,
+        (option) => option.value === historicalOrder.deliveryFee,
       );
-      selectedDeliveryFee.value = matchingOption ? matchingOption.value : 'custom';
+      selectedDeliveryFee.value = matchingOption
+        ? matchingOption.value
+        : 'custom';
     }
   }
 
@@ -227,7 +262,9 @@ const handleUserChange = async (user) => {
   originalAddress.value = user.address;
   await nextTick();
   setTimeout(() => {
-    const nextElement = document.querySelector('input[name="preparation-date"]');
+    const nextElement = document.querySelector(
+      'input[name="preparation-date"]',
+    );
     if (nextElement) {
       nextElement.focus();
     }
@@ -235,23 +272,62 @@ const handleUserChange = async (user) => {
 };
 
 const addressHasChanged = computed(() => {
-  return formData.value.deliveryAddress !== originalAddress.value
-    && formData.value.deliveryAddress !== ''
-    && originalAddress.value !== '';
+  return (
+    formData.value.deliveryAddress !== originalAddress.value &&
+    formData.value.deliveryAddress !== '' &&
+    originalAddress.value !== ''
+  );
 });
+
+const scrollToError = async () => {
+  await nextTick(); // Wait for the DOM to update
+  const firstErrorElement = document.querySelector('.text-danger');
+  if (firstErrorElement) {
+    firstErrorElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+  } else {
+    // If no specific error element found, scroll to top of form
+    const form = document.querySelector('form');
+    if (form) {
+      form.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+};
 
 const validate = () => {
   errors.value = {};
 
   if (!formData.value.userId) errors.value.userId = 'Cliente es requerido';
-  if (!formData.value.orderItems.length) errors.value.orderItems = 'Se requiere al menos un producto';
-  if (!formData.value.preparationDate) errors.value.preparationDate = 'Fecha de preparación es requerida';
-  if (!formData.value.dueDate) errors.value.dueDate = 'Fecha de entrega es requerida';
+  if (!formData.value.orderItems.length)
+    errors.value.orderItems = 'Se requiere al menos un producto';
+  if (!formData.value.preparationDate)
+    errors.value.preparationDate = 'Fecha de preparación es requerida';
+  if (!formData.value.dueDate)
+    errors.value.dueDate = 'Fecha de entrega es requerida';
+  if (
+    formData.value.partialPaymentAmount &&
+    !formData.value.partialPaymentDate
+  ) {
+    errors.value.partialPaymentAmount =
+      'Fecha de pago parcial es requerida si se ingresa un monto';
+  }
+  if (formData.value.partialPaymentAmount >= formData.value.total || formData.value.partialPaymentAmount > total.value) {
+    errors.value.partialPaymentAmount =
+      'El monto parcial no puede ser mayor o igual al total';
+  }
   if (formData.value.dueDate < formData.value.preparationDate) {
-    errors.value.dueDate = 'La fecha de entrega no puede ser anterior a la fecha de preparación';
+    errors.value.dueDate =
+      'La fecha de entrega no puede ser anterior a la fecha de preparación';
   }
 
-  return Object.keys(errors.value).length === 0;
+  if (Object.keys(errors.value).length > 0) {
+    scrollToError();
+    return false;
+  }
+
+  return true;
 };
 
 const handleSubmit = () => {
@@ -309,26 +385,36 @@ watch(selectedDeliveryFee, (newValue) => {
 });
 
 // Add a watch for deliveryFee to update selectedFeeType
-watch(() => formData.value.deliveryFee, (newValue) => {
-  const matchingOption = deliveryFeeOptions.find(
-    option => option.value === newValue,
-  );
-  selectedDeliveryFee.value = matchingOption ? matchingOption.value : 'custom';
-});
+watch(
+  () => formData.value.deliveryFee,
+  (newValue) => {
+    const matchingOption = deliveryFeeOptions.find(
+      (option) => option.value === newValue,
+    );
+    selectedDeliveryFee.value = matchingOption
+      ? matchingOption.value
+      : 'custom';
+  },
+);
 
-watch(() => formData.value.preparationDate, (newDate) => {
-  if (newDate) {
-    formData.value.dueDate = newDate;
-  }
-});
+watch(
+  () => formData.value.preparationDate,
+  (newDate) => {
+    if (newDate) {
+      formData.value.dueDate = newDate;
+    }
+  },
+);
 
 // Navigation methods
 const handlePrevOrder = () => {
   if (currentHistoryIndex.value < userHistory.value.length - 1) {
     currentHistoryIndex.value++;
     const historicalOrder = userHistory.value[currentHistoryIndex.value];
-    formData.value.orderItems = addBasePricesToOrderItems(historicalOrder.orderItems, productStore.items);
-
+    formData.value.orderItems = addBasePricesToOrderItems(
+      historicalOrder.orderItems,
+      productStore.items,
+    );
   }
 };
 
@@ -336,8 +422,10 @@ const handleNextOrder = () => {
   if (currentHistoryIndex.value > 0) {
     currentHistoryIndex.value--;
     const historicalOrder = userHistory.value[currentHistoryIndex.value];
-    formData.value.orderItems = addBasePricesToOrderItems(historicalOrder.orderItems, productStore.items);
-
+    formData.value.orderItems = addBasePricesToOrderItems(
+      historicalOrder.orderItems,
+      productStore.items,
+    );
   }
 };
 
@@ -345,13 +433,15 @@ const handleNextOrder = () => {
 const areOrderItemsEqual = (items1, items2) => {
   if (items1.length !== items2.length) return false;
 
-  return items1.every(item1 => {
-    const item2 = items2.find(i => i.productId === item1.productId);
+  return items1.every((item1) => {
+    const item2 = items2.find((i) => i.productId === item1.productId);
     if (!item2) return false;
 
-    return item1.quantity === item2.quantity &&
+    return (
+      item1.quantity === item2.quantity &&
       item1.variation?.id === item2.variation?.id &&
-           item1.currentPrice === item2.currentPrice;
+      item1.currentPrice === item2.currentPrice
+    );
   });
 };
 
@@ -360,7 +450,10 @@ const isCurrentOrderModified = computed(() => {
   if (!userHistory.value.length) return false;
 
   const historicalOrder = userHistory.value[currentHistoryIndex.value];
-  return !areOrderItemsEqual(formData.value.orderItems, historicalOrder.orderItems);
+  return !areOrderItemsEqual(
+    formData.value.orderItems,
+    historicalOrder.orderItems,
+  );
 });
 
 // Modify the formatOrderDate function
@@ -368,10 +461,12 @@ const formatOrderDate = (date) => {
   if (isCurrentOrderModified.value) {
     return 'nueva';
   }
-  return new Date(date).toLocaleDateString('es-ES', {
-    day: 'numeric',
-    month: 'short',
-  }).replace('.', '');
+  return new Date(date)
+    .toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+    })
+    .replace('.', '');
 };
 
 const clearUser = () => {
@@ -388,15 +483,42 @@ const clearUser = () => {
     userCombox.value?.focus();
   });
 };
+
+// Partial payment methods
+const handlePartialAmountChange = () => {
+  // If amount is entered and no date is set, set date to today
+  if (
+    formData.value.partialPaymentAmount &&
+    !formData.value.partialPaymentDate
+  ) {
+    formData.value.partialPaymentDate = new Date()
+      .toLocaleDateString('es-CO', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+      .split('/')
+      .reverse()
+      .join('-');
+  }
+};
+
+const clearPartialPayment = () => {
+  formData.value.partialPaymentAmount = null;
+  formData.value.partialPaymentDate = '';
+};
 </script>
 
 <template>
   <div class="form-container">
     <h2>{{ title }}</h2>
+
     <form @submit.prevent="handleSubmit" :class="{ 'opacity-50': fetching }">
       <div class="base-card flex flex-col gap-2">
         <div>
-          <label for="client-select">{{ fetching ? 'Clientes...' : "Clientes" }}</label>
+          <label for="client-select">{{
+            fetching ? "Clientes..." : "Clientes"
+          }}</label>
           <div class="grid grid-cols-[1fr_auto_auto] gap-2">
             <UserCombox
               ref="userCombox"
@@ -423,10 +545,20 @@ const clearUser = () => {
               Nuevo Cliente
             </button>
           </div>
-          <span v-if="errors.userId" class="text-danger text-sm">{{ errors.userId }}</span>
+          <span v-if="errors.userId" class="text-danger text-sm">{{
+            errors.userId
+          }}</span>
         </div>
         <div>
-          <label for="preparation-date">Fecha de {{  features.order.defaultDate && features.order.defaultDate === 'delivery' ? 'Entrega': 'Preparación' }}</label>
+          <label for="preparation-date"
+            >Fecha de
+            {{
+              features.order?.defaultDate &&
+              features.order.defaultDate === "delivery"
+                ? "Entrega"
+                : "Preparación"
+            }}</label
+          >
           <input
             id="preparation-date"
             type="date"
@@ -434,7 +566,9 @@ const clearUser = () => {
             name="preparation-date"
             class="w-full"
           />
-          <span v-if="errors.preparationDate" class="text-danger text-sm">{{ errors.preparationDate }}</span>
+          <span v-if="errors.preparationDate" class="text-danger text-sm">{{
+            errors.preparationDate
+          }}</span>
         </div>
 
         <div class="hidden">
@@ -446,10 +580,12 @@ const clearUser = () => {
             :min="formData.preparationDate"
             class="w-full"
           />
-          <span v-if="errors.dueDate" class="text-danger text-sm">{{ errors.dueDate }}</span>
+          <span v-if="errors.dueDate" class="text-danger text-sm">{{
+            errors.dueDate
+          }}</span>
         </div>
 
-        <div :class="{ 'hidden': !features?.order?.timeOfDay }">
+        <div :class="{ hidden: !features?.order?.timeOfDay }">
           <label for="due-time">Hora de Entrega</label>
           <input
             id="due-time"
@@ -458,7 +594,9 @@ const clearUser = () => {
             step="900"
             class="w-full"
           />
-          <span v-if="errors.dueTime" class="text-danger text-sm">{{ errors.dueTime }}</span>
+          <span v-if="errors.dueTime" class="text-danger text-sm">{{
+            errors.dueTime
+          }}</span>
         </div>
 
         <div>
@@ -483,11 +621,15 @@ const clearUser = () => {
               class="btn utility-btn m-0"
               type="button"
               @click="
-              formData.paymentDate = new Date().toLocaleDateString('es-CO', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit'
-                }).split('/').reverse().join('-')
+                formData.paymentDate = new Date()
+                  .toLocaleDateString('es-CO', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                  })
+                  .split('/')
+                  .reverse()
+                  .join('-')
               "
             >
               Hoy
@@ -497,6 +639,50 @@ const clearUser = () => {
           <span v-if="errors.payemntDate" class="text-danger text-sm">{{
             errors.payemntDate
           }}</span>
+        </div>
+
+        <div>
+          <label>Pago Parcial</label>
+          <div
+            class="grid grid-cols-[auto_1fr_auto_1fr_auto] gap-2 items-center"
+          >
+            <span class="text-sm">$</span>
+            <input
+              type="number"
+              v-model="formData.partialPaymentAmount"
+              min="0"
+              step="1"
+              placeholder="0"
+              class="w-full"
+              @input="handlePartialAmountChange"
+            />
+            <span class="text-sm">:</span>
+            <input
+              type="date"
+              v-model="formData.partialPaymentDate"
+              class="w-full"
+            />
+            <button
+              type="button"
+              class="utility-btn m-0 self-stretch"
+              :class="{
+                'utility-btn-inactive':
+                  !formData.partialPaymentAmount &&
+                  !formData.partialPaymentDate,
+              }"
+              @click="clearPartialPayment"
+              :disabled="
+                !formData.partialPaymentAmount && !formData.partialPaymentDate
+              "
+            >
+              <PhX class="" />
+            </button>
+          </div>
+          <span
+            v-if="errors.partialPaymentAmount"
+            class="text-danger text-sm"
+            >{{ errors.partialPaymentAmount }}</span
+          >
         </div>
       </div>
 
@@ -538,7 +724,9 @@ const clearUser = () => {
               </label>
             </div>
           </div>
-          <span v-if="errors.deliveryAddress" class="text-danger text-sm">{{ errors.deliveryAddress }}</span>
+          <span v-if="errors.deliveryAddress" class="text-danger text-sm">{{
+            errors.deliveryAddress
+          }}</span>
         </div>
 
         <RadioButtonGroup
@@ -551,7 +739,6 @@ const clearUser = () => {
           custom-option-value="custom"
         >
           <template #custom-input>
-
             <input
               type="number"
               v-model="formData.deliveryFee"
@@ -571,8 +758,10 @@ const clearUser = () => {
         />
       </div>
 
-      <div class="flex justify-end mb-2"   v-if="showHistoryNavigation">
-        <div class="inline-flex items-center gap-2 bg-neutral-50 p-1 rounded-lg border border-neutral-200">
+      <div class="flex justify-end mb-2" v-if="showHistoryNavigation">
+        <div
+          class="inline-flex items-center gap-2 bg-neutral-50 p-1 rounded-lg border border-neutral-200"
+        >
           <button
             type="button"
             @click="handlePrevOrder"
@@ -582,8 +771,16 @@ const clearUser = () => {
             <PhCaretLeft class="w-4 h-4 text-neutral-600" />
           </button>
 
-          <span class="text-sm font-medium text-neutral-600 min-w-[60px] text-center">
-            {{ formatOrderDate(userHistory[currentHistoryIndex].preparationDate ? userHistory[currentHistoryIndex].preparationDate : userHistory[currentHistoryIndex].dueDate) }}
+          <span
+            class="text-sm font-medium text-neutral-600 min-w-[60px] text-center"
+          >
+            {{
+              formatOrderDate(
+                userHistory[currentHistoryIndex].preparationDate
+                  ? userHistory[currentHistoryIndex].preparationDate
+                  : userHistory[currentHistoryIndex].dueDate
+              )
+            }}
           </span>
 
           <button
@@ -634,20 +831,20 @@ const clearUser = () => {
           </div>
           <div class="flex justify-between">
             <span>Envío:</span>
-            <span>{{ formData.fulfillmentType === 'pickup' ? '$0' : formatMoney(formData.deliveryFee) }}</span>
+            <span>{{
+              formData.fulfillmentType === "pickup"
+                ? "$0"
+                : formatMoney(formData.deliveryFee)
+            }}</span>
           </div>
           <div class="flex justify-between font-bold">
             <span>Total:</span>
-            <span>{{  formatMoney(total) }}</span>
+            <span>{{ formatMoney(total) }}</span>
           </div>
         </div>
 
         <div class="flex gap-2 justify-end">
-          <button
-            type="submit"
-            :disabled="loading"
-            class="action-btn"
-          >
+          <button type="submit" :disabled="loading" class="action-btn">
             {{ loading ? loadingText : submitButtonText }}
           </button>
           <button
