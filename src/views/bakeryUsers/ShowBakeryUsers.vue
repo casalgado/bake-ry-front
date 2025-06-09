@@ -1,25 +1,15 @@
 <script setup>
-// Vue and Headless UI
 import { ref } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
-
-// DataTable Core
 import DataTable from '@/components/DataTable/index.vue';
 import { useDataTable } from '@/components/DataTable/composables/useDataTable.js';
-
-// Components
 import BakeryUserForm from '@/components/forms/BakeryUserForm.vue';
-
-// Stores
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
-
-// Icons
-import { PhPen } from '@phosphor-icons/vue';
+import { PhPen, PhTrash } from '@phosphor-icons/vue'; // 👈 Importar ícono de basura
 
 const bakeryUserStore = useBakeryUserStore();
 const isFormOpen = ref(false);
 
-// Initialize useDataTable with custom handlers
 const {
   dataTable,
   actionLoading,
@@ -30,20 +20,33 @@ const {
   handleAction,
   clearSelection,
 } = useDataTable(bakeryUserStore, {
-  // Move template filter to processData
-  processData: (items) => items.filter(user => user.category !== 'PER'),
-  // Initial fetch configuration
+  processData: (items) => items.filter((user) => user.category !== 'PER'),
   fetchAll: {
     sort: { field: 'name', direction: 'asc' },
   },
-  // Action handler
   onAction: async ({ actionId, selectedItems }) => {
     const selectedClient = selectedItems[0];
+
     switch (actionId) {
-    case 'edit':
-      isFormOpen.value = true;
-      console.log(selectedClient);
-      break;
+      case 'edit':
+        isFormOpen.value = true;
+        console.log(selectedClient);
+        break;
+
+      case 'delete': {
+        const confirmDelete = window.confirm(
+          `¿Estás seguro de que deseas eliminar al cliente "${selectedClient.name}"?`
+        );
+        if (confirmDelete) {
+          try {
+            await bakeryUserStore.remove(selectedClient.id);
+            clearSelection();
+          } catch (error) {
+            console.error('Error al eliminar cliente:', error);
+          }
+        }
+        break;
+      }
     }
   },
 });
@@ -97,11 +100,19 @@ const columns = [
 const tableActions = [
   {
     id: 'edit',
-    label: 'Edit',
+    label: 'Editar',
     icon: PhPen,
     minSelected: 1,
     maxSelected: 1,
     variant: 'primary',
+  },
+  {
+    id: 'delete', // 👈 Nueva acción
+    label: 'Eliminar',
+    icon: PhTrash,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'danger', // Asumiendo que el DataTable lo soporta
   },
 ];
 
@@ -146,14 +157,12 @@ const closeForm = () => {
     </div>
 
     <!-- Edit Form Dialog -->
-    <Dialog
-      :open="isFormOpen"
-      @close="closeForm"
-      class="relative z-50"
-    >
+    <Dialog :open="isFormOpen" @close="closeForm" class="relative z-50">
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <DialogPanel
+          class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        >
           <BakeryUserForm
             v-if="selectedItems[0]"
             :title="'Editar Cliente'"
