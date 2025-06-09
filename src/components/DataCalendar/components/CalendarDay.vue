@@ -43,11 +43,11 @@ const isLoading = computed(() => {
 const getNextToggleValue = computed(() => {
   if (props.column.type !== 'toggle' || !props.column.options) return null;
   const availableOptions = props.column.options.filter(
-    (opt) => !opt.skipWhenToggled,
+    (opt) => !opt.skipWhenToggled
   );
   const currentValue = props.row[props.column.field];
   const currentIndex = availableOptions.findIndex(
-    (opt) => opt.value === currentValue,
+    (opt) => opt.value === currentValue
   );
   return availableOptions[(currentIndex + 1) % availableOptions.length];
 });
@@ -55,7 +55,7 @@ const getNextToggleValue = computed(() => {
 const currentOption = computed(() => {
   if (props.column.type !== 'toggle' || !props.column.options) return null;
   return props.column.options.find(
-    (opt) => opt.value === props.row[props.column.field],
+    (opt) => opt.value === props.row[props.column.field]
   );
 });
 
@@ -90,7 +90,7 @@ const rowsToDisplay = computed(() => {
 });
 
 const remainingRowsCount = computed(
-  () => props.rows.length - DEFAULT_ROW_COUNT,
+  () => props.rows.length - DEFAULT_ROW_COUNT
 );
 
 const toggleShowAllRows = () => {
@@ -104,7 +104,7 @@ const toggleShowAllRows = () => {
   >
     <div class="min-h-20 w-full">
       <p class="w-full text-center">
-        {{ day.toLocaleString("es-CO", { day: "numeric" }) }}
+        {{ day.toLocaleString('es-CO', { day: 'numeric' }) }}
       </p>
 
       <div
@@ -116,22 +116,25 @@ const toggleShowAllRows = () => {
         <p
           class="text-center text-gray-200 text-nowrap w-11/12 overflow-hidden m-auto"
           :class="{
-            'line-through bg-white w-full rounded-t-lg border border-primary-700 border-b-0 text-primary-700': row.status !== 0,
+            'line-through bg-white w-full rounded-t-lg border border-primary-700 border-b-0 text-primary-700':
+              row.status !== 0,
             'border border-transparent border-b-0': row.status === 0,
           }"
         >
           {{ row.userName }}
         </p>
-                <p
+        <p
           v-if="row.dueTime"
-             class="text-center text-[11px] text-gray-200 text-nowrap w-11/12 overflow-hidden m-auto"
+          class="text-center text-[11px] text-gray-200 text-nowrap w-11/12 overflow-hidden m-auto"
           :class="{
-            'line-through bg-white w-full border border-primary-700 border-b-0 border-t-0 text-primary-700': row.status !== 0,
+            'line-through bg-white w-full border border-primary-700 border-b-0 border-t-0 text-primary-700':
+              row.status !== 0,
             'border border-transparent border-b-0': row.status === 0,
           }"
         >
-        {{ row.dueTime ? `${formatTime(row.dueTime)}` : '' }}
-         </p>
+          {{ row.dueTime ? `${formatTime(row.dueTime)}` : ''
+          }}{{ row.fulfillmentType === 'delivery' ? ' - Domi' : ' - Reco' }}
+        </p>
 
         <p
           v-for="(oi, index) in row.orderItems"
@@ -143,10 +146,9 @@ const toggleShowAllRows = () => {
           }"
         >
           {{ `${oi.quantity} ${oi.productName}` }} <br />{{
-            `${oi.variation ? oi.variation.name : ""}`
+            `${oi.variation ? oi.variation.name : ''}`
           }}
         </p>
-
       </div>
 
       <div
