@@ -41,7 +41,7 @@ import {
 
 // Utils
 import { formatMoney } from '@/utils/helpers';
-import  exportOrders  from '@/utils/exportOrders';
+import { exportOrders } from '@/utils/exportOrders';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -55,9 +55,13 @@ const orderHistory = ref([]);
 
 // Process data function for the table
 const processData = (orders) => {
-  return orders.map(order => ({
+  return orders.map((order) => ({
     ...order,
-    userCategory: b2bClients.value.map(client => client.id).includes(order.userId) ? 'B2B' : 'B2C',
+    userCategory: b2bClients.value
+      .map((client) => client.id)
+      .includes(order.userId)
+      ? 'B2B'
+      : 'B2C',
   }));
 };
 
@@ -97,23 +101,23 @@ const {
     const selectedOrder = selectedItems[0];
 
     switch (actionId) {
-    case 'edit':
-      isFormOpen.value = true;
-      break;
-    case 'delete':
-      if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
-        await orderStore.remove(selectedOrder.id);
-        clearSelection();
-      }
-      break;
-    case 'history':
-      orderHistory.value = await orderStore.getHistory(selectedOrder.id);
-      isHistoryOpen.value = true;
-      break;
-    case 'export':
-      console.log('Selected items for export:', selectedItems);
-      exportOrders(selectedItems);
-      break;
+      case 'edit':
+        isFormOpen.value = true;
+        break;
+      case 'delete':
+        if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
+          await orderStore.remove(selectedOrder.id);
+          clearSelection();
+        }
+        break;
+      case 'history':
+        orderHistory.value = await orderStore.getHistory(selectedOrder.id);
+        isHistoryOpen.value = true;
+        break;
+      case 'export':
+        console.log('Selected items for export:', selectedItems);
+        exportOrders(selectedItems);
+        break;
     }
   },
 });
@@ -121,9 +125,8 @@ const {
 // Compute totals
 const totals = computed(() => {
   // Use selected orders if any are selected, otherwise use all table data
-  const ordersToCalculate = selectedItems.value.length > 0
-    ? selectedItems.value
-    : tableData.value;
+  const ordersToCalculate =
+    selectedItems.value.length > 0 ? selectedItems.value : tableData.value;
 
   const calcSalesWithoutDelivery = (ordersArray) =>
     ordersArray.reduce((sum, order) => sum + order.subtotal, 0);
@@ -195,7 +198,10 @@ const columns = [
     field: 'isPaid',
     sortable: true,
     type: 'toggle',
-    options: [{ value: true, displayText: '✓' }, { value: false, displayText: '-' }],
+    options: [
+      { value: true, displayText: '✓' },
+      { value: false, displayText: '-' },
+    ],
     component: IsPaidCell,
     getProps: (row) => ({
       isPaid: row.isPaid,
@@ -215,8 +221,18 @@ const columns = [
     options: [
       { value: 'cash', displayText: 'E', icon: PhMoney },
       { value: 'transfer', displayText: 'T', icon: PhDeviceMobile },
-      { value: 'card', displayText: 'B', icon: PhCreditCard, skipWhenToggled: true },
-      { value: 'complimentary', displayText: 'R', icon: PhGift, skipWhenToggled: true },
+      {
+        value: 'card',
+        displayText: 'B',
+        icon: PhCreditCard,
+        skipWhenToggled: true,
+      },
+      {
+        value: 'complimentary',
+        displayText: 'R',
+        icon: PhGift,
+        skipWhenToggled: true,
+      },
     ],
   },
   {
@@ -320,14 +336,20 @@ watch(
       console.error('Failed to fetch orders:', error);
     }
   },
-  { deep: true },
+  { deep: true }
 );
 </script>
 
 <template>
   <div class="container p-4 px-0 lg:px-4">
-    <div class="flex flex-col lg:flex-row-reverse justify-between items-center mb-4 gap-2">
-      <TotalsSummary class="relative md:fixed md:bottom-10 md:left-10 z-[9]" :categories="totals" :format-value="formatMoney"/>
+    <div
+      class="flex flex-col lg:flex-row-reverse justify-between items-center mb-4 gap-2"
+    >
+      <TotalsSummary
+        class="relative md:fixed md:bottom-10 md:left-10 z-[9]"
+        :categories="totals"
+        :format-value="formatMoney"
+      />
       <PeriodSelector />
     </div>
 
@@ -346,8 +368,10 @@ watch(
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
 
       <!-- Full-screen container for centering -->
-      <div class="fixed inset-0 flex items-center justify-center p-4 ">
-        <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel
+          class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        >
           <OrderForm
             v-if="selectedItems[0]"
             :title="'Editar Pedido'"
@@ -371,8 +395,12 @@ watch(
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
 
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <h2 class="text-2xl font-bold text-neutral-800 mb-4">Historial de Cambios</h2>
+        <DialogPanel
+          class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        >
+          <h2 class="text-2xl font-bold text-neutral-800 mb-4">
+            Historial de Cambios
+          </h2>
           <ShowOrderHistory :history="orderHistory" />
         </DialogPanel>
       </div>
@@ -396,7 +424,6 @@ watch(
         :wrapper-class="`bg-white shadow-lg rounded-lg`"
       />
     </div>
-
   </div>
 </template>
 
