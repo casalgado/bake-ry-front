@@ -5,6 +5,7 @@ import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { formatMoney } from '@/utils/helpers';
+import exportOrders from '@/utils/exportOrders';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -143,6 +144,10 @@ onMounted(async () => {
   }
 });
 
+const handleExportWithClients = () => {
+  exportOrders(orderStore.items);
+};
+
 onUnmounted(() => {
   if (unsubscribeRef.value) {
     unsubscribeRef.value();
@@ -154,16 +159,10 @@ onUnmounted(() => {
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-neutral-800">Fechas de Pago</h2>
       <div class="flex flex-col">
-        <h2 class="text-2xl font-bold text-neutral-800">Fechas de Pago</h2>
-        <div class="flex items-center gap-2">
-          <h3 class="m-0">Exportar Reporte:</h3>
-          <button class="btn utility-btn">Productos Consolidados</button>
-          <button class="btn utility-btn">Con info Clientes</button>
-        </div>
+        <PeriodSelector />
       </div>
-
-      <PeriodSelector />
     </div>
 
     <!-- <pre>{{
@@ -185,7 +184,15 @@ onUnmounted(() => {
     <!-- Data States -->
     <template v-else>
       <!-- Summary Table -->
-
+      <div class="flex items-center gap-2 justify-end mt-2 bg-neutral-100 pr-2">
+        <h3 class="m-0">Exportar Reporte:</h3>
+        <button class="btn utility-btn" @click="handleExportProducts">
+          Productos Consolidados
+        </button>
+        <button class="btn utility-btn" @click="handleExportWithClients">
+          Con info Clientes
+        </button>
+      </div>
       <table class="w-full border-collapse border border-neutral-200 bg-white">
         <thead>
           <tr class="bg-neutral-100">

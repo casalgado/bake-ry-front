@@ -1,5 +1,7 @@
-// Function to transform order data into CSV rows
-const transformOrderToCSVRows = (order, orderIndex) => {
+import * as XLSX from 'xlsx';
+
+// Function to transform order data into rows
+const transformOrderToRows = (order, orderIndex) => {
   console.log(order);
   const baseRow = {
     pedido: orderIndex + 1, // Order-level index
@@ -22,10 +24,9 @@ const transformOrderToCSVRows = (order, orderIndex) => {
   const itemRows = [];
   if (Array.isArray(order.orderItems)) {
     order.orderItems.forEach((item, itemIndex) => {
-      const productName = [
-        item.productName || '',
-        item.variation?.name || '',
-      ].filter(Boolean).join(' ');
+      const productName = [item.productName || '', item.variation?.name || '']
+        .filter(Boolean)
+        .join(' ');
 
       itemRows.push({
         pedido: orderIndex + 1, // Order-level index
@@ -103,9 +104,9 @@ const exportOrders = (orders) => {
   // Ensure orders is an array
   const ordersArray = Array.isArray(orders) ? orders : [];
 
-  // Transform all orders into CSV rows
+  // Transform all orders into rows
   const allRows = ordersArray.flatMap((order, orderIndex) =>
-    transformOrderToCSVRows(order, orderIndex),
+    transformOrderToRows(order, orderIndex)
   );
 
   // Add a global index to each row
@@ -114,37 +115,39 @@ const exportOrders = (orders) => {
     ...row,
   }));
 
-  // Convert to CSV string
-  const headers = ['orden', 'pedido', 'id', 'fecha_venta', 'pago_recibido', 'metodo',
-    'cliente', 'correo', 'nationalId', 'direccion', 'telefono', 'producto',
-    'cantidad', 'subtotal', 'total'];
+  // Create Excel worksheet
+  const worksheet = XLSX.utils.json_to_sheet(indexedRows);
 
-  const csvContent = [
-    headers.join(','),
-    ...indexedRows.map(row =>
-      headers.map(header => {
-        const value = row[header];
-        if (value === undefined || value === null || value === '') return '';
+  // Set column widths for better readability
+  worksheet['!cols'] = [
+    { width: 8 }, // orden
+    { width: 10 }, // pedido
+    { width: 12 }, // id
+    { width: 12 }, // fecha_venta
+    { width: 15 }, // pago_recibido
+    { width: 15 }, // metodo
+    { width: 20 }, // cliente
+    { width: 25 }, // correo
+    { width: 15 }, // nationalId
+    { width: 30 }, // direccion
+    { width: 15 }, // telefono
+    { width: 25 }, // producto
+    { width: 10 }, // cantidad
+    { width: 12 }, // subtotal
+    { width: 12 }, // total
+  ];
 
-        // Convert value to string and escape special characters
-        const stringValue = String(value)
-          .replace(/"/g, '""') // Escape quotes
-          .replace(/\n/g, ' '); // Replace newlines with spaces
+  // Create workbook and add worksheet
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders');
 
-        return `"${stringValue}"`;
-      }).join(','),
-    ),
-  ].join('\n');
+  // Generate filename with current date
+  const filename = `orders_export_${
+    new Date().toISOString().split('T')[0]
+  }.xlsx`;
 
-  // Create and trigger download
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  link.setAttribute('href', url);
-  link.setAttribute('download', `orders_export_${new Date().toISOString().split('T')[0]}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  // Download the Excel file
+  XLSX.writeFile(workbook, filename);
 };
 
 export default exportOrders;
