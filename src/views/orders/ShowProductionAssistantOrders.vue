@@ -58,7 +58,10 @@ const columns = [
     field: 'isProduced',
     sortable: true,
     type: 'toggle',
-    options: [{ value: true, displayText: '✓' }, { value: false, displayText: '-' }],
+    options: [
+      { value: true, displayText: '✓' },
+      { value: false, displayText: '-' },
+    ],
     component: CheckboxCell,
     getProps: (row) => ({
       isChecked: row.isProduced,
@@ -68,11 +71,11 @@ const columns = [
 
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
-    rowIds.forEach(id => {
+    rowIds.forEach((id) => {
       toggleLoading.value[`${id}-${field}`] = true;
     });
 
-    const updates = rowIds.map(id => ({
+    const updates = rowIds.map((id) => ({
       id,
       data: { [field]: value },
     }));
@@ -82,7 +85,7 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
   } catch (error) {
     console.error('Failed to update orders:', error);
   } finally {
-    rowIds.forEach(id => {
+    rowIds.forEach((id) => {
       toggleLoading.value[`${id}-${field}`] = false;
     });
   }
@@ -106,7 +109,7 @@ watch(
       console.error('Failed to fetch orders:', error);
     }
   },
-  { deep: true },
+  { deep: true }
 );
 
 onMounted(async () => {
@@ -139,7 +142,9 @@ onUnmounted(() => {
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Producción</h2>
-      <PeriodSelector />
+      <div class="flex flex-col">
+        <PeriodSelector />
+      </div>
     </div>
 
     <!-- Error State -->

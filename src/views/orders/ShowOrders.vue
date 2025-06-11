@@ -350,7 +350,9 @@ watch(
         :categories="totals"
         :format-value="formatMoney"
       />
-      <PeriodSelector />
+      <div class="flex flex-col">
+        <PeriodSelector />
+      </div>
     </div>
 
     <!-- Error State -->

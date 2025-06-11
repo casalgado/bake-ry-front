@@ -30,22 +30,22 @@ const selectedIds = ref([]);
 
 // Flattened order items with additional references
 const flattenedOrderItems = computed(() => {
-  return orderStore.items.flatMap(order =>
-    order.orderItems.map(item => ({
+  return orderStore.items.flatMap((order) =>
+    order.orderItems.map((item) => ({
       ...item,
       id: item.id,
       orderId: order.id,
       productionBatch: item.productionBatch || 0,
       status: item.status || 0,
-    })),
+    }))
   );
 });
 
 // Computed property to get unique collection names
 const uniqueCollections = computed(() => {
   const collections = new Set();
-  orderStore.items.forEach(order => {
-    order.orderItems.forEach(item => {
+  orderStore.items.forEach((order) => {
+    order.orderItems.forEach((item) => {
       if (item.collectionName) {
         collections.add(item.collectionName);
       }
@@ -66,7 +66,8 @@ const groupedOrderItems = computed(() => {
         productId: item.productId,
         productName: item.productName,
         collectionName: item.collectionName,
-        collectionOrder: categoryOrder[item.collectionName?.toLowerCase()] || 999,
+        collectionOrder:
+          categoryOrder[item.collectionName?.toLowerCase()] || 999,
         variation: item.variation || { name: '' },
         totalQuantity: 0,
         originalItems: [],
@@ -78,7 +79,8 @@ const groupedOrderItems = computed(() => {
     acc[key].totalQuantity += item.quantity;
     acc[key].originalItems.push(item);
     acc[key].totalItems++;
-    if (item.status === 1) { // 1 represents 'producido'
+    if (item.status === 1) {
+      // 1 represents 'producido'
       acc[key].producedCount++;
     }
 
@@ -92,11 +94,14 @@ const groupedOrderItems = computed(() => {
       }
       return a.productName.localeCompare(b.productName);
     })
-    .map(group => ({
+    .map((group) => ({
       ...group,
-      status: group.producedCount === group.totalItems ? 1 :
-        group.producedCount === 0 ? 0 :
-          `${group.producedCount}/${group.totalItems}`,
+      status:
+        group.producedCount === group.totalItems
+          ? 1
+          : group.producedCount === 0
+          ? 0
+          : `${group.producedCount}/${group.totalItems}`,
     }));
 });
 
@@ -127,7 +132,6 @@ const columns = [
     sortable: true,
     type: 'toggle',
     options: [
-
       { value: 1, displayText: 'producido' },
       { value: 0, displayText: '-' },
       {
@@ -153,7 +157,7 @@ const tableActions = [
 const tableFilters = computed(() => [
   {
     field: 'collectionName',
-    options: uniqueCollections.value.map(collection => ({
+    options: uniqueCollections.value.map((collection) => ({
       label: collection,
       value: collection,
     })),
@@ -171,14 +175,14 @@ const tableFilters = computed(() => [
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
     // Find all original items that need to be updated
-    const itemsToUpdate = rowIds.flatMap(groupId =>
-      groupedOrderItems.value
-        .find(group => group.id === groupId)
-        ?.originalItems || [],
+    const itemsToUpdate = rowIds.flatMap(
+      (groupId) =>
+        groupedOrderItems.value.find((group) => group.id === groupId)
+          ?.originalItems || []
     );
 
     // Set loading state for all items
-    itemsToUpdate.forEach(item => {
+    itemsToUpdate.forEach((item) => {
       toggleLoading.value[`${item.id}-${field}`] = true;
     });
 
@@ -187,9 +191,9 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
       if (!acc[item.orderId]) {
         acc[item.orderId] = {
           itemIds: new Set(),
-          orderItems: orderStore.items
-            .find(order => order.id === item.orderId)
-            .orderItems,
+          orderItems: orderStore.items.find(
+            (order) => order.id === item.orderId
+          ).orderItems,
         };
       }
       acc[item.orderId].itemIds.add(item.id);
@@ -197,15 +201,17 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
     }, {});
 
     // Prepare updates
-    const updates = Object.entries(orderUpdates).map(([orderId, { orderItems, itemIds }]) => ({
-      id: orderId,
-      data: {
-        orderItems: orderItems.map(item => ({
-          ...item,
-          [field]: itemIds.has(item.id) ? value : item[field],
-        })),
-      },
-    }));
+    const updates = Object.entries(orderUpdates).map(
+      ([orderId, { orderItems, itemIds }]) => ({
+        id: orderId,
+        data: {
+          orderItems: orderItems.map((item) => ({
+            ...item,
+            [field]: itemIds.has(item.id) ? value : item[field],
+          })),
+        },
+      })
+    );
 
     // Execute updates
     await orderStore.patchAll(updates);
@@ -214,21 +220,21 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
     console.error('Failed to update items:', error);
   } finally {
     // Clear loading states
-    Object.keys(toggleLoading.value).forEach(key => {
+    Object.keys(toggleLoading.value).forEach((key) => {
       toggleLoading.value[key] = false;
     });
   }
 };
-const handleAction = async ({ actionId, selectedIds: rowIds }) => {  // Changed parameter destructuring
+const handleAction = async ({ actionId, selectedIds: rowIds }) => {
+  // Changed parameter destructuring
   actionLoading.value[actionId] = true;
 
   try {
     switch (actionId) {
-    case 'setBatch':
-
-      selectedIds.value = rowIds;  // Now correctly assigns the selected IDs
-      isBatchDialogOpen.value = true;
-      break;
+      case 'setBatch':
+        selectedIds.value = rowIds; // Now correctly assigns the selected IDs
+        isBatchDialogOpen.value = true;
+        break;
     }
   } catch (error) {
     console.error('Action failed:', error);
@@ -242,10 +248,10 @@ const handleBatchSelect = async (batchNumber) => {
 
   try {
     // First, get all original items that need to be updated from the selected groups
-    const itemsToUpdate = selectedIds.value.flatMap(groupId =>
-      groupedOrderItems.value
-        .find(group => group.id === groupId)
-        ?.originalItems || [],
+    const itemsToUpdate = selectedIds.value.flatMap(
+      (groupId) =>
+        groupedOrderItems.value.find((group) => group.id === groupId)
+          ?.originalItems || []
     );
 
     // Now group updates by order using the actual order items
@@ -253,9 +259,9 @@ const handleBatchSelect = async (batchNumber) => {
       if (!acc[orderItem.orderId]) {
         acc[orderItem.orderId] = {
           itemIds: new Set(),
-          orderItems: orderStore.items
-            .find(order => order.id === orderItem.orderId)
-            .orderItems,
+          orderItems: orderStore.items.find(
+            (order) => order.id === orderItem.orderId
+          ).orderItems,
         };
       }
 
@@ -263,15 +269,19 @@ const handleBatchSelect = async (batchNumber) => {
       return acc;
     }, {});
 
-    const updates = Object.entries(orderUpdates).map(([orderId, { orderItems, itemIds }]) => ({
-      id: orderId,
-      data: {
-        orderItems: orderItems.map(item => ({
-          ...item,
-          productionBatch: itemIds.has(item.id) ? batchNumber : item.productionBatch,
-        })),
-      },
-    }));
+    const updates = Object.entries(orderUpdates).map(
+      ([orderId, { orderItems, itemIds }]) => ({
+        id: orderId,
+        data: {
+          orderItems: orderItems.map((item) => ({
+            ...item,
+            productionBatch: itemIds.has(item.id)
+              ? batchNumber
+              : item.productionBatch,
+          })),
+        },
+      })
+    );
 
     isBatchDialogOpen.value = false;
     await orderStore.patchAll(updates);
@@ -304,7 +314,7 @@ watch(
       console.error('Failed to fetch orders:', error);
     }
   },
-  { deep: true },
+  { deep: true }
 );
 
 onMounted(async () => {
@@ -337,7 +347,9 @@ onUnmounted(() => {
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Agrupado</h2>
-      <PeriodSelector :only-for="['day']" />
+      <div class="flex flex-col">
+        <PeriodSelector />
+      </div>
     </div>
 
     <!-- Error State -->
@@ -362,8 +374,7 @@ onUnmounted(() => {
               v-for="batch in [1, 2, 3, 4, 5, 6]"
               :key="batch"
               @click="handleBatchSelect(batch)"
-              class="p-2 text-center bg-neutral-100 hover:bg-primary-100
-                     rounded-md transition-colors duration-200"
+              class="p-2 text-center bg-neutral-100 hover:bg-primary-100 rounded-md transition-colors duration-200"
             >
               {{ batch }}
             </button>

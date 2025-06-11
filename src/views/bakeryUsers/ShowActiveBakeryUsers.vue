@@ -28,9 +28,9 @@ const processData = (orders) => {
   }, {});
 
   // Create client summaries
-  return Object.values(clientOrders).map(orders => {
-    const sortedOrders = orders.sort((a, b) =>
-      new Date(b.createdAt) - new Date(a.createdAt),
+  return Object.values(clientOrders).map((orders) => {
+    const sortedOrders = orders.sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
     const mostRecent = sortedOrders[0];
 
@@ -46,11 +46,7 @@ const processData = (orders) => {
 };
 
 // Initialize useDataTable with custom handlers
-const {
-  dataTable,
-  isLoading,
-  tableData,
-} = useDataTable(orderStore, {
+const { dataTable, isLoading, tableData } = useDataTable(orderStore, {
   processData,
   fetchAll: {
     filters: {
@@ -115,7 +111,7 @@ watch(
       console.error('Failed to fetch orders:', error);
     }
   },
-  { deep: true },
+  { deep: true }
 );
 </script>
 
@@ -123,14 +119,13 @@ watch(
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Active Clients</h2>
-      <PeriodSelector />
+      <div class="flex flex-col">
+        <PeriodSelector />
+      </div>
     </div>
 
     <!-- Error State -->
-    <div
-      v-if="orderStore.error"
-      class="text-danger text-center py-4"
-    >
+    <div v-if="orderStore.error" class="text-danger text-center py-4">
       {{ orderStore.error }}
     </div>
 
