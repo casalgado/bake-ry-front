@@ -285,6 +285,15 @@ const addSummaryStats = (productSales) => {
       pedidos_unicos: '',
     },
     {
+      producto: 'NOTA IMPORTNTE:',
+      variacion:
+        'Este reporte distribuye proporcionalmente el costo de domicilio entre los productos de cada pedido. Los valores mostrados incluyen esta distribución',
+      cantidad_total: '',
+      ingresos_totales: '',
+      precio_promedio: '',
+      pedidos_unicos: '',
+    },
+    {
       producto: 'Total productos únicos:',
       variacion: totalProducts,
       cantidad_total: '',
