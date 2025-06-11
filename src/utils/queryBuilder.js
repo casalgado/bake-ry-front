@@ -25,6 +25,11 @@ class QueryBuilder {
     return this;
   }
 
+  setOrDateRange(dateFields, startDate, endDate) {
+    this.query.filters.orDateRange = { dateFields, startDate, endDate };
+    return this;
+  }
+
   addFilter(key, value) {
     this.query.filters[key] = value;
     return this;

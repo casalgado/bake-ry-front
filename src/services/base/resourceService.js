@@ -44,7 +44,7 @@ export class BaseService {
    */
   convertTimestamps(data) {
     const converted = { ...data };
-    BaseService.dateFields.forEach(field => {
+    BaseService.dateFields.forEach((field) => {
       if (converted[field]?.toDate) {
         converted[field] = converted[field].toDate();
       } else if (converted[field] && !(converted[field] instanceof Date)) {
@@ -90,7 +90,7 @@ export class BaseService {
 
   async getAll(query = {}) {
     try {
-    // Convert the query object to API parameters
+      // Convert the query object to API parameters
       const params = this.formatQueryParams(query);
 
       const response = await this.api.get(this.getPath(), { params });
@@ -108,7 +108,10 @@ export class BaseService {
 
     // Add sorting
     if (query.sort) {
-      params.sort = query.sort.direction === 'desc' ? `-${query.sort.field}` : query.sort.field;
+      params.sort =
+        query.sort.direction === 'desc'
+          ? `-${query.sort.field}`
+          : query.sort.field;
     }
 
     // Add date range
@@ -118,9 +121,17 @@ export class BaseService {
       params.end_date = query.filters.dateRange.endDate;
     }
 
+    // Add OR date range
+    if (query.filters?.orDateRange) {
+      params.or_date_fields = query.filters.orDateRange.dateFields.join(',');
+      params.or_start_date = query.filters.orDateRange.startDate;
+      params.or_end_date = query.filters.orDateRange.endDate;
+    }
+
     // Add other filters
     Object.entries(query.filters || {}).forEach(([key, value]) => {
-      if (key !== 'dateRange') {  // Skip dateRange as it's already handled
+      if (key !== 'dateRange') {
+        // Skip dateRange as it's already handled
         params[key] = value;
       }
     });
@@ -234,10 +245,9 @@ export class BaseService {
     }
 
     try {
-      const response = await this.api.patch(
-        `${this.getPath()}/bulk-update`,
-        { updates },
-      );
+      const response = await this.api.patch(`${this.getPath()}/bulk-update`, {
+        updates,
+      });
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error);
@@ -272,18 +282,15 @@ export class BaseService {
       db,
       'bakeries',
       this.bakeryId,
-      this.resource,
+      this.resource
     );
-    const q = query(
-      collectionRef,
-    );
+    const q = query(collectionRef);
 
-    const unsubscribe = onSnapshot(q,
+    const unsubscribe = onSnapshot(
+      q,
       (snapshot) => {
-
         const changes = [];
         snapshot.docChanges().forEach((change) => {
-
           const rawData = {
             id: change.doc.id,
             ...change.doc.data(),
@@ -297,7 +304,7 @@ export class BaseService {
       },
       (error) => {
         console.error('Firestore subscription error:', error);
-      },
+      }
     );
 
     const listenerId = `${this.resource}-${this.bakeryId}`;

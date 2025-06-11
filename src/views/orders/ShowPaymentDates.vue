@@ -26,8 +26,8 @@ watch(
 
       await orderStore.fetchAll({
         filters: {
-          dateRange: {
-            dateField: 'dueDate',
+          orDateRange: {
+            dateFields: ['paymentDate', 'partialPaymentDate'],
             startDate: newRange.start.toISOString(),
             endDate: newRange.end.toISOString(),
           },
@@ -40,7 +40,7 @@ watch(
       loading.value = false;
     }
   },
-  { deep: true },
+  { deep: true }
 );
 
 const paymentEntries = computed(() => {
@@ -92,7 +92,7 @@ const paymentEntries = computed(() => {
 
   // Sort by payment date
   return entries.sort(
-    (a, b) => new Date(a.paymentDate || 0) - new Date(b.paymentDate || 0),
+    (a, b) => new Date(a.paymentDate || 0) - new Date(b.paymentDate || 0)
   );
 });
 
@@ -102,7 +102,7 @@ const shouldAddSpacing = computed(() => {
     const nextEntry = paymentEntries.value[index + 1];
 
     console.log(
-      `Checking spacing for index ${index}: currentEntry=${currentEntry?.id}, nextEntry=${nextEntry?.id}`,
+      `Checking spacing for index ${index}: currentEntry=${currentEntry?.id}, nextEntry=${nextEntry?.id}`
     );
 
     if (!nextEntry) return false; // Last item, no spacing needed
@@ -154,7 +154,15 @@ onUnmounted(() => {
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Fechas de Pago</h2>
+      <div class="flex flex-col">
+        <h2 class="text-2xl font-bold text-neutral-800">Fechas de Pago</h2>
+        <div class="flex items-center gap-2">
+          <h3 class="m-0">Exportar Reporte:</h3>
+          <button class="btn utility-btn">Productos Consolidados</button>
+          <button class="btn utility-btn">Con info Clientes</button>
+        </div>
+      </div>
+
       <PeriodSelector />
     </div>
 
@@ -201,29 +209,29 @@ onUnmounted(() => {
               <td class="p-2 border-r border-neutral-200">
                 {{
                   o.paymentDate
-                    ? new Date(o.paymentDate).toLocaleDateString("es-CO", {
-                        day: "numeric",
-                        month: "long",
+                    ? new Date(o.paymentDate).toLocaleDateString('es-CO', {
+                        day: 'numeric',
+                        month: 'long',
                       })
-                    : "No Asignada"
+                    : 'No Asignada'
                 }}
               </td>
               <td class="p-2 border-r border-neutral-200">
                 {{
                   o.order.dueDate
-                    ? new Date(o.order.dueDate).toLocaleDateString("es-CO", {
-                        day: "numeric",
-                        month: "long",
+                    ? new Date(o.order.dueDate).toLocaleDateString('es-CO', {
+                        day: 'numeric',
+                        month: 'long',
                       })
-                    : "No Asignada"
+                    : 'No Asignada'
                 }}
               </td>
               <td class="p-2 border-r border-neutral-200">
-                {{ o.paymentType || "-" }}
+                {{ o.paymentType || '-' }}
               </td>
               <td class="p-2 border-r border-neutral-200">{{ o.userName }}</td>
               <td class="p-2 border-r border-neutral-200">
-                {{ formatMoney(o.total, "COP") }}
+                {{ formatMoney(o.total, 'COP') }}
               </td>
             </tr>
             <!-- Add divider row when date changes -->

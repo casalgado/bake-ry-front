@@ -1,6 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { PhGift, PhTrash, PhPercent, PhCurrencyDollar } from '@phosphor-icons/vue';
+import {
+  PhGift,
+  PhTrash,
+  PhPercent,
+  PhCurrencyDollar,
+} from '@phosphor-icons/vue';
 
 const discount = ref(null);
 
@@ -43,7 +48,9 @@ const handleQuantityInput = (event) => {
 
 const handlePriceChange = (event) => {
   const newPrice = Number(event.target.value);
-  discount.value = Math.round(((props.item.basePrice - newPrice) / props.item.basePrice) * 100);
+  discount.value = Math.round(
+    ((props.item.basePrice - newPrice) / props.item.basePrice) * 100
+  );
   emit('update:price', props.index, newPrice);
 };
 
@@ -63,13 +70,19 @@ const handleRemove = () => {
 </script>
 
 <template>
-  <div class="flex flex-row items-center justify-between py-1.5 mb-3 border-neutral-300 last:border-b-0">
+  <div
+    class="flex flex-row items-center justify-between py-1.5 mb-3 border-neutral-300 last:border-b-0"
+  >
     <div class="flex-grow">
       <div class="flex items-center justify-between gap-2">
-        <div class="text-xs text-neutral-700 text-pill">{{ item.collectionName }}</div>
+        <div class="text-xs text-neutral-700 text-pill">
+          {{ item.collectionName }}
+        </div>
         <div class="text-pill text-neutral-700 text-xs">
           {{ item.productName }}
-          <span v-if="item.variation" class="text-xs">- {{ item.variation.name }}</span>
+          <span v-if="item.variation" class="text-xs"
+            >- {{ item.variation.name }}</span
+          >
         </div>
       </div>
 
@@ -78,9 +91,11 @@ const handleRemove = () => {
           <button
             type="button"
             @click="handleQuantityChange(-1)"
-            class="px-0 md:px-1.5 py-0.5 text-xs bg-gray-100 rounded"
+            class="px-0 md:px-1.5 py-0.5 text-xs bg-gray-400 hover:bg-gray-500 hover:bg-gray-200 rounded"
             :disabled="item.quantity <= 1"
-          >-</button>
+          >
+            -
+          </button>
           <input
             type="number"
             :value="item.quantity"
@@ -92,8 +107,10 @@ const handleRemove = () => {
           <button
             type="button"
             @click="handleQuantityChange(1)"
-            class="px-0 md:px-1.5 py-0.5 text-xs bg-gray-100 rounded"
-          >+</button>
+            class="px-0 md:px-1.5 py-0.5 text-xs bg-gray-400 hover:bg-gray-500 hover:bg-gray-200 rounded"
+          >
+            +
+          </button>
         </div>
 
         <div class="flex items-center gap-1">
@@ -105,7 +122,6 @@ const handleRemove = () => {
               class="w-12 px-1 py-0.5 text-right border rounded text-xs max-w-12 min-w-8"
               :disabled="item.isComplimentary"
               max="100"
-
             />
             <PhPercent class="absolute left-1.5 w-3 h-3 hidden md:block" />
           </div>
@@ -115,11 +131,16 @@ const handleRemove = () => {
               :value="item.currentPrice"
               @input="handlePriceChange"
               class="w-20 px-0 md:px-1 py-0.5 text-right border rounded text-sm min-w-16"
-              :class="{ 'price-modified': isPriceModified, 'opacity-20': item.isComplimentary }"
+              :class="{
+                'price-modified': isPriceModified,
+                'opacity-20': item.isComplimentary,
+              }"
               step="1000"
               :disabled="item.isComplimentary"
             />
-            <PhCurrencyDollar class="absolute left-1.5 w-3 h-3 hidden md:block" />
+            <PhCurrencyDollar
+              class="absolute left-1.5 w-3 h-3 hidden md:block"
+            />
           </div>
         </div>
 
@@ -129,7 +150,7 @@ const handleRemove = () => {
           class="px-0 md:px-2 py-0.5 text-xs rounded"
           :class="{
             'bg-gray-200': item.isComplimentary,
-            'bg-gray-100': !item.isComplimentary
+            'bg-gray-100': !item.isComplimentary,
           }"
         >
           <PhGift v-if="!item.isComplimentary" class="w-4 h-4" weight="light" />
@@ -152,7 +173,7 @@ const handleRemove = () => {
   @apply bg-yellow-50 border-yellow-300;
 }
 
-input[type="number"] {
+input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
   &::-webkit-outer-spin-button,
