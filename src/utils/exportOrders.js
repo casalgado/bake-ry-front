@@ -152,36 +152,6 @@ const exportOrders = (orders) => {
 
 // EXPORT PRODUCTS BELOW
 
-// Function to distribute delivery fee in intervals of 500
-const distributeDeliveryFee = (deliveryFee, itemCount) => {
-  if (!deliveryFee || itemCount === 0) {
-    return new Array(itemCount).fill(0);
-  }
-
-  const baseAmount = Math.floor(deliveryFee / 500) * 500; // Round down to nearest 500
-  const remainder = deliveryFee - baseAmount;
-
-  const basePerItem = Math.floor(baseAmount / itemCount / 500) * 500; // Base amount per item (in 500 intervals)
-  const remainingBase = baseAmount - basePerItem * itemCount;
-
-  // Create distribution array
-  const distribution = new Array(itemCount).fill(basePerItem);
-
-  // Distribute remaining base amount in 500 chunks
-  let remainingChunks = remainingBase / 500;
-  for (let i = 0; i < itemCount && remainingChunks > 0; i++) {
-    distribution[i] += 500;
-    remainingChunks--;
-  }
-
-  // Add the remainder to the last item
-  if (remainder > 0) {
-    distribution[itemCount - 1] += remainder;
-  }
-
-  return distribution;
-};
-
 // Function to aggregate product sales data
 const aggregateProductSales = (orders) => {
   const productMap = new Map();
@@ -192,15 +162,8 @@ const aggregateProductSales = (orders) => {
     if (!order.isPaid) return;
 
     // Process each order item
-    if (Array.isArray(order.orderItems) && order.orderItems.length > 0) {
-      // Get delivery fee distribution for this order's items
-      const deliveryFee = order.deliveryFee || 0;
-      const deliveryDistribution = distributeDeliveryFee(
-        deliveryFee,
-        order.orderItems.length
-      );
-
-      order.orderItems.forEach((item, index) => {
+    if (Array.isArray(order.orderItems)) {
+      order.orderItems.forEach((item) => {
         // Create unique product key (product + variation)
         const productName = item.productName || 'Producto sin nombre';
         const variationName = item.variation?.name || '-';
@@ -220,16 +183,31 @@ const aggregateProductSales = (orders) => {
 
         const productData = productMap.get(productKey);
 
-        // Calculate item subtotal including its share of delivery fee
-        const itemSubtotal = (item.subtotal || 0) + deliveryDistribution[index];
-
         // Update aggregated data
         productData.cantidad_total += item.quantity || 0;
-        productData.ingresos_totales += itemSubtotal;
+        productData.ingresos_totales += item.subtotal || 0;
         productData.pedidos_count.add(order.id);
       });
     }
   });
+
+  // Convert Map to array and calculate averages
+  const productSales = Array.from(productMap.values()).map((product) => ({
+    producto: product.producto,
+    variacion: product.variacion,
+    cantidad_total: product.cantidad_total,
+    ingresos_totales: Math.round(product.ingresos_totales * 100) / 100, // Round to 2 decimals
+    precio_promedio:
+      product.cantidad_total > 0
+        ? Math.round(
+            (product.ingresos_totales / product.cantidad_total) * 100
+          ) / 100
+        : 0,
+    pedidos_unicos: product.pedidos_count.size,
+  }));
+
+  // Sort by total revenue (highest first)
+  return productSales.sort((a, b) => b.ingresos_totales - a.ingresos_totales);
 };
 
 // Function to add summary statistics
