@@ -43,7 +43,7 @@ const userId = computed(() => authStore.getUserData?.uid);
 
 // Data processing function to filter orders by driver
 const processData = (orders) => {
-  return orders.filter(order => order.deliveryDriverId === userId.value);
+  return orders.filter((order) => order.deliveryDriverId === userId.value);
 };
 
 // Initialize useDataTable with custom handlers
@@ -62,11 +62,11 @@ const {
   subscribeToChanges: true,
   async onAction({ actionId }) {
     switch (actionId) {
-    case 'set_sequence':
-      selectedSequence.value = 1;
-      isSequenceDialogOpen.value = true;
-      console.log('set_sequence');
-      break;
+      case 'set_sequence':
+        selectedSequence.value = 1;
+        isSequenceDialogOpen.value = true;
+        console.log('set_sequence');
+        break;
     }
   },
   fetchAll: {
@@ -89,7 +89,7 @@ const closeSequenceDialog = () => {
 const handleSequenceSubmit = async () => {
   try {
     actionLoading.value['set_sequence'] = true;
-    const updates = selectedItems.value.map(item => ({
+    const updates = selectedItems.value.map((item) => ({
       id: item.id,
       data: { deliverySequence: selectedSequence.value },
     }));
@@ -107,7 +107,7 @@ const tableActions = [
   {
     id: 'set_sequence',
     label: 'Secuencia',
-    icon: PhListNumbers,  // You'll need to import this icon
+    icon: PhListNumbers, // You'll need to import this icon
     minSelected: 1,
     variant: 'primary',
   },
@@ -120,7 +120,7 @@ const columns = [
     label: 'ORD',
     field: 'deliverySequence',
     sortable: true,
-    type: 'action',  // This makes it clickable
+    type: 'action', // This makes it clickable
     onClick: (row) => {
       selectedSequence.value = row.deliverySequence || 0;
       isSequenceDialogOpen.value = true;
@@ -197,8 +197,18 @@ const columns = [
     options: [
       { value: 'cash', displayText: 'E', icon: PhMoney },
       { value: 'transfer', displayText: 'T', icon: PhDeviceMobile },
-      { value: 'card', displayText: 'B', icon: PhCreditCard, skipWhenToggled: true },
-      { value: 'complimentary', displayText: 'R', icon: PhGift, skipWhenToggled: true },
+      {
+        value: 'card',
+        displayText: 'B',
+        icon: PhCreditCard,
+        skipWhenToggled: true,
+      },
+      {
+        value: 'complimentary',
+        displayText: 'R',
+        icon: PhGift,
+        skipWhenToggled: true,
+      },
     ],
   },
   {
@@ -207,7 +217,10 @@ const columns = [
     field: 'driverMarkedAsPaid',
     sortable: true,
     type: 'toggle',
-    options: [{ value: true, displayText: '✓' }, { value: false, displayText: '-' }],
+    options: [
+      { value: true, displayText: '✓' },
+      { value: false, displayText: '-' },
+    ],
     component: CheckboxCell,
     getProps: (row) => ({
       isChecked: row.driverMarkedAsPaid,
@@ -219,7 +232,11 @@ const columns = [
     field: 'status',
     sortable: true,
     type: 'toggle',
-    options: [{ value: 0, displayText: '0', skipWhenToggled: true }, { value: 2, displayText: '', icon: PhMoped }, { value: 3, displayText: '', icon: PhBuilding }],
+    options: [
+      { value: 0, displayText: '0', skipWhenToggled: true },
+      { value: 2, displayText: '', icon: PhMoped },
+      { value: 3, displayText: '', icon: PhBuilding },
+    ],
   },
 ];
 // Watch for period changes and fetch new data
@@ -240,13 +257,16 @@ watch(
       console.error('Failed to fetch orders:', error);
     }
   },
-  { deep: true },
-);</script>
+  { deep: true }
+);
+</script>
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Mis Entregas</h2>
-      <PeriodSelector :only-for="['day']" />
+      <div class="flex flex-col">
+        <PeriodSelector />
+      </div>
     </div>
 
     <!-- Error State -->
@@ -254,7 +274,7 @@ watch(
       {{ orderStore.error }}
     </div>
 
-        <!-- Delivery Sequence Dialog -->
+    <!-- Delivery Sequence Dialog -->
     <Dialog
       :open="isSequenceDialogOpen"
       @close="closeSequenceDialog"
@@ -262,7 +282,9 @@ watch(
     >
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel class="form-container bg-white rounded-lg p-6 max-w-md w-full">
+        <DialogPanel
+          class="form-container bg-white rounded-lg p-6 max-w-md w-full"
+        >
           <h3 class="text-lg font-medium mb-4">Secuencia de Entrega</h3>
 
           <div class="grid grid-cols-3 gap-2 mb-4">
@@ -286,10 +308,7 @@ watch(
           />
 
           <div class="flex justify-end gap-2">
-            <button
-              @click="closeSequenceDialog"
-              class="utility-btn"
-            >
+            <button @click="closeSequenceDialog" class="utility-btn">
               Cancelar
             </button>
             <button

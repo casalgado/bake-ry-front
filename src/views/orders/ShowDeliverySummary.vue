@@ -28,7 +28,7 @@ const props = defineProps({
 });
 // Helper function to filter orders by day range
 const filterOrdersByDays = (orders, days) => {
-  return orders.filter(order => {
+  return orders.filter((order) => {
     const weekday = new Date(order.preparationDate)
       .toLocaleDateString('es-ES', { weekday: 'long' })
       .toLowerCase();
@@ -38,8 +38,8 @@ const filterOrdersByDays = (orders, days) => {
 
 // Compute summary for a set of orders with default values
 const computeSummary = (orders = []) => {
-  const paidDeliveries = orders.filter(order => order.isDeliveryPaid).length;
-  const unpaidOrders = orders.filter(order => !order.isDeliveryPaid);
+  const paidDeliveries = orders.filter((order) => order.isDeliveryPaid).length;
+  const unpaidOrders = orders.filter((order) => !order.isDeliveryPaid);
   const unpaidAmount = _.sumBy(unpaidOrders, 'deliveryCost') || 0;
 
   return {
@@ -56,57 +56,87 @@ const driverSummaries = computed(() => {
   if (!orderStore.items) return [];
 
   let orders = (orderStore.items || [])
-    .filter(order => order.fulfillmentType === 'delivery')
-    .map(order => ({
+    .filter((order) => order.fulfillmentType === 'delivery')
+    .map((order) => ({
       ...order,
       weekday: new Date(order.preparationDate)
         .toLocaleDateString('es-ES', { weekday: 'long' })
         .toLowerCase(),
-    })).sort((a, b) => a.preparationDate.localeCompare(b.preparationDate));
+    }))
+    .sort((a, b) => a.preparationDate.localeCompare(b.preparationDate));
 
   if (props.singleDriverMode && props.driverId) {
-    orders = orders.filter(order => order.deliveryDriverId === props.driverId);
+    orders = orders.filter(
+      (order) => order.deliveryDriverId === props.driverId
+    );
   }
 
   const driverGroups = _.groupBy(orders, 'deliveryDriverId');
 
-  return Object.entries(driverGroups).map(([deliveryDriverId, driverOrders]) => {
-    const earlyWeekOrders = filterOrdersByDays(driverOrders, ['lunes', 'martes', 'miércoles']);
-    const lateWeekOrders = filterOrdersByDays(driverOrders, ['jueves', 'viernes', 'sábado']);
+  return Object.entries(driverGroups).map(
+    ([deliveryDriverId, driverOrders]) => {
+      const earlyWeekOrders = filterOrdersByDays(driverOrders, [
+        'lunes',
+        'martes',
+        'miércoles',
+      ]);
+      const lateWeekOrders = filterOrdersByDays(driverOrders, [
+        'jueves',
+        'viernes',
+        'sábado',
+      ]);
 
-    return {
-      id: deliveryDriverId,
-      name: drivers.value.find(driver => driver.id == deliveryDriverId)?.name || 'Sin Asignar',
-      summaries: {
-        total: computeSummary(driverOrders),
-        earlyWeek: computeSummary(earlyWeekOrders),
-        lateWeek: computeSummary(lateWeekOrders),
-      },
-      deliveries: driverOrders,
-    };
-  });
+      return {
+        id: deliveryDriverId,
+        name:
+          drivers.value.find((driver) => driver.id == deliveryDriverId)?.name ||
+          'Sin Asignar',
+        summaries: {
+          total: computeSummary(driverOrders),
+          earlyWeek: computeSummary(earlyWeekOrders),
+          lateWeek: computeSummary(lateWeekOrders),
+        },
+        deliveries: driverOrders,
+      };
+    }
+  );
 });
 
 // Global summary computed with error handling
 const globalSummary = computed(() => ({
-  totalDeliveries: _.sumBy(driverSummaries.value, 'summaries.total.totalDeliveries') || 0,
-  totalAmount: _.sumBy(driverSummaries.value, 'summaries.total.totalAmount') || 0,
-  totalPending: _.sumBy(driverSummaries.value, 'summaries.total.unpaidDeliveries') || 0,
-  totalPendingAmount: _.sumBy(driverSummaries.value, 'summaries.total.unpaidAmount') || 0,
+  totalDeliveries:
+    _.sumBy(driverSummaries.value, 'summaries.total.totalDeliveries') || 0,
+  totalAmount:
+    _.sumBy(driverSummaries.value, 'summaries.total.totalAmount') || 0,
+  totalPending:
+    _.sumBy(driverSummaries.value, 'summaries.total.unpaidDeliveries') || 0,
+  totalPendingAmount:
+    _.sumBy(driverSummaries.value, 'summaries.total.unpaidAmount') || 0,
 }));
 
 // Summary categories with error handling
-const deliveriesSummary = computed(() => ([
-  { label: 'Total Domicilios', value: globalSummary.value.totalDeliveries || 0 },
-]));
+const deliveriesSummary = computed(() => [
+  {
+    label: 'Total Domicilios',
+    value: globalSummary.value.totalDeliveries || 0,
+  },
+]);
 
-const pendingSummary = computed(() => ([
-  { label: 'Por Pagar', value: `$${(globalSummary.value.totalPendingAmount || 0).toLocaleString()}  (${globalSummary.value.totalPending || 0})` },
-]));
+const pendingSummary = computed(() => [
+  {
+    label: 'Por Pagar',
+    value: `$${(
+      globalSummary.value.totalPendingAmount || 0
+    ).toLocaleString()}  (${globalSummary.value.totalPending || 0})`,
+  },
+]);
 
-const amountSummary = computed(() => ([
-  { label: 'Total Periodo', value: `$${(globalSummary.value.totalAmount || 0).toLocaleString()}` },
-]));
+const amountSummary = computed(() => [
+  {
+    label: 'Total Periodo',
+    value: `$${(globalSummary.value.totalAmount || 0).toLocaleString()}`,
+  },
+]);
 
 const tableFilters = [
   {
@@ -129,7 +159,6 @@ const columns = [
     label: 'Día',
     field: 'weekday',
     sortable: true,
-
   },
   {
     id: 'userName',
@@ -183,11 +212,11 @@ const tableColumns = computed(() => {
 // Handle toggle updates
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
-    rowIds.forEach(id => {
+    rowIds.forEach((id) => {
       toggleLoading.value[`${id}-${field}`] = true;
     });
 
-    const updates = rowIds.map(id => ({
+    const updates = rowIds.map((id) => ({
       id,
       data: { [field]: value },
     }));
@@ -196,7 +225,7 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
   } catch (error) {
     console.error('Failed to update orders:', error);
   } finally {
-    rowIds.forEach(id => {
+    rowIds.forEach((id) => {
       toggleLoading.value[`${id}-${field}`] = false;
     });
   }
@@ -204,23 +233,25 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
 
 // Handle marking period as paid
 const handleMarkPeriodPaid = async (driverId) => {
-  const driverSummary = driverSummaries.value.find(d => d.id === driverId);
+  const driverSummary = driverSummaries.value.find((d) => d.id === driverId);
   if (!driverSummary) return;
 
   try {
     // Get unpaid deliveries
-    const unpaidDeliveries = driverSummary.deliveries.filter(order => !order.isDeliveryPaid);
+    const unpaidDeliveries = driverSummary.deliveries.filter(
+      (order) => !order.isDeliveryPaid
+    );
 
     if (unpaidDeliveries.length === 0) return;
 
     // Store the previous state
-    const previousState = unpaidDeliveries.map(order => ({
+    const previousState = unpaidDeliveries.map((order) => ({
       id: order.id,
       isDeliveryPaid: false,
     }));
 
     // Create updates
-    const updates = unpaidDeliveries.map(order => ({
+    const updates = unpaidDeliveries.map((order) => ({
       id: order.id,
       data: { isDeliveryPaid: true },
     }));
@@ -232,7 +263,7 @@ const handleMarkPeriodPaid = async (driverId) => {
       description: `Mark period paid for ${driverSummary.name}`,
       undo: async () => {
         // Restore previous state
-        const undoUpdates = previousState.map(state => ({
+        const undoUpdates = previousState.map((state) => ({
           id: state.id,
           data: { isDeliveryPaid: state.isDeliveryPaid },
         }));
@@ -268,7 +299,7 @@ watch(
       console.error('Failed to fetch orders:', error);
     }
   },
-  { deep: true },
+  { deep: true }
 );
 
 onMounted(async () => {
@@ -276,7 +307,9 @@ onMounted(async () => {
     // First fetch settings to get B2B clients
     await settingsStore.fetchById('default');
     drivers.value = await settingsStore.staff;
-    drivers.value = drivers.value.filter(driver => driver.role == 'delivery_assistant');
+    drivers.value = drivers.value.filter(
+      (driver) => driver.role == 'delivery_assistant'
+    );
 
     await orderStore.fetchAll({
       filters: {
@@ -300,7 +333,7 @@ const handleCardClick = async (card, id) => {
   if (card === expandedCard.value) {
     expandedDriver.value = expandedDriver.value === id ? null : id;
   } else {
-    expandedDriver.value = id;  // Always expand for a different card
+    expandedDriver.value = id; // Always expand for a different card
   }
 
   expandedCard.value = card;
@@ -335,9 +368,16 @@ onUnmounted(() => {
     <!-- Header -->
     <div class="flex flex-col lg:flex-row justify-between items-center mb-6">
       <h2 class="text-2xl font-bold text-neutral-800">
-        {{ props.singleDriverMode ? 'Resumen de Domicilios' : 'Resumen de Domicilios' }}</h2>
+        {{
+          props.singleDriverMode
+            ? 'Resumen de Domicilios'
+            : 'Resumen de Domicilios'
+        }}
+      </h2>
 
-      <PeriodSelector />
+      <div class="flex flex-col">
+        <PeriodSelector />
+      </div>
     </div>
 
     <!-- Global Summary -->
@@ -349,115 +389,178 @@ onUnmounted(() => {
 
     <!-- Driver Cards -->
     <div class="space-y-4">
-      <div v-for="driver in driverSummaries" :key="driver.id"
-        class="bg-neutral-100 rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+      <div
+        v-for="driver in driverSummaries"
+        :key="driver.id"
+        class="bg-neutral-100 rounded-lg shadow-sm border border-neutral-200 overflow-hidden"
+      >
         <!-- Driver Summary -->
-        <div class="p-4 flex flex-col items-center gap-0 cursor-pointer "
-          >
+        <div class="p-4 flex flex-col items-center gap-0 cursor-pointer">
           <!-- Driver Name -->
           <div class="">
-            <h3 class="text-lg font-semibold text-neutral-800">{{ driver.name }}</h3>
+            <h3 class="text-lg font-semibold text-neutral-800">
+              {{ driver.name }}
+            </h3>
           </div>
 
           <!-- Stats Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full" :class="{ '': periodStore.periodType !== 'week' }">
-
+          <div
+            class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full"
+            :class="{ '': periodStore.periodType !== 'week' }"
+          >
             <!-- Early Week -->
-            <div class="space-y-1 p-3 bg-white rounded-lg" v-if="periodStore.periodType == 'week'" @click="handleCardClick('earlyWeek', driver.id)">
+            <div
+              class="space-y-1 p-3 bg-white rounded-lg"
+              v-if="periodStore.periodType == 'week'"
+              @click="handleCardClick('earlyWeek', driver.id)"
+            >
               <h4 class="text-sm font-medium text-center">Lunes - Miércoles</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Total</p>
-                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.earlyWeek.totalAmount.toLocaleString()
-                    }}</p>
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">
+                    ${{
+                      driver.summaries.earlyWeek.totalAmount.toLocaleString()
+                    }}
+                  </p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pagados</p>
                   <p class="font-semibold text-neutral-800 text-sm md:text-md">
-                    {{ driver.summaries.earlyWeek.paidDeliveries }}/{{ driver.summaries.earlyWeek.totalDeliveries }}
+                    {{ driver.summaries.earlyWeek.paidDeliveries }}/{{
+                      driver.summaries.earlyWeek.totalDeliveries
+                    }}
                   </p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pendiente</p>
-                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.earlyWeek.unpaidAmount.toLocaleString()
-                    }}</p>
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">
+                    ${{
+                      driver.summaries.earlyWeek.unpaidAmount.toLocaleString()
+                    }}
+                  </p>
                 </div>
               </div>
             </div>
 
             <!-- Late Week -->
-            <div class="space-y-1 p-3 bg-white rounded-lg" v-if="periodStore.periodType == 'week'" @click="handleCardClick('lateWeek', driver.id)">
+            <div
+              class="space-y-1 p-3 bg-white rounded-lg"
+              v-if="periodStore.periodType == 'week'"
+              @click="handleCardClick('lateWeek', driver.id)"
+            >
               <h4 class="text-sm font-medium text-center">Jueves - Sábado</h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Total</p>
-                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.lateWeek.totalAmount.toLocaleString()
-                    }}</p>
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">
+                    ${{
+                      driver.summaries.lateWeek.totalAmount.toLocaleString()
+                    }}
+                  </p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pagados</p>
                   <p class="font-semibold text-neutral-800 text-sm md:text-md">
-                    {{ driver.summaries.lateWeek.paidDeliveries }}/{{ driver.summaries.lateWeek.totalDeliveries }}
+                    {{ driver.summaries.lateWeek.paidDeliveries }}/{{
+                      driver.summaries.lateWeek.totalDeliveries
+                    }}
                   </p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pendiente</p>
-                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.lateWeek.unpaidAmount.toLocaleString()
-                    }}</p>
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">
+                    ${{
+                      driver.summaries.lateWeek.unpaidAmount.toLocaleString()
+                    }}
+                  </p>
                 </div>
               </div>
             </div>
 
             <!-- Total Period -->
-            <div class="space-y-1 p-3 bg-white rounded-lg" @click="handleCardClick('total', driver.id)" :class="{'col-start-1 md:col-start-2': periodStore.periodType !== 'week'}">
-              <h4 class="text-sm font-medium text-center" v-if="periodStore.periodType == 'week'">Semana Completa</h4>
+            <div
+              class="space-y-1 p-3 bg-white rounded-lg"
+              @click="handleCardClick('total', driver.id)"
+              :class="{
+                'col-start-1 md:col-start-2': periodStore.periodType !== 'week',
+              }"
+            >
+              <h4
+                class="text-sm font-medium text-center"
+                v-if="periodStore.periodType == 'week'"
+              >
+                Semana Completa
+              </h4>
               <div class="grid grid-cols-3 gap-2">
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Total</p>
-                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.total.totalAmount.toLocaleString() }}
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">
+                    ${{ driver.summaries.total.totalAmount.toLocaleString() }}
                   </p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pagados</p>
                   <p class="font-semibold text-neutral-800 text-sm md:text-md">
-                    {{ driver.summaries.total.paidDeliveries }}/{{ driver.summaries.total.totalDeliveries }}
+                    {{ driver.summaries.total.paidDeliveries }}/{{
+                      driver.summaries.total.totalDeliveries
+                    }}
                   </p>
                 </div>
                 <div class="text-center">
                   <p class="text-xs text-neutral-500">Pendiente</p>
-                  <p class="font-semibold text-neutral-800 text-sm md:text-md">${{ driver.summaries.total.unpaidAmount.toLocaleString() }}
+                  <p class="font-semibold text-neutral-800 text-sm md:text-md">
+                    ${{ driver.summaries.total.unpaidAmount.toLocaleString() }}
                   </p>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
 
         <!-- Expanded Details -->
-        <div v-if="expandedDriver === driver.id" class="border-t border-neutral-200 p-4">
+        <div
+          v-if="expandedDriver === driver.id"
+          class="border-t border-neutral-200 p-4"
+        >
           <div class="flex justify-between mb-4">
             <div class="flex flex-col items-start gap-0">
-              <h4 class="m-0 font-semibold text-neutral-700">Detalle de Domicilios </h4>
-              <h6 class="m-0 font-semibold text-neutral-700">{{ expandedCard == 'total' ? 'Total Periodo' : expandedCard == 'earlyWeek' ? 'Lunes - Miércoles' : expandedCard == 'lateWeek' ? 'Jueves - Sábado' : '' }}</h6>
-
+              <h4 class="m-0 font-semibold text-neutral-700">
+                Detalle de Domicilios
+              </h4>
+              <h6 class="m-0 font-semibold text-neutral-700">
+                {{
+                  expandedCard == 'total'
+                    ? 'Total Periodo'
+                    : expandedCard == 'earlyWeek'
+                    ? 'Lunes - Miércoles'
+                    : expandedCard == 'lateWeek'
+                    ? 'Jueves - Sábado'
+                    : ''
+                }}
+              </h6>
             </div>
             <div v-if="!props.singleDriverMode" class="flex gap-2">
-              <button @click="handleMarkPeriodPaid(driver.id)" class="utility-btn">
+              <button
+                @click="handleMarkPeriodPaid(driver.id)"
+                class="utility-btn"
+              >
                 Marcar Todo Pagado
               </button>
             </div>
           </div>
 
-          <DataTable ref="dataTableRef"
+          <DataTable
+            ref="dataTableRef"
             :data="driver.deliveries"
             :columns="tableColumns"
             :toggle-loading="toggleLoading"
             :data-loading="orderStore.loading"
             :visible-filters="true"
             :filters="tableFilters"
-            @toggle-update="handleToggleUpdate" class="bg-white"
-           />
+            @toggle-update="handleToggleUpdate"
+            class="bg-white"
+          />
         </div>
       </div>
     </div>

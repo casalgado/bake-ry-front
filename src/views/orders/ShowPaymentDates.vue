@@ -5,7 +5,7 @@ import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { formatMoney } from '@/utils/helpers';
-import exportOrders from '@/utils/exportOrders';
+import { exportPaymentReport, exportProducts } from '@/utils/exportOrders';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -102,10 +102,6 @@ const shouldAddSpacing = computed(() => {
     const currentEntry = paymentEntries.value[index];
     const nextEntry = paymentEntries.value[index + 1];
 
-    console.log(
-      `Checking spacing for index ${index}: currentEntry=${currentEntry?.id}, nextEntry=${nextEntry?.id}`
-    );
-
     if (!nextEntry) return false; // Last item, no spacing needed
 
     // Compare dates (normalize to same day)
@@ -145,7 +141,11 @@ onMounted(async () => {
 });
 
 const handleExportWithClients = () => {
-  exportOrders(orderStore.items);
+  exportPaymentReport(orderStore.items);
+};
+
+const handleExportProducts = () => {
+  exportProducts(orderStore.items);
 };
 
 onUnmounted(() => {

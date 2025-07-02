@@ -4,7 +4,7 @@ import { ref, watch } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 
 // DataCalendar Core
-import  DataCalendar from '@/components/DataCalendar/index.vue';
+import DataCalendar from '@/components/DataCalendar/index.vue';
 import { useDataCalendar } from '@/components/DataCalendar/composables/useDataCalendar.js';
 
 // DataCalendar Renderers
@@ -98,8 +98,8 @@ const {
   async onBeforeFetch() {
     const staff = await settingsStore.staff;
     deliveryDrivers.value = staff
-      .filter(staff => staff.role === 'delivery_assistant')
-      .map(staff => ({
+      .filter((staff) => staff.role === 'delivery_assistant')
+      .map((staff) => ({
         value: staff.id,
         displayText: staff.firstName,
       }));
@@ -107,24 +107,24 @@ const {
   // Action handler
   async onAction({ actionId, selectedItems: items }) {
     switch (actionId) {
-    case 'edit':
-      isFormOpen.value = true;
-      break;
-    case 'set_delivery_price':
-      selectedDeliveryCost.value = 5000;
-      isDeliveryPriceDialogOpen.value = true;
-      break;
-    case 'set_number_of_bags':
-      selectedNumberOfBags.value = 0;
-      isNumberOfBagsDialogOpen.value = true;
-      break;
-    case 'set_driver':
-      isDriverDialogOpen.value = true;
-      break;
-    case 'set_address':
-      editingAddress.value = items[0].deliveryAddress || '';
-      isAddressDialogOpen.value = true;
-      break;
+      case 'edit':
+        isFormOpen.value = true;
+        break;
+      case 'set_delivery_price':
+        selectedDeliveryCost.value = 5000;
+        isDeliveryPriceDialogOpen.value = true;
+        break;
+      case 'set_number_of_bags':
+        selectedNumberOfBags.value = 0;
+        isNumberOfBagsDialogOpen.value = true;
+        break;
+      case 'set_driver':
+        isDriverDialogOpen.value = true;
+        break;
+      case 'set_address':
+        editingAddress.value = items[0].deliveryAddress || '';
+        isAddressDialogOpen.value = true;
+        break;
     }
   },
 });
@@ -136,7 +136,10 @@ const columns = [
     label: 'Estado',
     field: 'status',
     type: 'toggle',
-    options: [{ value: 0, displayText: '0'  }, { value: 1, displayText: '', icon: PhOven }],
+    options: [
+      { value: 0, displayText: '0' },
+      { value: 1, displayText: '', icon: PhOven },
+    ],
   },
 ];
 
@@ -192,7 +195,7 @@ const tableActions = [
 const handleDeliveryPriceSubmit = async () => {
   try {
     actionLoading.value['set_delivery_price'] = true;
-    const updates = selectedItems.value.map(item => ({
+    const updates = selectedItems.value.map((item) => ({
       id: item.id,
       data: { deliveryCost: selectedDeliveryCost.value },
     }));
@@ -208,7 +211,7 @@ const handleDeliveryPriceSubmit = async () => {
 const handleDriverSubmit = async (driverId) => {
   try {
     actionLoading.value['set_driver'] = true;
-    const updates = selectedItems.value.map(item => ({
+    const updates = selectedItems.value.map((item) => ({
       id: item.id,
       data: { deliveryDriverId: driverId },
     }));
@@ -224,7 +227,7 @@ const handleDriverSubmit = async (driverId) => {
 const handleNumberOfBagsSubmit = async () => {
   try {
     actionLoading.value['set_number_of_bags'] = true;
-    const updates = selectedItems.value.map(item => ({
+    const updates = selectedItems.value.map((item) => ({
       id: item.id,
       data: { numberOfBags: selectedNumberOfBags.value },
     }));
@@ -306,14 +309,18 @@ watch(
       console.error('Failed to fetch orders:', error);
     }
   },
-  { deep: true },
+  { deep: true }
 );
 </script>
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Calendario de Entregas</h2>
-      <PeriodSelector :onlyFor="['week', 'month']" />
+      <h2 class="text-2xl font-bold text-neutral-800">
+        Calendario de Entregas
+      </h2>
+      <div class="flex flex-col">
+        <PeriodSelector />
+      </div>
     </div>
 
     <!-- Error State -->
@@ -332,7 +339,9 @@ watch(
 
       <!-- Full-screen container for centering -->
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <DialogPanel
+          class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        >
           <OrderForm
             v-if="selectedItems[0]"
             :title="'Editar Pedido'"
@@ -355,7 +364,9 @@ watch(
     >
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel class="form-container bg-white rounded-lg p-6 max-w-md w-full">
+        <DialogPanel
+          class="form-container bg-white rounded-lg p-6 max-w-md w-full"
+        >
           <h3 class="text-lg font-medium mb-4">Asignar Conductor</h3>
 
           <div class="grid grid-cols-2 gap-2 mb-4">
@@ -378,10 +389,7 @@ watch(
           </div>
 
           <div class="flex justify-end">
-            <button
-              @click="closeDriverDialog"
-              class="utility-btn"
-            >
+            <button @click="closeDriverDialog" class="utility-btn">
               Cancelar
             </button>
           </div>
@@ -397,7 +405,9 @@ watch(
     >
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel class="form-container bg-white rounded-lg p-6 max-w-md w-full">
+        <DialogPanel
+          class="form-container bg-white rounded-lg p-6 max-w-md w-full"
+        >
           <h3 class="text-lg font-medium mb-4">Número de Bolsas</h3>
 
           <div class="grid grid-cols-3 gap-2 mb-4">
@@ -421,10 +431,7 @@ watch(
           />
 
           <div class="flex justify-end gap-2">
-            <button
-              @click="closeNumberOfBagsDialog"
-              class="utility-btn"
-            >
+            <button @click="closeNumberOfBagsDialog" class="utility-btn">
               Cancelar
             </button>
             <button
@@ -432,7 +439,9 @@ watch(
               :disabled="actionLoading.set_number_of_bags"
               class="action-btn"
             >
-              {{ actionLoading.set_number_of_bags ? 'Guardando...' : 'Guardar' }}
+              {{
+                actionLoading.set_number_of_bags ? 'Guardando...' : 'Guardar'
+              }}
             </button>
           </div>
         </DialogPanel>
@@ -447,7 +456,9 @@ watch(
     >
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel class="form-container bg-white rounded-lg p-6 max-w-md w-full">
+        <DialogPanel
+          class="form-container bg-white rounded-lg p-6 max-w-md w-full"
+        >
           <h3 class="text-lg font-medium mb-4">Valor del Domicilio</h3>
 
           <div class="grid grid-cols-4 gap-2 mb-4">
@@ -456,7 +467,9 @@ watch(
               :key="option.value"
               @click="selectedDeliveryCost = option.value"
               class="utility-btn-inactive py-1 px-2 rounded-md hover:utility-btn-active"
-              :class="{ 'utility-btn-active': selectedDeliveryCost === option.value }"
+              :class="{
+                'utility-btn-active': selectedDeliveryCost === option.value,
+              }"
             >
               {{ option.label }}
             </button>
@@ -472,10 +485,7 @@ watch(
           />
 
           <div class="flex justify-end gap-2">
-            <button
-              @click="closeDeliveryPriceDialog"
-              class="utility-btn"
-            >
+            <button @click="closeDeliveryPriceDialog" class="utility-btn">
               Cancelar
             </button>
             <button
@@ -483,7 +493,9 @@ watch(
               :disabled="actionLoading.set_delivery_price"
               class="action-btn"
             >
-              {{ actionLoading.set_delivery_price ? 'Guardando...' : 'Guardar' }}
+              {{
+                actionLoading.set_delivery_price ? 'Guardando...' : 'Guardar'
+              }}
             </button>
           </div>
         </DialogPanel>
@@ -498,7 +510,9 @@ watch(
     >
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel class="form-container bg-white rounded-lg p-6 max-w-md w-full">
+        <DialogPanel
+          class="form-container bg-white rounded-lg p-6 max-w-md w-full"
+        >
           <h3 class="text-lg font-medium mb-4">Dirección de Entrega</h3>
 
           <textarea
@@ -509,10 +523,7 @@ watch(
           />
 
           <div class="flex justify-end gap-2">
-            <button
-              @click="closeAddressDialog"
-              class="utility-btn"
-            >
+            <button @click="closeAddressDialog" class="utility-btn">
               Cancelar
             </button>
             <button
@@ -529,7 +540,6 @@ watch(
 
     <!-- Table -->
     <div>
-
       <DataCalendar
         ref="dataCalendar"
         :key="deliveryDrivers.length"

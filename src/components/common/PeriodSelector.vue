@@ -9,7 +9,7 @@ const props = defineProps({
       return (
         Array.isArray(value) &&
         value.every((item) =>
-          ['day', 'week', 'month', 'quarter', 'year'].includes(item),
+          ['day', 'week', 'month', 'quarter', 'year'].includes(item)
         )
       );
     },
@@ -23,7 +23,7 @@ const periodStore = usePeriodStore();
 // They are shown if `onlyFor` is null (meaning all types are available)
 // OR if `onlyFor` is an array with more than one element (meaning a selection is needed).
 const showPeriodTypes = computed(
-  () => !props.onlyFor || props.onlyFor.length > 1,
+  () => !props.onlyFor || props.onlyFor.length > 1
 );
 
 // A computed property to determine which period types to display buttons for
@@ -41,7 +41,7 @@ if (props.onlyFor && props.onlyFor.length === 1) {
 
 <template>
   <div
-    class="flex flex-col lg:flex-row lg:w-auto w-11/12 lg:items-center px-2 bg-neutral-100 rounded-lg"
+    class="flex flex-col lg:flex-row lg:w-auto w-full mx-3 lg:items-center px-2 bg-neutral-100 rounded-lg"
   >
     <div
       class="flex items-center justify-between gap-2"
@@ -108,11 +108,11 @@ if (props.onlyFor && props.onlyFor.length === 1) {
       >
         {{
           {
-            day: "Día",
-            week: "Semana",
-            month: "Mes",
-            quarter: "Trimestre",
-            year: "Año",
+            day: 'Día',
+            week: 'Semana',
+            month: 'Mes',
+            quarter: 'Trimestre',
+            year: 'Año',
           }[type]
         }}
       </button>
