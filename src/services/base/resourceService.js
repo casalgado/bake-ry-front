@@ -282,7 +282,7 @@ export class BaseService {
       db,
       'bakeries',
       this.bakeryId,
-      this.resource
+      this.resource,
     );
     const q = query(collectionRef);
 
@@ -304,7 +304,7 @@ export class BaseService {
       },
       (error) => {
         console.error('Firestore subscription error:', error);
-      }
+      },
     );
 
     const listenerId = `${this.resource}-${this.bakeryId}`;
