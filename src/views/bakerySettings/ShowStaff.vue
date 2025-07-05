@@ -270,10 +270,10 @@ onMounted(async () => {
     <!-- Password Reset Confirmation Dialog -->
     <ConfirmDialog
       :is-open="isConfirmOpen"
-      title="Reset Password"
-      :message="`Send password reset email to ${confirmAction?.user?.email}?`"
-      confirm-text="Send Reset Email"
-      cancel-text="Cancel"
+      title="Restablecer Contraseña"
+      :message="`¿Enviar correo para restablecer la contraseña a ${confirmAction?.user?.email}?`"
+      confirm-text="Enviar Correo"
+      cancel-text="Cancelar"
       :loading="actionLoading.resetPassword"
       @confirm="handleConfirmPasswordReset"
       @cancel="handleCancelPasswordReset"

@@ -53,10 +53,10 @@ const handleCancel = () => {
         </div>
 
         <div class="text-center">
-          <h3 class="text-lg font-medium text-gray-900 mb-2">
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">
             {{ title }}
           </h3>
-          <p class="text-sm text-gray-500 mb-6">
+          <p class="text-sm text-gray-700 mb-6">
             {{ message }}
           </p>
         </div>
@@ -64,14 +64,14 @@ const handleCancel = () => {
         <div class="flex space-x-3">
           <button
             @click="handleCancel"
-            class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
             :disabled="loading"
           >
             {{ cancelText }}
           </button>
           <button
             @click="handleConfirm"
-            class="flex-1 px-4 py-2 text-sm font-medium text-white bg-orange-600 border border-transparent rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
+            class="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 transition-colors"
             :disabled="loading"
           >
             <span v-if="loading" class="flex items-center justify-center">

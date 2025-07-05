@@ -63,27 +63,27 @@ defineExpose({
       <div
         v-for="toast in toasts"
         :key="toast.id"
-        class="max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden"
+        class="min-w-80 w-full bg-white shadow-xl rounded-lg pointer-events-auto ring-1 ring-gray-200 overflow-hidden border border-gray-100"
       >
         <div class="p-4">
           <div class="flex items-start">
             <div class="flex-shrink-0">
-              <PhCheckCircle v-if="toast.type === 'success'" class="h-6 w-6 text-green-400" />
-              <PhWarningCircle v-else-if="toast.type === 'error'" class="h-6 w-6 text-red-400" />
-              <PhInfo v-else class="h-6 w-6 text-blue-400" />
+              <PhCheckCircle v-if="toast.type === 'success'" class="h-6 w-6 text-green-500" />
+              <PhWarningCircle v-else-if="toast.type === 'error'" class="h-6 w-6 text-red-500" />
+              <PhInfo v-else class="h-6 w-6 text-blue-500" />
             </div>
             <div class="ml-3 w-0 flex-1 pt-0.5">
-              <p class="text-sm font-medium text-gray-900">
+              <p class="text-sm font-semibold text-gray-800">
                 {{ toast.title }}
               </p>
-              <p v-if="toast.message" class="mt-1 text-sm text-gray-500">
+              <p v-if="toast.message" class="mt-1 text-sm text-gray-700">
                 {{ toast.message }}
               </p>
             </div>
             <div class="ml-4 flex-shrink-0 flex">
               <button
                 @click="removeToast(toast.id)"
-                class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                class="bg-white rounded-md inline-flex text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
               >
                 <span class="sr-only">Close</span>
                 <PhX class="h-5 w-5" />
