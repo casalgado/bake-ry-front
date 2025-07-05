@@ -3,6 +3,9 @@
 import { ref, onMounted, computed } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 
+// Firebase Auth
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
+
 // DataTable Core
 import DataTable from '@/components/DataTable/index.vue';
 
@@ -14,7 +17,7 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 
 // Icons
-import { PhPen } from '@phosphor-icons/vue';
+import { PhPen, PhKey } from '@phosphor-icons/vue';
 
 // Store initialization
 const settingsStore = useBakerySettingsStore();
@@ -98,6 +101,14 @@ const tableActions = [
     maxSelected: 1,
     variant: 'primary',
   },
+  {
+    id: 'resetPassword',
+    label: 'Reset Password',
+    icon: PhKey,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'primary',
+  },
 ];
 
 // Event handlers
@@ -117,9 +128,20 @@ const handleAction = async ({ actionId, selectedIds }) => {
       selectedUser.value = await bakeryUserStore.fetchById(selectedIds[0]);
       isFormOpen.value = true;
       break;
+    case 'resetPassword': {
+      const user = staffData.value.find(staff => staff.id === selectedIds[0]);
+      if (user && user.email) {
+        const auth = getAuth();
+        await sendPasswordResetEmail(auth, user.email);
+        console.log(`Password reset email sent to ${user.email}`);
+        // You might want to show a success notification here
+      }
+      break;
+    }
     }
   } catch (error) {
     console.error('Action failed:', error);
+    // You might want to show an error notification here
   } finally {
     actionLoading.value[actionId] = false;
   }
