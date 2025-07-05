@@ -11,6 +11,8 @@ import DataTable from '@/components/DataTable/index.vue';
 
 // Components
 import BakeryUserForm from '@/components/forms/BakeryUserForm.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import ToastNotification from '@/components/ToastNotification.vue';
 
 // Stores
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
@@ -29,6 +31,11 @@ const isFormOpen = ref(false);
 const selectedUser = ref(null);
 const dataTable = ref(null);
 const actionLoading = ref({});
+
+// Notification state
+const isConfirmOpen = ref(false);
+const confirmAction = ref(null);
+const toastRef = ref(null);
 
 const sortedStaffData = computed(() => {
   return [...staffData.value].sort((a, b) => {
@@ -121,30 +128,64 @@ const handleSelectionChange = (selectedIds) => {
 };
 
 const handleAction = async ({ actionId, selectedIds }) => {
-  actionLoading.value[actionId] = true;
-  try {
-    switch (actionId) {
-    case 'edit':
+  switch (actionId) {
+  case 'edit':
+    actionLoading.value[actionId] = true;
+    try {
       selectedUser.value = await bakeryUserStore.fetchById(selectedIds[0]);
       isFormOpen.value = true;
-      break;
-    case 'resetPassword': {
-      const user = staffData.value.find(staff => staff.id === selectedIds[0]);
-      if (user && user.email) {
-        const auth = getAuth();
-        await sendPasswordResetEmail(auth, user.email);
-        console.log(`Password reset email sent to ${user.email}`);
-        // You might want to show a success notification here
-      }
-      break;
+    } catch (error) {
+      console.error('Action failed:', error);
+      toastRef.value?.showError('Error', 'Failed to load user data');
+    } finally {
+      actionLoading.value[actionId] = false;
     }
+    break;
+  case 'resetPassword': {
+    const user = staffData.value.find(staff => staff.id === selectedIds[0]);
+    if (user && user.email) {
+      // Store the action for confirmation
+      confirmAction.value = {
+        actionId,
+        user,
+      };
+      isConfirmOpen.value = true;
     }
-  } catch (error) {
-    console.error('Action failed:', error);
-    // You might want to show an error notification here
-  } finally {
-    actionLoading.value[actionId] = false;
+    break;
   }
+  }
+};
+
+const handleConfirmPasswordReset = async () => {
+  if (!confirmAction.value) return;
+
+  actionLoading.value.resetPassword = true;
+
+  try {
+    const auth = getAuth();
+    await sendPasswordResetEmail(auth, confirmAction.value.user.email);
+
+    toastRef.value?.showSuccess(
+      'Password Reset Email Sent',
+      `Reset link sent to ${confirmAction.value.user.email}`,
+    );
+  } catch (error) {
+    console.error('Password reset failed:', error);
+    toastRef.value?.showError(
+      'Failed to Send Reset Email',
+      error.message || 'Please try again later',
+    );
+  } finally {
+    actionLoading.value.resetPassword = false;
+    isConfirmOpen.value = false;
+    confirmAction.value = null;
+  }
+};
+
+const handleCancelPasswordReset = () => {
+  isConfirmOpen.value = false;
+  confirmAction.value = null;
+  actionLoading.value.resetPassword = false;
 };
 
 const handleSubmit = async (formData) => {
@@ -152,10 +193,12 @@ const handleSubmit = async (formData) => {
     if (selectedUser.value) {
       await bakeryUserStore.update(selectedUser.value.id, formData);
       await refreshData();
+      toastRef.value?.showSuccess('User Updated', 'Staff member has been updated successfully');
     }
     closeForm();
   } catch (error) {
     console.error('Failed to update user:', error);
+    toastRef.value?.showError('Update Failed', 'Failed to update staff member');
   }
 };
 
@@ -223,6 +266,21 @@ onMounted(async () => {
         </DialogPanel>
       </div>
     </Dialog>
+
+    <!-- Password Reset Confirmation Dialog -->
+    <ConfirmDialog
+      :is-open="isConfirmOpen"
+      title="Reset Password"
+      :message="`Send password reset email to ${confirmAction?.user?.email}?`"
+      confirm-text="Send Reset Email"
+      cancel-text="Cancel"
+      :loading="actionLoading.resetPassword"
+      @confirm="handleConfirmPasswordReset"
+      @cancel="handleCancelPasswordReset"
+    />
+
+    <!-- Toast Notifications -->
+    <ToastNotification ref="toastRef" />
   </div>
 </template>
 
