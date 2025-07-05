@@ -181,6 +181,28 @@ const router = createRouter({
       ],
     },
     {
+      path: '/accounting',
+      name: 'accounting',
+      component: () => import('../views/dashboard/AccountingDashboard.vue'),
+      redirect: { name: 'accountingSalesReport' },
+      meta: {
+        requiresAuth: true,
+        allowedRoles: ['bakery_admin', 'bakery_staff', 'accounting_assistant'],
+      },
+      children: [
+        {
+          path: 'salesReport',
+          name: 'accountingSalesReport',
+          component: () => import('../views/orders/ShowSalesReport.vue'),
+        },
+        {
+          path: 'paymentDates',
+          name: 'accountingPaymentDates',
+          component: () => import('../views/orders/ShowPaymentDates.vue'),
+        },
+      ],
+    },
+    {
       path: '/driver',
       name: 'driver',
       component: () => import('../views/dashboard/DriverDashboard.vue'),
@@ -282,6 +304,9 @@ router.beforeEach(async (to, from, next) => {
         break;
       case 'production_assistant':
         next({ name: 'production' });
+        break;
+      case 'accounting_assistant':
+        next({ name: 'accounting' });
         break;
       default:
         next({ name: 'home' }); // fallback

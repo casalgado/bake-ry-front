@@ -44,6 +44,7 @@ const userTypeOptions = [
   { value: 'staff', label: 'Staff', role: 'bakery_staff', category: 'PER' },
   { value: 'delivery', label: 'Asistente Domicilio', role: 'delivery_assistant', category: 'PER' },
   { value: 'production', label: 'Asistente Produccion', role: 'production_assistant', category: 'PER' },
+  { value: 'accounting', label: 'Asistente Contable', role: 'accounting_assistant', category: 'PER' },
 ];
 
 // Compute initial selected value based on role and category
@@ -55,6 +56,7 @@ const getInitialUserType = () => {
   if (role === 'bakery_staff') return 'staff';
   if (role === 'delivery_assistant') return 'delivery';
   if (role === 'production_assistant') return 'production';
+  if (role === 'accounting_assistant') return 'accounting';
   return 'client'; // default
 };
 
