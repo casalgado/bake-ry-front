@@ -58,7 +58,7 @@ const navigationSections = [
       {
         id: 'fecha_de_pagos',
         icon: PhCalendarCheck,
-        text: 'Fecha de Pagos',
+        text: 'Fechas de Pago',
         path: '/dashboard/paymentDates',
       },
     ],
