@@ -71,6 +71,8 @@ const methods = {
   card: 'bold',
   transfer: 'transferencia',
   complimentary: 'regalo',
+  davivienda: 'davivienda',
+  bancolombia: 'bancolombia',
 };
 
 const orderItemStatus = {

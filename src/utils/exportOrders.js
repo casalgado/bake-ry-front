@@ -95,6 +95,8 @@ const getPaymentMethodText = (method) => {
     transfer: 'transferencia',
     card: 'tarjeta',
     complimentary: 'cortesia',
+    davivienda: 'davivienda',
+    bancolombia: 'bancolombia',
   };
   return methodMap[method] || method;
 };
@@ -106,7 +108,7 @@ const exportOrders = (orders) => {
 
   // Transform all orders into rows
   const allRows = ordersArray.flatMap((order, orderIndex) =>
-    transformOrderToRows(order, orderIndex)
+    transformOrderToRows(order, orderIndex),
   );
 
   // Add a global index to each row
@@ -230,8 +232,8 @@ const aggregateProductSales = (orders) => {
     precio_promedio:
       product.cantidad_total > 0
         ? Math.round(
-            (product.ingresos_totales / product.cantidad_total) * 100
-          ) / 100
+          (product.ingresos_totales / product.cantidad_total) * 100,
+        ) / 100
         : 0,
     pedidos_unicos: product.pedidos_count.size,
   }));
@@ -245,16 +247,16 @@ const addSummaryStats = (productSales) => {
   const totalProducts = productSales.length;
   const totalQuantity = productSales.reduce(
     (sum, product) => sum + product.cantidad_total,
-    0
+    0,
   );
   const totalRevenue = productSales.reduce(
     (sum, product) => sum + product.ingresos_totales,
-    0
+    0,
   );
   const totalOrders = new Set(
     productSales.flatMap((product) =>
-      Array.from({ length: product.pedidos_unicos }, (_, i) => i)
-    )
+      Array.from({ length: product.pedidos_unicos }, (_, i) => i),
+    ),
   ).size;
 
   // Add summary rows
@@ -383,11 +385,11 @@ const exportProducts = (orders, options = {}) => {
       totalProducts: productSales.length,
       totalQuantity: productSales.reduce(
         (sum, product) => sum + product.cantidad_total,
-        0
+        0,
       ),
       totalRevenue: productSales.reduce(
         (sum, product) => sum + product.ingresos_totales,
-        0
+        0,
       ),
       dateRange: {
         start: options.startDate || null,
@@ -446,7 +448,7 @@ const createPaymentEntries = (orders) => {
 
   // Sort by payment date
   return entries.sort(
-    (a, b) => new Date(a.paymentDate || 0) - new Date(b.paymentDate || 0)
+    (a, b) => new Date(a.paymentDate || 0) - new Date(b.paymentDate || 0),
   );
 };
 
@@ -559,7 +561,7 @@ const exportPaymentReport = (orders, options = {}) => {
 
   // Transform all payment entries into rows
   const allRows = paymentEntries.flatMap((entry, entryIndex) =>
-    transformPaymentEntryToRows(entry, entryIndex)
+    transformPaymentEntryToRows(entry, entryIndex),
   );
 
   // Add a global index to each row
@@ -613,16 +615,16 @@ const exportPaymentReport = (orders, options = {}) => {
     summary: {
       totalPayments: paymentEntries.reduce(
         (sum, entry) => sum + (entry.paymentAmount || 0),
-        0
+        0,
       ),
       partialPayments: paymentEntries.filter(
-        (entry) => entry.paymentType === 'parcial'
+        (entry) => entry.paymentType === 'parcial',
       ).length,
       fullPayments: paymentEntries.filter(
-        (entry) => entry.paymentType === 'completo'
+        (entry) => entry.paymentType === 'completo',
       ).length,
       balancePayments: paymentEntries.filter(
-        (entry) => entry.paymentType === 'saldo'
+        (entry) => entry.paymentType === 'saldo',
       ).length,
     },
   };

@@ -18,6 +18,7 @@ import NumberOfBagsCell from '@/components/DataTable/renderers/NumberOfBagsCell.
 import { usePeriodStore } from '@/stores/periodStore';
 import { useOrderStore } from '@/stores/orderStore';
 import { useAuthenticationStore } from '@/stores/authentication';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 // Components
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
@@ -32,10 +33,13 @@ import {
   PhBuilding,
   PhListNumbers,
 } from '@phosphor-icons/vue';
+import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
+import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const authStore = useAuthenticationStore();
+const settingsStore = useBakerySettingsStore();
 const isSequenceDialogOpen = ref(false);
 const selectedSequence = ref(1);
 
@@ -60,6 +64,9 @@ const {
 } = useDataTable(orderStore, {
   processData,
   subscribeToChanges: true,
+  async onBeforeFetch() {
+    await settingsStore.fetchById('default');
+  },
   async onAction({ actionId }) {
     switch (actionId) {
     case 'set_sequence':
@@ -79,6 +86,30 @@ const {
     },
   },
 });
+
+// get Bakery Features from settings
+const features = computed(() => {
+  if (!settingsStore.items.length) return {};
+  return settingsStore.items[0].features;
+});
+
+// Helper function to check if a payment method should be skipped
+const shouldSkipPaymentMethod = (paymentMethod) => {
+  const additionalMethods = ['bancolombia', 'davivienda'];
+
+  // If it's not an additional method, use existing skipWhenToggled logic
+  if (!additionalMethods.includes(paymentMethod)) {
+    return false;
+  }
+
+  // If features aren't loaded yet, skip additional methods by default
+  if (!features.value?.order?.additionalPaymentMethods) {
+    return true;
+  }
+
+  // Skip if the payment method is not in the bakery's additional payment methods
+  return !features.value.order.additionalPaymentMethods.includes(paymentMethod);
+};
 
 const closeSequenceDialog = () => {
   isSequenceDialogOpen.value = false;
@@ -107,20 +138,20 @@ const tableActions = [
   {
     id: 'set_sequence',
     label: 'Secuencia',
-    icon: PhListNumbers, // You'll need to import this icon
+    icon: PhListNumbers,
     minSelected: 1,
     variant: 'primary',
   },
 ];
 
-// Column definitions
-const columns = [
+// Column definitions (now computed to handle dynamic payment methods)
+const columns = computed(() => [
   {
     id: 'deliverySequence',
     label: 'ORD',
     field: 'deliverySequence',
     sortable: true,
-    type: 'action', // This makes it clickable
+    type: 'action',
     onClick: (row) => {
       selectedSequence.value = row.deliverySequence || 0;
       isSequenceDialogOpen.value = true;
@@ -204,6 +235,18 @@ const columns = [
         skipWhenToggled: true,
       },
       {
+        value: 'bancolombia',
+        displayText: 'B',
+        icon: BancolombiaIcon,
+        skipWhenToggled: shouldSkipPaymentMethod('bancolombia'),
+      },
+      {
+        value: 'davivienda',
+        displayText: 'D',
+        icon: DaviviendaIcon,
+        skipWhenToggled: shouldSkipPaymentMethod('davivienda'),
+      },
+      {
         value: 'complimentary',
         displayText: 'R',
         icon: PhGift,
@@ -238,7 +281,8 @@ const columns = [
       { value: 3, displayText: '', icon: PhBuilding },
     ],
   },
-];
+]);
+
 // Watch for period changes and fetch new data
 watch(
   () => periodStore.periodRange,
@@ -260,93 +304,3 @@ watch(
   { deep: true },
 );
 </script>
-<template>
-  <div class="container p-4 px-0 lg:px-4">
-    <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Mis Entregas</h2>
-      <div class="flex flex-col">
-        <PeriodSelector />
-      </div>
-    </div>
-
-    <!-- Error State -->
-    <div v-if="orderStore.error" class="text-danger text-center py-4">
-      {{ orderStore.error }}
-    </div>
-
-    <!-- Delivery Sequence Dialog -->
-    <Dialog
-      :open="isSequenceDialogOpen"
-      @close="closeSequenceDialog"
-      class="relative z-50"
-    >
-      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
-      <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel
-          class="form-container bg-white rounded-lg p-6 max-w-md w-full"
-        >
-          <h3 class="text-lg font-medium mb-4">Secuencia de Entrega</h3>
-
-          <div class="grid grid-cols-3 gap-2 mb-4">
-            <button
-              v-for="number in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]"
-              :key="number"
-              @click="selectedSequence = number"
-              class="utility-btn-inactive py-1 px-2 rounded-md hover:utility-btn-active"
-              :class="{ 'utility-btn-active': selectedSequence === number }"
-            >
-              {{ number }}
-            </button>
-          </div>
-
-          <input
-            type="number"
-            v-model="selectedSequence"
-            min="0"
-            placeholder="Otro número"
-            class="w-full mb-4 p-2 border rounded"
-          />
-
-          <div class="flex justify-end gap-2">
-            <button @click="closeSequenceDialog" class="utility-btn">
-              Cancelar
-            </button>
-            <button
-              @click="handleSequenceSubmit"
-              :disabled="actionLoading.set_sequence"
-              class="action-btn"
-            >
-              {{ actionLoading.set_sequence ? 'Guardando...' : 'Guardar' }}
-            </button>
-          </div>
-        </DialogPanel>
-      </div>
-    </Dialog>
-
-    <!-- Table -->
-    <div>
-      <DataTable
-        :data="tableData"
-        :columns="columns"
-        :actions="tableActions"
-        :action-loading="actionLoading"
-        :toggle-loading="toggleLoading"
-        :data-loading="orderStore.loading || isLoading"
-        @selection-change="handleSelectionChange"
-        @toggle-update="handleToggleUpdate"
-        @action="handleAction"
-        class="bg-white shadow-lg rounded-lg"
-      />
-    </div>
-  </div>
-</template>
-
-<style scoped lang="scss">
-* {
-  &::-webkit-scrollbar {
-    display: none;
-  }
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>

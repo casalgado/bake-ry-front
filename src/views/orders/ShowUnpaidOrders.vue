@@ -36,6 +36,8 @@ import {
   PhStorefront,
   PhMopedFront,
 } from '@phosphor-icons/vue';
+import BancolombiaIcon from '@/assets/icons/bancolombia.svg'; // Ensure this path is correct
+import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg'; // Ensure this path is correct
 
 // Utils
 import { formatMoney } from '@/utils/helpers';
@@ -134,8 +136,32 @@ const totals = computed(() => {
   ];
 });
 
-// Column definitions
-const columns = [
+// get Bakery Features from settings
+const features = computed(() => {
+  if (!settingsStore.items.length) return {};
+  return settingsStore.items[0].features;
+});
+
+// Helper function to check if a payment method should be skipped
+const shouldSkipPaymentMethod = (paymentMethod) => {
+  const additionalMethods = ['bancolombia', 'davivienda'];
+
+  // If it's not an additional method, use existing skipWhenToggled logic
+  if (!additionalMethods.includes(paymentMethod)) {
+    return false;
+  }
+
+  // If features aren't loaded yet, skip additional methods by default
+  if (!features.value?.order?.additionalPaymentMethods) {
+    return true;
+  }
+
+  // Skip if the payment method is not in the bakery's additional payment methods
+  return !features.value.order.additionalPaymentMethods.includes(paymentMethod);
+};
+
+// Column definitions (now computed to handle dynamic payment methods)
+const columns = computed(() => [
   {
     id: 'userName',
     label: 'Client',
@@ -184,8 +210,30 @@ const columns = [
     options: [
       { value: 'cash', displayText: 'E', icon: PhMoney },
       { value: 'transfer', displayText: 'T', icon: PhDeviceMobile },
-      { value: 'card', displayText: 'B', icon: PhCreditCard, skipWhenToggled: true },
-      { value: 'complimentary', displayText: 'R', icon: PhGift, skipWhenToggled: true },
+      {
+        value: 'card',
+        displayText: 'D',
+        icon: PhCreditCard,
+        skipWhenToggled: true,
+      },
+      {
+        value: 'bancolombia',
+        displayText: 'B',
+        icon: BancolombiaIcon,
+        skipWhenToggled: shouldSkipPaymentMethod('bancolombia'),
+      },
+      {
+        value: 'davivienda',
+        displayText: 'D',
+        icon: DaviviendaIcon,
+        skipWhenToggled: shouldSkipPaymentMethod('davivienda'),
+      },
+      {
+        value: 'complimentary',
+        displayText: 'R',
+        icon: PhGift,
+        skipWhenToggled: true,
+      },
     ],
   },
   {
@@ -222,7 +270,7 @@ const columns = [
       value: row.total,
     }),
   },
-];
+]);
 
 const tableFilters = [
   {
@@ -232,7 +280,6 @@ const tableFilters = [
       { label: 'B2C', value: 'B2C' },
     ],
   },
-
 ];
 
 // Table actions
@@ -286,7 +333,6 @@ const closeDialog = () => {
   isHistoryOpen.value = false;
   clearSelection();
 };
-
 </script>
 
 <template>

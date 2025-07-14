@@ -389,6 +389,21 @@ const paymentMethods = [
   { value: 'complimentary', label: 'Regalo' },
 ];
 
+const additionalPaymentMethods = [
+  { value: 'davivienda', label: 'Davivienda' },
+  { value: 'bancolombia', label: 'Bancolombia' },
+];
+
+const paymentMethodOptions = computed(() => {
+  if (features.value?.order?.additionalPaymentMethods) {
+    let additionalMethods = additionalPaymentMethods.filter(
+      (method) => features.value.order.additionalPaymentMethods.includes(method.value),
+    );
+    return [...paymentMethods, ...additionalMethods];
+  }
+  return paymentMethods;
+});
+
 const fulfillmentTypes = [
   { value: 'pickup', label: 'Recoger' },
   { value: 'delivery', label: 'Domicilio' },
@@ -795,7 +810,7 @@ const clearPartialPayment = () => {
 
         <RadioButtonGroup
           v-model="formData.paymentMethod"
-          :options="paymentMethods"
+          :options="paymentMethodOptions"
           name="payment-method"
           label="Método de Pago"
         />

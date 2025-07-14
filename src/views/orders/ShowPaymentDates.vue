@@ -219,9 +219,9 @@ onUnmounted(() => {
     <!-- Data States -->
     <template v-else>
       <!-- Export Section -->
-      <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-end mt-2 bg-neutral-100 p-2">
+      <div class="flex flex-col sm:flex-row items-center gap-2 sm:justify-end mt-2 bg-neutral-100 p-2">
         <h3 class="m-0 text-sm sm:text-base">Exportar Reporte:</h3>
-        <div class="flex flex-col sm:flex-row gap-1 sm:gap-2">
+        <div class="flex flex-row gap-1 sm:gap-2">
           <button class="btn utility-btn text-xs sm:text-sm" @click="handleExportProducts">
             Productos Consolidados
           </button>
