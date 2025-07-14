@@ -105,3 +105,59 @@ const getColumnClass = (column) => {
   return column.class ? `${baseClasses} ${column.class}` : baseClasses;
 };
 </script>
+
+<template>
+  <div class="overflow-x-auto -mx-2 sm:mx-0">
+    <table
+      class="w-full border-collapse border border-neutral-200 bg-white"
+      :style="tableStyles"
+    >
+      <!-- Headers -->
+      <thead v-if="hasHeaders">
+        <tr class="bg-neutral-100">
+          <th
+            v-for="column in visibleColumns"
+            :key="column.key"
+            :class="getColumnClass(column)"
+            class="text-left font-semibold"
+          >
+            {{ column.label }}
+          </th>
+        </tr>
+      </thead>
+
+      <!-- Body -->
+      <tbody>
+        <template v-for="(row, index) in data" :key="index">
+          <!-- Data Row -->
+          <tr class="border-b border-neutral-200">
+            <td
+              v-for="column in visibleColumns"
+              :key="column.key"
+              :class="getColumnClass(column)"
+            >
+              {{ formatCellValue(getCellValue(row, column.key), column, row, index) }}
+            </td>
+          </tr>
+
+          <!-- Divider Row -->
+          <tr v-if="shouldShowDivider(index)" class="date-divider">
+            <td :colspan="visibleColumns.length" class="p-0">
+              <div class="bg-neutral-150 h-2 sm:h-3"></div>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<style scoped lang="scss">
+* {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>

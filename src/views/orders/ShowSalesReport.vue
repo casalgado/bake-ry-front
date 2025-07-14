@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
+import SimpleTable from '@/components/common/SimpleTable.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { formatMoney } from '@/utils/helpers';
@@ -63,6 +64,249 @@ const periodData = computed(() => {
     display: 'Día',
   };
 });
+
+// Summary table data
+const summaryData = computed(() => {
+  if (!salesReport.value?.summary) return [];
+
+  return [
+    { label: 'Total Pedidos', value: safeGet(salesReport.value, 'summary.totalPaidOrders', 0) },
+    { label: 'Ingreso Domicilios', value: safeGet(salesReport.value, 'summary.totalDelivery', 0), format: 'money' },
+    {
+      label: 'Venta B2B',
+      value: safeGet(salesReport.value, 'summary.totalB2B', 0),
+      percentage: safeGet(salesReport.value, 'summary.percentageB2B', 0),
+      format: 'money_percentage',
+    },
+    {
+      label: 'Venta B2C',
+      value: safeGet(salesReport.value, 'summary.totalB2C', 0),
+      percentage: safeGet(salesReport.value, 'summary.percentageB2C', 0),
+      format: 'money_percentage',
+    },
+    { label: 'Venta Total', value: safeGet(salesReport.value, 'summary.totalSales', 0), format: 'money' },
+    { label: 'Ingresos Totales', value: safeGet(salesReport.value, 'summary.totalRevenue', 0), format: 'money' },
+  ];
+});
+
+const summaryColumns = [
+  { key: 'label', label: 'Concepto' },
+  {
+    key: 'value',
+    label: 'Valor',
+    formatter: (value, row) => {
+      if (row.format === 'money') {
+        return formatMoney(value);
+      } else if (row.format === 'money_percentage') {
+        return `${formatMoney(value)} (${row.percentage.toFixed(1)}%)`;
+      }
+      return value;
+    },
+  },
+];
+
+// Period data table
+const periodTableData = computed(() => {
+  if (!periodData.value?.data) return [];
+
+  return Object.entries(periodData.value.data).map(([period, data]) => ({
+    period: periodData.value.type === 'weekly'
+      ? `${period.split('/')[0].split('-')[2]} - ${period.split('/')[1].split('-')[2]}`
+      : period,
+    delivery: data?.delivery ?? 0,
+    b2bAmount: data?.b2b?.amount ?? 0,
+    b2bPercentage: data?.b2b?.percentage ?? 0,
+    b2cAmount: data?.b2c?.amount ?? 0,
+    b2cPercentage: data?.b2c?.percentage ?? 0,
+    sales: data?.sales ?? 0,
+    total: data?.total ?? 0,
+  }));
+});
+
+const periodColumns = [
+  { key: 'period', label: 'Período' },
+  { key: 'delivery', label: 'Domicilios', formatter: 'money' },
+  {
+    key: 'b2bAmount',
+    label: 'B2B',
+    formatter: (value, row) => `${formatMoney(value)} (${row.b2bPercentage.toFixed(1)}%)`,
+  },
+  {
+    key: 'b2cAmount',
+    label: 'B2C',
+    formatter: (value, row) => `${formatMoney(value)} (${row.b2cPercentage.toFixed(1)}%)`,
+  },
+  { key: 'sales', label: 'Venta', formatter: 'money' },
+  { key: 'total', label: 'Ingresos', formatter: 'money' },
+];
+
+// Customer segments data
+const customerSegmentsData = computed(() => {
+  const segments = safeGet(salesReport.value, 'salesMetrics.byCustomerSegment');
+  if (!segments) return [];
+
+  return [
+    {
+      segment: 'B2B',
+      sales: segments.b2b?.total ?? 0,
+      salesPercentage: segments.b2b?.percentageSales ?? 0,
+      orders: segments.b2b?.orders ?? 0,
+      averagePrice: segments.b2b?.averagePrice ?? 0,
+    },
+    {
+      segment: 'B2C',
+      sales: segments.b2c?.total ?? 0,
+      salesPercentage: segments.b2c?.percentageSales ?? 0,
+      orders: segments.b2c?.orders ?? 0,
+      averagePrice: segments.b2c?.averagePrice ?? 0,
+    },
+  ];
+});
+
+const customerSegmentsColumns = [
+  { key: 'segment', label: 'Segmento' },
+  {
+    key: 'sales',
+    label: 'Ventas',
+    formatter: (value, row) => `${formatMoney(value)} (${row.salesPercentage.toFixed(1)}%)`,
+  },
+  { key: 'orders', label: 'Pedidos' },
+  { key: 'averagePrice', label: 'Ticket Promedio', formatter: 'money' },
+];
+
+// Payment methods data
+const paymentMethodsData = computed(() => {
+  const methods = safeGet(salesReport.value, 'salesMetrics.byPaymentMethod');
+  if (!methods) return [];
+
+  return Object.entries(methods).map(([method, data]) => ({
+    method: method,
+    total: data?.total ?? 0,
+    percentage: data?.percentage ?? 0,
+    orders: data?.orders ?? 0,
+  }));
+});
+
+const paymentMethodsColumns = [
+  { key: 'method', label: 'Método', formatter: 'capitalize' },
+  {
+    key: 'total',
+    label: 'Total',
+    formatter: (value, row) => `${formatMoney(value)} (${row.percentage.toFixed(1)}%)`,
+  },
+  { key: 'orders', label: 'Pedidos' },
+];
+
+// Collections data
+const collectionsData = computed(() => {
+  const collections = safeGet(salesReport.value, 'salesMetrics.byCollection');
+  if (!collections) return [];
+
+  return Object.entries(collections)
+    .sort((a, b) => (b[1]?.revenue ?? 0) - (a[1]?.revenue ?? 0))
+    .map(([name, data]) => ({
+      collection: name,
+      revenue: data?.revenue ?? 0,
+      revenuePercentage: data?.percentageRevenue ?? 0,
+      quantity: data?.quantity ?? 0,
+      quantityPercentage: data?.percentageQuantity ?? 0,
+      averagePrice: data?.averagePrice ?? 0,
+    }));
+});
+
+const collectionsColumns = [
+  { key: 'collection', label: 'Colección', formatter: 'capitalize' },
+  {
+    key: 'revenue',
+    label: 'Ingresos',
+    formatter: (value, row) => `${formatMoney(value)} (${row.revenuePercentage.toFixed(1)}%)`,
+  },
+  {
+    key: 'quantity',
+    label: 'Cantidad',
+    formatter: (value, row) => `${value} (${row.quantityPercentage.toFixed(1)}%)`,
+  },
+  { key: 'averagePrice', label: 'Precio Promedio', formatter: 'money' },
+];
+
+// Best products data
+const bestProductsData = computed(() => {
+  return safeGet(salesReport.value, 'productMetrics.bestSellers.bySales', []).map(product => ({
+    name: product?.name ?? 'N/A',
+    collection: product?.collection ?? 'N/A',
+    revenue: product?.revenue ?? 0,
+    revenuePercentage: product?.percentageOfSales ?? 0,
+    quantity: product?.quantity ?? 0,
+    quantityPercentage: product?.percentageOfQuantity ?? 0,
+    averagePrice: product?.averagePrice ?? 0,
+  }));
+});
+
+// Worst products data
+const worstProductsData = computed(() => {
+  return safeGet(salesReport.value, 'productMetrics.lowestSellers.bySales', []).map(product => ({
+    name: product?.name ?? 'N/A',
+    collection: product?.collection ?? 'N/A',
+    revenue: product?.revenue ?? 0,
+    revenuePercentage: product?.percentageOfSales ?? 0,
+    quantity: product?.quantity ?? 0,
+    quantityPercentage: product?.percentageOfQuantity ?? 0,
+    averagePrice: product?.averagePrice ?? 0,
+  }));
+});
+
+const productsColumns = [
+  { key: 'name', label: 'Producto', formatter: 'capitalize' },
+  { key: 'collection', label: 'Colección', formatter: 'capitalize' },
+  {
+    key: 'revenue',
+    label: 'Ingresos',
+    formatter: (value, row) => `${formatMoney(value)} (${row.revenuePercentage.toFixed(1)}%)`,
+  },
+  {
+    key: 'quantity',
+    label: 'Cantidad',
+    formatter: (value, row) => `${value} (${row.quantityPercentage.toFixed(1)}%)`,
+  },
+  { key: 'averagePrice', label: 'Precio Promedio', formatter: 'money' },
+];
+
+// Delivery metrics data
+const deliveryMetricsData = computed(() => {
+  const metrics = safeGet(salesReport.value, 'operationalMetrics.deliveryMetrics');
+  if (!metrics) return [];
+
+  return [
+    { label: 'Pedidos Entregados', value: metrics.totalOrders ?? 0 },
+    { label: 'Total Cobrado a Clientes', value: metrics.totalFees ?? 0, format: 'money' },
+    { label: 'Promedio Cobrado a Cliente', value: metrics.averageFee ?? 0, format: 'money' },
+    { label: 'Total Pagado a Proveedores', value: metrics.totalCost ?? 0, format: 'money' },
+    { label: 'Promedio Pagado a Proveedor', value: metrics.averageCost ?? 0, format: 'money' },
+    { label: 'Ganancia', value: metrics.deliveryRevenue ?? 0, format: 'money' },
+  ];
+});
+
+// Tax metrics data
+const taxMetricsData = computed(() => {
+  const metrics = safeGet(salesReport.value, 'taxMetrics');
+  if (!metrics) return [];
+
+  return [
+    { label: 'Items Gravables', value: metrics.taxableItems ?? 0 },
+    { label: 'Subtotal', value: metrics.preTaxSubtotal ?? 0, format: 'money' },
+    { label: 'IVA', value: metrics.totalTax ?? 0, format: 'money' },
+    { label: 'Total', value: metrics.total ?? 0, format: 'money' },
+  ];
+});
+
+const keyValueColumns = [
+  { key: 'label', label: 'Concepto' },
+  {
+    key: 'value',
+    label: 'Valor',
+    formatter: (value, row) => row.format === 'money' ? formatMoney(value) : value,
+  },
+];
 
 watch(
   () => periodStore.periodRange,
@@ -133,9 +377,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="container p-4 px-0 lg:px-4">
-    <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Reporte de Ventas</h2>
+  <div class="container p-2 sm:p-4 px-2 lg:px-4">
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-2 sm:mb-4">
+      <h2 class="text-lg sm:text-2xl font-bold text-neutral-800">Reporte de Ventas</h2>
       <div class="flex flex-col">
         <PeriodSelector />
       </div>
@@ -149,550 +393,95 @@ onUnmounted(() => {
     <!-- Data States -->
     <template v-else>
       <!-- Summary Table -->
-      <div v-if="salesReport?.summary" class="mb-8">
-        <h3 class="text-lg font-semibold mb-4">Resumen</h3>
-        <table
-          class="w-full border-collapse border border-neutral-200 bg-white"
-        >
-          <tbody>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">Total Pedidos</td>
-              <td class="p-2">
-                {{ safeGet(salesReport, 'summary.totalPaidOrders', 0) }}
-              </td>
-            </tr>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">
-                Ingreso Domicilios
-              </td>
-              <td class="p-2">
-                {{
-                  formatMoney(safeGet(salesReport, 'summary.totalDelivery', 0))
-                }}
-              </td>
-            </tr>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">Venta B2B</td>
-              <td class="p-2">
-                {{ formatMoney(safeGet(salesReport, 'summary.totalB2B', 0)) }}
-                ({{
-                  safeGet(salesReport, 'summary.percentageB2B', 0).toFixed(1)
-                }}%)
-              </td>
-            </tr>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">Venta B2C</td>
-              <td class="p-2">
-                {{ formatMoney(safeGet(salesReport, 'summary.totalB2C', 0)) }}
-                ({{
-                  safeGet(salesReport, 'summary.percentageB2C', 0).toFixed(1)
-                }}%)
-              </td>
-            </tr>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">Venta Total</td>
-              <td class="p-2">
-                {{ formatMoney(safeGet(salesReport, 'summary.totalSales', 0)) }}
-              </td>
-            </tr>
-            <tr>
-              <td class="p-2 border-r border-neutral-200">Ingresos Totales</td>
-              <td class="p-2">
-                {{
-                  formatMoney(safeGet(salesReport, 'summary.totalRevenue', 0))
-                }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-if="salesReport?.summary" class="mb-4 sm:mb-8">
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Resumen</h3>
+        <SimpleTable
+          :data="summaryData"
+          :columns="summaryColumns"
+          :hasHeaders="false"
+        />
       </div>
 
       <!-- Period Data Table -->
-      <div v-if="periodData?.data" class="mb-8">
-        <h3 class="text-lg font-semibold mb-4">
+      <div v-if="periodData?.data" class="mb-4 sm:mb-8">
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">
           Datos por {{ periodData.display }}
         </h3>
-        <table
-          class="w-full border-collapse border border-neutral-200 bg-white"
-        >
-          <thead>
-            <tr class="bg-neutral-100">
-              <th class="p-2 border-r border-neutral-200 text-left">Período</th>
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Domicilios
-              </th>
-              <th class="p-2 border-r border-neutral-200 text-left">B2B</th>
-              <th class="p-2 border-r border-neutral-200 text-left">B2C</th>
-              <th class="p-2 border-r border-neutral-200 text-left">Venta</th>
-              <th class="p-2 text-left">Ingresos</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(data, period) in periodData.data"
-              :key="period"
-              class="border-b border-neutral-200"
-            >
-              <td class="p-2 border-r border-neutral-200">
-                {{
-                  periodData.type === 'weekly'
-                    ? `${period.split('/')[0].split('-')[2]} - ${
-                        period.split('/')[1].split('-')[2]
-                      }`
-                    : period
-                }}
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{ formatMoney(data?.delivery ?? 0) }}
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{ formatMoney(data?.b2b?.amount ?? 0) }}
-                ({{ (data?.b2b?.percentage ?? 0).toFixed(1) }}%)
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{ formatMoney(data?.b2c?.amount ?? 0) }}
-                ({{ (data?.b2c?.percentage ?? 0).toFixed(1) }}%)
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{ formatMoney(data?.sales ?? 0) }}
-              </td>
-              <td class="p-2">{{ formatMoney(data?.total ?? 0) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <SimpleTable
+          :data="periodTableData"
+          :columns="periodColumns"
+        />
       </div>
 
       <!-- Customer Segments Table -->
-      <div v-if="salesReport?.salesMetrics?.byCustomerSegment" class="mb-8">
-        <h3 class="text-lg font-semibold mb-4">Segmentos de Cliente</h3>
-        <table
-          class="w-full border-collapse border border-neutral-200 bg-white"
-        >
-          <thead>
-            <tr class="bg-neutral-100">
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Segmento
-              </th>
-              <th class="p-2 border-r border-neutral-200 text-left">Ventas</th>
-              <th class="p-2 border-r border-neutral-200 text-left">Pedidos</th>
-              <th class="p-2 text-left">Ticket Promedio</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">B2B</td>
-              <td class="p-2 border-r border-neutral-200">
-                {{
-                  formatMoney(
-                    safeGet(
-                      salesReport,
-                      'salesMetrics.byCustomerSegment.b2b.total',
-                      0
-                    )
-                  )
-                }}
-                ({{
-                  safeGet(
-                    salesReport,
-                    'salesMetrics.byCustomerSegment.b2b.percentageSales',
-                    0
-                  ).toFixed(1)
-                }}%)
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{
-                  safeGet(
-                    salesReport,
-                    'salesMetrics.byCustomerSegment.b2b.orders',
-                    0
-                  )
-                }}
-              </td>
-              <td class="p-2">
-                {{
-                  formatMoney(
-                    safeGet(
-                      salesReport,
-                      'salesMetrics.byCustomerSegment.b2b.averagePrice',
-                      0
-                    )
-                  )
-                }}
-              </td>
-            </tr>
-            <tr>
-              <td class="p-2 border-r border-neutral-200">B2C</td>
-              <td class="p-2 border-r border-neutral-200">
-                {{
-                  formatMoney(
-                    safeGet(
-                      salesReport,
-                      'salesMetrics.byCustomerSegment.b2c.total',
-                      0
-                    )
-                  )
-                }}
-                ({{
-                  safeGet(
-                    salesReport,
-                    'salesMetrics.byCustomerSegment.b2c.percentageSales',
-                    0
-                  ).toFixed(1)
-                }}%)
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{
-                  safeGet(
-                    salesReport,
-                    'salesMetrics.byCustomerSegment.b2c.orders',
-                    0
-                  )
-                }}
-              </td>
-              <td class="p-2">
-                {{
-                  formatMoney(
-                    safeGet(
-                      salesReport,
-                      'salesMetrics.byCustomerSegment.b2c.averagePrice',
-                      0
-                    )
-                  )
-                }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-if="salesReport?.salesMetrics?.byCustomerSegment" class="mb-4 sm:mb-8">
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Segmentos de Cliente</h3>
+        <SimpleTable
+          :data="customerSegmentsData"
+          :columns="customerSegmentsColumns"
+        />
       </div>
 
       <!-- Payment Methods Table -->
-      <div v-if="salesReport?.salesMetrics?.byPaymentMethod" class="mb-8">
-        <h3 class="text-lg font-semibold mb-4">Métodos de Pago</h3>
-        <table
-          class="w-full border-collapse border border-neutral-200 bg-white"
-        >
-          <thead>
-            <tr class="bg-neutral-100">
-              <th class="p-2 border-r border-neutral-200 text-left">Método</th>
-              <th class="p-2 border-r border-neutral-200 text-left">Total</th>
-              <th class="p-2 text-left">Pedidos</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template
-              v-for="(data, method) in salesReport.salesMetrics.byPaymentMethod"
-              :key="method"
-            >
-              <tr class="border-b border-neutral-200">
-                <td class="p-2 border-r border-neutral-200 capitalize">
-                  {{ method }}
-                </td>
-                <td class="p-2 border-r border-neutral-200">
-                  {{ formatMoney(data?.total ?? 0) }}
-                  ({{ (data?.percentage ?? 0).toFixed(1) }}%)
-                </td>
-                <td class="p-2">{{ data?.orders ?? 0 }}</td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
+      <div v-if="salesReport?.salesMetrics?.byPaymentMethod" class="mb-4 sm:mb-8">
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Métodos de Pago</h3>
+        <SimpleTable
+          :data="paymentMethodsData"
+          :columns="paymentMethodsColumns"
+        />
       </div>
 
       <!-- Collections Table -->
-      <div v-if="salesReport?.salesMetrics?.byCollection" class="mb-8">
-        <h3 class="text-lg font-semibold mb-4">Colecciones</h3>
-        <table
-          class="w-full border-collapse border border-neutral-200 bg-white"
-        >
-          <thead>
-            <tr class="bg-neutral-100">
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Colección
-              </th>
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Ingresos
-              </th>
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Cantidad
-              </th>
-              <th class="p-2 text-left">Precio Promedio</th>
-            </tr>
-          </thead>
-          <tbody>
-            <template
-              v-for="(collection, index) in Object.entries(
-                salesReport.salesMetrics.byCollection ?? {}
-              ).sort((a, b) => (b[1]?.revenue ?? 0) - (a[1]?.revenue ?? 0))"
-              :key="index"
-            >
-              <tr class="border-b border-neutral-200">
-                <td class="p-2 border-r border-neutral-200 capitalize">
-                  {{ collection[0] }}
-                </td>
-                <td class="p-2 border-r border-neutral-200">
-                  {{ formatMoney(collection[1]?.revenue ?? 0) }}
-                  ({{ (collection[1]?.percentageRevenue ?? 0).toFixed(1) }}%)
-                </td>
-                <td class="p-2 border-r border-neutral-200">
-                  {{ collection[1]?.quantity ?? 0 }}
-                  ({{ (collection[1]?.percentageQuantity ?? 0).toFixed(1) }}%)
-                </td>
-                <td class="p-2">
-                  {{ formatMoney(collection[1]?.averagePrice ?? 0) }}
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
+      <div v-if="salesReport?.salesMetrics?.byCollection" class="mb-4 sm:mb-8">
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Colecciones</h3>
+        <SimpleTable
+          :data="collectionsData"
+          :columns="collectionsColumns"
+        />
       </div>
 
       <!-- Best Products Table -->
       <div
         v-if="salesReport?.productMetrics?.bestSellers?.bySales?.length"
-        class="mb-8"
+        class="mb-4 sm:mb-8"
       >
-        <h3 class="text-lg font-semibold mb-4">Productos Más Vendidos</h3>
-        <table
-          class="w-full border-collapse border border-neutral-200 bg-white"
-        >
-          <thead>
-            <tr class="bg-neutral-100">
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Producto
-              </th>
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Colección
-              </th>
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Ingresos
-              </th>
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Cantidad
-              </th>
-              <th class="p-2 text-left">Precio Promedio</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="product in salesReport.productMetrics.bestSellers.bySales"
-              :key="product.productId"
-              class="border-b border-neutral-200"
-            >
-              <td class="p-2 border-r border-neutral-200 capitalize">
-                {{ product?.name ?? 'N/A' }}
-              </td>
-              <td class="p-2 border-r border-neutral-200 capitalize">
-                {{ product?.collection ?? 'N/A' }}
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{ formatMoney(product?.revenue ?? 0) }}
-                ({{ (product?.percentageOfSales ?? 0).toFixed(1) }}%)
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{ product?.quantity ?? 0 }}
-                ({{ (product?.percentageOfQuantity ?? 0).toFixed(1) }}%)
-              </td>
-              <td class="p-2">{{ formatMoney(product?.averagePrice ?? 0) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Productos Más Vendidos</h3>
+        <SimpleTable
+          :data="bestProductsData"
+          :columns="productsColumns"
+        />
       </div>
 
       <!-- Worst Products Table -->
       <div
         v-if="salesReport?.productMetrics?.lowestSellers?.bySales?.length"
-        class="mb-8"
+        class="mb-4 sm:mb-8"
       >
-        <h3 class="text-lg font-semibold mb-4">Productos Menos Vendidos</h3>
-        <table
-          class="w-full border-collapse border border-neutral-200 bg-white"
-        >
-          <thead>
-            <tr class="bg-neutral-100">
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Producto
-              </th>
-              <th class="p-2 border-r border-neutral-200text-left">
-                Colección
-              </th>
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Ingresos
-              </th>
-              <th class="p-2 border-r border-neutral-200 text-left">
-                Cantidad
-              </th>
-              <th class="p-2 text-left">Precio Promedio</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="product in salesReport.productMetrics.lowestSellers
-                .bySales"
-              :key="product.productId"
-              class="border-b border-neutral-200"
-            >
-              <td class="p-2 border-r border-neutral-200 capitalize">
-                {{ product?.name ?? 'N/A' }}
-              </td>
-              <td class="p-2 border-r border-neutral-200 capitalize">
-                {{ product?.collection ?? 'N/A' }}
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{ formatMoney(product?.revenue ?? 0) }}
-                ({{ (product?.percentageOfSales ?? 0).toFixed(1) }}%)
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{ product?.quantity ?? 0 }}
-                ({{ (product?.percentageOfQuantity ?? 0).toFixed(1) }}%)
-              </td>
-              <td class="p-2">{{ formatMoney(product?.averagePrice ?? 0) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Productos Menos Vendidos</h3>
+        <SimpleTable
+          :data="worstProductsData"
+          :columns="productsColumns"
+        />
       </div>
 
       <!-- Delivery Metrics Table -->
-      <div v-if="salesReport?.operationalMetrics?.deliveryMetrics" class="mb-8">
-        <h3 class="text-lg font-semibold mb-4">Métricas de Entrega</h3>
-        <table
-          class="w-full border-collapse border border-neutral-200 bg-white"
-        >
-          <tbody>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">
-                Pedidos Entregados
-              </td>
-              <td class="p-2">
-                {{
-                  safeGet(
-                    salesReport,
-                    'operationalMetrics.deliveryMetrics.totalOrders',
-                    0
-                  )
-                }}
-              </td>
-            </tr>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">
-                Total Cobrado a Clientes
-              </td>
-              <td class="p-2">
-                {{
-                  formatMoney(
-                    safeGet(
-                      salesReport,
-                      'operationalMetrics.deliveryMetrics.totalFees',
-                      0
-                    )
-                  )
-                }}
-              </td>
-            </tr>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">
-                Promedio Cobrado a Cliente
-              </td>
-              <td class="p-2">
-                {{
-                  formatMoney(
-                    safeGet(
-                      salesReport,
-                      'operationalMetrics.deliveryMetrics.averageFee',
-                      0
-                    )
-                  )
-                }}
-              </td>
-            </tr>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">
-                Total Pagado a Proveedores
-              </td>
-              <td class="p-2">
-                {{
-                  formatMoney(
-                    safeGet(
-                      salesReport,
-                      'operationalMetrics.deliveryMetrics.totalCost',
-                      0
-                    )
-                  )
-                }}
-              </td>
-            </tr>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">
-                Promedio Pagado a Proveedor
-              </td>
-              <td class="p-2">
-                {{
-                  formatMoney(
-                    safeGet(
-                      salesReport,
-                      'operationalMetrics.deliveryMetrics.averageCost',
-                      0
-                    )
-                  )
-                }}
-              </td>
-            </tr>
-            <tr>
-              <td class="p-2 border-r border-neutral-200">Ganancia</td>
-              <td class="p-2">
-                {{
-                  formatMoney(
-                    safeGet(
-                      salesReport,
-                      'operationalMetrics.deliveryMetrics.deliveryRevenue',
-                      0
-                    )
-                  )
-                }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-if="salesReport?.operationalMetrics?.deliveryMetrics" class="mb-4 sm:mb-8">
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Métricas de Entrega</h3>
+        <SimpleTable
+          :data="deliveryMetricsData"
+          :columns="keyValueColumns"
+          :hasHeaders="false"
+        />
       </div>
 
       <!-- Tax Metrics Table -->
-      <div v-if="salesReport?.taxMetrics" class="mb-8">
-        <h3 class="text-lg font-semibold mb-4">Métricas de Impuestos</h3>
-        <table
-          class="w-full border-collapse border border-neutral-200 bg-white"
-        >
-          <tbody>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">Items Gravables</td>
-              <td class="p-2">
-                {{ safeGet(salesReport, 'taxMetrics.taxableItems', 0) }}
-              </td>
-            </tr>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">Subtotal</td>
-              <td class="p-2">
-                {{
-                  formatMoney(
-                    safeGet(salesReport, 'taxMetrics.preTaxSubtotal', 0)
-                  )
-                }}
-              </td>
-            </tr>
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">IVA</td>
-              <td class="p-2">
-                {{
-                  formatMoney(safeGet(salesReport, 'taxMetrics.totalTax', 0))
-                }}
-              </td>
-            </tr>
-            <tr>
-              <td class="p-2 border-r border-neutral-200">Total</td>
-              <td class="p-2">
-                {{ formatMoney(safeGet(salesReport, 'taxMetrics.total', 0)) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-if="salesReport?.taxMetrics" class="mb-4 sm:mb-8">
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Métricas de Impuestos</h3>
+        <SimpleTable
+          :data="taxMetricsData"
+          :columns="keyValueColumns"
+          :hasHeaders="false"
+        />
       </div>
     </template>
   </div>

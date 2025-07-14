@@ -9,7 +9,7 @@ const props = defineProps({
       return (
         Array.isArray(value) &&
         value.every((item) =>
-          ['day', 'week', 'month', 'quarter', 'year'].includes(item)
+          ['day', 'week', 'month', 'quarter', 'year'].includes(item),
         )
       );
     },
@@ -23,7 +23,7 @@ const periodStore = usePeriodStore();
 // They are shown if `onlyFor` is null (meaning all types are available)
 // OR if `onlyFor` is an array with more than one element (meaning a selection is needed).
 const showPeriodTypes = computed(
-  () => !props.onlyFor || props.onlyFor.length > 1
+  () => !props.onlyFor || props.onlyFor.length > 1,
 );
 
 // A computed property to determine which period types to display buttons for
@@ -41,20 +41,20 @@ if (props.onlyFor && props.onlyFor.length === 1) {
 
 <template>
   <div
-    class="flex flex-col lg:flex-row lg:w-auto w-full mx-3 lg:items-center px-2 bg-neutral-100 rounded-lg"
+    class="flex flex-col lg:flex-row lg:w-auto w-full mx-1 sm:mx-3 lg:items-center px-1 sm:px-2 bg-neutral-100 rounded-lg"
   >
     <div
-      class="flex items-center justify-between gap-2"
+      class="flex items-center justify-between gap-1 sm:gap-2 min-w-0"
       :class="{ 'flex-1 justify-center': !showPeriodTypes }"
     >
       <button
         @click="periodStore.previous"
-        class="p-2 text-neutral-600 hover:text-primary-600 disabled:opacity-50 disabled:hover:text-neutral-600 transition-colors duration-150"
+        class="p-1.5 sm:p-2 text-neutral-600 hover:text-primary-600 disabled:opacity-50 disabled:hover:text-neutral-600 transition-colors duration-150 flex-shrink-0"
         :disabled="periodStore.periodType === 'custom'"
       >
         <span class="sr-only">Previous Period</span>
         <svg
-          class="w-5 h-5"
+          class="w-4 h-4 sm:w-5 sm:h-5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -68,18 +68,18 @@ if (props.onlyFor && props.onlyFor.length === 1) {
         </svg>
       </button>
 
-      <span class="text-neutral-800 font-medium min-w-[180px] text-center">
+      <span class="text-neutral-800 font-medium text-center text-sm sm:text-base min-w-0 flex-1 px-1 truncate">
         {{ periodStore.displayFormat }}
       </span>
 
       <button
         @click="periodStore.next"
-        class="p-2 text-neutral-600 hover:text-primary-600 disabled:opacity-50 disabled:hover:text-neutral-600 transition-colors duration-150 mr-4"
+        class="p-1.5 sm:p-2 text-neutral-600 hover:text-primary-600 disabled:opacity-50 disabled:hover:text-neutral-600 transition-colors duration-150 flex-shrink-0"
         :disabled="periodStore.periodType === 'custom'"
       >
         <span class="sr-only">Next Period</span>
         <svg
-          class="w-5 h-5"
+          class="w-4 h-4 sm:w-5 sm:h-5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -94,12 +94,12 @@ if (props.onlyFor && props.onlyFor.length === 1) {
       </button>
     </div>
 
-    <div v-if="showPeriodTypes" class="flex justify-center items-center gap-2">
+    <div v-if="showPeriodTypes" class="flex justify-center items-center gap-1 sm:gap-2 mt-2 lg:mt-0 lg:ml-4 flex-wrap">
       <button
         v-for="type in periodTypesToShow"
         :key="type"
         @click="periodStore.setPeriodType(type)"
-        class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150"
+        class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 whitespace-nowrap"
         :class="[
           periodStore.periodType === type
             ? 'bg-primary text-white'

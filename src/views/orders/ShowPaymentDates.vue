@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useOrderStore } from '@/stores/orderStore';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
+import SimpleTable from '@/components/common/SimpleTable.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { formatMoney } from '@/utils/helpers';
@@ -57,6 +58,7 @@ const paymentEntries = computed(() => {
       entries.push({
         id: `${order.id}-partial`,
         paymentDate: order.partialPaymentDate,
+        orderDate: order.dueDate,
         userName: order.userName,
         total: order.partialPaymentAmount,
         order: order,
@@ -70,6 +72,7 @@ const paymentEntries = computed(() => {
           entries.push({
             id: `${order.id}-final`,
             paymentDate: order.paymentDate,
+            orderDate: order.dueDate,
             userName: order.userName,
             total: remaining,
             order: order,
@@ -83,6 +86,7 @@ const paymentEntries = computed(() => {
       entries.push({
         id: order.id,
         paymentDate: order.paymentDate,
+        orderDate: order.dueDate,
         userName: order.userName,
         total: order.total,
         order: order,
@@ -111,6 +115,48 @@ const shouldAddSpacing = computed(() => {
     return currentDate !== nextDate;
   };
 });
+
+// Payment table columns
+const paymentColumns = [
+  {
+    key: 'paymentDate',
+    label: 'Fecha de Pago',
+    formatter: 'date',
+    formatterOptions: {
+      locale: 'es-CO',
+      options: {
+        day: 'numeric',
+        month: 'long',
+      },
+    },
+  },
+  {
+    key: 'orderDate',
+    label: 'Fecha del Pedido',
+    formatter: 'date',
+    formatterOptions: {
+      locale: 'es-CO',
+      options: {
+        day: 'numeric',
+        month: 'long',
+      },
+    },
+  },
+  {
+    key: 'paymentType',
+    label: 'Tipo de Pago',
+    formatter: (value) => value || '-',
+  },
+  {
+    key: 'userName',
+    label: 'Cliente',
+  },
+  {
+    key: 'total',
+    label: 'Total',
+    formatter: 'money',
+  },
+];
 
 onMounted(async () => {
   try {
@@ -157,25 +203,14 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="container p-4 px-0 lg:px-4">
-    <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Fechas de Pago</h2>
+  <div class="container p-2 sm:p-4 px-2 lg:px-4">
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-2 sm:mb-4">
+      <h2 class="text-lg sm:text-2xl font-bold text-neutral-800">Fechas de Pago</h2>
       <div class="flex flex-col">
         <PeriodSelector />
       </div>
     </div>
 
-    <!-- <pre>{{
-      orderStore.items.map((e) => ({
-        id: e.id,
-        isPaid: e.isPaid,
-        partialPaymentAmount: e.partialPaymentAmount,
-        paymentDate: e.paymentDate,
-        userName: e.userName,
-        total: e.total,
-        orderId: e.order?.id,
-      }))
-    }}</pre> -->
     <!-- Error State -->
     <div v-if="orderStore.error" class="text-danger text-center py-4">
       {{ orderStore.error }}
@@ -183,73 +218,26 @@ onUnmounted(() => {
 
     <!-- Data States -->
     <template v-else>
-      <!-- Summary Table -->
-      <div class="flex items-center gap-2 justify-end mt-2 bg-neutral-100 pr-2">
-        <h3 class="m-0">Exportar Reporte:</h3>
-        <button class="btn utility-btn" @click="handleExportProducts">
-          Productos Consolidados
-        </button>
-        <button class="btn utility-btn" @click="handleExportWithClients">
-          Con info Clientes
-        </button>
+      <!-- Export Section -->
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-end mt-2 bg-neutral-100 p-2">
+        <h3 class="m-0 text-sm sm:text-base">Exportar Reporte:</h3>
+        <div class="flex flex-col sm:flex-row gap-1 sm:gap-2">
+          <button class="btn utility-btn text-xs sm:text-sm" @click="handleExportProducts">
+            Productos Consolidados
+          </button>
+          <button class="btn utility-btn text-xs sm:text-sm" @click="handleExportWithClients">
+            Con info Clientes
+          </button>
+        </div>
       </div>
-      <table class="w-full border-collapse border border-neutral-200 bg-white">
-        <thead>
-          <tr class="bg-neutral-100">
-            <th class="p-2 border-r border-neutral-200 text-left">
-              Fecha de Pago
-            </th>
-            <th class="p-2 border-r border-neutral-200 text-left">
-              Fecha del Pedido
-            </th>
-            <th class="p-2 border-r border-neutral-200 text-left">
-              Tipo de Pago
-            </th>
 
-            <th class="p-2 border-r border-neutral-200 text-left">Cliente</th>
-            <th class="p-2 border-r border-neutral-200 text-left">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template v-for="(o, index) in paymentEntries" :key="o.id">
-            <tr class="border-b border-neutral-200">
-              <td class="p-2 border-r border-neutral-200">
-                {{
-                  o.paymentDate
-                    ? new Date(o.paymentDate).toLocaleDateString('es-CO', {
-                        day: 'numeric',
-                        month: 'long',
-                      })
-                    : 'No Asignada'
-                }}
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{
-                  o.order.dueDate
-                    ? new Date(o.order.dueDate).toLocaleDateString('es-CO', {
-                        day: 'numeric',
-                        month: 'long',
-                      })
-                    : 'No Asignada'
-                }}
-              </td>
-              <td class="p-2 border-r border-neutral-200">
-                {{ o.paymentType || '-' }}
-              </td>
-              <td class="p-2 border-r border-neutral-200">{{ o.userName }}</td>
-              <td class="p-2 border-r border-neutral-200">
-                {{ formatMoney(o.total, 'COP') }}
-              </td>
-            </tr>
-            <!-- Add divider row when date changes -->
-            <tr v-if="shouldAddSpacing(index)" class="date-divider">
-              <td colspan="5" class="p-0">
-                <div class="bg-neutral-150 h-3"></div>
-              </td>
-            </tr>
-          </template>
-        </tbody>
-      </table>
+      <!-- Payment Table -->
+      <SimpleTable
+        :data="paymentEntries"
+        :columns="paymentColumns"
+        :showDividers="true"
+        :dividerCondition="shouldAddSpacing"
+      />
     </template>
   </div>
 </template>
