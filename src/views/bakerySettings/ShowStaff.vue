@@ -110,7 +110,7 @@ const tableActions = [
   },
   {
     id: 'resetPassword',
-    label: 'Reset Password',
+    label: 'Restablecer Contraseña',
     icon: PhKey,
     minSelected: 1,
     maxSelected: 1,
@@ -136,7 +136,7 @@ const handleAction = async ({ actionId, selectedIds }) => {
       isFormOpen.value = true;
     } catch (error) {
       console.error('Action failed:', error);
-      toastRef.value?.showError('Error', 'Failed to load user data');
+      toastRef.value?.showError('Error', 'No se pudieron cargar los datos del usuario');
     } finally {
       actionLoading.value[actionId] = false;
     }
@@ -166,14 +166,14 @@ const handleConfirmPasswordReset = async () => {
     await sendPasswordResetEmail(auth, confirmAction.value.user.email);
 
     toastRef.value?.showSuccess(
-      'Password Reset Email Sent',
-      `Reset link sent to ${confirmAction.value.user.email}`,
+      'Correo de Restablecimiento Enviado',
+      `Enlace de restablecimiento enviado a ${confirmAction.value.user.email}`,
     );
   } catch (error) {
     console.error('Password reset failed:', error);
     toastRef.value?.showError(
-      'Failed to Send Reset Email',
-      error.message || 'Please try again later',
+      'Error al Enviar Correo de Restablecimiento',
+      error.message || 'Por favor, inténtelo de nuevo más tarde',
     );
   } finally {
     actionLoading.value.resetPassword = false;
@@ -193,12 +193,12 @@ const handleSubmit = async (formData) => {
     if (selectedUser.value) {
       await bakeryUserStore.update(selectedUser.value.id, formData);
       await refreshData();
-      toastRef.value?.showSuccess('User Updated', 'Staff member has been updated successfully');
+      toastRef.value?.showSuccess('Usuario Actualizado', 'El miembro del equipo ha sido actualizado exitosamente');
     }
     closeForm();
   } catch (error) {
     console.error('Failed to update user:', error);
-    toastRef.value?.showError('Update Failed', 'Failed to update staff member');
+    toastRef.value?.showError('Error de Actualización', 'No se pudo actualizar el miembro del equipo');
   }
 };
 
@@ -255,7 +255,7 @@ onMounted(async () => {
         <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <BakeryUserForm
             v-if="selectedUser"
-            title="Edit Staff Member"
+            title="Editar Miembro del Equipo"
             :key="selectedUser.id"
             :initial-data="selectedUser"
             :loading="settingsStore.loading"
