@@ -92,7 +92,7 @@ watch(
       loading.value = false;
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 onMounted(async () => {

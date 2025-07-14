@@ -41,7 +41,7 @@ watch(
       loading.value = false;
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 const paymentEntries = computed(() => {
@@ -93,7 +93,7 @@ const paymentEntries = computed(() => {
 
   // Sort by payment date
   return entries.sort(
-    (a, b) => new Date(a.paymentDate || 0) - new Date(b.paymentDate || 0)
+    (a, b) => new Date(a.paymentDate || 0) - new Date(b.paymentDate || 0),
   );
 });
 
