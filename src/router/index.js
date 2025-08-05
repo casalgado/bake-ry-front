@@ -244,6 +244,26 @@ const router = createRouter({
           name: 'productionSummary',
           component: () => import('../views/orders/ShowProductionAssistantSummary.vue'),
         },
+        {
+          path: 'production/single',
+          name: 'production-single',
+          component: () => import('../views/orders/ShowProductionSingleItems.vue'),
+        },
+        {
+          path: 'production/grouped',
+          name: 'production-grouped',
+          component: () => import('../views/orders/ShowProductionGroupedItems.vue'),
+        },
+        {
+          path: 'delivery',
+          name: 'production-delivery',
+          component: () => import('../views/orders/ShowDelivery.vue'),
+        },
+        {
+          path: 'delivery-calendar',
+          name: 'production-delivery-calendar',
+          component: () => import('../views/orders/ShowDeliveryCalendar.vue'),
+        },
       ],
     },
   ],

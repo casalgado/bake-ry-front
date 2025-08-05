@@ -3,25 +3,51 @@ import { useRouter, useRoute } from 'vue-router';
 import {
   PhShoppingBagOpen,
   PhOven,
+  PhBread,
+  PhMopedFront,
+  PhCalendar,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
+import SidebarDivider from '@/components/common/SidebarDivider.vue';
 import MobileNavigation from './MobileNavigation.vue';
 
 const router = useRouter();
 const route = useRoute();
 
-const links = [
+const navigationSections = [
   {
-    id: 'resumen',
-    icon: PhShoppingBagOpen,
-    text: 'Resumen',
-    path: '/production/summary',
+    title: 'Producción',
+    items: [
+      {
+        id: 'produccion-por-producto',
+        icon: PhBread,
+        text: 'Por Producto',
+        path: '/production/production/single',
+      },
+      {
+        id: 'produccion-agrupado',
+        icon: PhOven,
+        text: 'Agrupado',
+        path: '/production/production/grouped',
+      },
+    ],
   },
   {
-    id: 'produccion',
-    icon: PhOven,
-    text: 'Producción',
-    path: '/production/orders',
+    title: 'Entrega',
+    items: [
+      {
+        id: 'entrega',
+        icon: PhMopedFront,
+        text: 'Entrega',
+        path: '/production/delivery',
+      },
+      {
+        id: 'entrega-calendario',
+        icon: PhCalendar,
+        text: 'Calendario',
+        path: '/production/delivery-calendar',
+      },
+    ],
   },
 ];
 
@@ -33,19 +59,23 @@ const handleLinkClick = (link) => {
 <template>
   <!-- Desktop Sidebar -->
   <nav class="p-4 hidden lg:block">
-    <SidebarLink
-      v-for="link in links"
-      :key="link.id"
-      :icon="link.icon"
-      :text="link.text"
-      :isActive="route.path === link.path"
-      @click="handleLinkClick(link)"
-    />
+    <template v-for="section in navigationSections" :key="section.title">
+      <SidebarDivider :text="section.title" />
+      <SidebarLink
+        v-for="link in section.items"
+        :key="link.id"
+        :icon="link.icon"
+        :text="link.text"
+        :to="link.path"
+        :isActive="route.path === link.path"
+        @click="handleLinkClick(link)"
+      />
+    </template>
   </nav>
 
   <!-- Mobile Navigation -->
   <MobileNavigation
-    :links="links"
+    :sections="navigationSections"
     :active-route="route.path"
     @navigate="handleLinkClick"
   />
