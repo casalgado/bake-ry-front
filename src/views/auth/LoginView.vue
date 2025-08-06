@@ -23,6 +23,8 @@ const handleLogin = async () => {
     const userData = authStore.getUserData;
     if (userData?.role === 'delivery_assistant') {
       router.push('/driver/orders');
+    } else if (userData?.role === 'production_assistant') {
+      router.push('/production/single');
     } else {
       router.push('/dashboard/orders');
     }

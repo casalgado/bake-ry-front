@@ -101,6 +101,63 @@ function deepMerge(target, source) {
   return result;
 }
 
+// Override realtime handler specifically for orders to handle orderItems updates
+const originalSubscribeToChanges = store.subscribeToChanges;
+store.subscribeToChanges = async () => {
+  if (store.isSubscribed) return;
+
+  const handleOrderRealtimeUpdate = (changes) => {
+    changes.forEach((change) => {
+      switch (change.type) {
+      case 'added': {
+        const index = store.items.findIndex(item => item.id === change.data.id);
+        // Only add if it doesn't already exist and if not initial load
+        if (index === -1 && changes.length < 2) {
+          store.items.push(change.data);
+        }
+        break;
+      }
+      case 'modified': {
+        const index = store.items.findIndex(item => item.id === change.data.id);
+        if (index !== -1) {
+          const currentItem = store.items[index];
+
+          Object.entries(change.data).forEach(([key, newValue]) => {
+            // Skip id field
+            if (key === 'id') return;
+
+            // Handle orderItems array specially
+            if (key === 'orderItems' && Array.isArray(newValue)) {
+              store.items[index][key] = newValue;
+            }
+            // Handle primitive values normally
+            else if (
+              typeof newValue === 'string' ||
+              typeof newValue === 'number' ||
+              typeof newValue === 'boolean'
+            ) {
+              if (currentItem[key] !== newValue) {
+                store.items[index][key] = newValue;
+              }
+            }
+            // For other objects and arrays, keep existing value (original logic)
+          });
+        }
+        break;
+      }
+      case 'removed': {
+        console.log('REMOVED REALTIME NOT IMPLEMENTED YET', change.data);
+        break;
+      }
+      }
+    });
+  };
+
+  const unsubscribe = service.subscribeToChanges(handleOrderRealtimeUpdate);
+  store.isSubscribed = true;
+  return unsubscribe;
+};
+
 // Override patchAll specifically for orders to handle orderItems correctly
 store.patchAll = async (updates) => {
   try {

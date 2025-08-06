@@ -245,12 +245,12 @@ const router = createRouter({
           component: () => import('../views/orders/ShowProductionAssistantSummary.vue'),
         },
         {
-          path: 'production/single',
+          path: 'single',
           name: 'production-single',
           component: () => import('../views/orders/ShowProductionSingleItems.vue'),
         },
         {
-          path: 'production/grouped',
+          path: 'grouped',
           name: 'production-grouped',
           component: () => import('../views/orders/ShowProductionGroupedItems.vue'),
         },
