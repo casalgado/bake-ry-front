@@ -65,3 +65,46 @@ store.getHistory = async (orderId) => {
     store.setLoading(false);
   }
 };
+
+// Override patchAll specifically for orders to handle orderItems correctly
+store.patchAll = async (updates) => {
+  try {
+    const response = await service.patchAll(updates);
+
+    // Update local state based on successful response
+    if (response.data && response.data.success) {
+      response.data.success.forEach(({ id, changes }) => {
+        const index = store.items.findIndex(item => item.id === id);
+        if (index !== -1) {
+          const currentItem = store.items[index];
+
+          // Handle orderItems specially since the server returns change metadata, not the full array
+          if (changes.orderItems && Array.isArray(changes.orderItems)) {
+            // Find the corresponding update in the original request to get the complete orderItems
+            const originalUpdate = updates.find(update => update.id === id);
+            if (originalUpdate && originalUpdate.data && originalUpdate.data.orderItems) {
+              // Use the complete orderItems array from the original request
+              store.items[index] = { ...currentItem, orderItems: originalUpdate.data.orderItems };
+            }
+          } else {
+            // For non-orderItems changes, use the base store logic
+            const updatedData = {};
+            Object.keys(changes).forEach(key => {
+              if (key !== 'orderItems') {
+                updatedData[key] = changes[key].to;
+              }
+            });
+
+            // Simple merge for other properties
+            store.items[index] = { ...currentItem, ...updatedData };
+          }
+        }
+      });
+    }
+
+    return response;
+  } catch (error) {
+    store.setError(error);
+    throw error;
+  }
+};
