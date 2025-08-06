@@ -37,7 +37,7 @@ const flattenedOrderItems = computed(() => {
       orderId: order.id,
       productionBatch: item.productionBatch || 0,
       status: item.status || 0,
-    }))
+    })),
   );
 });
 
@@ -100,8 +100,8 @@ const groupedOrderItems = computed(() => {
         group.producedCount === group.totalItems
           ? 1
           : group.producedCount === 0
-          ? 0
-          : `${group.producedCount}/${group.totalItems}`,
+            ? 0
+            : `${group.producedCount}/${group.totalItems}`,
     }));
 });
 
@@ -130,7 +130,7 @@ const columns = [
     label: 'Estado',
     field: 'status',
     sortable: true,
-    type: 'toggle',
+
     options: [
       { value: 1, displayText: 'producido' },
       { value: 0, displayText: '-' },
@@ -178,7 +178,7 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
     const itemsToUpdate = rowIds.flatMap(
       (groupId) =>
         groupedOrderItems.value.find((group) => group.id === groupId)
-          ?.originalItems || []
+          ?.originalItems || [],
     );
 
     // Set loading state for all items
@@ -192,7 +192,7 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
         acc[item.orderId] = {
           itemIds: new Set(),
           orderItems: orderStore.items.find(
-            (order) => order.id === item.orderId
+            (order) => order.id === item.orderId,
           ).orderItems,
         };
       }
@@ -210,7 +210,7 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
             [field]: itemIds.has(item.id) ? value : item[field],
           })),
         },
-      })
+      }),
     );
 
     // Execute updates
@@ -231,10 +231,10 @@ const handleAction = async ({ actionId, selectedIds: rowIds }) => {
 
   try {
     switch (actionId) {
-      case 'setBatch':
-        selectedIds.value = rowIds; // Now correctly assigns the selected IDs
-        isBatchDialogOpen.value = true;
-        break;
+    case 'setBatch':
+      selectedIds.value = rowIds; // Now correctly assigns the selected IDs
+      isBatchDialogOpen.value = true;
+      break;
     }
   } catch (error) {
     console.error('Action failed:', error);
@@ -251,7 +251,7 @@ const handleBatchSelect = async (batchNumber) => {
     const itemsToUpdate = selectedIds.value.flatMap(
       (groupId) =>
         groupedOrderItems.value.find((group) => group.id === groupId)
-          ?.originalItems || []
+          ?.originalItems || [],
     );
 
     // Now group updates by order using the actual order items
@@ -260,7 +260,7 @@ const handleBatchSelect = async (batchNumber) => {
         acc[orderItem.orderId] = {
           itemIds: new Set(),
           orderItems: orderStore.items.find(
-            (order) => order.id === orderItem.orderId
+            (order) => order.id === orderItem.orderId,
           ).orderItems,
         };
       }
@@ -280,7 +280,7 @@ const handleBatchSelect = async (batchNumber) => {
               : item.productionBatch,
           })),
         },
-      })
+      }),
     );
 
     isBatchDialogOpen.value = false;
@@ -314,7 +314,7 @@ watch(
       console.error('Failed to fetch orders:', error);
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 onMounted(async () => {
