@@ -66,6 +66,41 @@ store.getHistory = async (orderId) => {
   }
 };
 
+// Helper function to deep merge objects while preserving arrays
+function deepMerge(target, source) {
+  const result = { ...target };
+
+  for (const key in source) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      const sourceValue = source[key];
+      const targetValue = target[key];
+
+      // If source value is null or undefined, use it directly
+      if (sourceValue == null) {
+        result[key] = sourceValue;
+      }
+      // If source is an array, replace the entire array
+      else if (Array.isArray(sourceValue)) {
+        result[key] = sourceValue;
+      }
+      // If both are objects (but not arrays), recursively merge
+      else if (
+        typeof sourceValue === 'object' &&
+        typeof targetValue === 'object' &&
+        !Array.isArray(targetValue)
+      ) {
+        result[key] = deepMerge(targetValue, sourceValue);
+      }
+      // For primitive values, directly assign
+      else {
+        result[key] = sourceValue;
+      }
+    }
+  }
+
+  return result;
+}
+
 // Override patchAll specifically for orders to handle orderItems correctly
 store.patchAll = async (updates) => {
   try {
@@ -95,8 +130,8 @@ store.patchAll = async (updates) => {
               }
             });
 
-            // Simple merge for other properties
-            store.items[index] = { ...currentItem, ...updatedData };
+            // Use deep merge for complex objects
+            store.items[index] = deepMerge(currentItem, updatedData);
           }
         }
       });
