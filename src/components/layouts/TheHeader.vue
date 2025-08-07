@@ -1,7 +1,7 @@
 <script setup>
 import { RouterLink } from 'vue-router';
 import { useAuthenticationStore } from '@/stores/authentication';
-import { PhGraph } from '@phosphor-icons/vue';
+import { PhGraph, PhGear } from '@phosphor-icons/vue';
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -14,6 +14,11 @@ const homeRoute = computed(() => {
   return authStore.getUserData?.role === 'delivery_assistant'
     ? '/driver/orders'
     : '/dashboard/orders';
+});
+
+const showSettingsIcon = computed(() => {
+  return false;
+  // return authStore.isLoggedIn && (authStore.isSystemAdmin || authStore.isBakeryAdmin);
 });
 
 const handleAuthClick = () => {
@@ -39,13 +44,24 @@ const handleAuthClick = () => {
         <span class="font-bold text-lg">MAD</span>
       </RouterLink>
 
-      <!-- Login/Logout Button -->
-      <button
-        @click="handleAuthClick"
-        class="utility-btn px-4 my-1"
-      >
-        {{ authStore.isLoggedIn ? 'Cerrar sesión' : 'Iniciar sesión' }}
-      </button>
+      <div class="flex items-center gap-2">
+        <!-- Settings Button (Admin Only) -->
+        <RouterLink
+          v-if="showSettingsIcon"
+          to="/dashboard/settings"
+          class="flex items-center text-neutral-600 hover:text-neutral-800 transition-colors"
+        >
+          <PhGear class="w-5 h-5" weight="regular" />
+        </RouterLink>
+
+        <!-- Login/Logout Button -->
+        <button
+          @click="handleAuthClick"
+          class="utility-btn px-4 my-1"
+        >
+          {{ authStore.isLoggedIn ? 'Cerrar sesión' : 'Iniciar sesión' }}
+        </button>
+      </div>
     </nav>
   </header>
 </template>
