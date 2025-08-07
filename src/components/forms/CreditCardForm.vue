@@ -34,9 +34,24 @@ const formatCardNumber = (event) => {
   formData.value.cardNumber = formattedValue;
 };
 
+// Handle expiry date keydown for backspace behavior
+const handleExpiryKeydown = (event) => {
+  const input = event.target;
+  const cursorPos = input.selectionStart;
+  const value = input.value;
+
+  // If backspace is pressed and cursor is right after the slash
+  if (event.key === 'Backspace' && cursorPos === 3 && value[2] === '/') {
+    event.preventDefault();
+    // Remove the last digit (before the slash)
+    formData.value.expiryDate = value.slice(0, 1);
+  }
+};
+
 // Format expiry date input
 const formatExpiryDate = (event) => {
   const value = event.target.value.replace(/\D/g, '');
+
   if (value.length >= 2) {
     formData.value.expiryDate = value.slice(0, 2) + '/' + value.slice(2, 4);
   } else {
@@ -146,6 +161,7 @@ const submitButtonText = computed(() => {
           <input
             v-model="formData.expiryDate"
             @input="formatExpiryDate"
+            @keydown="handleExpiryKeydown"
             type="text"
             placeholder="MM/YY"
             maxlength="5"

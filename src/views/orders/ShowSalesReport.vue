@@ -277,7 +277,7 @@ const deliveryMetricsData = computed(() => {
   if (!metrics) return [];
 
   return [
-    { label: 'Pedidos Entregados', value: metrics.totalOrders ?? 0 },
+    { label: 'Pedidos Entregados', value: `${metrics.totalOrders ?? 0}/${safeGet(salesReport.value, 'summary.totalPaidOrders', 0)} - ${((metrics.totalOrders ?? 0) / (safeGet(salesReport.value, 'summary.totalPaidOrders', 0) || 1) * 100).toFixed(1)}%` },
     { label: 'Total Cobrado a Clientes', value: metrics.totalFees ?? 0, format: 'money' },
     { label: 'Promedio Cobrado a Cliente', value: metrics.averageFee ?? 0, format: 'money' },
     { label: 'Total Pagado a Proveedores', value: metrics.totalCost ?? 0, format: 'money' },
