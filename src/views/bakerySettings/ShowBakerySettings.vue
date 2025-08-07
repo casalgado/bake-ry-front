@@ -134,8 +134,9 @@ const convertToDisplayFormat = (date) => {
   />
 
   <!-- Stored Cards List -->
-  <div class=" form-container base-card p-6">
-    <h4 class="text-lg font-medium mb-4">Tarjetas Guardadas</h4>
+  <div class="form-container">
+    <h2>Tarjetas Guardadas</h2>
+    <div class="base-card p-6" style="margin-bottom: 1rem;">
 
     <div
       v-if="paymentMethods.length === 0"
@@ -176,6 +177,7 @@ const convertToDisplayFormat = (date) => {
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <style scoped lang="scss">

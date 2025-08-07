@@ -215,3 +215,7 @@ const submitButtonText = computed(() => {
     </form>
   </div>
 </template>
+
+<style scoped>
+
+</style>
