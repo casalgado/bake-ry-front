@@ -9,7 +9,7 @@ export class PayUService extends BaseService {
   // Create a new credit card token
   async createToken(cardData) {
     try {
-      const response = await this.api.post(`${this.getPath()}/tokens`, {
+      const response = await this.api.post(`${this.getPath()}/cards`, {
         cardNumber: cardData.cardNumber,
         expirationDate: cardData.expiryDate,
         cvv: cardData.cvv,
@@ -26,7 +26,7 @@ export class PayUService extends BaseService {
   // Get all stored payment methods
   async getStoredCards() {
     try {
-      const response = await this.api.get(`${this.getPath()}/tokens`);
+      const response = await this.api.get(`${this.getPath()}/cards`);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error);
@@ -34,9 +34,9 @@ export class PayUService extends BaseService {
   }
 
   // Delete a stored card token
-  async deleteToken(tokenId) {
+  async deleteToken(cardId) {
     try {
-      const response = await this.api.delete(`${this.getPath()}/tokens/${tokenId}`);
+      const response = await this.api.delete(`${this.getPath()}/cards/${cardId}`);
       return this.handleResponse(response);
     } catch (error) {
       throw this.handleError(error);
@@ -47,7 +47,7 @@ export class PayUService extends BaseService {
   async processPayment(paymentData) {
     try {
       const response = await this.api.post(`${this.getPath()}/payments`, {
-        tokenId: paymentData.tokenId,
+        cardId: paymentData.cardId,
         amount: paymentData.amount,
         currency: paymentData.currency || 'COP',
         description: paymentData.description,
@@ -63,7 +63,7 @@ export class PayUService extends BaseService {
   async createRecurringPayment(recurringData) {
     try {
       const response = await this.api.post(`${this.getPath()}/recurring`, {
-        tokenId: recurringData.tokenId,
+        cardId: recurringData.cardId,
         amount: recurringData.amount,
         currency: recurringData.currency || 'COP',
         frequency: recurringData.frequency, // 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'
