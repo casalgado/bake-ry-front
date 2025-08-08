@@ -142,23 +142,29 @@ const features = computed(() => {
   return settingsStore.items[0].features;
 });
 
-// Helper function to check if a payment method should be skipped
-const shouldSkipPaymentMethod = (paymentMethod) => {
-  const additionalMethods = ['bancolombia', 'davivienda'];
-
-  // If it's not an additional method, use existing skipWhenToggled logic
-  if (!additionalMethods.includes(paymentMethod)) {
-    return false;
-  }
-
-  // If features aren't loaded yet, skip additional methods by default
-  if (!features.value?.order?.additionalPaymentMethods) {
-    return true;
-  }
-
-  // Skip if the payment method is not in the bakery's additional payment methods
-  return !features.value.order.additionalPaymentMethods.includes(paymentMethod);
+// Payment method icon mapping
+const paymentIconMap = {
+  cash: PhMoney,
+  transfer: PhDeviceMobile,
+  card: PhCreditCard,
+  bancolombia: BancolombiaIcon,
+  davivienda: DaviviendaIcon,
+  complimentary: PhGift,
 };
+
+// Get payment method options from bakery settings
+const paymentMethodOptions = computed(() => {
+  if (!settingsStore.items.length) return [];
+
+  const settings = settingsStore.items[0];
+  const availablePaymentMethods = settings.availablePaymentMethods || [];
+  const activePaymentMethods = settings.features?.order?.activePaymentMethods || [];
+
+  // Filter available methods to only show active ones
+  return availablePaymentMethods.filter(method =>
+    activePaymentMethods.includes(method.value),
+  );
+});
 
 // Column definitions (now computed to handle dynamic payment methods)
 const columns = computed(() => [
@@ -207,34 +213,14 @@ const columns = computed(() => [
     field: 'paymentMethod',
     sortable: true,
     type: 'toggle',
-    options: [
-      { value: 'cash', displayText: 'E', icon: PhMoney },
-      { value: 'transfer', displayText: 'T', icon: PhDeviceMobile },
-      {
-        value: 'card',
-        displayText: 'D',
-        icon: PhCreditCard,
-        skipWhenToggled: true,
-      },
-      {
-        value: 'bancolombia',
-        displayText: 'B',
-        icon: BancolombiaIcon,
-        skipWhenToggled: shouldSkipPaymentMethod('bancolombia'),
-      },
-      {
-        value: 'davivienda',
-        displayText: 'D',
-        icon: DaviviendaIcon,
-        skipWhenToggled: shouldSkipPaymentMethod('davivienda'),
-      },
-      {
-        value: 'complimentary',
-        displayText: 'R',
-        icon: PhGift,
-        skipWhenToggled: true,
-      },
-    ],
+    get options() {
+      return paymentMethodOptions.value.map(method => ({
+        value: method.value,
+        displayText: method.displayText,
+        icon: paymentIconMap[method.value] || PhMoney,
+        skipWhenToggled: method.value === 'complimentary',
+      }));
+    },
   },
   {
     id: 'fulfillmentType',

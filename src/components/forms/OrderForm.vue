@@ -185,6 +185,8 @@ onMounted(async () => {
   ]);
   fetching.value = false;
 
+  console.log(bakerySettingsStore.items?.[0]);
+
   if (props.initialData?.userId) {
     const user = userStore.items.find((u) => u.id === props.initialData.userId);
     if (user) {
@@ -382,26 +384,17 @@ const total = computed(() => {
   return subtotal.value + formData.value.deliveryFee;
 });
 
-const paymentMethods = [
-  { value: 'cash', label: 'Efectivo' },
-  { value: 'transfer', label: 'Transferencia' },
-  { value: 'card', label: 'Bold' },
-  { value: 'complimentary', label: 'Regalo' },
-];
-
-const additionalPaymentMethods = [
-  { value: 'davivienda', label: 'Davivienda' },
-  { value: 'bancolombia', label: 'Bancolombia' },
-];
-
 const paymentMethodOptions = computed(() => {
-  if (features.value?.order?.additionalPaymentMethods) {
-    let additionalMethods = additionalPaymentMethods.filter(
-      (method) => features.value.order.additionalPaymentMethods.includes(method.value),
-    );
-    return [...paymentMethods, ...additionalMethods];
-  }
-  return paymentMethods;
+  if (!bakerySettingsStore.items.length) return [];
+
+  const settings = bakerySettingsStore.items[0];
+  const availablePaymentMethods = settings.availablePaymentMethods || [];
+  const activePaymentMethods = settings.features?.order?.activePaymentMethods || [];
+
+  // Filter available methods to only show active ones
+  return availablePaymentMethods.filter(method =>
+    activePaymentMethods.includes(method.value),
+  );
 });
 
 const fulfillmentTypes = [
