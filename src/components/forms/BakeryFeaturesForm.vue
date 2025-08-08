@@ -1,6 +1,17 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import FeatureCard from './FeatureCard.vue';
+import {
+  PhMoney,
+  PhDeviceMobile,
+  PhCreditCard,
+  PhGift,
+  PhClock,
+  PhCurrencyDollar,
+} from '@phosphor-icons/vue';
+import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
+import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
 
 const props = defineProps({
   title: {
@@ -26,11 +37,39 @@ const emit = defineEmits(['submit', 'cancel']);
 const settingsStore = useBakerySettingsStore();
 const formData = ref({ ...props.initialData });
 
+// Payment method icon mapping
+const paymentIconMap = {
+  cash: PhMoney,
+  transfer: PhDeviceMobile,
+  card: PhCreditCard,
+  bancolombia: BancolombiaIcon,
+  davivienda: DaviviendaIcon,
+  complimentary: PhGift,
+};
+
 // Computed properties
 const availablePaymentMethods = computed(() => {
   if (!settingsStore.items.length) return [];
   return settingsStore.items[0].availablePaymentMethods || [];
 });
+
+// Helper functions for payment method binding
+const isPaymentMethodActive = (methodValue) => {
+  return formData.value.activePaymentMethods.includes(methodValue);
+};
+
+const togglePaymentMethod = (methodValue, isActive) => {
+  if (isActive) {
+    if (!formData.value.activePaymentMethods.includes(methodValue)) {
+      formData.value.activePaymentMethods.push(methodValue);
+    }
+  } else {
+    const index = formData.value.activePaymentMethods.indexOf(methodValue);
+    if (index > -1) {
+      formData.value.activePaymentMethods.splice(index, 1);
+    }
+  }
+};
 
 // Computed properties for button text
 const submitButtonText = computed(() => {
@@ -45,9 +84,19 @@ const handleSubmit = () => {
   emit('submit', formData.value);
 };
 
-const handleReset = () => {
+const handleCancel = () => {
+  // Reset form to initial state
   formData.value = { ...props.initialData };
+  // Emit cancel event
+  emit('cancel');
 };
+
+// Watch for initialData changes and update form
+watch(() => props.initialData, (newData) => {
+  if (newData) {
+    formData.value = { ...newData };
+  }
+}, { deep: true, immediate: true });
 </script>
 
 <template>
@@ -56,99 +105,59 @@ const handleReset = () => {
 
     <form @submit.prevent="handleSubmit" class="base-card">
       <!-- Payment Methods Section -->
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-neutral-700 mb-3">
-          Selecciona los métodos de pago que acepta tu negocio:
-        </label>
-        <div class="space-y-2">
-          <div
+      <div class="mb-8">
+        <h3 class="text-lg font-semibold text-neutral-900 mb-2">Métodos de Pago</h3>
+        <p class="text-sm text-neutral-600 mb-4">
+          Selecciona los métodos de pago que acepta tu negocio
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <FeatureCard
             v-for="method in availablePaymentMethods"
             :key="method.value"
-            class="flex items-center"
-          >
-            <input
-              type="checkbox"
-              :id="`payment-method-${method.value}`"
-              :value="method.value"
-              v-model="formData.activePaymentMethods"
-              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-neutral-300 rounded"
-            />
-            <label
-              :for="`payment-method-${method.value}`"
-              class="ml-2 block text-sm text-neutral-900"
-            >
-              {{ method.label }}
-              <span class="text-neutral-500 text-xs ml-1"
-                >({{ method.displayText }})</span
-              >
-            </label>
-          </div>
+            :model-value="isPaymentMethodActive(method.value)"
+            @update:model-value="(value) => togglePaymentMethod(method.value, value)"
+            :icon="paymentIconMap[method.value] || PhMoney"
+            :title="method.label"
+            :disabled="loading"
+          />
         </div>
       </div>
 
       <!-- Additional Order Features -->
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-neutral-700 mb-3">
-          Características Adicionales:
-        </label>
-        <div class="space-y-3">
-          <div class="flex items-center">
-            <input
-              type="checkbox"
-              id="allow-partial-payment"
-              v-model="formData.allowPartialPayment"
-              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-neutral-300 rounded"
-            />
-            <label
-              for="allow-partial-payment"
-              class="ml-2 block text-sm text-neutral-900"
-            >
-              Permitir Pagos Parciales
-              <span class="text-neutral-500 text-xs block"
-                >Los pedidos pueden tener pagos parciales antes del pago
-                total</span
-              >
-            </label>
-          </div>
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-neutral-900 mb-2">Características Adicionales</h3>
+        <p class="text-sm text-neutral-600 mb-4">
+          Configuraciones adicionales para el manejo de pedidos
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FeatureCard
+            v-model="formData.allowPartialPayment"
+            :icon="PhCurrencyDollar"
+            title="Pagos Parciales"
+            description="Permite a los clientes realizar pagos parciales."
+            :disabled="loading"
+          />
 
-          <div class="flex items-center">
-            <input
-              type="checkbox"
-              id="time-of-day"
-              v-model="formData.timeOfDay"
-              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-neutral-300 rounded"
-            />
-            <label
-              for="time-of-day"
-              class="ml-2 block text-sm text-neutral-900"
-            >
-              Hora de Entrega
-              <span class="text-neutral-500 text-xs block"
-                >Mostrar opción para elegir la hora de entrega
-              </span>
-            </label>
-          </div>
+          <FeatureCard
+            v-model="formData.timeOfDay"
+            :icon="PhClock"
+            title="Hora de Entrega"
+            description="Mostrar campo para seleccionar hora específica de entrega"
+            :disabled="loading"
+          />
         </div>
       </div>
 
       <!-- Form Buttons -->
       <div class="flex gap-2 justify-end">
-        <button
-          type="button"
-          @click="handleReset"
-          :disabled="loading"
-          class="utility-btn"
-        >
-          Resetear
-        </button>
         <button type="submit" :disabled="loading" class="action-btn">
           {{ loading ? loadingText : submitButtonText }}
         </button>
         <button
           type="button"
-          @click="$emit('cancel')"
+          @click="handleCancel"
           :disabled="loading"
-          class="utility-btn"
+          class="danger-btn"
         >
           Cancelar
         </button>

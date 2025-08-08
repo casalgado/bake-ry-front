@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
@@ -201,10 +201,19 @@ const currentOrderFeatures = computed(() => {
 // Features form handlers
 const initializeFeaturesForm = () => {
   const orderFeatures = currentOrderFeatures.value;
-  featuresFormData.value.activePaymentMethods = [...(orderFeatures.activePaymentMethods || [])];
-  featuresFormData.value.allowPartialPayment = orderFeatures.allowPartialPayment || false;
-  featuresFormData.value.timeOfDay = orderFeatures.timeOfDay || false;
+  featuresFormData.value = {
+    activePaymentMethods: [...(orderFeatures.activePaymentMethods || [])],
+    allowPartialPayment: orderFeatures.allowPartialPayment || false,
+    timeOfDay: orderFeatures.timeOfDay || false,
+  };
 };
+
+// Watch for settings changes and reinitialize form
+watch(() => settingsStore.items, () => {
+  if (settingsStore.items.length > 0) {
+    initializeFeaturesForm();
+  }
+}, { immediate: true });
 
 const handleFeaturesSubmit = async (formData) => {
   isFeaturesSaving.value = true;
