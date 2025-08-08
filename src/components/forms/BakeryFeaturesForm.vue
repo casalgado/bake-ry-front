@@ -80,6 +80,22 @@ const loadingText = computed(() => {
   return 'Guardando...';
 });
 
+// Check if form has changes compared to initial data
+const hasChanges = computed(() => {
+  const initial = props.initialData;
+  const current = formData.value;
+
+  // Compare activePaymentMethods arrays
+  const paymentMethodsChanged = JSON.stringify(initial.activePaymentMethods || []) !==
+                                JSON.stringify(current.activePaymentMethods || []);
+
+  // Compare boolean values
+  const partialPaymentChanged = (initial.allowPartialPayment || false) !== current.allowPartialPayment;
+  const timeOfDayChanged = (initial.timeOfDay || false) !== current.timeOfDay;
+
+  return paymentMethodsChanged || partialPaymentChanged || timeOfDayChanged;
+});
+
 const handleSubmit = () => {
   emit('submit', formData.value);
 };
@@ -169,8 +185,8 @@ watch(() => props.initialData, (newData, oldData) => {
         <button
           type="button"
           @click="handleCancel"
-          :disabled="loading"
-          class="danger-btn"
+          :disabled="loading || !hasChanges"
+          :class="hasChanges ? 'danger-btn' : 'disabled-btn'"
         >
           Cancelar
         </button>

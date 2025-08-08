@@ -84,9 +84,9 @@ const handleClick = () => {
       <div class="flex items-center gap-3 mb-2">
         <component
           :is="icon"
-          class="w-6 h-6 text-neutral-600"
+          class="w-6 h-6 text-neutral-600 flex-shrink-0"
         />
-        <h3 class="font-medium text-neutral-900">{{ title }}</h3>
+        <h3 class="font-medium text-neutral-900 mb-0">{{ title }}</h3>
         <span
           v-if="badge"
           class="px-2 py-1 text-xs font-medium bg-neutral-100 text-neutral-600 rounded"
@@ -94,7 +94,7 @@ const handleClick = () => {
           {{ badge }}
         </span>
       </div>
-      
+
       <p
         v-if="description"
         class="text-sm text-neutral-600 mt-1"
