@@ -6,6 +6,8 @@ import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import { PayUService } from '@/services/payuService';
 import { useAuthenticationStore } from '@/stores/authentication';
 import CreditCardForm from '@/components/forms/CreditCardForm.vue';
+import ToastNotification from '@/components/ToastNotification.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
 const settingsStore = useBakerySettingsStore();
 const bakeryUserStore = useBakeryUserStore();
@@ -31,6 +33,12 @@ const newCardForm = ref({
 });
 const isAddingCard = ref(false);
 
+// Toast and confirmation dialog refs
+const toastRef = ref(null);
+const isConfirmOpen = ref(false);
+const confirmAction = ref(null);
+const creditCardFormRef = ref(null);
+
 onMounted(async () => {
   await settingsStore.fetchById('default');
   staffData.value = await settingsStore.staff;
@@ -49,6 +57,10 @@ const loadPaymentMethods = async () => {
   } catch (error) {
     console.error('Error loading payment methods:', error);
     paymentMethods.value = [];
+    toastRef.value?.showError(
+      'Error al Cargar Tarjetas',
+      'No se pudieron cargar las tarjetas guardadas',
+    );
   }
 };
 
@@ -76,16 +88,51 @@ const addCard = async (cardData) => {
 
     // Refresh the payment methods list
     await loadPaymentMethods();
-    resetForm();
+
+    // Reset the form only after successful server response
+    creditCardFormRef.value?.resetForm();
+
+    toastRef.value?.showSuccess(
+      'Tarjeta Agregada',
+      'La tarjeta de crédito ha sido guardada exitosamente',
+    );
 
     console.log('Card added successfully:', response);
   } catch (error) {
     console.error('Error adding card:', error);
-    // You might want to show an error message to the user here
-    alert('Error adding card: ' + (error.message || 'Unknown error'));
+    toastRef.value?.showError(
+      'Error al Agregar Tarjeta',
+      error.message || 'No se pudo agregar la tarjeta. Verifica los datos e intenta nuevamente.',
+    );
   } finally {
     isAddingCard.value = false;
   }
+};
+
+// Show confirmation dialog for card deletion
+const confirmDeleteCard = (card) => {
+  confirmAction.value = {
+    type: 'delete-card',
+    card: card,
+    title: 'Eliminar Tarjeta',
+    message: `¿Estás seguro que deseas eliminar la tarjeta terminada en ${card.maskedNumber}?`,
+  };
+  isConfirmOpen.value = true;
+};
+
+// Handle confirmation dialog actions
+const handleConfirm = async () => {
+  if (confirmAction.value?.type === 'delete-card') {
+    await deleteCard(confirmAction.value.card.id);
+  }
+  isConfirmOpen.value = false;
+  confirmAction.value = null;
+};
+
+const handleCancel = () => {
+  console.log('Action cancelled');
+  isConfirmOpen.value = false;
+  confirmAction.value = null;
 };
 
 const deleteCard = async (cardId) => {
@@ -93,14 +140,24 @@ const deleteCard = async (cardId) => {
     await payuService.deleteToken(cardId);
     // Refresh the payment methods list
     await loadPaymentMethods();
+
+    toastRef.value?.showSuccess(
+      'Tarjeta Eliminada',
+      'La tarjeta ha sido eliminada exitosamente',
+    );
+
     console.log('Card deleted successfully');
   } catch (error) {
     console.error('Error deleting card:', error);
-    alert('Error deleting card: ' + (error.message || 'Unknown error'));
+    toastRef.value?.showError(
+      'Error al Eliminar Tarjeta',
+      error.message || 'No se pudo eliminar la tarjeta. Intenta nuevamente.',
+    );
   }
 };
 
 const resetForm = () => {
+  console.log('Resetting form');
   newCardForm.value = {
     cardNumber: '',
     expiryDate: '',
@@ -127,10 +184,10 @@ const convertToDisplayFormat = (date) => {
 <template>
   <!-- Add Credit Card Form -->
   <CreditCardForm
+    ref="creditCardFormRef"
     :initial-data="newCardForm"
     :loading="isAddingCard"
     @submit="addCard"
-    @cancel="resetForm"
   />
 
   <!-- Stored Cards List -->
@@ -169,7 +226,7 @@ const convertToDisplayFormat = (date) => {
           </div>
         </div>
         <button
-          @click="deleteCard(card.id)"
+          @click="confirmDeleteCard(card)"
           class="text-red-600 hover:text-red-800 px-3 py-1 text-sm"
         >
           Eliminar
@@ -178,6 +235,20 @@ const convertToDisplayFormat = (date) => {
     </div>
   </div>
 </div>
+
+<!-- Toast Notifications -->
+<ToastNotification ref="toastRef" />
+
+<!-- Confirmation Dialog -->
+<ConfirmDialog
+  :is-open="isConfirmOpen"
+  :title="confirmAction?.title || ''"
+  :message="confirmAction?.message || ''"
+  confirm-text="Eliminar"
+  cancel-text="Cancelar"
+  @confirm="handleConfirm"
+  @cancel="handleCancel"
+/>
 </template>
 
 <style scoped lang="scss">

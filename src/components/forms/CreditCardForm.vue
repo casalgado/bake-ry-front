@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, defineProps, defineEmits } from 'vue';
+import ToastNotification from '@/components/ToastNotification.vue';
 
 const props = defineProps({
   title: {
@@ -26,6 +27,7 @@ const emit = defineEmits(['submit', 'cancel']);
 
 const formData = ref({ ...props.initialData });
 const errors = ref({});
+const toastRef = ref(null);
 
 // Format card number input
 const formatCardNumber = (event) => {
@@ -119,7 +121,16 @@ const isValidCard = computed(() => {
 });
 
 const handleSubmit = () => {
-  if (!validate()) return;
+  if (!validate()) {
+    // Show validation error toast
+    console.log('Validation errors:', errors.value);
+    const firstError = Object.values(errors.value)[0];
+    toastRef.value?.showError(
+      'Error de Validación',
+      firstError || 'Por favor, corrige los errores del formulario',
+    );
+    return;
+  }
 
   // Clean card number for submission
   const submitData = {
@@ -129,6 +140,28 @@ const handleSubmit = () => {
 
   emit('submit', submitData);
 };
+
+const resetForm = () => {
+  // Reset form data
+  formData.value = {
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    cardholderName: '',
+    identificationNumber: '',
+  };
+  // Clear any validation errors
+  errors.value = {};
+};
+
+const handleCancel = () => {
+  resetForm();
+};
+
+// Expose methods to parent component
+defineExpose({
+  resetForm,
+});
 
 // Computed property for submit button text
 const submitButtonText = computed(() => {
@@ -214,14 +247,14 @@ const submitButtonText = computed(() => {
       <div class="flex gap-2 justify-end mt-6">
         <button
           type="submit"
-          :disabled="!isValidCard || loading"
+          :disabled="loading"
           class="action-btn"
         >
           {{ submitButtonText }}
         </button>
         <button
           type="button"
-          @click="$emit('cancel')"
+          @click="handleCancel"
           :disabled="loading"
           class="danger-btn"
         >
@@ -230,6 +263,9 @@ const submitButtonText = computed(() => {
       </div>
     </form>
   </div>
+
+  <!-- Toast Notifications -->
+  <ToastNotification ref="toastRef" />
 </template>
 
 <style scoped>

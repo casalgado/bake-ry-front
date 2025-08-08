@@ -1,0 +1,1 @@
+when producing vue components, the order of the sections will always be script, template, styles. 

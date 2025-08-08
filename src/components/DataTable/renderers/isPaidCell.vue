@@ -33,12 +33,10 @@ const props = defineProps({
 const displayDate = computed(() => {
   if (props.paymentDate) {
     const date = new Date(props.paymentDate);
-    console.log('payment date', date);
     return date.toLocaleDateString('es-CO', { day: 'numeric', month: 'numeric' });
   }
   if (props.partialPaymentDate) {
     const date = new Date(props.partialPaymentDate);
-    console.log('ppd date', date);
     return `${date.toLocaleDateString('es-CO', { day: 'numeric', month: 'numeric' })}`;
   }
   return '';
