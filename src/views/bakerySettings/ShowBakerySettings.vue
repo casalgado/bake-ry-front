@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
@@ -14,6 +14,12 @@ const bakeryUserStore = useBakeryUserStore();
 const authStore = useAuthenticationStore();
 const staffData = ref([]);
 const b2bClientsData = ref([]);
+
+// Features form state
+const featuresForm = ref({
+  activePaymentMethods: [],
+});
+const isFeaturesSaving = ref(false);
 
 // Initialize PayU service
 const payuService = new PayUService(authStore.getBakeryId);
@@ -44,6 +50,9 @@ onMounted(async () => {
   staffData.value = await settingsStore.staff;
   b2bClientsData.value = await settingsStore.b2b_clients;
   console.log(b2bClientsData.value);
+
+  // Initialize features form
+  initializeFeaturesForm();
 
   // Load stored payment methods
   await loadPaymentMethods();
@@ -179,9 +188,107 @@ const convertToDisplayFormat = (date) => {
   const [year, month] = date.split('/');
   return `${month}/${year.slice(2)}`; // Convert YYYY/MM to MM/YY
 };
+
+// Features form computed properties
+const availablePaymentMethods = computed(() => {
+  if (!settingsStore.items.length) return [];
+  return settingsStore.items[0].availablePaymentMethods || [];
+});
+
+const currentActivePaymentMethods = computed(() => {
+  if (!settingsStore.items.length) return [];
+  return settingsStore.items[0].features?.order?.activePaymentMethods || [];
+});
+
+// Features form handlers
+const initializeFeaturesForm = () => {
+  featuresForm.value.activePaymentMethods = [...currentActivePaymentMethods.value];
+};
+
+const handleFeaturesSubmit = async () => {
+  isFeaturesSaving.value = true;
+  try {
+    await settingsStore.patch('default', {
+      features: {
+        order: {
+          activePaymentMethods: featuresForm.value.activePaymentMethods,
+        },
+      },
+    });
+
+    toastRef.value?.showSuccess(
+      'Configuración Guardada',
+      'Los métodos de pago activos han sido actualizados',
+    );
+  } catch (error) {
+    console.error('Error saving features:', error);
+    toastRef.value?.showError(
+      'Error al Guardar',
+      'No se pudo guardar la configuración. Intenta nuevamente.',
+    );
+  } finally {
+    isFeaturesSaving.value = false;
+  }
+};
+
+const resetFeaturesForm = () => {
+  initializeFeaturesForm();
+};
 </script>
 
 <template>
+  <!-- Payment Methods Features Form -->
+  <div class="form-container">
+    <h2>Métodos de Pago Activos</h2>
+    <form @submit.prevent="handleFeaturesSubmit" class="base-card">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-neutral-700 mb-3">
+          Selecciona los métodos de pago que estarán disponibles:
+        </label>
+        <div class="space-y-2">
+          <div
+            v-for="method in availablePaymentMethods"
+            :key="method.value"
+            class="flex items-center"
+          >
+            <input
+              type="checkbox"
+              :id="`payment-method-${method.value}`"
+              :value="method.value"
+              v-model="featuresForm.activePaymentMethods"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-neutral-300 rounded"
+            />
+            <label
+              :for="`payment-method-${method.value}`"
+              class="ml-2 block text-sm text-neutral-900"
+            >
+              {{ method.label }}
+              <span class="text-neutral-500 text-xs ml-1">({{ method.displayText }})</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 justify-end">
+        <button
+          type="button"
+          @click="resetFeaturesForm"
+          :disabled="isFeaturesSaving"
+          class="utility-btn"
+        >
+          Resetear
+        </button>
+        <button
+          type="submit"
+          :disabled="isFeaturesSaving"
+          class="action-btn"
+        >
+          {{ isFeaturesSaving ? 'Guardando...' : 'Guardar Cambios' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
   <!-- Add Credit Card Form -->
   <CreditCardForm
     ref="creditCardFormRef"

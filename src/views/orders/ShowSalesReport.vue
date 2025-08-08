@@ -179,8 +179,20 @@ const paymentMethodsData = computed(() => {
   const methods = safeGet(salesReport.value, 'salesMetrics.byPaymentMethod');
   if (!methods) return [];
 
+  // Get payment method labels from bakery settings
+  const getPaymentMethodLabel = (methodId) => {
+    if (!settingsStore.items.length) return methodId;
+
+    const settings = settingsStore.items[0];
+    const availableMethod = settings.availablePaymentMethods?.find(
+      method => method.value === methodId,
+    );
+
+    return availableMethod?.label || methodId;
+  };
+
   return Object.entries(methods).map(([method, data]) => ({
-    method: method,
+    method: getPaymentMethodLabel(method),
     total: data?.total ?? 0,
     percentage: data?.percentage ?? 0,
     orders: data?.orders ?? 0,
@@ -188,7 +200,7 @@ const paymentMethodsData = computed(() => {
 });
 
 const paymentMethodsColumns = [
-  { key: 'method', label: 'Método', formatter: 'capitalize' },
+  { key: 'method', label: 'Método' },
   {
     key: 'total',
     label: 'Total',
