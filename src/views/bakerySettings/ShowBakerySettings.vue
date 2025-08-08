@@ -201,11 +201,14 @@ const currentOrderFeatures = computed(() => {
 // Features form handlers
 const initializeFeaturesForm = () => {
   const orderFeatures = currentOrderFeatures.value;
-  featuresFormData.value = {
-    activePaymentMethods: [...(orderFeatures.activePaymentMethods || [])],
-    allowPartialPayment: orderFeatures.allowPartialPayment || false,
-    timeOfDay: orderFeatures.timeOfDay || false,
-  };
+  // Only update if we have valid data and avoid overriding existing values
+  if (orderFeatures && Object.keys(orderFeatures).length > 0) {
+    featuresFormData.value = {
+      activePaymentMethods: [...(orderFeatures.activePaymentMethods || featuresFormData.value.activePaymentMethods || [])],
+      allowPartialPayment: Object.prototype.hasOwnProperty.call(orderFeatures, 'allowPartialPayment') ? orderFeatures.allowPartialPayment : featuresFormData.value.allowPartialPayment,
+      timeOfDay: Object.prototype.hasOwnProperty.call(orderFeatures, 'timeOfDay') ? orderFeatures.timeOfDay : featuresFormData.value.timeOfDay,
+    };
+  }
 };
 
 // Watch for settings changes and reinitialize form
@@ -218,9 +221,15 @@ watch(() => settingsStore.items, () => {
 const handleFeaturesSubmit = async (formData) => {
   isFeaturesSaving.value = true;
   try {
+    // Preserve existing order features and merge with new data
+    const currentFeatures = settingsStore.items[0]?.features || {};
+    const currentOrderFeatures = currentFeatures.order || {};
+
     await settingsStore.patch('default', {
       features: {
+        ...currentFeatures,
         order: {
+          ...currentOrderFeatures,
           activePaymentMethods: formData.activePaymentMethods,
           allowPartialPayment: formData.allowPartialPayment,
           timeOfDay: formData.timeOfDay,
@@ -228,8 +237,12 @@ const handleFeaturesSubmit = async (formData) => {
       },
     });
 
-    // Update local form data after successful save
-    featuresFormData.value = { ...formData };
+    // Update local form data after successful save - preserve all values
+    featuresFormData.value = {
+      activePaymentMethods: formData.activePaymentMethods,
+      allowPartialPayment: formData.allowPartialPayment,
+      timeOfDay: formData.timeOfDay,
+    };
 
     toastRef.value?.showSuccess(
       'Configuración Guardada',

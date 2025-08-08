@@ -91,10 +91,21 @@ const handleCancel = () => {
   emit('cancel');
 };
 
-// Watch for initialData changes and update form
-watch(() => props.initialData, (newData) => {
-  if (newData) {
-    formData.value = { ...newData };
+// Watch for initialData changes and update form selectively
+watch(() => props.initialData, (newData, oldData) => {
+  if (newData && newData !== oldData) {
+    // Only update fields that have actually changed to prevent overriding user input
+    if (JSON.stringify(newData.activePaymentMethods) !== JSON.stringify(formData.value.activePaymentMethods)) {
+      formData.value.activePaymentMethods = [...(newData.activePaymentMethods || [])];
+    }
+
+    if (Object.prototype.hasOwnProperty.call(newData, 'allowPartialPayment') && newData.allowPartialPayment !== formData.value.allowPartialPayment) {
+      formData.value.allowPartialPayment = newData.allowPartialPayment;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(newData, 'timeOfDay') && newData.timeOfDay !== formData.value.timeOfDay) {
+      formData.value.timeOfDay = newData.timeOfDay;
+    }
   }
 }, { deep: true, immediate: true });
 </script>
