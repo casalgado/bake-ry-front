@@ -26,6 +26,10 @@ const props = defineProps({
       timeOfDay: false,
     }),
   },
+  availablePaymentMethods: {
+    type: Array,
+    default: () => [],
+  },
   loading: {
     type: Boolean,
     default: false,
@@ -47,10 +51,9 @@ const paymentIconMap = {
   complimentary: PhGift,
 };
 
-// Computed properties
+// Use the passed available payment methods prop
 const availablePaymentMethods = computed(() => {
-  if (!settingsStore.items.length) return [];
-  return settingsStore.items[0].availablePaymentMethods || [];
+  return props.availablePaymentMethods || [];
 });
 
 // Helper functions for payment method binding

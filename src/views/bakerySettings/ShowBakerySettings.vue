@@ -198,6 +198,13 @@ const currentOrderFeatures = computed(() => {
   return settingsStore.items[0].features?.order || {};
 });
 
+// Filter available payment methods to exclude complimentary (always enabled by default)
+const configurablePaymentMethods = computed(() => {
+  if (!settingsStore.items.length) return [];
+  const allMethods = settingsStore.items[0].availablePaymentMethods || [];
+  return allMethods.filter(method => method.value !== 'complimentary');
+});
+
 // Features form handlers
 const initializeFeaturesForm = () => {
   const orderFeatures = currentOrderFeatures.value;
@@ -265,6 +272,7 @@ const handleFeaturesSubmit = async (formData) => {
   <BakeryFeaturesForm
     title="Configuracion de Ventas y Pedidos"
     :initial-data="featuresFormData"
+    :available-payment-methods="configurablePaymentMethods"
     :loading="isFeaturesSaving"
     @submit="handleFeaturesSubmit"
   />
