@@ -32,7 +32,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['submit', 'cancel']);
+const emit = defineEmits(['submit']);
 
 const settingsStore = useBakerySettingsStore();
 const formData = ref({ ...props.initialData });
@@ -86,9 +86,11 @@ const handleSubmit = () => {
 
 const handleCancel = () => {
   // Reset form to initial state
-  formData.value = { ...props.initialData };
-  // Emit cancel event
-  emit('cancel');
+  formData.value = {
+    activePaymentMethods: [...(props.initialData.activePaymentMethods || [])],
+    allowPartialPayment: props.initialData.allowPartialPayment || false,
+    timeOfDay: props.initialData.timeOfDay || false,
+  };
 };
 
 // Watch for initialData changes and update form selectively
