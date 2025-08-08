@@ -107,24 +107,24 @@ const {
   // Action handler
   async onAction({ actionId, selectedItems: items }) {
     switch (actionId) {
-      case 'edit':
-        isFormOpen.value = true;
-        break;
-      case 'set_delivery_price':
-        selectedDeliveryCost.value = 5000;
-        isDeliveryPriceDialogOpen.value = true;
-        break;
-      case 'set_number_of_bags':
-        selectedNumberOfBags.value = 0;
-        isNumberOfBagsDialogOpen.value = true;
-        break;
-      case 'set_driver':
-        isDriverDialogOpen.value = true;
-        break;
-      case 'set_address':
-        editingAddress.value = items[0].deliveryAddress || '';
-        isAddressDialogOpen.value = true;
-        break;
+    case 'edit':
+      isFormOpen.value = true;
+      break;
+    case 'set_delivery_price':
+      selectedDeliveryCost.value = 5000;
+      isDeliveryPriceDialogOpen.value = true;
+      break;
+    case 'set_number_of_bags':
+      selectedNumberOfBags.value = 0;
+      isNumberOfBagsDialogOpen.value = true;
+      break;
+    case 'set_driver':
+      isDriverDialogOpen.value = true;
+      break;
+    case 'set_address':
+      editingAddress.value = items[0].deliveryAddress || '';
+      isAddressDialogOpen.value = true;
+      break;
     }
   },
 });
@@ -407,7 +407,7 @@ watch(
       console.error('Failed to fetch orders:', error);
     }
   },
-  { deep: true }
+  { deep: true },
 );
 </script>
 <template>

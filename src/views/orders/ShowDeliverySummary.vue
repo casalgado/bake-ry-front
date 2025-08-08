@@ -67,7 +67,7 @@ const driverSummaries = computed(() => {
 
   if (props.singleDriverMode && props.driverId) {
     orders = orders.filter(
-      (order) => order.deliveryDriverId === props.driverId
+      (order) => order.deliveryDriverId === props.driverId,
     );
   }
 
@@ -98,7 +98,7 @@ const driverSummaries = computed(() => {
         },
         deliveries: driverOrders,
       };
-    }
+    },
   );
 });
 
@@ -239,7 +239,7 @@ const handleMarkPeriodPaid = async (driverId) => {
   try {
     // Get unpaid deliveries
     const unpaidDeliveries = driverSummary.deliveries.filter(
-      (order) => !order.isDeliveryPaid
+      (order) => !order.isDeliveryPaid,
     );
 
     if (unpaidDeliveries.length === 0) return;
@@ -299,7 +299,7 @@ watch(
       console.error('Failed to fetch orders:', error);
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 onMounted(async () => {
@@ -308,7 +308,7 @@ onMounted(async () => {
     await settingsStore.fetchById('default');
     drivers.value = await settingsStore.staff;
     drivers.value = drivers.value.filter(
-      (driver) => driver.role == 'delivery_assistant'
+      (driver) => driver.role == 'delivery_assistant',
     );
 
     await orderStore.fetchAll({

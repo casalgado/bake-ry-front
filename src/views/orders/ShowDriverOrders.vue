@@ -18,6 +18,7 @@ import NumberOfBagsCell from '@/components/DataTable/renderers/NumberOfBagsCell.
 import { usePeriodStore } from '@/stores/periodStore';
 import { useOrderStore } from '@/stores/orderStore';
 import { useAuthenticationStore } from '@/stores/authentication';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 // Components
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
@@ -32,10 +33,13 @@ import {
   PhBuilding,
   PhListNumbers,
 } from '@phosphor-icons/vue';
+import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
+import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const authStore = useAuthenticationStore();
+const settingsStore = useBakerySettingsStore();
 const isSequenceDialogOpen = ref(false);
 const selectedSequence = ref(1);
 
@@ -60,6 +64,9 @@ const {
 } = useDataTable(orderStore, {
   processData,
   subscribeToChanges: true,
+  async onBeforeFetch() {
+    await settingsStore.fetchById('default');
+  },
   async onAction({ actionId }) {
     switch (actionId) {
     case 'set_sequence':
@@ -79,6 +86,30 @@ const {
     },
   },
 });
+
+// get Bakery Features from settings
+const features = computed(() => {
+  if (!settingsStore.items.length) return {};
+  return settingsStore.items[0].features;
+});
+
+// Helper function to check if a payment method should be skipped
+const shouldSkipPaymentMethod = (paymentMethod) => {
+  const additionalMethods = ['bancolombia', 'davivienda'];
+
+  // If it's not an additional method, use existing skipWhenToggled logic
+  if (!additionalMethods.includes(paymentMethod)) {
+    return false;
+  }
+
+  // If features aren't loaded yet, skip additional methods by default
+  if (!features.value?.order?.additionalPaymentMethods) {
+    return true;
+  }
+
+  // Skip if the payment method is not in the bakery's additional payment methods
+  return !features.value.order.additionalPaymentMethods.includes(paymentMethod);
+};
 
 const closeSequenceDialog = () => {
   isSequenceDialogOpen.value = false;
@@ -107,20 +138,20 @@ const tableActions = [
   {
     id: 'set_sequence',
     label: 'Secuencia',
-    icon: PhListNumbers, // You'll need to import this icon
+    icon: PhListNumbers,
     minSelected: 1,
     variant: 'primary',
   },
 ];
 
-// Column definitions
-const columns = [
+// Column definitions (now computed to handle dynamic payment methods)
+const columns = computed(() => [
   {
     id: 'deliverySequence',
     label: 'ORD',
     field: 'deliverySequence',
     sortable: true,
-    type: 'action', // This makes it clickable
+    type: 'action',
     onClick: (row) => {
       selectedSequence.value = row.deliverySequence || 0;
       isSequenceDialogOpen.value = true;
@@ -204,6 +235,18 @@ const columns = [
         skipWhenToggled: true,
       },
       {
+        value: 'bancolombia',
+        displayText: 'B',
+        icon: BancolombiaIcon,
+        skipWhenToggled: shouldSkipPaymentMethod('bancolombia'),
+      },
+      {
+        value: 'davivienda',
+        displayText: 'D',
+        icon: DaviviendaIcon,
+        skipWhenToggled: shouldSkipPaymentMethod('davivienda'),
+      },
+      {
         value: 'complimentary',
         displayText: 'R',
         icon: PhGift,
@@ -238,7 +281,8 @@ const columns = [
       { value: 3, displayText: '', icon: PhBuilding },
     ],
   },
-];
+]);
+
 // Watch for period changes and fetch new data
 watch(
   () => periodStore.periodRange,
@@ -260,6 +304,7 @@ watch(
   { deep: true },
 );
 </script>
+
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
