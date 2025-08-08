@@ -6,6 +6,7 @@ import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import { PayUService } from '@/services/payuService';
 import { useAuthenticationStore } from '@/stores/authentication';
 import CreditCardForm from '@/components/forms/CreditCardForm.vue';
+import BakeryFeaturesForm from '@/components/forms/BakeryFeaturesForm.vue';
 import ToastNotification from '@/components/ToastNotification.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
@@ -16,7 +17,7 @@ const staffData = ref([]);
 const b2bClientsData = ref([]);
 
 // Features form state
-const featuresForm = ref({
+const featuresFormData = ref({
   activePaymentMethods: [],
   allowPartialPayment: false,
   timeOfDay: false,
@@ -192,16 +193,6 @@ const convertToDisplayFormat = (date) => {
 };
 
 // Features form computed properties
-const availablePaymentMethods = computed(() => {
-  if (!settingsStore.items.length) return [];
-  return settingsStore.items[0].availablePaymentMethods || [];
-});
-
-const currentActivePaymentMethods = computed(() => {
-  if (!settingsStore.items.length) return [];
-  return settingsStore.items[0].features?.order?.activePaymentMethods || [];
-});
-
 const currentOrderFeatures = computed(() => {
   if (!settingsStore.items.length) return {};
   return settingsStore.items[0].features?.order || {};
@@ -210,23 +201,26 @@ const currentOrderFeatures = computed(() => {
 // Features form handlers
 const initializeFeaturesForm = () => {
   const orderFeatures = currentOrderFeatures.value;
-  featuresForm.value.activePaymentMethods = [...(orderFeatures.activePaymentMethods || [])];
-  featuresForm.value.allowPartialPayment = orderFeatures.allowPartialPayment || false;
-  featuresForm.value.timeOfDay = orderFeatures.timeOfDay || false;
+  featuresFormData.value.activePaymentMethods = [...(orderFeatures.activePaymentMethods || [])];
+  featuresFormData.value.allowPartialPayment = orderFeatures.allowPartialPayment || false;
+  featuresFormData.value.timeOfDay = orderFeatures.timeOfDay || false;
 };
 
-const handleFeaturesSubmit = async () => {
+const handleFeaturesSubmit = async (formData) => {
   isFeaturesSaving.value = true;
   try {
     await settingsStore.patch('default', {
       features: {
         order: {
-          activePaymentMethods: featuresForm.value.activePaymentMethods,
-          allowPartialPayment: featuresForm.value.allowPartialPayment,
-          timeOfDay: featuresForm.value.timeOfDay,
+          activePaymentMethods: formData.activePaymentMethods,
+          allowPartialPayment: formData.allowPartialPayment,
+          timeOfDay: formData.timeOfDay,
         },
       },
     });
+
+    // Update local form data after successful save
+    featuresFormData.value = { ...formData };
 
     toastRef.value?.showSuccess(
       'Configuración Guardada',
@@ -242,104 +236,16 @@ const handleFeaturesSubmit = async () => {
     isFeaturesSaving.value = false;
   }
 };
-
-const resetFeaturesForm = () => {
-  initializeFeaturesForm();
-};
 </script>
 
 <template>
   <!-- Payment Methods Features Form -->
-  <div class="form-container">
-    <h2>Métodos de Pago Activos</h2>
-    <form @submit.prevent="handleFeaturesSubmit" class="base-card">
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-neutral-700 mb-3">
-          Selecciona los métodos de pago que estarán disponibles:
-        </label>
-        <div class="space-y-2">
-          <div
-            v-for="method in availablePaymentMethods"
-            :key="method.value"
-            class="flex items-center"
-          >
-            <input
-              type="checkbox"
-              :id="`payment-method-${method.value}`"
-              :value="method.value"
-              v-model="featuresForm.activePaymentMethods"
-              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-neutral-300 rounded"
-            />
-            <label
-              :for="`payment-method-${method.value}`"
-              class="ml-2 block text-sm text-neutral-900"
-            >
-              {{ method.label }}
-              <span class="text-neutral-500 text-xs ml-1">({{ method.displayText }})</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Additional Order Features -->
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-neutral-700 mb-3">
-          Características Adicionales:
-        </label>
-        <div class="space-y-3">
-          <div class="flex items-center">
-            <input
-              type="checkbox"
-              id="allow-partial-payment"
-              v-model="featuresForm.allowPartialPayment"
-              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-neutral-300 rounded"
-            />
-            <label
-              for="allow-partial-payment"
-              class="ml-2 block text-sm text-neutral-900"
-            >
-              Permitir Pagos Parciales
-              <span class="text-neutral-500 text-xs block">Los pedidos pueden tener pagos parciales antes del pago total</span>
-            </label>
-          </div>
-
-          <div class="flex items-center">
-            <input
-              type="checkbox"
-              id="time-of-day"
-              v-model="featuresForm.timeOfDay"
-              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-neutral-300 rounded"
-            />
-            <label
-              for="time-of-day"
-              class="ml-2 block text-sm text-neutral-900"
-            >
-              Hora de Entrega
-              <span class="text-neutral-500 text-xs block">Mostrar campo de hora específica para entregas</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex gap-2 justify-end">
-        <button
-          type="button"
-          @click="resetFeaturesForm"
-          :disabled="isFeaturesSaving"
-          class="utility-btn"
-        >
-          Resetear
-        </button>
-        <button
-          type="submit"
-          :disabled="isFeaturesSaving"
-          class="action-btn"
-        >
-          {{ isFeaturesSaving ? 'Guardando...' : 'Guardar Cambios' }}
-        </button>
-      </div>
-    </form>
-  </div>
+  <BakeryFeaturesForm
+    title="Configuracion de Ventas y Pedidos"
+    :initial-data="featuresFormData"
+    :loading="isFeaturesSaving"
+    @submit="handleFeaturesSubmit"
+  />
 
   <!-- Add Credit Card Form -->
   <CreditCardForm
