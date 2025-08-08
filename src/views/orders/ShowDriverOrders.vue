@@ -108,13 +108,7 @@ const paymentMethodOptions = computed(() => {
   if (!settingsStore.items.length) return [];
 
   const settings = settingsStore.items[0];
-  const availablePaymentMethods = settings.availablePaymentMethods || [];
-  const activePaymentMethods = settings.features?.order?.activePaymentMethods || [];
-
-  // Filter available methods to only show active ones
-  return availablePaymentMethods.filter(method =>
-    activePaymentMethods.includes(method.value),
-  );
+  return settings.availablePaymentMethods || [];
 });
 
 const closeSequenceDialog = () => {
@@ -232,11 +226,14 @@ const columns = computed(() => [
     sortable: true,
     type: 'toggle',
     get options() {
+      const settings = settingsStore.items[0];
+      const activePaymentMethods = settings?.features?.order?.activePaymentMethods || [];
+
       return paymentMethodOptions.value.map(method => ({
         value: method.value,
         displayText: method.displayText,
         icon: paymentIconMap[method.value] || PhMoney,
-        skipWhenToggled: method.value === 'complimentary',
+        skipWhenToggled: method.value === 'complimentary' || !activePaymentMethods.includes(method.value),
       }));
     },
   },
