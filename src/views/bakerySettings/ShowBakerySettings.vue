@@ -5,6 +5,8 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import { PayUService } from '@/services/payuService';
 import { useAuthenticationStore } from '@/stores/authentication';
+import api from '@/services/api';
+import { auth } from '@/config/firebase';
 import CreditCardForm from '@/components/forms/CreditCardForm.vue';
 import BakeryFeaturesForm from '@/components/forms/BakeryFeaturesForm.vue';
 import ToastNotification from '@/components/ToastNotification.vue';
@@ -42,6 +44,17 @@ const newCardForm = ref({
 });
 const isAddingCard = ref(false);
 
+// Subscription state
+const subscriptionData = ref(null);
+const isLoadingSubscription = ref(false);
+const jwtClaims = ref(null);
+const subscriptionActions = ref({
+  retryPayment: false,
+  cancelSubscription: false,
+  reactivateSubscription: false,
+});
+const selectedCardForReactivation = ref(null);
+
 // Toast and confirmation dialog refs
 const toastRef = ref(null);
 const isConfirmOpen = ref(false);
@@ -59,6 +72,12 @@ onMounted(async () => {
 
   // Load stored payment methods
   await loadPaymentMethods();
+
+  // Load subscription data
+  await loadSubscriptionData();
+
+  // Get JWT claims
+  await loadJWTClaims();
 });
 
 // Load stored payment methods
@@ -73,6 +92,144 @@ const loadPaymentMethods = async () => {
       'Error al Cargar Tarjetas',
       'No se pudieron cargar las tarjetas guardadas',
     );
+  }
+};
+
+// Load subscription data
+const loadSubscriptionData = async () => {
+  isLoadingSubscription.value = true;
+  try {
+    const response = await api.get(`/bakeries/${authStore.getBakeryId}/settings/default`);
+    subscriptionData.value = response.data?.subscription || null;
+    console.log('Subscription data loaded:', subscriptionData.value);
+  } catch (error) {
+    console.error('Error loading subscription data:', error);
+    subscriptionData.value = null;
+    toastRef.value?.showError(
+      'Error al Cargar Suscripción',
+      'No se pudo cargar la información de suscripción',
+    );
+  } finally {
+    isLoadingSubscription.value = false;
+  }
+};
+
+// Load JWT claims
+const loadJWTClaims = async () => {
+  try {
+    if (auth.currentUser) {
+      const tokenResult = await auth.currentUser.getIdTokenResult();
+      jwtClaims.value = tokenResult.claims;
+      console.log('JWT claims loaded:', jwtClaims.value);
+    }
+  } catch (error) {
+    console.error('Error loading JWT claims:', error);
+    jwtClaims.value = null;
+  }
+};
+
+// Subscription action handlers
+const retryPayment = async () => {
+  subscriptionActions.value.retryPayment = true;
+  try {
+    const response = await api.patch(`/bakeries/${authStore.getBakeryId}/settings/default`, {
+      subscription: {
+        _action: 'retry_payment',
+      },
+    });
+
+    await loadSubscriptionData();
+    await loadJWTClaims();
+
+    toastRef.value?.showSuccess(
+      'Pago Reintentado',
+      'El reintento de pago ha sido iniciado exitosamente',
+    );
+
+    console.log('Payment retry successful:', response);
+  } catch (error) {
+    console.error('Error retrying payment:', error);
+    toastRef.value?.showError(
+      'Error al Reintentar Pago',
+      error.message || 'No se pudo reintentar el pago. Intenta nuevamente.',
+    );
+  } finally {
+    subscriptionActions.value.retryPayment = false;
+  }
+};
+
+const cancelSubscription = async () => {
+  subscriptionActions.value.cancelSubscription = true;
+  try {
+    const response = await api.patch(`/bakeries/${authStore.getBakeryId}/settings/default`, {
+      subscription: {
+        _action: 'cancel_subscription',
+      },
+    });
+
+    await loadSubscriptionData();
+    await loadJWTClaims();
+
+    toastRef.value?.showSuccess(
+      'Suscripción Cancelada',
+      'La suscripción ha sido cancelada exitosamente',
+    );
+
+    console.log('Subscription cancelled:', response);
+  } catch (error) {
+    console.error('Error cancelling subscription:', error);
+    toastRef.value?.showError(
+      'Error al Cancelar Suscripción',
+      error.message || 'No se pudo cancelar la suscripción. Intenta nuevamente.',
+    );
+  } finally {
+    subscriptionActions.value.cancelSubscription = false;
+  }
+};
+
+const reactivateSubscription = async (selectedCardId = null) => {
+  // If no card selected and we have payment methods, show selection
+  if (!selectedCardId && paymentMethods.value.length > 0) {
+    // For now, auto-select the first available card
+    // In a full UI, this would show a selection dialog
+    selectedCardId = paymentMethods.value[0].id;
+    console.log('Auto-selecting card for reactivation:', selectedCardId);
+  }
+
+  if (!selectedCardId) {
+    toastRef.value?.showError(
+      'Tarjeta Requerida',
+      'Necesitas una tarjeta guardada para reactivar la suscripción',
+    );
+    return;
+  }
+
+  subscriptionActions.value.reactivateSubscription = true;
+  try {
+    const response = await api.patch(`/bakeries/${authStore.getBakeryId}/settings/default`, {
+      subscription: {
+        _action: 'reactivate_subscription',
+        savedCardId: selectedCardId,
+      },
+    });
+
+    await loadSubscriptionData();
+    await loadJWTClaims();
+
+    toastRef.value?.showSuccess(
+      'Suscripción Reactivada',
+      'La suscripción ha sido reactivada exitosamente',
+    );
+
+    console.log('Subscription reactivated with card:', selectedCardId, response);
+  } catch (error) {
+    console.error('Error reactivating subscription:', error);
+    toastRef.value?.showError(
+      'Error al Reactivar Suscripción',
+      error.message || 'No se pudo reactivar la suscripción. Intenta nuevamente.',
+    );
+  } finally {
+    subscriptionActions.value.reactivateSubscription = false;
   }
 };
 
@@ -325,6 +482,147 @@ const handleFeaturesSubmit = async (formData) => {
           class="text-red-600 hover:text-red-800 px-3 py-1 text-sm"
         >
           Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Subscription Management -->
+<div class="form-container">
+  <h2>Gestión de Suscripción</h2>
+  <div class="base-card p-6" style="margin-bottom: 1rem;">
+
+    <div v-if="isLoadingSubscription" class="text-center py-8">
+      <div class="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+      <p class="text-neutral-600">Cargando información de suscripción...</p>
+    </div>
+
+    <div v-else class="space-y-6">
+      <!-- JWT Claims Section -->
+      <div class="border border-neutral-200 rounded-lg p-4 bg-gray-50">
+        <h3 class="font-medium text-sm text-gray-800 mb-3">Información JWT (Token Claims)</h3>
+        <div v-if="jwtClaims" class="space-y-2 text-sm">
+          <div><span class="font-medium">Role:</span> {{ jwtClaims.role || 'N/A' }}</div>
+          <div><span class="font-medium">Bakery ID:</span> {{ jwtClaims.bakeryId || 'N/A' }}</div>
+          <div><span class="font-medium">Subscription Status:</span>
+            <span :class="{
+              'text-green-600': jwtClaims.subscriptionStatus === 'ACTIVE',
+              'text-blue-600': jwtClaims.subscriptionStatus === 'TRIAL',
+              'text-orange-600': jwtClaims.subscriptionStatus === 'PAYMENT_FAILED',
+              'text-red-600': jwtClaims.subscriptionStatus === 'SUSPENDED',
+              'text-gray-600': jwtClaims.subscriptionStatus === 'CANCELLED'
+            }">
+              {{ jwtClaims.subscriptionStatus || 'N/A' }}
+            </span>
+          </div>
+          <div><span class="font-medium">Subscription Tier:</span> {{ jwtClaims.subscriptionTier || 'N/A' }}</div>
+        </div>
+        <div v-else class="text-sm text-gray-600">No se pudieron cargar los claims JWT</div>
+      </div>
+
+      <!-- Subscription Data Section -->
+      <div class="border border-neutral-200 rounded-lg p-4">
+        <h3 class="font-medium text-sm text-gray-800 mb-3">Datos de Suscripción (Backend)</h3>
+        <div v-if="subscriptionData" class="space-y-2 text-sm">
+          <div><span class="font-medium">Status:</span>
+            <span :class="{
+              'text-green-600': subscriptionData.status === 'ACTIVE',
+              'text-blue-600': subscriptionData.status === 'TRIAL',
+              'text-orange-600': subscriptionData.status === 'PAYMENT_FAILED',
+              'text-red-600': subscriptionData.status === 'SUSPENDED',
+              'text-gray-600': subscriptionData.status === 'CANCELLED'
+            }">
+              {{ subscriptionData.status }}
+            </span>
+          </div>
+          <div><span class="font-medium">Tier:</span> {{ subscriptionData.tier }}</div>
+          <div v-if="subscriptionData.amount"><span class="font-medium">Amount:</span> {{ (subscriptionData.amount / 100).toFixed(2) }} {{ subscriptionData.currency }}</div>
+          <div v-if="subscriptionData.subscriptionStartDate"><span class="font-medium">Start Date:</span> {{ new Date(subscriptionData.subscriptionStartDate).toLocaleDateString() }}</div>
+          <div v-if="subscriptionData.savedCardId"><span class="font-medium">Saved Card ID:</span> {{ subscriptionData.savedCardId }}</div>
+          <div v-if="subscriptionData.recurringPaymentId"><span class="font-medium">Recurring Payment ID:</span> {{ subscriptionData.recurringPaymentId }}</div>
+          <div><span class="font-medium">Consecutive Failures:</span> {{ subscriptionData.consecutiveFailures || 0 }}</div>
+        </div>
+        <div v-else class="text-sm text-gray-600">No se encontraron datos de suscripción</div>
+      </div>
+
+      <!-- Card Selection for Reactivation -->
+      <div v-if="subscriptionData?.status === 'CANCELLED' && paymentMethods.length > 0" class="border border-neutral-200 rounded-lg p-4 bg-yellow-50">
+        <h3 class="font-medium text-sm text-gray-800 mb-3">Seleccionar Tarjeta para Reactivación</h3>
+        <div class="space-y-2">
+          <div
+            v-for="card in paymentMethods"
+            :key="card.id"
+            @click="selectedCardForReactivation = card.id"
+            class="flex items-center p-3 border rounded-lg cursor-pointer transition-colors"
+            :class="{
+              'border-green-500 bg-green-50': selectedCardForReactivation === card.id,
+              'border-gray-200 hover:border-gray-300': selectedCardForReactivation !== card.id
+            }"
+          >
+            <input
+              type="radio"
+              :value="card.id"
+              v-model="selectedCardForReactivation"
+              class="mr-3 text-green-600"
+            />
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded flex items-center justify-center">
+                <span class="text-white text-xs font-bold">💳</span>
+              </div>
+              <div>
+                <div class="font-medium text-sm">
+                  {{ `****-****-****-${card.maskedNumber}` }}
+                </div>
+                <div class="text-xs text-gray-600">
+                  {{ card.cardholderName }} • Exp: {{ convertToDisplayFormat(card.expirationDate) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-wrap gap-3">
+        <button
+          @click="retryPayment"
+          :disabled="subscriptionActions.retryPayment"
+          class="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+        >
+          {{ subscriptionActions.retryPayment ? 'Reintentando...' : 'Reintentar Pago' }}
+        </button>
+
+        <button
+          @click="cancelSubscription"
+          :disabled="subscriptionActions.cancelSubscription"
+          class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+        >
+          {{ subscriptionActions.cancelSubscription ? 'Cancelando...' : 'Cancelar Suscripción' }}
+        </button>
+
+        <button
+          @click="reactivateSubscription(selectedCardForReactivation)"
+          :disabled="subscriptionActions.reactivateSubscription || (subscriptionData?.status === 'CANCELLED' && paymentMethods.length > 0 && !selectedCardForReactivation)"
+          class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          :title="(subscriptionData?.status === 'CANCELLED' && paymentMethods.length > 0 && !selectedCardForReactivation) ? 'Selecciona una tarjeta para reactivar' : ''"
+        >
+          {{ subscriptionActions.reactivateSubscription ? 'Reactivando...' : 'Reactivar Suscripción' }}
+        </button>
+
+        <button
+          @click="loadSubscriptionData"
+          :disabled="isLoadingSubscription"
+          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+        >
+          {{ isLoadingSubscription ? 'Cargando...' : 'Recargar Datos' }}
+        </button>
+
+        <button
+          @click="loadJWTClaims"
+          class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 text-sm"
+        >
+          Recargar JWT Claims
         </button>
       </div>
     </div>
