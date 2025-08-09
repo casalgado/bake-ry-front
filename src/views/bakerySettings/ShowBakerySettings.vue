@@ -52,8 +52,10 @@ const subscriptionActions = ref({
   retryPayment: false,
   cancelSubscription: false,
   reactivateSubscription: false,
+  createSubscription: false,
 });
 const selectedCardForReactivation = ref(null);
+const selectedCardForCreation = ref(null);
 
 // Toast and confirmation dialog refs
 const toastRef = ref(null);
@@ -184,6 +186,51 @@ const cancelSubscription = async () => {
     );
   } finally {
     subscriptionActions.value.cancelSubscription = false;
+  }
+};
+
+const createSubscription = async (selectedCardId = null) => {
+  // If no card selected and we have payment methods, show selection
+  if (!selectedCardId && paymentMethods.value.length > 0) {
+    // For now, auto-select the first available card
+    selectedCardId = paymentMethods.value[0].id;
+    console.log('Auto-selecting card for creation:', selectedCardId);
+  }
+
+  if (!selectedCardId) {
+    toastRef.value?.showError(
+      'Tarjeta Requerida',
+      'Necesitas una tarjeta guardada para crear la suscripción',
+    );
+    return;
+  }
+
+  subscriptionActions.value.createSubscription = true;
+  try {
+    const response = await api.patch(`/bakeries/${authStore.getBakeryId}/settings/default`, {
+      subscription: {
+        _action: 'create_subscription',
+        savedCardId: selectedCardId,
+      },
+    });
+
+    await loadSubscriptionData();
+    await loadJWTClaims();
+
+    toastRef.value?.showSuccess(
+      'Suscripción Creada',
+      'La suscripción ha sido creada exitosamente',
+    );
+
+    console.log('Subscription created with card:', selectedCardId, response);
+  } catch (error) {
+    console.error('Error creating subscription:', error);
+    toastRef.value?.showError(
+      'Error al Crear Suscripción',
+      error.message || 'No se pudo crear la suscripción. Intenta nuevamente.',
+    );
+  } finally {
+    subscriptionActions.value.createSubscription = false;
   }
 };
 
@@ -519,6 +566,63 @@ const handleFeaturesSubmit = async (formData) => {
           <div><span class="font-medium">Subscription Tier:</span> {{ jwtClaims.subscriptionTier || 'N/A' }}</div>
         </div>
         <div v-else class="text-sm text-gray-600">No se pudieron cargar los claims JWT</div>
+      </div>
+
+      <!-- No Subscription - Create Subscription Section -->
+      <div v-if="subscriptionData?.status == 'TRIAL' && paymentMethods.length > 0" class="border border-blue-200 rounded-lg p-4 bg-blue-50">
+        <h3 class="font-medium text-sm text-blue-800 mb-3">Crear Suscripción</h3>
+        <p class="text-sm text-blue-700 mb-4">No tienes una suscripción activa. Selecciona una tarjeta para crear tu suscripción:</p>
+
+        <!-- Card Selection for Creation -->
+        <div class="space-y-2 mb-4">
+          <div
+            v-for="card in paymentMethods"
+            :key="card.id"
+            @click="selectedCardForCreation = card.id"
+            class="flex items-center p-3 border rounded-lg cursor-pointer transition-colors"
+            :class="{
+              'border-blue-500 bg-blue-100': selectedCardForCreation === card.id,
+              'border-gray-200 hover:border-gray-300': selectedCardForCreation !== card.id
+            }"
+          >
+            <input
+              type="radio"
+              :value="card.id"
+              v-model="selectedCardForCreation"
+              class="mr-3 text-blue-600"
+            />
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded flex items-center justify-center">
+                <span class="text-white text-xs font-bold">💳</span>
+              </div>
+              <div>
+                <div class="font-medium text-sm">
+                  {{ `****-****-****-${card.maskedNumber}` }}
+                </div>
+                <div class="text-xs text-gray-600">
+                  {{ card.cardholderName }} • Exp: {{ convertToDisplayFormat(card.expirationDate) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create Subscription Button -->
+        <button
+          @click="createSubscription(selectedCardForCreation)"
+          :disabled="subscriptionActions.createSubscription || !selectedCardForCreation"
+          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          :title="!selectedCardForCreation ? 'Selecciona una tarjeta para crear la suscripción' : ''"
+        >
+          {{ subscriptionActions.createSubscription ? 'Creando...' : 'Crear Suscripción' }}
+        </button>
+      </div>
+
+      <!-- No Subscription - No Cards Available -->
+      <div v-if="!subscriptionData && paymentMethods.length === 0" class="border border-orange-200 rounded-lg p-4 bg-orange-50">
+        <h3 class="font-medium text-sm text-orange-800 mb-3">Suscripción No Disponible</h3>
+        <p class="text-sm text-orange-700 mb-2">Para crear una suscripción, primero necesitas agregar una tarjeta de pago.</p>
+        <p class="text-sm text-orange-600">Usa el formulario de "Agregar Tarjeta de Crédito" arriba para continuar.</p>
       </div>
 
       <!-- Subscription Data Section -->
