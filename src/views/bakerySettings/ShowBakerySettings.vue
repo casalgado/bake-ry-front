@@ -137,6 +137,7 @@ const retryPayment = async () => {
     const response = await api.patch(`/bakeries/${authStore.getBakeryId}/settings/default`, {
       subscription: {
         _action: 'retry_payment',
+        recurringPaymentId: subscriptionData.value?.recurringPaymentId,
       },
     });
 
