@@ -83,10 +83,12 @@ function deepMerge(target, source) {
       else if (Array.isArray(sourceValue)) {
         result[key] = sourceValue;
       }
-      // If both are objects (but not arrays), recursively merge
+      // If both are objects (but not arrays or null), recursively merge
       else if (
         typeof sourceValue === 'object' &&
         typeof targetValue === 'object' &&
+        targetValue !== null &&
+        sourceValue !== null &&
         !Array.isArray(targetValue)
       ) {
         result[key] = deepMerge(targetValue, sourceValue);

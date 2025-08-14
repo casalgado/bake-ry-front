@@ -171,7 +171,6 @@ const handleToggleUpdate = async ({ rowIds, field, value }) => {
         })),
       },
     }));
-
     await orderStore.patchAll(updates);
     await nextTick();
   } catch (error) {
