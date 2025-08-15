@@ -6,6 +6,33 @@ import api from './api';
  */
 export class BakeryService {
   /**
+   * Create a new bakery with user registration (public endpoint)
+   * @param {Object} data - Complete bakery registration data
+   * @param {Object} data.user - User information
+   * @param {string} data.user.name - Full name
+   * @param {string} data.user.email - Email address
+   * @param {string} data.user.password - Password
+   * @param {string} [data.user.phone] - Phone number (optional)
+   * @param {Object} data.bakery - Bakery information
+   * @param {string} data.bakery.name - Bakery name
+   * @param {string} [data.bakery.address] - Address (optional)
+   * @param {Object} [data.bakery.socialMedia] - Social media handles (optional)
+   * @param {Object} [data.settings] - Advanced settings (optional)
+   * @returns {Promise<Object>} Complete bakery creation response
+   * @throws {Error} If creation fails
+   */
+  static async createBakeryWithUser(data) {
+    try {
+      const response = await api.post('/bakeries', data);
+      console.log('Bakery created with user:', response.data);
+      return response.data;
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || 'Failed to create bakery';
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
    * Create a new bakery
    * @param {Object} bakeryData - The bakery data matching the Bakery model
    * @param {string} bakeryData.name - Name of the bakery

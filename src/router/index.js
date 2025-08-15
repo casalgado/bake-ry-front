@@ -25,7 +25,7 @@ const router = createRouter({
     {
       path: '/signup',
       name: 'signup',
-      component: () => import('../views/auth/SignupView.vue'),
+      component: () => import('../views/auth/CreateBakeryView.vue'),
       meta: { requiresGuest: true },
     },
     {
