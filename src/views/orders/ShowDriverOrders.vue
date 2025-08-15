@@ -19,6 +19,7 @@ import { usePeriodStore } from '@/stores/periodStore';
 import { useOrderStore } from '@/stores/orderStore';
 import { useAuthenticationStore } from '@/stores/authentication';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 
 // Components
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
@@ -40,6 +41,7 @@ const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const authStore = useAuthenticationStore();
 const settingsStore = useBakerySettingsStore();
+const systemSettingsStore = useSystemSettingsStore();
 const isSequenceDialogOpen = ref(false);
 const selectedSequence = ref(1);
 
@@ -66,6 +68,7 @@ const {
   subscribeToChanges: true,
   async onBeforeFetch() {
     await settingsStore.fetchById('default');
+    await systemSettingsStore.fetchSettings();
   },
   async onAction({ actionId }) {
     switch (actionId) {
@@ -103,12 +106,9 @@ const paymentIconMap = {
   complimentary: PhGift,
 };
 
-// Get payment method options from bakery settings
+// Get payment method options from system settings
 const paymentMethodOptions = computed(() => {
-  if (!settingsStore.items.length) return [];
-
-  const settings = settingsStore.items[0];
-  return settings.availablePaymentMethods || [];
+  return systemSettingsStore.availablePaymentMethods || [];
 });
 
 const closeSequenceDialog = () => {

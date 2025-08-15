@@ -22,6 +22,7 @@ import TotalsSummary from '@/components/common/TotalsSummary.vue';
 // Stores
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 
 // Icons
 import {
@@ -44,6 +45,7 @@ import { formatMoney } from '@/utils/helpers';
 
 const orderStore = useOrderStore();
 const settingsStore = useBakerySettingsStore();
+const systemSettingsStore = useSystemSettingsStore();
 const b2bClients = ref([]);
 
 // Dialog state
@@ -85,6 +87,7 @@ const {
   // Initial setup before fetching data
   async onBeforeFetch() {
     await settingsStore.fetchById('default');
+    await systemSettingsStore.fetchSettings();
     b2bClients.value = await settingsStore.b2b_clients;
   },
   // Action handler
@@ -152,12 +155,9 @@ const paymentIconMap = {
   complimentary: PhGift,
 };
 
-// Get payment method options from bakery settings
+// Get payment method options from system settings
 const paymentMethodOptions = computed(() => {
-  if (!settingsStore.items.length) return [];
-
-  const settings = settingsStore.items[0];
-  return settings.availablePaymentMethods || [];
+  return systemSettingsStore.availablePaymentMethods || [];
 });
 
 // Column definitions (now computed to handle dynamic payment methods)

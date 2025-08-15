@@ -19,6 +19,9 @@ import {
   PhCalculator,
   PhCalendar,
   PhCalendarCheck,
+  PhListChecks,
+  PhMinus,
+  PhTag,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -68,13 +71,13 @@ const navigationSections = [
     items: [
       {
         id: 'produccion',
-        icon: PhBread,
+        icon: PhMinus,
         text: 'Por Producto',
         path: '/dashboard/orders/production/single',
       },
       {
         id: 'produccion',
-        icon: PhOven,
+        icon: PhListChecks,
         text: 'Agrupado',
         path: '/dashboard/orders/production/grouped',
       },
@@ -149,7 +152,7 @@ const navigationSections = [
       },
       {
         id: 'productos',
-        icon: PhChefHat,
+        icon: PhTag,
         text: 'Productos',
         path: '/dashboard/products',
       },

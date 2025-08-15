@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
+import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import { PayUService } from '@/services/payuService';
 import { useAuthenticationStore } from '@/stores/authentication';
 import api from '@/services/api';
@@ -15,6 +16,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue';
 const settingsStore = useBakerySettingsStore();
 const bakeryUserStore = useBakeryUserStore();
 const authStore = useAuthenticationStore();
+const systemSettingsStore = useSystemSettingsStore();
 const staffData = ref([]);
 const b2bClientsData = ref([]);
 
@@ -68,6 +70,9 @@ onMounted(async () => {
   staffData.value = await settingsStore.staff;
   b2bClientsData.value = await settingsStore.b2b_clients;
   console.log(b2bClientsData.value);
+
+  // Load system settings
+  await systemSettingsStore.fetchSettings();
 
   // Initialize features form
   initializeFeaturesForm();
@@ -405,8 +410,7 @@ const currentOrderFeatures = computed(() => {
 
 // Filter available payment methods to exclude complimentary (always enabled by default)
 const configurablePaymentMethods = computed(() => {
-  if (!settingsStore.items.length) return [];
-  const allMethods = settingsStore.items[0].availablePaymentMethods || [];
+  const allMethods = systemSettingsStore.availablePaymentMethods || [];
   return allMethods.filter(method => method.value !== 'complimentary');
 });
 
@@ -730,6 +734,93 @@ const handleFeaturesSubmit = async (formData) => {
           Recargar JWT Claims
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Debug Section for Payment Methods Comparison -->
+<div class="form-container">
+  <h2>🐛 Debug: Payment Methods Comparison</h2>
+  <div class="base-card p-6" style="margin-bottom: 1rem;">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- Bakery Settings Payment Methods -->
+      <div class="border border-blue-200 rounded-lg p-4 bg-blue-50">
+        <h3 class="font-medium text-sm text-blue-800 mb-3">Bakery Settings - availablePaymentMethods</h3>
+        <div class="space-y-2 text-sm">
+          <div><strong>Source:</strong> settingsStore.items[0].availablePaymentMethods</div>
+          <div><strong>Length:</strong> {{ settingsStore.items[0]?.availablePaymentMethods?.length || 0 }}</div>
+          <div><strong>Loading:</strong> {{ settingsStore.loading }}</div>
+          <div><strong>Error:</strong> {{ settingsStore.error || 'None' }}</div>
+          <div class="mt-3">
+            <pre class="text-xs bg-white p-2 rounded border overflow-auto max-h-40">{{ JSON.stringify(settingsStore.items[0]?.availablePaymentMethods || [], null, 2) }}</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Settings Payment Methods -->
+      <div class="border border-green-200 rounded-lg p-4 bg-green-50">
+        <h3 class="font-medium text-sm text-green-800 mb-3">System Settings - availablePaymentMethods</h3>
+        <div class="space-y-2 text-sm">
+          <div><strong>Source:</strong> systemSettingsStore.availablePaymentMethods</div>
+          <div><strong>Length:</strong> {{ systemSettingsStore.availablePaymentMethods?.length || 0 }}</div>
+          <div><strong>Loading:</strong> {{ systemSettingsStore.loading }}</div>
+          <div><strong>Error:</strong> {{ systemSettingsStore.error || 'None' }}</div>
+          <div class="mt-3">
+            <pre class="text-xs bg-white p-2 rounded border overflow-auto max-h-40">{{ JSON.stringify(systemSettingsStore.availablePaymentMethods || [], null, 2) }}</pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Comparison Result -->
+    <div class="mt-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+      <h3 class="font-medium text-sm text-gray-800 mb-3">🔍 Comparison Analysis</h3>
+      <div class="space-y-2 text-sm">
+        <div><strong>Arrays are identical:</strong>
+          <span :class="{
+            'text-green-600': JSON.stringify(settingsStore.items[0]?.availablePaymentMethods || []) === JSON.stringify(systemSettingsStore.availablePaymentMethods || []),
+            'text-red-600': JSON.stringify(settingsStore.items[0]?.availablePaymentMethods || []) !== JSON.stringify(systemSettingsStore.availablePaymentMethods || [])
+          }">
+            {{ JSON.stringify(settingsStore.items[0]?.availablePaymentMethods || []) === JSON.stringify(systemSettingsStore.availablePaymentMethods || []) ? '✅ YES' : '❌ NO' }}
+          </span>
+        </div>
+        <div><strong>Lengths match:</strong>
+          <span :class="{
+            'text-green-600': (settingsStore.items[0]?.availablePaymentMethods?.length || 0) === (systemSettingsStore.availablePaymentMethods?.length || 0),
+            'text-red-600': (settingsStore.items[0]?.availablePaymentMethods?.length || 0) !== (systemSettingsStore.availablePaymentMethods?.length || 0)
+          }">
+            {{ (settingsStore.items[0]?.availablePaymentMethods?.length || 0) === (systemSettingsStore.availablePaymentMethods?.length || 0) ? '✅ YES' : '❌ NO' }}
+          </span>
+        </div>
+        <div><strong>Both loaded:</strong>
+          <span :class="{
+            'text-green-600': settingsStore.items.length > 0 && systemSettingsStore.isLoaded,
+            'text-orange-600': settingsStore.items.length === 0 || !systemSettingsStore.isLoaded
+          }">
+            {{ settingsStore.items.length > 0 && systemSettingsStore.isLoaded ? '✅ YES' : '⚠️ NO' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Refresh Buttons -->
+    <div class="mt-4 flex gap-3">
+      <button
+        @click="settingsStore.fetchById('default')"
+        :disabled="settingsStore.loading"
+        class="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+      >
+        {{ settingsStore.loading ? 'Loading...' : 'Refresh Bakery Settings' }}
+      </button>
+      <button
+        @click="systemSettingsStore.fetchSettings()"
+        :disabled="systemSettingsStore.loading"
+        class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 disabled:opacity-50"
+      >
+        {{ systemSettingsStore.loading ? 'Loading...' : 'Refresh System Settings' }}
+      </button>
     </div>
   </div>
 </div>

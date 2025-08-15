@@ -5,11 +5,13 @@ import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import SimpleTable from '@/components/common/SimpleTable.vue';
 import { usePeriodStore } from '@/stores/periodStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import { formatMoney } from '@/utils/helpers';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const settingsStore = useBakerySettingsStore();
+const systemSettingsStore = useSystemSettingsStore();
 const unsubscribeRef = ref(null);
 const b2bClients = ref([]);
 const salesReport = ref({});
@@ -179,12 +181,9 @@ const paymentMethodsData = computed(() => {
   const methods = safeGet(salesReport.value, 'salesMetrics.byPaymentMethod');
   if (!methods) return [];
 
-  // Get payment method labels from bakery settings
+  // Get payment method labels from system settings
   const getPaymentMethodLabel = (methodId) => {
-    if (!settingsStore.items.length) return methodId;
-
-    const settings = settingsStore.items[0];
-    const availableMethod = settings.availablePaymentMethods?.find(
+    const availableMethod = systemSettingsStore.availablePaymentMethods?.find(
       method => method.value === methodId,
     );
 
@@ -357,6 +356,7 @@ onMounted(async () => {
     // First fetch settings to get B2B clients
     periodStore.setPeriodType('month');
     await settingsStore.fetchById('default');
+    await systemSettingsStore.fetchSettings();
     b2bClients.value = await settingsStore.b2b_clients;
 
     // Then fetch orders

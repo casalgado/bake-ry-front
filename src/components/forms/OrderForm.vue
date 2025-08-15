@@ -3,6 +3,7 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { useProductStore } from '@/stores/productStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
 import OrderItemsManager from './OrderItemsManager.vue';
 import NewClientDialog from './NewClientDialog.vue';
@@ -64,6 +65,7 @@ const emit = defineEmits(['submit', 'cancel']);
 
 const productStore = useProductStore();
 const bakerySettingsStore = useBakerySettingsStore();
+const systemSettingsStore = useSystemSettingsStore();
 const userStore = useBakeryUserStore();
 const isNewClientDialogOpen = ref(false);
 const originalAddress = ref('');
@@ -182,6 +184,7 @@ onMounted(async () => {
     productStore.fetchAll(),
     userStore.fetchAll(),
     bakerySettingsStore.fetchById('default'),
+    systemSettingsStore.fetchSettings(),
   ]);
   fetching.value = false;
 
@@ -388,7 +391,7 @@ const paymentMethodOptions = computed(() => {
   if (!bakerySettingsStore.items.length) return [];
 
   const settings = bakerySettingsStore.items[0];
-  const availablePaymentMethods = settings.availablePaymentMethods || [];
+  const availablePaymentMethods = systemSettingsStore.availablePaymentMethods || [];
   const activePaymentMethods = settings.features?.order?.activePaymentMethods || [];
 
   // Filter available methods to only show active ones
