@@ -295,7 +295,7 @@ onMounted(() => {
 
         <!-- User Information Section -->
         <div class="form-container">
-          <h2>Información del Usuario</h2>
+          <h2>Datos del Gerente</h2>
           <div class="base-card flex flex-col gap-2">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div>
@@ -373,10 +373,10 @@ onMounted(() => {
 
         <!-- Bakery Information Section -->
         <div class="form-container">
-          <h2>Información de la Panadería</h2>
+          <h2>Información del Emprendimiento</h2>
           <div class="base-card flex flex-col gap-2">
             <div>
-              <label for="bakery-name">Nombre de la Panadería</label>
+              <label for="bakery-name">Nombre</label>
               <input
                 id="bakery-name"
                 type="text"
@@ -461,7 +461,7 @@ onMounted(() => {
 
         <!-- Features Configuration Section -->
         <div class="form-container">
-          <h2>Configuración de Características</h2>
+          <h2>Personaliza la Experiencia</h2>
           <div class="base-card">
             <!-- Payment Methods Section -->
             <div class="mb-8">
