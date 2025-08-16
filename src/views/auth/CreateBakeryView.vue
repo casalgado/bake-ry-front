@@ -5,10 +5,14 @@ import { PhGraph, PhMoney, PhDeviceMobile, PhCreditCard, PhGift, PhClock, PhCurr
 import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
 import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
 import { BakeryService } from '@/services/bakeryService';
+import { useAuthenticationStore } from '@/stores/authentication';
+import { auth } from '@/config/firebase';
+import { signInWithCustomToken } from 'firebase/auth';
 import FeatureCard from '@/components/forms/FeatureCard.vue';
 import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
 
 const router = useRouter();
+const authStore = useAuthenticationStore();
 
 // Form state
 const formData = ref({
@@ -232,6 +236,13 @@ const handleSubmit = async () => {
     const result = await BakeryService.createBakeryWithUser(payload);
 
     console.log('Bakery created successfully:', result);
+
+    // Log in user with custom token
+    const userCredential = await signInWithCustomToken(auth, result.customToken);
+
+    console.log(userCredential);
+    // Update auth store state
+    await authStore.checkAuth();
 
     // Redirect to dashboard
     router.push('/dashboard/orders');
@@ -519,7 +530,7 @@ onMounted(() => {
             :disabled="loading"
             class="action-btn px-8 py-3 text-lg"
           >
-            {{ loading ? 'Creando Panadería...' : 'Crear Panadería' }}
+            {{ loading ? 'Creando' : 'Crear' }}
           </button>
         </div>
 

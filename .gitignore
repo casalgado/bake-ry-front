@@ -16,6 +16,8 @@ coverage
 .env
 sandbox.*.js
 sandbox.*.html
+sandbox.*.json
+sandbox.*.txt
 
 /cypress/videos/
 /cypress/screenshots/
