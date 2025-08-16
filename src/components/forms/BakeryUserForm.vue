@@ -31,6 +31,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  allowedUserTypes: {
+    type: Array,
+    default: () => ['client', 'company', 'staff', 'delivery', 'production', 'accounting'],
+  },
 });
 
 const emit = defineEmits(['submit', 'cancel']);
@@ -41,30 +45,43 @@ const formData = ref({ ...props.initialData });
 const userTypeOptions = [
   { value: 'client', label: 'Cliente', role: 'bakery_customer', category: 'B2C' },
   { value: 'company', label: 'Empresa', role: 'bakery_customer', category: 'B2B' },
-  { value: 'staff', label: 'Staff', role: 'bakery_staff', category: 'PER' },
+  { value: 'staff', label: 'Supervisor', role: 'bakery_staff', category: 'PER' },
   { value: 'delivery', label: 'Asistente Domicilio', role: 'delivery_assistant', category: 'PER' },
   { value: 'production', label: 'Asistente Produccion', role: 'production_assistant', category: 'PER' },
   { value: 'accounting', label: 'Asistente Contable', role: 'accounting_assistant', category: 'PER' },
 ];
 
+// Filter options based on allowedUserTypes prop
+const filteredUserTypeOptions = computed(() => {
+  return userTypeOptions.filter(option => props.allowedUserTypes.includes(option.value));
+});
+
 // Compute initial selected value based on role and category
 const getInitialUserType = () => {
   const { role, category } = formData.value;
+  let userType = 'client'; // default
+
   if (role === 'bakery_customer') {
-    return category === 'B2B' ? 'company' : 'client';
+    userType = category === 'B2B' ? 'company' : 'client';
+  } else if (role === 'bakery_staff') {
+    userType = 'staff';
+  } else if (role === 'delivery_assistant') {
+    userType = 'delivery';
+  } else if (role === 'production_assistant') {
+    userType = 'production';
+  } else if (role === 'accounting_assistant') {
+    userType = 'accounting';
   }
-  if (role === 'bakery_staff') return 'staff';
-  if (role === 'delivery_assistant') return 'delivery';
-  if (role === 'production_assistant') return 'production';
-  if (role === 'accounting_assistant') return 'accounting';
-  return 'client'; // default
+
+  // Ensure the computed type is in the allowed types, otherwise use first allowed type
+  return props.allowedUserTypes.includes(userType) ? userType : props.allowedUserTypes[0];
 };
 
 const selectedUserType = ref(getInitialUserType());
 
 // Update both role and category when user type changes
 const handleUserTypeChange = (value) => {
-  const selected = userTypeOptions.find(opt => opt.value === value);
+  const selected = filteredUserTypeOptions.value.find(opt => opt.value === value);
   if (selected) {
     formData.value.role = selected.role;
     formData.value.category = selected.category;
@@ -142,7 +159,7 @@ const handleSubmit = () => {
       <div>
         <RadioButtonGroup
           v-model="selectedUserType"
-          :options="userTypeOptions"
+          :options="filteredUserTypeOptions"
           name="user-type"
           label="Tipo de Usuario"
           @update:modelValue="handleUserTypeChange"

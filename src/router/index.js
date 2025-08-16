@@ -99,9 +99,14 @@ const router = createRouter({
           component: () => import('../views/bakeryUsers/ShowBakeryUsers.vue'),
         },
         {
-          path: 'users/create',
-          name: 'create-user',
-          component: () => import('../views/bakeryUsers/CreateBakeryUser.vue'),
+          path: 'users/create-client',
+          name: 'create-client',
+          component: () => import('../views/bakeryUsers/CreateClient.vue'),
+        },
+        {
+          path: 'users/create-staff',
+          name: 'create-staff',
+          component: () => import('../views/bakeryUsers/CreateStaffMember.vue'),
         },
         {
           path: 'users/active',

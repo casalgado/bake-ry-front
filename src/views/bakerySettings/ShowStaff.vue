@@ -79,10 +79,11 @@ const columns = [
     sortable: true,
     displayText: {
       'bakery_admin': 'Gerente',
-      'bakery_staff': 'Equipo',
+      'bakery_staff': 'Supervisor',
       'system_admin': 'Equipo',
       'delivery_assistant': 'Asistente Domicilio',
       'production_assistant': 'Asistente Producción',
+      'accounting_assistant': 'Contador',
     },
   },
   {

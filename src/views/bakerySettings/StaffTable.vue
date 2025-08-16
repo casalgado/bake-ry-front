@@ -32,9 +32,10 @@ const columns = [
     sortable: true,
     displayText: {
       'admin': 'Admin',
-      'bakery_staff': 'Staff',
+      'bakery_staff': 'Supervisor',
       'delivery_assistant': 'Domiciliario',
       'production_assistant': 'Producción',
+      'accounting_assistant': 'Contador',
     },
   },
   {

@@ -22,6 +22,8 @@ import {
   PhListChecks,
   PhMinus,
   PhTag,
+  PhUserPlus,
+  PhUserCirclePlus,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -116,17 +118,18 @@ const navigationSections = [
         path: '/dashboard/users',
       },
       {
+        id: 'nuevo_cliente',
+        icon: PhUserPlus,
+        text: 'Crear Cliente',
+        path: '/dashboard/users/create-client',
+      },
+      {
         id: 'usuarios_activos',
         icon: PhHandshake,
         text: 'Clientes Activos',
         path: '/dashboard/users/active',
       },
-      {
-        id: 'nuevo_cliente',
-        icon: PhPersonArmsSpread,
-        text: 'Crear Usuario',
-        path: '/dashboard/users/create',
-      },
+
       {
         id: 'b2b-clients',
         icon: PhStorefront,
@@ -138,6 +141,12 @@ const navigationSections = [
         icon: PhTreeStructure,
         text: 'Equipo',
         path: '/dashboard/staff',
+      },
+      {
+        id: 'nuevo_empleado',
+        icon: PhUserCirclePlus,
+        text: 'Agrandar Equipo',
+        path: '/dashboard/users/create-staff',
       },
     ],
   },
