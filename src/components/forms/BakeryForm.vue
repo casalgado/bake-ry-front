@@ -169,17 +169,23 @@ const validate = () => {
 
 const scrollToError = async () => {
   await nextTick(); // Wait for the DOM to update
-  const firstErrorElement = document.querySelector('.text-danger');
-  if (firstErrorElement) {
-    firstErrorElement.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    });
-  }
+  console.log('Scrolling to error');
+  // Add a small delay to ensure error elements are rendered
+  setTimeout(() => {
+    const firstErrorElement = document.querySelector('.text-danger');
+    if (firstErrorElement) {
+      firstErrorElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, 50);
 };
 
 // Form submission
-const handleSubmit = async () => {
+const handleSubmit = async (event) => {
+  event.preventDefault(); // Prevent default browser validation
+
   if (!validate()) {
     scrollToError();
     return;
@@ -205,7 +211,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <form @submit.prevent="handleSubmit" class="space-y-6 flex flex-col items-center">
+  <form @submit="handleSubmit" class="space-y-6 flex flex-col items-center">
     <!-- User Information Section -->
     <div class="form-container">
       <h2>Datos del Gerente</h2>
@@ -220,9 +226,9 @@ onMounted(() => {
               @input="clearFieldError('name')"
               :disabled="loading"
               class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-              required
+
             />
-            <span v-if="errors.name" class="text-danger text-sm">{{ errors.name }}</span>
+            <span v-if="errors.name" class="text-danger text-[10px]">{{ errors.name }}</span>
           </div>
 
           <div>
@@ -234,9 +240,9 @@ onMounted(() => {
               @input="clearFieldError('email')"
               :disabled="loading"
               class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-              required
+
             />
-            <span v-if="errors.email" class="text-danger text-sm">{{ errors.email }}</span>
+            <span v-if="errors.email" class="text-danger text-[10px]">{{ errors.email }}</span>
           </div>
         </div>
 
@@ -250,9 +256,9 @@ onMounted(() => {
               @input="clearFieldError('password')"
               :disabled="loading"
               class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-              required
+
             />
-            <span v-if="errors.password" class="text-danger text-sm">{{ errors.password }}</span>
+            <span v-if="errors.password" class="text-danger text-[10px]">{{ errors.password }}</span>
           </div>
 
           <div>
@@ -264,9 +270,9 @@ onMounted(() => {
               @input="clearFieldError('confirmPassword')"
               :disabled="loading"
               class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-              required
+
             />
-            <span v-if="errors.confirmPassword" class="text-danger text-sm">{{ errors.confirmPassword }}</span>
+            <span v-if="errors.confirmPassword" class="text-danger text-[10px]">{{ errors.confirmPassword }}</span>
           </div>
         </div>
 
@@ -297,9 +303,9 @@ onMounted(() => {
             @input="clearFieldError('name')"
             :disabled="loading"
             class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-            required
+
           />
-          <span v-if="errors.name && errors.name.includes('panadería')" class="text-danger text-sm">{{ errors.name }}</span>
+          <span v-if="errors.name && errors.name.includes('panadería')" class="text-danger text-[10px]">{{ errors.name }}</span>
         </div>
 
         <div>
@@ -365,7 +371,7 @@ onMounted(() => {
                 class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
                 placeholder="https://mipanaderia.com"
               />
-              <span v-if="errors.website" class="text-danger text-sm">{{ errors.website }}</span>
+              <span v-if="errors.website" class="text-danger text-[10px]">{{ errors.website }}</span>
             </div>
           </div>
         </div>
@@ -393,7 +399,7 @@ onMounted(() => {
               :disabled="loading"
             />
           </div>
-          <span v-if="errors.activePaymentMethods" class="text-danger text-sm block mt-2">
+          <span v-if="errors.activePaymentMethods" class="text-danger text-[10px] block mt-2">
             {{ errors.activePaymentMethods }}
           </span>
         </div>

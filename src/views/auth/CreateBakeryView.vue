@@ -130,7 +130,7 @@ const handleFormSubmit = async (formData) => {
       <!-- Logo and Header -->
       <div class="text-center mb-8">
         <PhGraph class="mx-auto w-16 h-16 text-neutral-800 mb-4" weight="light" />
-        <h1 class="text-3xl font-bold text-neutral-800">Un Nuevo Comienzo.</h1>
+        <h1 class="text-3xl font-bold text-neutral-800">Un Nuevo Comienzo</h1>
         <p class="text-neutral-600 mt-2">Registra y configura tu negocio</p>
       </div>
 
