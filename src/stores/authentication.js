@@ -93,7 +93,6 @@ export const useAuthenticationStore = defineStore('authentication', {
 
         // Login the user
         await this.login({ email, password });
-        console.log('Bakery admin registered:', this.user);
         return {
           success: true,
           user: response.data,
@@ -155,7 +154,6 @@ export const useAuthenticationStore = defineStore('authentication', {
           { uid: response.data.user.uid, email, emailVerified: false },
           response.data.user,
         );
-        console.log('Bakery user registered:', registeredUser);
         return {
           success: true,
           user: registeredUser,
@@ -174,13 +172,11 @@ export const useAuthenticationStore = defineStore('authentication', {
       this.error = null;
 
       try {
-        console.log('login', email, password);
         const userCredential = await signInWithEmailAndPassword(
           auth,
           email,
           password,
         );
-        console.log('userCredential', userCredential);
         const firebaseUser = userCredential.user;
         const idToken = await firebaseUser.getIdToken(true);
         try {
@@ -193,13 +189,12 @@ export const useAuthenticationStore = defineStore('authentication', {
               },
             },
           );
-          console.log('Backend login response:', response.data);
+
           this.user = transformUserData(firebaseUser, response.data);
           this.idToken = idToken;
 
           localStorage.setItem('AuthToken', idToken);
           localStorage.setItem('email', email);
-          console.log('User logged in:', this.user);
           return {
             success: true,
             user: this.user,
@@ -281,7 +276,6 @@ export const useAuthenticationStore = defineStore('authentication', {
                 localStorage.setItem('AuthToken', idToken);
                 localStorage.setItem('email', user.email);
                 resolve(this.user);
-                console.log('User authenticated:', this.user);
                 console.timeEnd('checkAuth');
                 this.loading = false;
               } catch (error) {

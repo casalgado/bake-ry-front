@@ -69,7 +69,6 @@ onMounted(async () => {
   await settingsStore.fetchById('default');
   staffData.value = await settingsStore.staff;
   b2bClientsData.value = await settingsStore.b2b_clients;
-  console.log(b2bClientsData.value);
 
   // Load system settings
   await systemSettingsStore.fetchSettings();

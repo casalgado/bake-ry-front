@@ -10,7 +10,7 @@ const handleSubmit = async (formData) => {
   try {
     console.log(formData);
     await bakeryUserStore.create(formData);
-    router.push('/dashboard/users');
+    router.push('/dashboard/staff');
   } catch (error) {
     console.error('Error al crear empleado:', error);
   }
