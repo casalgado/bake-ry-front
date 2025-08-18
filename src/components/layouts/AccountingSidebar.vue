@@ -57,7 +57,7 @@ const handleLinkClick = (link) => {
 
 <template>
   <!-- Desktop Sidebar -->
-  <nav class="p-4 hidden lg:block">
+  <nav class="p-4 hidden lg:block overflow-y-auto max-h-screen">
     <template v-for="section in navigationSections" :key="section.title">
       <SidebarDivider :text="section.title" />
       <SidebarLink
