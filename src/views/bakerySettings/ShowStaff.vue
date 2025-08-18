@@ -100,7 +100,7 @@ const columns = [
   },
 ];
 
-const tableActions = [
+const tableActions = computed(() => [
   {
     id: 'edit',
     label: 'Editar',
@@ -108,6 +108,7 @@ const tableActions = [
     minSelected: 1,
     maxSelected: 1,
     variant: 'primary',
+    hideIf: selectedUser.value && (selectedUser.value.role === 'bakery_admin' || selectedUser.value.role === 'system_admin'),
   },
   {
     id: 'resetPassword',
@@ -117,7 +118,7 @@ const tableActions = [
     maxSelected: 1,
     variant: 'primary',
   },
-];
+]);
 
 // Event handlers
 const handleSelectionChange = (selectedIds) => {
