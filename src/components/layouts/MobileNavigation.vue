@@ -62,7 +62,7 @@ const handleNavigation = (link) => {
           </button>
         </div>
 
-        <nav class="p-4 pb-16 overflow-y-auto max-h-full">
+        <nav class="p-4 pb-16 overflow-y-auto max-h-full overflow-x-hidden">
           <template v-for="section in sections" :key="section.title">
             <SidebarDivider :text="section.title" />
             <SidebarLink
