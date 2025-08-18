@@ -214,7 +214,7 @@ onMounted(() => {
   <form @submit="handleSubmit" class="space-y-6 flex flex-col items-center">
     <!-- User Information Section -->
     <div class="form-container">
-      <h2>Datos del Gerente</h2>
+      <h2>Datos del Emprendedor</h2>
       <div class="base-card flex flex-col gap-2">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
           <div>
@@ -449,7 +449,7 @@ onMounted(() => {
         :disabled="loading"
         class="action-btn px-8 py-3 text-lg"
       >
-        {{ loading ? 'Guardando...' : 'Guardar' }}
+        {{ loading ? 'Comenzando...' : 'Comenzar' }}
       </button>
     </div>
   </form>
