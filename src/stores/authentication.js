@@ -247,6 +247,7 @@ export const useAuthenticationStore = defineStore('authentication', {
         localStorage.removeItem('AuthToken');
         localStorage.removeItem('email');
         console.log('User logged out');
+        window.location.href = window.location.origin + '/?t=' + Date.now();
       } catch (error) {
         console.error('Logout error:', error);
         throw error;
