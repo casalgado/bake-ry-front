@@ -17,7 +17,7 @@ onMounted(() => {
   <div class="app-container">
     <TheHeader />
     <main :key="`main-${isLoading}`" class="main-content">
-      <div v-if="isLoading" class="absolute inset-0 z-50">
+      <div v-if="isLoading" class="loading-overlay absolute inset-0 z-50">
         <div class="flex justify-center flex-col items-center h-full bg-white/80">
           <PhGraph class="animate-pulse h-20 w-20" weight="light" />
           <span class="text-xs pt-4 hidden">cargando...</span>
@@ -54,5 +54,16 @@ onMounted(() => {
 
 .animate-pulse {
   animation: pulse 2s ease-in-out infinite;
+}
+
+.loading-overlay {
+  opacity: 0;
+  animation: showLoader 0s ease-in-out 1s forwards;
+}
+
+@keyframes showLoader {
+  to {
+    opacity: 1;
+  }
 }
 </style>
