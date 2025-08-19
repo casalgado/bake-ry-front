@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { auth } from '../config/firebase';
 import {
   signInWithEmailAndPassword,
+  signInWithCustomToken,
   signOut,
   onAuthStateChanged,
 } from 'firebase/auth';
@@ -231,6 +232,100 @@ export const useAuthenticationStore = defineStore('authentication', {
         throw new Error(errorMessage);
       } finally {
         this.loading = false;
+      }
+    },
+
+    async loginWithCustomToken(customToken) {
+      this.loading = true;
+      this.error = null;
+
+      try {
+        const userCredential = await signInWithCustomToken(auth, customToken);
+        const firebaseUser = userCredential.user;
+        const idToken = await firebaseUser.getIdToken(true);
+
+        try {
+          const response = await axios.post(
+            `${API_URL}/auth/login`,
+            { email: firebaseUser.email },
+            {
+              headers: {
+                Authorization: `Bearer ${idToken}`,
+              },
+            },
+          );
+
+          this.user = transformUserData(firebaseUser, response.data);
+          this.idToken = idToken;
+
+          localStorage.setItem('AuthToken', idToken);
+          localStorage.setItem('email', firebaseUser.email);
+
+          return {
+            success: true,
+            user: this.user,
+          };
+        } catch (backendError) {
+          console.error('Backend login failed:', backendError);
+          await signOut(auth);
+          throw new Error(
+            backendError.response?.data?.error ||
+              'Backend authentication failed',
+          );
+        }
+      } catch (error) {
+        console.error('Custom token login error:', error);
+
+        let errorMessage;
+        switch (error.code) {
+        case 'auth/invalid-custom-token':
+          errorMessage = 'Invalid authentication token.';
+          break;
+        case 'auth/custom-token-mismatch':
+          errorMessage = 'Authentication token mismatch.';
+          break;
+        default:
+          errorMessage = error.message || 'Authentication failed. Please try again.';
+        }
+
+        this.error = errorMessage;
+        throw new Error(errorMessage);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async loginWithCustomTokenSilent(customToken) {
+      try {
+        const userCredential = await signInWithCustomToken(auth, customToken);
+        const firebaseUser = userCredential.user;
+        const idToken = await firebaseUser.getIdToken(true);
+
+        const response = await axios.post(
+          `${API_URL}/auth/login`,
+          { email: firebaseUser.email },
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+          },
+        );
+
+        // Only set essential auth state - no loading indicators
+        this.user = transformUserData(firebaseUser, response.data);
+        this.idToken = idToken;
+
+        localStorage.setItem('AuthToken', idToken);
+        localStorage.setItem('email', firebaseUser.email);
+
+        return {
+          success: true,
+          user: this.user,
+        };
+      } catch (error) {
+        // Don't set error state, just throw
+        console.error('Silent custom token login error:', error);
+        throw error;
       }
     },
 

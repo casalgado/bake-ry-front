@@ -79,7 +79,7 @@
 
   /* Form Styles */
   .form-container {
-    @apply max-w-[800px] w-10/12;
+    @apply max-w-[800px] w-10/12 pt-2;
   }
 
   .form-container label {

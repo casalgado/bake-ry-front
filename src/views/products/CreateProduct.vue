@@ -23,7 +23,6 @@ const handleCancel = () => {
 
 <template>
   <div class="form-container">
-    <h1>Crear Producto</h1>
     <ProductForm
       :loading="productStore.loading"
       @submit="handleSubmit"

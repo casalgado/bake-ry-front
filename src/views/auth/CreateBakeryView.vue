@@ -4,8 +4,6 @@ import { useRouter } from 'vue-router';
 import { PhGraph, PhPackage, PhUser, PhUsers } from '@phosphor-icons/vue';
 import { BakeryService } from '@/services/bakeryService';
 import { useAuthenticationStore } from '@/stores/authentication';
-import { auth } from '@/config/firebase';
-import { signInWithCustomToken } from 'firebase/auth';
 import BakeryForm from '@/components/forms/BakeryForm.vue';
 import ToastNotification from '@/components/ToastNotification.vue';
 
@@ -107,11 +105,10 @@ const handleFormSubmit = async (formData) => {
 
     console.log('Bakery created successfully:', result);
 
-    // Log in user with custom token
-    const userCredential = await signInWithCustomToken(auth, result.customToken);
+    // Log in user with custom token silently (no loading states)
+    const loginResult = await authStore.loginWithCustomTokenSilent(result.customToken);
 
-    console.log(userCredential);
-    // Update auth store state
+    console.log('Login result:', loginResult);
 
     // Trigger success animation sequence
     await handleSuccessAnimation();
