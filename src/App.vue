@@ -14,25 +14,38 @@ onMounted(() => {
 </script>
 
 <template>
-  <TheHeader />
-  <main :key="`main-${isLoading}`">
-    <div v-if="isLoading">
-      <div class="flex justify-center flex-col items-center h-screen absolute inset-0">
-        <PhGraph class="animate-pulse h-20 w-20" weight="light" />
-        <span class="text-xs">cargando...</span>
+  <div class="app-container">
+    <TheHeader />
+    <main :key="`main-${isLoading}`" class="main-content">
+      <div v-if="isLoading">
+        <div class="flex justify-center flex-col items-center h-full absolute inset-0">
+          <PhGraph class="animate-pulse h-20 w-20" weight="light" />
+          <span class="text-xs pt-16 hidden">...cargando...</span>
+        </div>
       </div>
-    </div>
-    <RouterView />
-  </main>
+      <RouterView />
+    </main>
+  </div>
 </template>
 
 <style scoped>
+.app-container {
+  height: 100vh;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.main-content {
+  overflow: auto;
+}
+
 @keyframes pulse {
   0% {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.2);
+    transform: scale(1.1);
   }
   100% {
     transform: scale(1);

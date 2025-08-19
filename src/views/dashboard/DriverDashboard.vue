@@ -12,10 +12,10 @@ onMounted(async () => {
 
 <template>
 
-  <section class="relative grid lg:grid-cols-[200px_1fr] transition-all">
+  <section class="relative grid lg:grid-cols-[200px_1fr] transition-all h-full">
     <DriverSidebar />
     <!-- Added relative positioning and proper z-index -->
-    <div class="relative grid justify-items-center grid-cols-1 bg-neutral-150 py-5 pb-20 lg:pb-5 min-h-screen">
+    <div class="relative grid justify-items-center grid-cols-1 bg-neutral-150  pb-20 lg:pb-5 h-full overflow-auto">
       <RouterView />
     </div>
   </section>
@@ -23,7 +23,6 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 section {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100%;
 }
 </style>
