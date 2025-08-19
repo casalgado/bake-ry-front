@@ -107,7 +107,6 @@ const handleFormSubmit = async (formData) => {
 
     console.log(userCredential);
     // Update auth store state
-    await authStore.checkAuth();
 
     // Trigger success animation sequence
     await handleSuccessAnimation();

@@ -287,6 +287,7 @@ export const useAuthenticationStore = defineStore('authentication', {
               this.idToken = null;
               resolve(null);
               console.log('User not authenticated');
+              console.timeEnd('checkAuth');
 
             }
             this.loading = false;
@@ -297,6 +298,7 @@ export const useAuthenticationStore = defineStore('authentication', {
             unsubscribe();
           },
         );
+        console.timeEnd('checkAuth');
       });
 
     },

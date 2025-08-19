@@ -365,7 +365,7 @@ watch(
       class="flex flex-col lg:flex-row-reverse justify-between items-center mb-4 gap-2"
     >
       <TotalsSummary
-        class="relative md:fixed md:bottom-10 md:left-10 z-[9]"
+        class="relative md:fixed md:bottom-10 lg:bottom-5 md:left-[216px] z-[9]"
         :categories="totals"
         :format-value="formatMoney"
       />

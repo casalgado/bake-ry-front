@@ -11,14 +11,14 @@ const props = defineProps({
     type: Object,
     default: () => ({
       user: {
-        name: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
+        name: 'beto',
+        email: 'a1@example.com',
+        password: 'aoeuao',
+        confirmPassword: 'aoeuao',
         phone: '',
       },
       bakery: {
-        name: '',
+        name: 'aoeu',
         address: '',
         socialMedia: {
           instagram: '',
@@ -186,10 +186,10 @@ const scrollToError = async () => {
 const handleSubmit = async (event) => {
   event.preventDefault(); // Prevent default browser validation
 
-  if (!validate()) {
-    scrollToError();
-    return;
-  }
+  // if (!validate()) {
+  //   scrollToError();
+  //   return;
+  // }
 
   emit('submit', formData.value);
 };

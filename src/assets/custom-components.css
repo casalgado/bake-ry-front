@@ -107,4 +107,14 @@
   .modal-overlay {
     @apply fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center w-full h-full;
   }
+
+  /* Scrollbar Styles */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
