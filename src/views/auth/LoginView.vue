@@ -38,7 +38,7 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="min-h-[90vh] flex items-center justify-center px-4" :class="{ 'opacity-50': loading }">
+  <div class="min-h-[90vh] flex items-center justify-center px-4 z-[60]" :class="{ 'opacity-50': loading }">
     <div class="base-card w-full max-w-md p-8">
       <!-- Logo and Header -->
       <div class="text-center mb-8">

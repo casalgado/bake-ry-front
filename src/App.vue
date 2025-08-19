@@ -58,7 +58,7 @@ onMounted(() => {
 
 .loading-overlay {
   opacity: 0;
-  animation: showLoader 0s ease-in-out 1s forwards;
+  animation: showLoader 0s ease-in-out 2s forwards;
 }
 
 @keyframes showLoader {
