@@ -17,10 +17,10 @@ onMounted(() => {
   <div class="app-container">
     <TheHeader />
     <main :key="`main-${isLoading}`" class="main-content">
-      <div v-if="isLoading">
-        <div class="flex justify-center flex-col items-center h-full absolute inset-0">
+      <div v-if="isLoading" class="absolute inset-0 z-50">
+        <div class="flex justify-center flex-col items-center h-full bg-white/80">
           <PhGraph class="animate-pulse h-20 w-20" weight="light" />
-          <span class="text-xs pt-16 hidden">...cargando...</span>
+          <span class="text-xs pt-4 hidden">cargando...</span>
         </div>
       </div>
       <RouterView />
@@ -45,7 +45,7 @@ onMounted(() => {
     transform: scale(1);
   }
   50% {
-    transform: scale(1.1);
+    transform: scale(1.05);
   }
   100% {
     transform: scale(1);
