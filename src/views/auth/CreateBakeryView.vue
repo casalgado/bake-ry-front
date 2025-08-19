@@ -15,28 +15,32 @@ const authStore = useAuthenticationStore();
 const loading = ref(false);
 const globalError = ref('');
 const toastRef = ref(null);
-const formOpacity = ref(1);
-const isFormVisible = ref(true);
+const showOverlay = ref(false);
+const overlayOpacity = ref(0);
 
 // Success animation sequence
 const handleSuccessAnimation = async () => {
-  // 1. Immediately reduce form opacity to 80%
-  formOpacity.value = 0.8;
+  // 1. Show overlay as transparent
+  showOverlay.value = true;
+  overlayOpacity.value = 0;
 
-  // 2. Scroll to top smoothly
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // 2. Scroll to top smoothly within the main content container
+  const mainContent = document.querySelector('.main-content');
+  if (mainContent) {
+    mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
-  // 3. Wait a moment for scroll, then fade out form completely
+  // 3. Wait a moment for scroll, then make overlay opaque
   setTimeout(() => {
-    formOpacity.value = 0;
+    overlayOpacity.value = 1;
 
     // 4. Show success toast
     toastRef.value?.showSuccess('Emprendimiento Creado con Éxito');
 
-    // 5. After 1 second fade duration, redirect to dashboard
+    // 5. After overlay is fully opaque, redirect to dashboard
     setTimeout(() => {
-      router.push('/dashboard/orders');
-    }, 1000);
+      router.replace('/dashboard/products');
+    }, 2000);
   }, 500); // Wait 500ms for smooth scroll to complete
 };
 
@@ -115,16 +119,19 @@ const handleFormSubmit = async (formData) => {
     console.error('Failed to create bakery:', error);
     globalError.value = error.message || 'Error al crear la panadería. Intenta nuevamente.';
 
-    // Scroll to top to show error
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } finally {
+    // Scroll to top to show error within the main content container
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+      mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     loading.value = false;
   }
 };
 </script>
 
 <template>
-  <div class="min-h-[90vh] flex items-center justify-center px-4 py-8">
+  <div class="min-h-[90vh] flex items-center justify-center px-4 py-8 relative">
     <div class="w-full max-w-4xl">
       <!-- Logo and Header -->
       <div class="text-center mb-8">
@@ -142,10 +149,7 @@ const handleFormSubmit = async (formData) => {
       </div>
 
       <!-- Bakery Form Component -->
-      <div
-        class="form-wrapper"
-        :style="{ opacity: formOpacity }"
-      >
+      <div class="form-wrapper">
         <BakeryForm
           :loading="loading"
           @submit="handleFormSubmit"
@@ -158,6 +162,18 @@ const handleFormSubmit = async (formData) => {
         <router-link to="/login" class="text-primary hover:text-primary-600 font-medium">
           Inicia sesión
         </router-link>
+      </div>
+    </div>
+
+    <!-- Success Overlay - covers entire view -->
+    <div
+      v-if="showOverlay"
+      class="fixed inset-0 bg-neutral-100 transition-opacity duration-1000 ease-in-out flex items-center justify-center z-50"
+      :style="{ opacity: overlayOpacity }"
+    >
+      <div class="text-center">
+        <PhGraph class="mx-auto w-16 h-16 text-primary mb-4 animate-pulse" weight="light" />
+        <p class="text-neutral-600">Creando tu emprendimiento...</p>
       </div>
     </div>
 
@@ -176,7 +192,7 @@ const handleFormSubmit = async (formData) => {
   scrollbar-width: none;
 }
 
-.form-wrapper {
-  transition: opacity 0.5s ease-in-out;
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
 }
 </style>
