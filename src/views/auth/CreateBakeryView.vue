@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { PhGraph } from '@phosphor-icons/vue';
+import { PhGraph, PhPackage, PhUser, PhUsers } from '@phosphor-icons/vue';
 import { BakeryService } from '@/services/bakeryService';
 import { useAuthenticationStore } from '@/stores/authentication';
 import { auth } from '@/config/firebase';
@@ -17,6 +17,7 @@ const globalError = ref('');
 const toastRef = ref(null);
 const showOverlay = ref(false);
 const overlayOpacity = ref(0);
+const showWelcome = ref(false);
 
 // Success animation sequence
 const handleSuccessAnimation = async () => {
@@ -37,10 +38,10 @@ const handleSuccessAnimation = async () => {
     // 4. Show success toast
     toastRef.value?.showSuccess('Emprendimiento Creado con Éxito');
 
-    // 5. After overlay is fully opaque, redirect to dashboard
+    // 5. After overlay is fully opaque, show welcome screen
     setTimeout(() => {
-      router.replace('/dashboard/products');
-    }, 2000);
+      showWelcome.value = true;
+    }, 1000);
   }, 500); // Wait 500ms for smooth scroll to complete
 };
 
@@ -171,9 +172,59 @@ const handleFormSubmit = async (formData) => {
       class="fixed inset-0 bg-neutral-100 transition-opacity duration-1000 ease-in-out flex items-center justify-center z-50"
       :style="{ opacity: overlayOpacity }"
     >
-      <div class="text-center">
-        <PhGraph class="mx-auto w-16 h-16 text-primary mb-4 animate-pulse" weight="light" />
-        <p class="text-neutral-600">Creando tu emprendimiento...</p>
+      <!-- Loading State -->
+      <div v-if="!showWelcome" class="text-center">
+        <PhGraph class="hidden mx-auto w-16 h-16 text-primary mb-4 animate-pulse" weight="light" />
+        <p class="hidden text-neutral-600">Creando tu emprendimiento...</p>
+      </div>
+
+      <!-- Welcome Screen -->
+      <div v-else class="w-full max-w-4xl px-4">
+        <div class="text-center mb-8">
+          <PhGraph class="mx-auto w-20 h-20 text-primary mb-6" weight="light" />
+          <h1 class="text-3xl font-bold text-neutral-800 mb-4">¡Bienvenido!</h1>
+          <p class="text-lg text-neutral-600 mb-2">Tu emprendimiento ha sido creado con éxito</p>
+          <p class="text-neutral-500">¿Qué te gustaría hacer primero?</p>
+        </div>
+
+        <!-- Action Cards -->
+        <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <!-- Create Product Card -->
+          <router-link
+            to="/dashboard/products/create"
+            class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow duration-200 group text-center"
+          >
+            <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <PhPackage class="w-6 h-6 text-primary" weight="bold" />
+            </div>
+            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Crear Producto</h3>
+            <p class="text-sm text-neutral-600">Comienza agregando tus primeros productos al catálogo</p>
+          </router-link>
+
+          <!-- Create Client Card -->
+          <router-link
+            to="/dashboard/users/create-client"
+            class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow duration-200 group text-center"
+          >
+            <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <PhUser class="w-6 h-6 text-primary" weight="bold" />
+            </div>
+            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Agregar Cliente</h3>
+            <p class="text-sm text-neutral-600">Registra tu primer cliente para comenzar a recibir pedidos</p>
+          </router-link>
+
+          <!-- Create Staff Card -->
+          <router-link
+            to="/dashboard/users/create-staff"
+            class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow duration-200 group text-center"
+          >
+            <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <PhUsers class="w-6 h-6 text-primary" weight="bold" />
+            </div>
+            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Invitar Equipo</h3>
+            <p class="text-sm text-neutral-600">Invita miembros de tu equipo para colaborar</p>
+          </router-link>
+        </div>
       </div>
     </div>
 
