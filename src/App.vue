@@ -24,7 +24,6 @@ onMounted(() => {
     </div>
     <RouterView />
   </main>
-  <footer></footer>
 </template>
 
 <style scoped>
