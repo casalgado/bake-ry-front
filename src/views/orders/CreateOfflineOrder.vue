@@ -4,7 +4,12 @@ import { useOrderStore } from '@/stores/orderStore';
 import OrderForm from '@/components/forms/OrderForm.vue';
 import { useRouter } from 'vue-router';
 import { formatMoney } from '@/utils/helpers';
-import { PhCloudSlash, PhWifiHigh, PhTrash, PhCloudArrowUp } from '@phosphor-icons/vue';
+import {
+  PhCloudSlash,
+  PhWifiHigh,
+  PhTrash,
+  PhCloudArrowUp,
+} from '@phosphor-icons/vue';
 
 const router = useRouter();
 const orderStore = useOrderStore();
@@ -46,7 +51,10 @@ const loadOfflineOrders = () => {
 
 const saveOfflineOrders = () => {
   try {
-    localStorage.setItem(OFFLINE_ORDERS_KEY, JSON.stringify(offlineOrders.value));
+    localStorage.setItem(
+      OFFLINE_ORDERS_KEY,
+      JSON.stringify(offlineOrders.value),
+    );
   } catch (error) {
     console.error('Error saving offline orders:', error);
   }
@@ -65,7 +73,9 @@ const addOfflineOrder = (orderData) => {
 };
 
 const removeOfflineOrder = (orderId) => {
-  offlineOrders.value = offlineOrders.value.filter(order => order.id !== orderId);
+  offlineOrders.value = offlineOrders.value.filter(
+    (order) => order.id !== orderId,
+  );
   saveOfflineOrders();
 };
 
@@ -106,7 +116,6 @@ const handleSubmit = async (formData) => {
       top: 0,
       behavior: 'smooth',
     });
-
   } catch (error) {
     console.error('Failed to create order:', error);
   }
@@ -131,7 +140,6 @@ const syncOfflineOrders = async () => {
 
       // Remove from offline orders on success
       removeOfflineOrder(order.id);
-
     } catch (error) {
       console.error(`Failed to sync order ${order.id}:`, error);
       syncErrors.value.push({
@@ -150,7 +158,9 @@ const handleCancel = () => {
 
 // Computed properties
 const totalOfflineOrders = computed(() => offlineOrders.value.length);
-const canSync = computed(() => isOnline.value && totalOfflineOrders.value > 0 && !isSyncing.value);
+const canSync = computed(
+  () => isOnline.value && totalOfflineOrders.value > 0 && !isSyncing.value,
+);
 
 // Calculate totals for each order
 const getOrderTotal = (order) => {
@@ -184,19 +194,30 @@ onMounted(() => {
     <!-- Network Status Banner -->
     <div
       class="base-card flex items-center gap-3 p-3"
-      :class="isOnline ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'"
+      :class="
+        isOnline
+          ? 'bg-green-50 border-green-200'
+          : 'bg-orange-50 border-orange-200'
+      "
     >
       <PhWifiHigh v-if="isOnline" class="w-5 h-5 text-green-600" />
       <PhCloudSlash v-else class="w-5 h-5 text-orange-600" />
 
       <div class="flex-1 flex items-center gap-2">
-        <p class="font-medium" :class="isOnline ? 'text-green-800' : 'text-orange-800'">
-          {{ isOnline ? 'Conectado' : 'Sin conexión' }}
+        <p
+          class="font-medium"
+          :class="isOnline ? 'text-green-800' : 'text-orange-800'"
+        >
+          {{ isOnline ? "Conectado" : "Sin conexión" }}
         </p>
-        <p class="text-sm" :class="isOnline ? 'text-green-600' : 'text-orange-600'">
-          {{ isOnline
-            ? 'Los pedidos se guardarán directamente en la base de datos'
-            : 'Los pedidos se guardarán localmente hasta que se restaure la conexión'
+        <p
+          class="text-sm"
+          :class="isOnline ? 'text-green-600' : 'text-orange-600'"
+        >
+          {{
+            isOnline
+              ? "Los pedidos se guardarán directamente en la base de datos"
+              : "Los pedidos se guardarán localmente hasta que se restaure la conexión"
           }}
         </p>
       </div>
@@ -209,26 +230,34 @@ onMounted(() => {
         :disabled="isSyncing"
       >
         <PhCloudArrowUp class="w-4 h-4 mr-2" />
-        {{ isSyncing ? 'Sincronizando...' : `Sincronizar ${totalOfflineOrders} Pedido Pendiente` }}
+        {{
+          isSyncing
+            ? "Sincronizando..."
+            : `Sincronizar ${totalOfflineOrders} Pedido Pendiente`
+        }}
       </button>
     </div>
+  </div>
 
-    <!-- Order Form -->
-    <OrderForm
-      ref="orderForm"
-      :title="isOnline ? 'Crear Pedido' : 'Crear Pedido (Offline)'"
-      :loading="orderStore.loading || isSyncing"
-      @submit="handleSubmit"
-      @cancel="handleCancel"
-    />
-
+  <!-- Order Form -->
+  <OrderForm
+    ref="orderForm !w-full"
+    :title="isOnline ? 'Crear Pedido' : 'Crear Pedido (Offline)'"
+    :loading="orderStore.loading || isSyncing"
+    @submit="handleSubmit"
+    @cancel="handleCancel"
+  />
+  <div>
     <!-- Form Error -->
     <div v-if="orderStore.error" class="base-card bg-red-50 border-red-200 p-3">
       <p class="text-red-800">{{ orderStore.error }}</p>
     </div>
 
     <!-- Sync Errors -->
-    <div v-if="syncErrors.length > 0" class="base-card bg-red-50 border-red-200 p-3">
+    <div
+      v-if="syncErrors.length > 0"
+      class="base-card bg-red-50 border-red-200 p-3"
+    >
       <h3 class="font-medium text-red-800 mb-2">Errores de Sincronización</h3>
       <ul class="text-sm text-red-600 space-y-1">
         <li v-for="error in syncErrors" :key="error.orderId">
@@ -240,7 +269,9 @@ onMounted(() => {
     <!-- Offline Orders List -->
     <div v-if="totalOfflineOrders > 0" class="space-y-3">
       <div class="flex items-center justify-between">
-        <h2 class="text-xl font-semibold">Pedidos Pendientes: {{ totalOfflineOrders }}</h2>
+        <h2 class="text-xl font-semibold">
+          Pedidos Pendientes: {{ totalOfflineOrders }}
+        </h2>
         <button
           @click="clearOfflineOrders"
           class="utility-btn"
@@ -260,11 +291,17 @@ onMounted(() => {
           <div class="flex items-start justify-between mb-3">
             <div>
               <h3 class="font-medium">{{ order.userName }}</h3>
-              <p class="text-sm text-gray-800">{{ formatDate(order.createdAt) }}</p>
+              <p class="text-sm text-gray-800">
+                {{ formatDate(order.createdAt) }}
+              </p>
             </div>
             <div class="text-right">
               <p class="font-bold">{{ formatMoney(getOrderTotal(order)) }}</p>
-              <p class="text-sm text-gray-800">{{ order.fulfillmentType === 'delivery' ? 'Domicilio' : 'Recoger' }}</p>
+              <p class="text-sm text-gray-800">
+                {{
+                  order.fulfillmentType === "delivery" ? "Domicilio" : "Recoger"
+                }}
+              </p>
             </div>
           </div>
 
@@ -273,10 +310,15 @@ onMounted(() => {
             <div class="text-sm">
               <p class="font-medium mb-1">Productos:</p>
               <ul class="list-disc list-inside space-y-1">
-                <li v-for="item in order.orderItems" :key="`${item.productId}-${item.variation?.id}`">
+                <li
+                  v-for="item in order.orderItems"
+                  :key="`${item.productId}-${item.variation?.id}`"
+                >
                   {{ item.quantity }}x {{ item.productName }}
                   <span v-if="item.variation">- {{ item.variation.name }}</span>
-                  <span class="text-gray-800">({{ formatMoney(item.currentPrice) }} c/u)</span>
+                  <span class="text-gray-800"
+                    >({{ formatMoney(item.currentPrice) }} c/u)</span
+                  >
                 </li>
               </ul>
             </div>
@@ -291,16 +333,25 @@ onMounted(() => {
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p class="font-medium">Preparación:</p>
-                <p class="text-gray-800">{{ new Date(order.preparationDate).toLocaleDateString('es-ES') }}</p>
+                <p class="text-gray-800">
+                  {{
+                    new Date(order.preparationDate).toLocaleDateString("es-ES")
+                  }}
+                </p>
               </div>
               <div>
                 <p class="font-medium">Entrega:</p>
-                <p class="text-gray-800">{{ new Date(order.dueDate).toLocaleDateString('es-ES') }}</p>
+                <p class="text-gray-800">
+                  {{ new Date(order.dueDate).toLocaleDateString("es-ES") }}
+                </p>
               </div>
             </div>
 
             <!-- Notes -->
-            <div v-if="order.internalNotes || order.deliveryNotes" class="text-sm space-y-1">
+            <div
+              v-if="order.internalNotes || order.deliveryNotes"
+              class="text-sm space-y-1"
+            >
               <div v-if="order.internalNotes">
                 <p class="font-medium">Notas Producción:</p>
                 <p class="text-gray-800">{{ order.internalNotes }}</p>

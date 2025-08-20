@@ -9,6 +9,7 @@ import {
   PhGift,
   PhClock,
   PhCurrencyDollar,
+  PhWifiX,
 } from '@phosphor-icons/vue';
 import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
 import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
@@ -24,6 +25,7 @@ const props = defineProps({
       activePaymentMethods: [],
       allowPartialPayment: false,
       timeOfDay: false,
+      offlineMode: false,
     }),
   },
   availablePaymentMethods: {
@@ -95,8 +97,9 @@ const hasChanges = computed(() => {
   // Compare boolean values
   const partialPaymentChanged = (initial.allowPartialPayment || false) !== current.allowPartialPayment;
   const timeOfDayChanged = (initial.timeOfDay || false) !== current.timeOfDay;
+  const offlineModeChanged = (initial.offlineMode || false) !== current.offlineMode;
 
-  return paymentMethodsChanged || partialPaymentChanged || timeOfDayChanged;
+  return paymentMethodsChanged || partialPaymentChanged || timeOfDayChanged || offlineModeChanged;
 });
 
 const handleSubmit = () => {
@@ -109,6 +112,7 @@ const handleCancel = () => {
     activePaymentMethods: [...(props.initialData.activePaymentMethods || [])],
     allowPartialPayment: props.initialData.allowPartialPayment || false,
     timeOfDay: props.initialData.timeOfDay || false,
+    offlineMode: props.initialData.offlineMode || false,
   };
 };
 
@@ -126,6 +130,10 @@ watch(() => props.initialData, (newData, oldData) => {
 
     if (Object.prototype.hasOwnProperty.call(newData, 'timeOfDay') && newData.timeOfDay !== formData.value.timeOfDay) {
       formData.value.timeOfDay = newData.timeOfDay;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(newData, 'offlineMode') && newData.offlineMode !== formData.value.offlineMode) {
+      formData.value.offlineMode = newData.offlineMode;
     }
   }
 }, { deep: true, immediate: true });
@@ -175,6 +183,14 @@ watch(() => props.initialData, (newData, oldData) => {
             :icon="PhClock"
             title="Hora de Entrega"
             description="Mostrar campo para seleccionar hora específica de entrega"
+            :disabled="loading"
+          />
+
+          <FeatureCard
+            v-model="formData.offlineMode"
+            :icon="PhWifiX"
+            title="Modo Sin Conexión"
+            description="Habilita formulario para crear pedidos sin conexión a internet"
             :disabled="loading"
           />
         </div>

@@ -25,6 +25,7 @@ const featuresFormData = ref({
   activePaymentMethods: [],
   allowPartialPayment: false,
   timeOfDay: false,
+  offlineMode: false,
 });
 const isFeaturesSaving = ref(false);
 
@@ -422,6 +423,7 @@ const initializeFeaturesForm = () => {
       activePaymentMethods: [...(orderFeatures.activePaymentMethods || featuresFormData.value.activePaymentMethods || [])],
       allowPartialPayment: Object.prototype.hasOwnProperty.call(orderFeatures, 'allowPartialPayment') ? orderFeatures.allowPartialPayment : featuresFormData.value.allowPartialPayment,
       timeOfDay: Object.prototype.hasOwnProperty.call(orderFeatures, 'timeOfDay') ? orderFeatures.timeOfDay : featuresFormData.value.timeOfDay,
+      offlineMode: Object.prototype.hasOwnProperty.call(orderFeatures, 'offlineMode') ? orderFeatures.offlineMode : featuresFormData.value.offlineMode,
     };
   }
 };
@@ -448,6 +450,7 @@ const handleFeaturesSubmit = async (formData) => {
           activePaymentMethods: formData.activePaymentMethods,
           allowPartialPayment: formData.allowPartialPayment,
           timeOfDay: formData.timeOfDay,
+          offlineMode: formData.offlineMode,
         },
       },
     });
@@ -457,6 +460,7 @@ const handleFeaturesSubmit = async (formData) => {
       activePaymentMethods: formData.activePaymentMethods,
       allowPartialPayment: formData.allowPartialPayment,
       timeOfDay: formData.timeOfDay,
+      offlineMode: formData.offlineMode,
     };
 
     toastRef.value?.showSuccess(
