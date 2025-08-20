@@ -1,6 +1,7 @@
 <!-- Sidebar.vue -->
 <script setup>
 import { useRouter, useRoute } from 'vue-router';
+import { computed, onMounted } from 'vue';
 import {
   PhChartLineUp,
   PhOven,
@@ -24,15 +25,32 @@ import {
   PhTag,
   PhUserPlus,
   PhUserCirclePlus,
+  PhWifiX,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
 import MobileNavigation from './MobileNavigation.vue';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 const router = useRouter();
 const route = useRoute();
+const settingsStore = useBakerySettingsStore();
 
-const navigationSections = [
+// Load bakery settings when component mounts
+onMounted(async () => {
+  if (!settingsStore.items.length) {
+    await settingsStore.fetchById('default');
+  }
+});
+
+// Check if offline mode is enabled
+const isOfflineModeEnabled = computed(() => {
+  if (!settingsStore.items.length) return false;
+  const settings = settingsStore.items[0];
+  return settings?.features?.order?.offlineMode === true;
+});
+
+const navigationSections = computed(() => [
   {
     title: 'Pedidos',
     items: [
@@ -48,6 +66,12 @@ const navigationSections = [
         text: 'Crear Pedido',
         path: '/dashboard/orders/create',
       },
+      ...(isOfflineModeEnabled.value ? [{
+        id: 'crear_pedido_offline',
+        icon: PhWifiX,
+        text: 'Crear Offline',
+        path: '/dashboard/orders/create-offline',
+      }] : []),
       {
         id: 'venta',
         icon: PhChartLineUp,
@@ -66,6 +90,7 @@ const navigationSections = [
         text: 'Fechas de Pago',
         path: '/dashboard/paymentDates',
       },
+
     ],
   },
   {
@@ -167,7 +192,7 @@ const navigationSections = [
       },
     ],
   },
-];
+]);
 
 const handleLinkClick = (link) => {
   router.push(link.path);
