@@ -249,25 +249,30 @@ const handleUserChange = async (user) => {
 
   // Only fetch and set history for new orders
   if (!props.initialData) {
-    userHistory.value = await userStore.getHistory(user.id);
-    if (userHistory.value.length > 0) {
-      currentHistoryIndex.value = 0;
-      const historicalOrder = userHistory.value[0];
-      formData.value.orderItems = addBasePricesToOrderItems(
-        historicalOrder.orderItems,
-        productStore.items,
-      );
-      formData.value.fulfillmentType = historicalOrder.fulfillmentType;
-      formData.value.deliveryFee = historicalOrder.deliveryFee;
-      formData.value.paymentMethod = historicalOrder.paymentMethod;
+    try {
+      userHistory.value = await userStore.getHistory(user.id);
+      if (userHistory.value.length > 0) {
+        currentHistoryIndex.value = 0;
+        const historicalOrder = userHistory.value[0];
+        formData.value.orderItems = addBasePricesToOrderItems(
+          historicalOrder.orderItems,
+          productStore.items,
+        );
+        formData.value.fulfillmentType = historicalOrder.fulfillmentType;
+        formData.value.deliveryFee = historicalOrder.deliveryFee;
+        formData.value.paymentMethod = historicalOrder.paymentMethod;
 
-      // Update selectedFeeType based on the historical delivery fee
-      const matchingOption = deliveryFeeOptions.find(
-        (option) => option.value === historicalOrder.deliveryFee,
-      );
-      selectedDeliveryFee.value = matchingOption
-        ? matchingOption.value
-        : 'custom';
+        // Update selectedFeeType based on the historical delivery fee
+        const matchingOption = deliveryFeeOptions.find(
+          (option) => option.value === historicalOrder.deliveryFee,
+        );
+        selectedDeliveryFee.value = matchingOption
+          ? matchingOption.value
+          : 'custom';
+      }
+    } catch (error) {
+      console.warn('Could not fetch user history:', error.message);
+      userHistory.value = [];
     }
   }
 
