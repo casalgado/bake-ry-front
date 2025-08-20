@@ -646,7 +646,6 @@ const clearPartialPayment = () => {
               id="due-time"
               type="time"
               v-model="formData.dueTime"
-              step="900"
               class="w-full"
             />
             <span v-if="errors.dueTime" class="text-danger text-sm">{{

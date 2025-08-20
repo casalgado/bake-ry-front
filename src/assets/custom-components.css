@@ -92,6 +92,38 @@
     @apply w-full border text-[13px] border-neutral-850 bg-gray-50 rounded-md p-2 py-1;
   }
 
+  /* iOS-specific fixes for date/time inputs */
+  .form-container input[type="date"],
+  .form-container input[type="time"],
+  .form-container input[type="datetime-local"] {
+    @apply min-w-0 flex-1;
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 2.25rem;
+    height: auto;
+  }
+
+  /* Additional iOS Safari fixes */
+  @supports (-webkit-touch-callout: none) {
+    .form-container input[type="date"],
+    .form-container input[type="time"],
+    .form-container input[type="datetime-local"] {
+      width: 100% !important;
+      min-width: 0 !important;
+      flex: 1 1 auto !important;
+      box-sizing: border-box !important;
+    }
+  }
+
+  /* Prevent zoom on mobile devices by ensuring minimum 16px font size */
+  @media screen and (max-width: 768px) {
+    .form-container input,
+    .form-container select,
+    .form-container textarea {
+      font-size: 16px !important;
+    }
+  }
+
   /* Target div containing checkbox/radio */
   .form-container div:has(> input[type='checkbox']),
   .form-container div:has(> input[type='radio']) {

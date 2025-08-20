@@ -14,15 +14,14 @@ const handleSubmit = async (formData) => {
 
     // Reset the form by triggering a key change
     if (orderForm.value) {
-      // Assuming we add a resetForm method to OrderForm component
       orderForm.value.resetForm();
     }
 
-    // Smooth scroll to top
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
+    // Scroll to top after successful creation (same as OrderForm pattern)
+    const form = document.querySelector('form');
+    if (form) {
+      form.scrollIntoView({ behavior: 'smooth' });
+    }
 
   } catch (error) {
     console.error('Failed to create order:', error);
