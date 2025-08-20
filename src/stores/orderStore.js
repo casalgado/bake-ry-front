@@ -2,6 +2,7 @@
 import { createResourceStore } from './base/resourceStore';
 import { OrderService } from '../services/orderService';
 import { useAuthenticationStore } from './authentication';
+import { usePeriodStore } from './periodStore';
 import { storeToRefs } from 'pinia';
 import QueryBuilder from '@/utils/queryBuilder';
 
@@ -10,6 +11,24 @@ const { getBakeryId } = storeToRefs(authStore);
 const service = new OrderService(getBakeryId.value);
 
 export const useOrderStore = createResourceStore('orders', service);
+
+// Helper function to check if order falls within current period range
+function isOrderInCurrentPeriod(order) {
+  try {
+    const periodStore = usePeriodStore();
+    const { start, end } = periodStore.periodRange;
+
+    // Get the order's preparation date
+    const orderDate = new Date(order.preparationDate);
+
+    // Check if order date falls within the current period
+    return orderDate >= start && orderDate <= end;
+  } catch (error) {
+    console.warn('Error checking order period:', error);
+    // If there's an error, allow the order to be added (fail-safe)
+    return true;
+  }
+}
 
 // Extend the store with the sales report functionality
 const store = useOrderStore();
@@ -113,9 +132,10 @@ store.subscribeToChanges = async () => {
       switch (change.type) {
       case 'added': {
         const index = store.items.findIndex(item => item.id === change.data.id);
-        // Only add if it doesn't already exist and if not initial load
-        if (index === -1 && changes.length < 2) {
-          store.items.push(change.data);
+        // Only add if it doesn't already exist, not bulk initial load, and falls within current period
+        if (index === -1 && changes.length < 2 && isOrderInCurrentPeriod(change.data)) {
+          // Insert at the beginning to match typical newest-first order
+          store.items.unshift(change.data);
         }
         break;
       }
