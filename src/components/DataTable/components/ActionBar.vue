@@ -65,7 +65,7 @@ const actionBarStyle = computed(() => ({
 <template>
   <div
     v-if="selectedCount > 0"
-    class="fixed md:bottom-10 lg:bottom-5 right-8 lg:right-8 bg-white border-t rounded-lg shadow-lg z-40 max-w-full"
+    class="fixed bottom-10 lg:bottom-5 right-0 md:right-8 bg-white border-t rounded-lg shadow-lg z-40 max-w-full"
     :style="actionBarStyle"
   >
     <div class="px-4 flex items-center gap-2 justify-between">

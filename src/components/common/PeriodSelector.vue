@@ -41,7 +41,7 @@ if (props.onlyFor && props.onlyFor.length === 1) {
 
 <template>
   <div
-    class="flex flex-col lg:flex-row lg:w-auto w-full mx-1 sm:mx-3 lg:items-center px-1 sm:px-2 bg-neutral-100 rounded-lg"
+    class="flex flex-col lg:flex-row lg:w-auto w-full mx-1 sm:mx-3 lg:items-center px-1 sm:px-2 bg-neutral-100 rounded-lg lg:mr-0"
   >
     <div
       class="flex items-center justify-between gap-1 sm:gap-2 min-w-0"

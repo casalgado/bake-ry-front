@@ -246,13 +246,16 @@ const columns = computed(() => [
     type: 'toggle',
     get options() {
       const settings = settingsStore.items[0];
-      const activePaymentMethods = settings?.features?.order?.activePaymentMethods || [];
+      const activePaymentMethods =
+        settings?.features?.order?.activePaymentMethods || [];
 
-      return paymentMethodOptions.value.map(method => ({
+      return paymentMethodOptions.value.map((method) => ({
         value: method.value,
         displayText: method.displayText,
         icon: paymentIconMap[method.value] || PhMoney,
-        skipWhenToggled: method.value === 'complimentary' || !activePaymentMethods.includes(method.value),
+        skipWhenToggled:
+          method.value === 'complimentary' ||
+          !activePaymentMethods.includes(method.value),
       }));
     },
   },
@@ -279,7 +282,7 @@ const tableFilters = computed(() => [
   },
   {
     field: 'paymentMethod',
-    options: paymentMethodOptions.value.map(method => ({
+    options: paymentMethodOptions.value.map((method) => ({
       label: method.label.toLowerCase(),
       value: method.value,
     })),
@@ -364,13 +367,13 @@ watch(
     <div
       class="flex flex-col lg:flex-row-reverse justify-between items-center mb-4 gap-2"
     >
-      <TotalsSummary
-        class="relative md:fixed md:bottom-10 lg:bottom-5 md:left-[216px] z-[9]"
-        :categories="totals"
-        :format-value="formatMoney"
-      />
-      <div class="flex flex-col">
-        <PeriodSelector />
+      <div class="flex flex-col gap-2 items-center lg:items-stretch">
+        <PeriodSelector/>
+        <TotalsSummary
+          class="relative lg:fixed lg:bottom-5 lg:left-[216px] z-[9] "
+          :categories="totals"
+          :format-value="formatMoney"
+        />
       </div>
     </div>
 

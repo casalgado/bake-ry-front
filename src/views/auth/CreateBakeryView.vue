@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { PhGraph, PhPackage, PhUser, PhUsers } from '@phosphor-icons/vue';
+import { PhGraph, PhTag, PhUserPlus, PhUserCirclePlus } from '@phosphor-icons/vue';
 import { BakeryService } from '@/services/bakeryService';
 import { useAuthenticationStore } from '@/stores/authentication';
 import BakeryForm from '@/components/forms/BakeryForm.vue';
@@ -178,7 +178,7 @@ const handleFormSubmit = async (formData) => {
       <!-- Welcome Screen -->
       <div v-else class="w-full max-w-4xl px-4">
         <div class="text-center mb-8">
-          <PhGraph class="mx-auto w-20 h-20 text-primary mb-6" weight="light" />
+          <PhGraph class="mx-auto w-20 h-20 text-neutral-800 mb-6" weight="light" />
           <h1 class="text-3xl font-bold text-neutral-800 mb-4">¡Bienvenido!</h1>
           <p class="text-lg text-neutral-600 mb-2">Tu emprendimiento ha sido creado con éxito</p>
           <p class="text-neutral-500">¿Qué te gustaría hacer primero?</p>
@@ -192,7 +192,7 @@ const handleFormSubmit = async (formData) => {
             class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow duration-200 group text-center"
           >
             <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <PhPackage class="w-6 h-6 text-primary" weight="bold" />
+              <PhTag class="w-6 h-6 text-primary" weight="bold" />
             </div>
             <h3 class="text-lg font-semibold text-neutral-800 mb-2">Crear Producto</h3>
             <p class="text-sm text-neutral-600">Comienza agregando tus primeros productos al catálogo</p>
@@ -204,7 +204,7 @@ const handleFormSubmit = async (formData) => {
             class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow duration-200 group text-center"
           >
             <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <PhUser class="w-6 h-6 text-primary" weight="bold" />
+              <PhUserPlus class="w-6 h-6 text-primary" weight="bold" />
             </div>
             <h3 class="text-lg font-semibold text-neutral-800 mb-2">Agregar Cliente</h3>
             <p class="text-sm text-neutral-600">Registra tu primer cliente para comenzar a recibir pedidos</p>
@@ -216,7 +216,7 @@ const handleFormSubmit = async (formData) => {
             class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow duration-200 group text-center"
           >
             <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <PhUsers class="w-6 h-6 text-primary" weight="bold" />
+              <PhUserCirclePlus class="w-6 h-6 text-primary" weight="bold" />
             </div>
             <h3 class="text-lg font-semibold text-neutral-800 mb-2">Invitar Equipo</h3>
             <p class="text-sm text-neutral-600">Invita miembros de tu equipo para colaborar</p>

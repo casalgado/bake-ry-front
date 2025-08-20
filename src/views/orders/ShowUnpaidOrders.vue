@@ -322,7 +322,7 @@ const closeDialog = () => {
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-neutral-800">Por Cobrar</h2>
-      <TotalsSummary class="relative md:fixed md:bottom-10 lg:bottom-5 md:left-[216px] z-[9]" :categories="totals" :format-value="formatMoney"/>
+      <TotalsSummary class="relative lg:fixed lg:bottom-5 lg:left-[216px] z-[9]" :categories="totals" :format-value="formatMoney"/>
     </div>
 
     <!-- Error State -->
