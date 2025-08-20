@@ -25,6 +25,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  isOffline: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const addBasePricesToOrderItems = (orderItems, products) => {
@@ -578,6 +582,7 @@ const clearPartialPayment = () => {
               <PhX class="" />
             </button>
             <button
+              v-if="!isOffline"
               type="button"
               class="utility-btn m-0"
               @click="handleNewClientClick"

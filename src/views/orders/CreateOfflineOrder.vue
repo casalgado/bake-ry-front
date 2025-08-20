@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useOrderStore } from '@/stores/orderStore';
 import OrderForm from '@/components/forms/OrderForm.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useRouter } from 'vue-router';
 import { formatMoney } from '@/utils/helpers';
 import {
@@ -19,6 +20,14 @@ const isSyncing = ref(false);
 const syncErrors = ref([]);
 
 const OFFLINE_ORDERS_KEY = 'bakery_offline_orders';
+
+// Confirmation dialog state
+const showConfirmDialog = ref(false);
+const confirmAction = ref(null);
+const confirmTitle = ref('');
+const confirmMessage = ref('');
+const confirmText = ref('Confirmar');
+const cancelText = ref('Cancelar');
 
 // Network status detection
 const updateNetworkStatus = () => {
@@ -82,6 +91,46 @@ const removeOfflineOrder = (orderId) => {
 const clearOfflineOrders = () => {
   offlineOrders.value = [];
   localStorage.removeItem(OFFLINE_ORDERS_KEY);
+};
+
+// Confirmation dialog handlers
+const openConfirmDialog = (title, message, action, confirmButtonText = 'Confirmar') => {
+  confirmTitle.value = title;
+  confirmMessage.value = message;
+  confirmAction.value = action;
+  confirmText.value = confirmButtonText;
+  showConfirmDialog.value = true;
+};
+
+const handleConfirm = () => {
+  if (confirmAction.value) {
+    confirmAction.value();
+  }
+  showConfirmDialog.value = false;
+  confirmAction.value = null;
+};
+
+const handleCancel = () => {
+  showConfirmDialog.value = false;
+  confirmAction.value = null;
+};
+
+const confirmClearAllOrders = () => {
+  openConfirmDialog(
+    'Limpiar Todos los Pedidos',
+    '¿Estás seguro de que quieres eliminar todos los pedidos offline? Esta acción no se puede deshacer.',
+    clearOfflineOrders,
+    'Eliminar Todo',
+  );
+};
+
+const confirmRemoveOrder = (orderId) => {
+  openConfirmDialog(
+    'Eliminar Pedido',
+    '¿Estás seguro de que quieres eliminar este pedido offline?',
+    () => removeOfflineOrder(orderId),
+    'Eliminar',
+  );
 };
 
 // Form submission
@@ -152,7 +201,7 @@ const syncOfflineOrders = async () => {
   isSyncing.value = false;
 };
 
-const handleCancel = () => {
+const handleCancelForm = () => {
   router.push('/orders');
 };
 
@@ -226,14 +275,14 @@ onMounted(() => {
       <button
         v-if="canSync"
         @click="syncOfflineOrders"
-        class="action-btn"
+        class="action-btn flex"
         :disabled="isSyncing"
       >
         <PhCloudArrowUp class="w-4 h-4 mr-2" />
         {{
           isSyncing
             ? "Sincronizando..."
-            : `Sincronizar ${totalOfflineOrders} Pedido Pendiente`
+            : `Sincronizar ${totalOfflineOrders} Pedido${totalOfflineOrders > 1 ? 's' : ''}`
         }}
       </button>
     </div>
@@ -241,13 +290,14 @@ onMounted(() => {
 
   <!-- Order Form -->
   <OrderForm
-    ref="orderForm !w-full"
+    ref="orderForm"
     :title="isOnline ? 'Crear Pedido' : 'Crear Pedido (Offline)'"
     :loading="orderStore.loading || isSyncing"
+    :isOffline="!isOnline"
     @submit="handleSubmit"
-    @cancel="handleCancel"
+    @cancel="handleCancelForm"
   />
-  <div>
+  <div class="form-container">
     <!-- Form Error -->
     <div v-if="orderStore.error" class="base-card bg-red-50 border-red-200 p-3">
       <p class="text-red-800">{{ orderStore.error }}</p>
@@ -273,8 +323,8 @@ onMounted(() => {
           Pedidos Pendientes: {{ totalOfflineOrders }}
         </h2>
         <button
-          @click="clearOfflineOrders"
-          class="utility-btn"
+          @click="confirmClearAllOrders"
+          class="danger-btn flex items-center"
           :disabled="isSyncing"
         >
           <PhTrash class="w-4 h-4 mr-2" />
@@ -365,8 +415,8 @@ onMounted(() => {
             <!-- Actions -->
             <div class="flex justify-end pt-2 border-t border-neutral-200">
               <button
-                @click="removeOfflineOrder(order.id)"
-                class="utility-btn"
+                @click="confirmRemoveOrder(order.id)"
+                class="danger-btn flex items-center"
                 :disabled="isSyncing"
               >
                 <PhTrash class="w-4 h-4 mr-1" />
@@ -378,4 +428,15 @@ onMounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- Confirmation Dialog -->
+  <ConfirmDialog
+    :isOpen="showConfirmDialog"
+    :title="confirmTitle"
+    :message="confirmMessage"
+    :confirmText="confirmText"
+    :cancelText="cancelText"
+    @confirm="handleConfirm"
+    @cancel="handleCancel"
+  />
 </template>
