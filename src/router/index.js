@@ -124,6 +124,11 @@ const router = createRouter({
           component: () => import('../views/orders/CreateOrder.vue'),
         },
         {
+          path: 'orders/create-offline',
+          name: 'create-offline-order',
+          component: () => import('../views/orders/CreateOfflineOrder.vue'),
+        },
+        {
           path: 'orders/production/single',
           name: 'show-production-single',
           component: () => import('../views/orders/ShowProductionSingleItems.vue'),

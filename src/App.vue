@@ -18,7 +18,7 @@ onMounted(() => {
     <TheHeader />
     <main :key="`main-${isLoading}`" class="main-content">
       <div v-if="isLoading" class="loading-overlay absolute inset-0 z-50">
-        <div class="flex justify-center flex-col items-center h-full bg-white/80">
+        <div class="flex justify-center flex-col items-center h-full bg-neutral-50">
           <PhGraph class="animate-pulse h-20 w-20" weight="light" />
           <span class="text-xs pt-4 hidden">cargando...</span>
         </div>
