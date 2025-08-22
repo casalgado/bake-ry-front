@@ -49,21 +49,6 @@ onMounted(async () => {
   }
 });
 
-// Computed property to check if there are changes
-const hasChanges = computed(() => {
-  if (!systemSettingsStore.settings) return false;
-
-  return JSON.stringify(formData) !== JSON.stringify({
-    defaultVariationTemplates: systemSettingsStore.settings.defaultVariationTemplates || {},
-    availablePaymentMethods: systemSettingsStore.settings.availablePaymentMethods || [],
-    orderStatuses: systemSettingsStore.settings.orderStatuses || [],
-    fulfillmentTypes: systemSettingsStore.settings.fulfillmentTypes || [],
-    paymentMethods: systemSettingsStore.settings.paymentMethods || [],
-    unitOptions: systemSettingsStore.settings.unitOptions || [],
-    storageTemperatures: systemSettingsStore.settings.storageTemperatures || [],
-  });
-});
-
 // Confirmation dialog handlers
 const openConfirmDialog = (title, message, action, confirmButtonText = 'Confirmar') => {
   confirmTitle.value = title;
@@ -75,7 +60,11 @@ const openConfirmDialog = (title, message, action, confirmButtonText = 'Confirma
 
 const handleConfirm = async () => {
   if (confirmAction.value) {
-    await confirmAction.value();
+    try {
+      await confirmAction.value();
+    } catch (error) {
+      // Error is already handled in the individual save functions
+    }
   }
   showConfirmDialog.value = false;
   confirmAction.value = null;
@@ -86,24 +75,53 @@ const handleCancel = () => {
   confirmAction.value = null;
 };
 
-// Save settings
-const handleSave = () => {
+// Individual save functions for each section
+const saveSection = (sectionName, sectionData, sectionTitle) => {
   openConfirmDialog(
-    'Guardar Configuraciones',
-    '¿Estás seguro de que quieres guardar los cambios en las configuraciones del sistema?',
+    `Guardar ${sectionTitle}`,
+    `¿Estás seguro de que quieres guardar los cambios en ${sectionTitle.toLowerCase()}?`,
     async () => {
       isSaving.value = true;
       try {
-        await systemSettingsStore.updateSettings(formData);
-        toastRef.value?.show('Configuraciones guardadas exitosamente', 'success');
+        const updateData = { [sectionName]: sectionData };
+        await systemSettingsStore.updateSettings(updateData);
+        toastRef.value?.show(`${sectionTitle} guardadas exitosamente`, 'success');
       } catch (error) {
-        toastRef.value?.show('Error guardando configuraciones', 'error');
+        toastRef.value?.show(`Error guardando ${sectionTitle.toLowerCase()}`, 'error');
       } finally {
         isSaving.value = false;
       }
     },
     'Guardar',
   );
+};
+
+const saveDefaultVariationTemplates = () => {
+  saveSection('defaultVariationTemplates', formData.defaultVariationTemplates, 'Plantillas de Variaciones');
+};
+
+const saveAvailablePaymentMethods = () => {
+  saveSection('availablePaymentMethods', formData.availablePaymentMethods, 'Métodos de Pago Disponibles');
+};
+
+const saveOrderStatuses = () => {
+  saveSection('orderStatuses', formData.orderStatuses, 'Estados de Pedidos');
+};
+
+const saveFulfillmentTypes = () => {
+  saveSection('fulfillmentTypes', formData.fulfillmentTypes, 'Tipos de Entrega');
+};
+
+const savePaymentMethods = () => {
+  saveSection('paymentMethods', formData.paymentMethods, 'Métodos de Pago');
+};
+
+const saveUnitOptions = () => {
+  saveSection('unitOptions', formData.unitOptions, 'Opciones de Unidades');
+};
+
+const saveStorageTemperatures = () => {
+  saveSection('storageTemperatures', formData.storageTemperatures, 'Temperaturas de Almacenamiento');
 };
 
 // Helper functions for array management
@@ -164,7 +182,7 @@ const cancelJsonChanges = () => {
   <div class="form-container">
     <h1 class="text-2xl font-bold text-neutral-800 mb-6">Configuraciones del Sistema</h1>
 
-    <form @submit.prevent="handleSave" class="space-y-6">
+    <div class="space-y-6">
       <!-- Default Variation Templates -->
       <div class="base-card">
         <div class="flex justify-between items-center mb-4">
@@ -182,6 +200,18 @@ const cancelJsonChanges = () => {
           <p class="text-sm text-neutral-600 mb-2">Vista previa de las plantillas configuradas:</p>
           <pre class="text-xs bg-white p-3 rounded border overflow-auto max-h-40">{{ JSON.stringify(formData.defaultVariationTemplates, null, 2) }}</pre>
         </div>
+
+        <div class="flex justify-end mt-4">
+          <button
+            type="button"
+            @click="saveDefaultVariationTemplates"
+            :disabled="isSaving"
+            class="action-btn"
+            :class="{ 'opacity-50 cursor-not-allowed': isSaving }"
+          >
+            {{ isSaving ? 'Guardando...' : 'Guardar Plantillas' }}
+          </button>
+        </div>
       </div>
 
       <!-- Available Payment Methods -->
@@ -195,7 +225,7 @@ const cancelJsonChanges = () => {
               <input
                 v-model="method.value"
                 type="text"
-                class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
               />
             </div>
             <div>
@@ -203,7 +233,7 @@ const cancelJsonChanges = () => {
               <input
                 v-model="method.label"
                 type="text"
-                class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
               />
             </div>
             <div>
@@ -211,7 +241,7 @@ const cancelJsonChanges = () => {
               <input
                 v-model="method.displayText"
                 type="text"
-                class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
               />
             </div>
             <div>
@@ -233,6 +263,18 @@ const cancelJsonChanges = () => {
         >
           Agregar Método de Pago
         </button>
+
+        <div class="flex justify-end mt-4">
+          <button
+            type="button"
+            @click="saveAvailablePaymentMethods"
+            :disabled="isSaving"
+            class="action-btn"
+            :class="{ 'opacity-50 cursor-not-allowed': isSaving }"
+          >
+            {{ isSaving ? 'Guardando...' : 'Guardar Métodos de Pago' }}
+          </button>
+        </div>
       </div>
 
       <!-- Order Statuses -->
@@ -244,7 +286,7 @@ const cancelJsonChanges = () => {
             <input
               v-model="formData.orderStatuses[index]"
               type="text"
-              class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
             />
             <button
               type="button"
@@ -261,7 +303,7 @@ const cancelJsonChanges = () => {
             ref="newOrderStatus"
             type="text"
             placeholder="Nuevo estado de pedido"
-            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
             @keyup.enter="addItem(formData.orderStatuses, $event.target.value); $event.target.value = ''"
           />
           <button
@@ -270,6 +312,18 @@ const cancelJsonChanges = () => {
             class="utility-btn"
           >
             Agregar
+          </button>
+        </div>
+
+        <div class="flex justify-end mt-4">
+          <button
+            type="button"
+            @click="saveOrderStatuses"
+            :disabled="isSaving"
+            class="action-btn"
+            :class="{ 'opacity-50 cursor-not-allowed': isSaving }"
+          >
+            {{ isSaving ? 'Guardando...' : 'Guardar Estados' }}
           </button>
         </div>
       </div>
@@ -283,7 +337,7 @@ const cancelJsonChanges = () => {
             <input
               v-model="formData.fulfillmentTypes[index]"
               type="text"
-              class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
             />
             <button
               type="button"
@@ -300,7 +354,7 @@ const cancelJsonChanges = () => {
             ref="newFulfillmentType"
             type="text"
             placeholder="Nuevo tipo de entrega"
-            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
             @keyup.enter="addItem(formData.fulfillmentTypes, $event.target.value); $event.target.value = ''"
           />
           <button
@@ -309,6 +363,18 @@ const cancelJsonChanges = () => {
             class="utility-btn"
           >
             Agregar
+          </button>
+        </div>
+
+        <div class="flex justify-end mt-4">
+          <button
+            type="button"
+            @click="saveFulfillmentTypes"
+            :disabled="isSaving"
+            class="action-btn"
+            :class="{ 'opacity-50 cursor-not-allowed': isSaving }"
+          >
+            {{ isSaving ? 'Guardando...' : 'Guardar Tipos de Entrega' }}
           </button>
         </div>
       </div>
@@ -322,7 +388,7 @@ const cancelJsonChanges = () => {
             <input
               v-model="formData.paymentMethods[index]"
               type="text"
-              class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
             />
             <button
               type="button"
@@ -339,7 +405,7 @@ const cancelJsonChanges = () => {
             ref="newPaymentMethod"
             type="text"
             placeholder="Nuevo método de pago"
-            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
             @keyup.enter="addItem(formData.paymentMethods, $event.target.value); $event.target.value = ''"
           />
           <button
@@ -348,6 +414,18 @@ const cancelJsonChanges = () => {
             class="utility-btn"
           >
             Agregar
+          </button>
+        </div>
+
+        <div class="flex justify-end mt-4">
+          <button
+            type="button"
+            @click="savePaymentMethods"
+            :disabled="isSaving"
+            class="action-btn"
+            :class="{ 'opacity-50 cursor-not-allowed': isSaving }"
+          >
+            {{ isSaving ? 'Guardando...' : 'Guardar Métodos de Pago' }}
           </button>
         </div>
       </div>
@@ -361,7 +439,7 @@ const cancelJsonChanges = () => {
             <input
               v-model="formData.unitOptions[index]"
               type="text"
-              class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
             />
             <button
               type="button"
@@ -378,7 +456,7 @@ const cancelJsonChanges = () => {
             ref="newUnitOption"
             type="text"
             placeholder="Nueva unidad"
-            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
             @keyup.enter="addItem(formData.unitOptions, $event.target.value); $event.target.value = ''"
           />
           <button
@@ -387,6 +465,18 @@ const cancelJsonChanges = () => {
             class="utility-btn"
           >
             Agregar
+          </button>
+        </div>
+
+        <div class="flex justify-end mt-4">
+          <button
+            type="button"
+            @click="saveUnitOptions"
+            :disabled="isSaving"
+            class="action-btn"
+            :class="{ 'opacity-50 cursor-not-allowed': isSaving }"
+          >
+            {{ isSaving ? 'Guardando...' : 'Guardar Unidades' }}
           </button>
         </div>
       </div>
@@ -400,7 +490,7 @@ const cancelJsonChanges = () => {
             <input
               v-model="formData.storageTemperatures[index]"
               type="text"
-              class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
             />
             <button
               type="button"
@@ -417,7 +507,7 @@ const cancelJsonChanges = () => {
             ref="newStorageTemp"
             type="text"
             placeholder="Nueva temperatura"
-            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
             @keyup.enter="addItem(formData.storageTemperatures, $event.target.value); $event.target.value = ''"
           />
           <button
@@ -428,20 +518,20 @@ const cancelJsonChanges = () => {
             Agregar
           </button>
         </div>
-      </div>
 
-      <!-- Save Button -->
-      <div class="flex justify-center pt-6">
-        <button
-          type="submit"
-          :disabled="!hasChanges || isSaving || systemSettingsStore.loading"
-          class="action-btn"
-          :class="{ 'opacity-50 cursor-not-allowed': !hasChanges || isSaving || systemSettingsStore.loading }"
-        >
-          {{ isSaving ? 'Guardando...' : 'Guardar Configuraciones' }}
-        </button>
+        <div class="flex justify-end mt-4">
+          <button
+            type="button"
+            @click="saveStorageTemperatures"
+            :disabled="isSaving"
+            class="action-btn"
+            :class="{ 'opacity-50 cursor-not-allowed': isSaving }"
+          >
+            {{ isSaving ? 'Guardando...' : 'Guardar Temperaturas' }}
+          </button>
+        </div>
       </div>
-    </form>
+    </div>
 
     <!-- JSON Editor Dialog -->
     <Dialog :open="showJsonEditor" @close="cancelJsonChanges" class="relative z-50">
@@ -466,7 +556,7 @@ const cancelJsonChanges = () => {
 
             <textarea
               v-model="jsonEditorContent"
-              class="w-full h-96 p-4 border border-neutral-300 rounded font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
+              class="w-full h-96 p-4 border border-neutral-300 rounded font-mono text-sm resize-none focus:outline-none"
               placeholder="Edita el JSON aquí..."
             ></textarea>
           </div>
@@ -484,7 +574,7 @@ const cancelJsonChanges = () => {
               @click="saveJsonChanges"
               class="action-btn"
             >
-              Guardar Cambios
+              Aplicar Cambios
             </button>
           </div>
         </DialogPanel>
