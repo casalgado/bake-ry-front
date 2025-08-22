@@ -276,6 +276,15 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: '/system-settings',
+      name: 'system-settings',
+      component: () => import('../views/SystemSettingsView.vue'),
+      meta: {
+        requiresAuth: true,
+        allowedRoles: ['system_admin'],
+      },
+    },
   ],
 });
 

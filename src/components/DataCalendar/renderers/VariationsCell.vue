@@ -26,7 +26,7 @@ defineProps({
           </td>
 
           <td class="px-3 py-2 text-sm text-right font-medium">
-            {{ formatMoney(item.currentPrice) }}
+            {{ formatMoney(item.basePrice) }}
           </td>
         </tr>
       </tbody>

@@ -54,6 +54,12 @@ export const useSystemSettingsStore = defineStore('systemSettings', {
     availablePaymentMethods: (state) => state.settings?.availablePaymentMethods || [],
 
     /**
+     * Get default variation templates object
+     * @returns {Object}
+     */
+    defaultVariationTemplates: (state) => state.settings?.defaultVariationTemplates || {},
+
+    /**
      * Check if settings are loaded
      * @returns {boolean}
      */
