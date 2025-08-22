@@ -62,7 +62,7 @@ const handleSuccessAnimation = async () => {
     overlayOpacity.value = 1;
 
     // 4. Show success toast
-    toastRef.value?.showSuccess('Emprendimiento Creado con Éxito');
+    // toastRef.value?.showSuccess('Emprendimiento Creado con Éxito');
 
     // 5. After overlay is fully opaque, show welcome screen
     setTimeout(() => {
@@ -221,7 +221,7 @@ const handleFormSubmit = async (formData) => {
         <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           <!-- Create Product Card -->
           <router-link
-            to="/dashboard/products/create"
+            to="/dashboard/product-collections/create"
             class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow duration-200 group text-center"
           >
             <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">

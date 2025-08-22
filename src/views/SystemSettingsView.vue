@@ -190,7 +190,7 @@ const cancelJsonChanges = () => {
           <button
             type="button"
             @click="openJsonEditor"
-            class="utility-btn"
+            class="utility-btn m-0"
           >
             Editar JSON
           </button>
@@ -219,8 +219,8 @@ const cancelJsonChanges = () => {
         <h3 class="text-lg font-semibold text-neutral-800 mb-4">Métodos de Pago Disponibles</h3>
 
         <div class="space-y-2 mb-4">
-          <div v-for="(method, index) in formData.availablePaymentMethods" :key="index" class="grid grid-cols-4 gap-2 items-end">
-            <div>
+          <div v-for="(method, index) in formData.availablePaymentMethods" :key="index" class="flex gap-2 items-end">
+            <div class="flex-1">
               <label class="block text-sm font-medium text-neutral-700 mb-1">Valor</label>
               <input
                 v-model="method.value"
@@ -228,7 +228,7 @@ const cancelJsonChanges = () => {
                 class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
               />
             </div>
-            <div>
+            <div class="flex-1">
               <label class="block text-sm font-medium text-neutral-700 mb-1">Etiqueta</label>
               <input
                 v-model="method.label"
@@ -236,7 +236,7 @@ const cancelJsonChanges = () => {
                 class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
               />
             </div>
-            <div>
+            <div class="flex-1">
               <label class="block text-sm font-medium text-neutral-700 mb-1">Texto de Pantalla</label>
               <input
                 v-model="method.displayText"
@@ -244,11 +244,11 @@ const cancelJsonChanges = () => {
                 class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
               />
             </div>
-            <div>
+            <div class="flex-shrink-0 self-end">
               <button
                 type="button"
                 @click="removePaymentMethod(index)"
-                class="cancel-btn"
+                class="danger-btn m-0"
               >
                 Eliminar
               </button>
@@ -259,7 +259,7 @@ const cancelJsonChanges = () => {
         <button
           type="button"
           @click="addPaymentMethod"
-          class="utility-btn"
+          class="utility-btn m-0"
         >
           Agregar Método de Pago
         </button>
@@ -291,7 +291,7 @@ const cancelJsonChanges = () => {
             <button
               type="button"
               @click="removeItem(formData.orderStatuses, index)"
-              class="cancel-btn"
+              class="danger-btn"
             >
               Eliminar
             </button>
@@ -309,7 +309,7 @@ const cancelJsonChanges = () => {
           <button
             type="button"
             @click="addItem(formData.orderStatuses, $refs.newOrderStatus.value); $refs.newOrderStatus.value = ''"
-            class="utility-btn"
+            class="utility-btn m-0"
           >
             Agregar
           </button>
@@ -342,7 +342,7 @@ const cancelJsonChanges = () => {
             <button
               type="button"
               @click="removeItem(formData.fulfillmentTypes, index)"
-              class="cancel-btn"
+              class="danger-btn"
             >
               Eliminar
             </button>
@@ -360,7 +360,7 @@ const cancelJsonChanges = () => {
           <button
             type="button"
             @click="addItem(formData.fulfillmentTypes, $refs.newFulfillmentType.value); $refs.newFulfillmentType.value = ''"
-            class="utility-btn"
+            class="utility-btn m-0"
           >
             Agregar
           </button>
@@ -393,7 +393,7 @@ const cancelJsonChanges = () => {
             <button
               type="button"
               @click="removeItem(formData.paymentMethods, index)"
-              class="cancel-btn"
+              class="danger-btn"
             >
               Eliminar
             </button>
@@ -411,7 +411,7 @@ const cancelJsonChanges = () => {
           <button
             type="button"
             @click="addItem(formData.paymentMethods, $refs.newPaymentMethod.value); $refs.newPaymentMethod.value = ''"
-            class="utility-btn"
+            class="utility-btn m-0"
           >
             Agregar
           </button>
@@ -444,7 +444,7 @@ const cancelJsonChanges = () => {
             <button
               type="button"
               @click="removeItem(formData.unitOptions, index)"
-              class="cancel-btn"
+              class="danger-btn"
             >
               Eliminar
             </button>
@@ -462,7 +462,7 @@ const cancelJsonChanges = () => {
           <button
             type="button"
             @click="addItem(formData.unitOptions, $refs.newUnitOption.value); $refs.newUnitOption.value = ''"
-            class="utility-btn"
+            class="utility-btn m-0"
           >
             Agregar
           </button>
@@ -495,7 +495,7 @@ const cancelJsonChanges = () => {
             <button
               type="button"
               @click="removeItem(formData.storageTemperatures, index)"
-              class="cancel-btn"
+              class="danger-btn"
             >
               Eliminar
             </button>
@@ -507,13 +507,13 @@ const cancelJsonChanges = () => {
             ref="newStorageTemp"
             type="text"
             placeholder="Nueva temperatura"
-            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
+            class="flex-1 px-3 py-1 border border-neutral-300 rounded-md focus:outline-none"
             @keyup.enter="addItem(formData.storageTemperatures, $event.target.value); $event.target.value = ''"
           />
           <button
             type="button"
             @click="addItem(formData.storageTemperatures, $refs.newStorageTemp.value); $refs.newStorageTemp.value = ''"
-            class="utility-btn"
+            class="utility-btn m-0"
           >
             Agregar
           </button>
@@ -565,7 +565,7 @@ const cancelJsonChanges = () => {
             <button
               type="button"
               @click="cancelJsonChanges"
-              class="utility-btn"
+              class="utility-btn m-0"
             >
               Cancelar
             </button>
@@ -602,5 +602,14 @@ const cancelJsonChanges = () => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+/* Placeholder text color styling */
+input::placeholder {
+  color: #9ca3af;
+}
+
+textarea::placeholder {
+  color: #9ca3af;
 }
 </style>
