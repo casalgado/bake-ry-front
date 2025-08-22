@@ -224,11 +224,17 @@ const getOrderTotal = (order) => {
 };
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('es-ES', {
+  if (!dateString) return '-';
+
+  // Handle date-only strings (YYYY-MM-DD) to avoid timezone issues
+  const date = dateString.includes('T') ? new Date(dateString) : new Date(dateString + 'T12:00:00');
+
+  if (isNaN(date.getTime())) return '-';
+
+  return date.toLocaleDateString('es-CO', {
     day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
+    month: 'long',
+    year: 'numeric',
   });
 };
 
@@ -341,9 +347,6 @@ onMounted(() => {
           <div class="flex items-start justify-between mb-3">
             <div>
               <h3 class="font-medium">{{ order.userName }}</h3>
-              <p class="text-sm text-gray-800">
-                {{ formatDate(order.createdAt) }}
-              </p>
             </div>
             <div class="text-right">
               <p class="font-bold">{{ formatMoney(getOrderTotal(order)) }}</p>
@@ -379,22 +382,12 @@ onMounted(() => {
               <p class="text-gray-800">{{ order.deliveryAddress }}</p>
             </div>
 
-            <!-- Dates -->
-            <div class="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p class="font-medium">Preparación:</p>
-                <p class="text-gray-800">
-                  {{
-                    new Date(order.preparationDate).toLocaleDateString("es-ES")
-                  }}
-                </p>
-              </div>
-              <div>
-                <p class="font-medium">Entrega:</p>
-                <p class="text-gray-800">
-                  {{ new Date(order.dueDate).toLocaleDateString("es-ES") }}
-                </p>
-              </div>
+            <!-- Date -->
+            <div class="text-sm">
+              <p class="font-medium">Entrega:</p>
+              <p class="text-gray-800">
+                {{ formatDate(order.dueDate) }}
+              </p>
             </div>
 
             <!-- Notes -->
