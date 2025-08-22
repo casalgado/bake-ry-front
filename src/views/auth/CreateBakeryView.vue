@@ -6,6 +6,7 @@ import { BakeryService } from '@/services/bakeryService';
 import { useAuthenticationStore } from '@/stores/authentication';
 import BakeryForm from '@/components/forms/BakeryForm.vue';
 import ToastNotification from '@/components/ToastNotification.vue';
+import confetti from 'canvas-confetti';
 
 const router = useRouter();
 const authStore = useAuthenticationStore();
@@ -16,6 +17,33 @@ const toastRef = ref(null);
 const showOverlay = ref(false);
 const overlayOpacity = ref(0);
 const showWelcome = ref(false);
+const bakeryName = ref('');
+
+// Confetti celebration
+const triggerConfetti = () => {
+  // Multiple bursts for extra celebration
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 },
+  });
+
+  // Second burst from the sides
+  setTimeout(() => {
+    confetti({
+      particleCount: 50,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0 },
+    });
+    confetti({
+      particleCount: 50,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1 },
+    });
+  }, 100);
+};
 
 // Success animation sequence
 const handleSuccessAnimation = async () => {
@@ -39,6 +67,8 @@ const handleSuccessAnimation = async () => {
     // 5. After overlay is fully opaque, show welcome screen
     setTimeout(() => {
       showWelcome.value = true;
+      // Trigger confetti celebration
+      triggerConfetti();
     }, 1000);
   }, 500); // Wait 500ms for smooth scroll to complete
 };
@@ -104,6 +134,9 @@ const handleFormSubmit = async (formData) => {
     const result = await BakeryService.createBakeryWithUser(payload);
 
     console.log('Bakery created successfully:', result);
+
+    // Store bakery name for welcome message
+    bakeryName.value = formData.bakery.name;
 
     // Log in user with custom token silently (no loading states)
     const loginResult = await authStore.loginWithCustomTokenSilent(result.customToken);
@@ -179,8 +212,8 @@ const handleFormSubmit = async (formData) => {
       <div v-else class="w-full max-w-4xl px-4">
         <div class="text-center mb-8">
           <PhGraph class="mx-auto w-20 h-20 text-neutral-800 mb-6" weight="light" />
-          <h1 class="text-3xl font-bold text-neutral-800 mb-4">¡Bienvenido!</h1>
-          <p class="text-lg text-neutral-600 mb-2">Tu emprendimiento ha sido creado con éxito</p>
+          <h1 class="text-3xl font-bold text-neutral-800 mb-4">{{ bakeryName }}</h1>
+          <p class="text-lg text-neutral-600 mb-2">¡Felicitaciones! El futuro de tu negocio comienza ahora.</p>
           <p class="text-neutral-500">¿Qué te gustaría hacer primero?</p>
         </div>
 
@@ -218,7 +251,7 @@ const handleFormSubmit = async (formData) => {
             <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <PhUserCirclePlus class="w-6 h-6 text-primary" weight="bold" />
             </div>
-            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Invitar Equipo</h3>
+            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Agrandar Equipo</h3>
             <p class="text-sm text-neutral-600">Invita miembros de tu equipo para colaborar</p>
           </router-link>
         </div>
