@@ -46,7 +46,7 @@ const handleLogin = () => {
           </button>
         </div>
 
-         <div v-if="!authStore.isLoggedIn" class="text-sm text-center text-neutral-600">
+         <div v-if="!authStore.isLoggedIn && false" class="text-sm text-center text-neutral-600">
           ¿No tienes una cuenta?
           <RouterLink to="/signup" class="text-primary hover:text-primary-600 font-medium">
             Regístrate aquí
