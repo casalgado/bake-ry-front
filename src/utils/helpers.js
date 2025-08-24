@@ -230,6 +230,20 @@ const getUnitTypeLabel = (unitType) => {
   return labels[unitType] || 'Valor';
 };
 
+// Sort variations by displayOrder (regular=1, wholeGrain=2, otra=999)
+const sortVariations = (variations) => {
+  if (!variations || !Array.isArray(variations)) return [];
+
+  return [...variations].sort((a, b) => {
+    if (a.displayOrder !== b.displayOrder) {
+      return a.displayOrder - b.displayOrder;
+    }
+
+    // If display order is the same, sort by value for consistent ordering
+    return (a.value || 0) - (b.value || 0);
+  });
+};
+
 export {
   abbreviateText,
   parseSpanishName,
@@ -242,4 +256,5 @@ export {
   formatVariationDisplay,
   getVariationTypeLabel,
   getUnitTypeLabel,
+  sortVariations,
 };

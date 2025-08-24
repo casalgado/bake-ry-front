@@ -5,13 +5,14 @@ import { useRouter } from 'vue-router';
 import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import TemplateVariation from '@/components/TemplateVariation.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import YesNoToggle from '@/components/forms/YesNoToggle.vue';
 
 const systemSettingsStore = useSystemSettingsStore();
 
 const props = defineProps({
   title: {
     type: String,
-    default: 'Crear Colección',
+    default: 'Crear Categoría',
   },
   initialData: {
     type: Object,
@@ -156,7 +157,7 @@ const createWholeGrainVariation = (regularVariation) => ({
 
 // Add whole grain variations for all non-whole-grain templates
 const addWholeGrainVariations = () => {
-  const regularTemplates = formData.value.variationTemplates.filter(t => !t.isWholeGrain);
+  const regularTemplates = formData.value.variationTemplates.filter(t => !t.isWholeGrain && t.name !== 'otra');
   const wholeGrainTemplates = regularTemplates.map(createWholeGrainVariation);
   formData.value.variationTemplates.push(...wholeGrainTemplates);
 
@@ -277,6 +278,8 @@ watch(() => formData.value.defaultUnit, (newUnit) => {
       newTemplate.value.unit = newUnit;
     }
   }
+  // Always reset the template form to ensure reactivity
+  resetTemplateForm();
 });
 
 // Watch for variation type change and auto-select default unit
@@ -314,7 +317,7 @@ watch(() => formData.value.hasWholeGrainVariations, (newValue, oldValue) => {
 
 // Computed properties for button text
 const submitButtonText = computed(() => {
-  return props.initialData ? 'Actualizar Colección' : 'Crear Colección';
+  return props.initialData ? 'Actualizar Categoría' : 'Crear Categoría';
 });
 
 const loadingText = computed(() => {
@@ -367,6 +370,8 @@ onMounted(async () => {
       console.error('Failed to load system settings:', error);
     }
   }
+  // Reset template form to ensure proper initialization
+  resetTemplateForm();
 });
 </script>
 
@@ -510,7 +515,7 @@ onMounted(async () => {
             </div>
           </div>
           <p class="text-xs text-neutral-500 mt-1">
-            Los productos en esta colección sugerirán variaciones de este tipo por defecto
+            Los productos en esta categoría sugerirán variaciones de este tipo por defecto
           </p>
         </div>
 
@@ -548,17 +553,11 @@ onMounted(async () => {
 
         <!-- Whole Grain Variations Toggle -->
         <div v-if="formData.defaultVariationType && formData.defaultVariationType !== 'SIZE'" class="mb-4">
-          <label class="flex items-center">
-            <input
-              type="checkbox"
-              v-model="formData.hasWholeGrainVariations"
-              class="form-checkbox h-4 w-4 text-primary border-neutral-300 rounded"
-            />
-            <span class="ml-2 text-sm font-medium text-neutral-700">
-              ¿Esta colección ofrece variaciones integrales?
-            </span>
-          </label>
-          <p class="text-xs text-neutral-500 mt-1 ml-6">
+          <YesNoToggle
+            v-model="formData.hasWholeGrainVariations"
+            label="¿Esta categoría ofrece variaciones integrales?"
+          />
+          <p class="text-xs text-neutral-500 mt-1">
             Se creará automáticamente una versión integral para cada variación
           </p>
         </div>
@@ -589,6 +588,7 @@ onMounted(async () => {
 
           <!-- Add New Template Form -->
           <TemplateVariation
+            :key="`new-template-${formData.defaultUnit}-${formData.defaultVariationType}`"
             :template="newTemplate"
             :is-new="true"
             :default-variation-type="formData.defaultVariationType"

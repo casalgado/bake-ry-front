@@ -81,7 +81,7 @@ const columns = [
   },
   {
     id: 'collectionName',
-    label: 'Colección',
+    label: 'Categoría',
     field: 'collectionName',
     sortable: true,
   },

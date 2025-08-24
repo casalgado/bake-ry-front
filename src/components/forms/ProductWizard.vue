@@ -1,7 +1,7 @@
 <script setup>
 // ProductWizard.vue
 import { ref, computed } from 'vue';
-import { abbreviateText } from '@/utils/helpers';
+import { abbreviateText, sortVariations } from '@/utils/helpers';
 import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
 
 const props = defineProps({
@@ -70,27 +70,7 @@ const productVariations = computed(() => {
   const product = props.products.find(p => p.id === selectedProduct.value?.id);
   if (!product?.variations) return [];
 
-  // Get all variations except 'otra'
-  const regularVariations = product.variations.filter(v =>
-    !v.isWholeGrain && v.name !== 'otra',
-  );
-
-  // Get whole grain variations
-  const wholeGrainVariations = product.variations.filter(v =>
-    v.isWholeGrain,
-  );
-
-  // Get the 'otra' variation if it exists
-  const otraVariation = product.variations.find(v =>
-    v.name === 'otra',
-  );
-
-  // Combine the arrays in the desired order
-  return [
-    ...regularVariations,
-    ...wholeGrainVariations,
-    ...(otraVariation ? [otraVariation] : []),
-  ];
+  return sortVariations(product.variations);
 });
 
 // Current options to display based on step

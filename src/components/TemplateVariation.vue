@@ -51,19 +51,18 @@ const stepValue = computed(() => {
 });
 
 const unitTypeLabel = computed(() => {
-  console.log(props.template);
   // If template has no unit (empty string), don't show the value input
   if (!props.template.unit || props.template.unit === '') {
     return null; // This will hide the value input
   }
 
-  if (!systemSettingsStore.unitOptions) {
+  if (!systemSettingsStore.unitOptions && !systemSettingsStore.settings) {
     return 'Valor';
   }
 
   // Find the unit object in the unitOptions array
-  const unitObj = systemSettingsStore.unitOptions.find(
-    unit => unit.symbol === props.template.unit,
+  const unitObj = systemSettingsStore.unitOptions?.find(
+    (unit) => unit.symbol === props.template.unit,
   );
 
   if (unitObj && unitObj.type) {
@@ -80,17 +79,36 @@ const unitTypeLabel = computed(() => {
       'p-4 rounded-lg border',
       isNew
         ? 'bg-primary-50 border-2 border-dashed border-primary-200'
-        : 'bg-neutral-50 border border-neutral-200'
+        : template.isWholeGrain
+        ? 'bg-neutral-150 border border-neutral-200'
+        : 'bg-neutral-50 border border-neutral-200',
     ]"
   >
+    <div
+      v-if="template.isWholeGrain"
+      class="absolute top-1 right-1 flex items-center justify-end"
+    >
+      <span
+        class="px-2 py-1 bg-primary-800 text-white rounded text-xs font-medium"
+      >
+        Integral
+      </span>
+    </div>
     <div class="flex items-end justify-between gap-4">
-      <div class="flex-1 grid gap-3" :class="[
-        basePrice && unitTypeLabel ? 'grid-cols-3' :
-        (basePrice && !unitTypeLabel) || (!basePrice && unitTypeLabel) ? 'grid-cols-2' :
-        'grid-cols-1'
-      ]">
+      <div
+        class="flex-1 grid gap-3"
+        :class="[
+          basePrice && unitTypeLabel
+            ? 'grid-cols-3'
+            : (basePrice && !unitTypeLabel) || (!basePrice && unitTypeLabel)
+            ? 'grid-cols-2'
+            : 'grid-cols-1',
+        ]"
+      >
         <div>
-          <label class="block text-xs font-medium text-neutral-600 mb-1">Nombre</label>
+          <label class="block text-xs font-medium text-neutral-600 mb-1"
+            >Nombre</label
+          >
           <input
             :value="template.name"
             @input="updateTemplate('name', $event.target.value)"
@@ -98,16 +116,16 @@ const unitTypeLabel = computed(() => {
             placeholder="ej: pequeño, mediano"
             :class="[
               'w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none',
-              isNew
-                ? 'border-primary-300 bg-white'
-                : 'border-neutral-300'
+              isNew ? 'border-primary-300 bg-white' : 'border-neutral-300',
             ]"
             :disabled="disabled"
           />
         </div>
 
         <div v-if="unitTypeLabel">
-          <label class="block text-xs font-medium text-neutral-600 mb-1">{{ unitTypeLabel }}</label>
+          <label class="block text-xs font-medium text-neutral-600 mb-1">{{
+            unitTypeLabel
+          }}</label>
           <div class="relative">
             <input
               :value="template.value"
@@ -117,20 +135,17 @@ const unitTypeLabel = computed(() => {
               :step="stepValue"
               :class="[
                 'w-full px-3 py-2 pr-12 text-sm border rounded-md focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none',
-                isNew
-                  ? 'border-primary-300 bg-white'
-                  : 'border-neutral-300'
+                isNew ? 'border-primary-300 bg-white' : 'border-neutral-300',
               ]"
               :disabled="disabled"
             />
-            <div class="absolute inset-y-0 right-0 flex items-center pr-8 text-xs text-neutral-500 font-medium">
-              {{ template.unit }}
-            </div>
           </div>
         </div>
 
         <div v-if="basePrice">
-          <label class="block text-xs font-medium text-neutral-600 mb-1">Precio Base</label>
+          <label class="block text-xs font-medium text-neutral-600 mb-1"
+            >Precio Base</label
+          >
           <div class="relative">
             <input
               :value="template.basePrice"
@@ -140,26 +155,16 @@ const unitTypeLabel = computed(() => {
               step="0.01"
               :class="[
                 'w-full px-3 py-2 pr-8 text-sm border rounded-md focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none',
-                isNew
-                  ? 'border-primary-300 bg-white'
-                  : 'border-neutral-300'
+                isNew ? 'border-primary-300 bg-white' : 'border-neutral-300',
               ]"
               :disabled="disabled"
             />
-            <div class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs text-neutral-500 font-medium">
-              $
-            </div>
+
           </div>
         </div>
       </div>
 
       <div class="flex flex-col gap-2 flex-shrink-0">
-        <div v-if="template.isWholeGrain" class="flex items-center justify-end">
-          <span class="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs font-medium">
-            Integral
-          </span>
-        </div>
-
         <button
           v-if="isNew"
           type="button"
@@ -174,7 +179,7 @@ const unitTypeLabel = computed(() => {
           v-else
           type="button"
           @click="handleRemove"
-          class="p-2 py-1 text-danger hover:bg-danger-50 border border-danger-200 hover:border-danger-300 rounded-md transition-colors self-end m-0"
+          class="p-2 py-1 text-danger rounded-md transition-colors self-end m-0"
           title="Eliminar variación"
           :disabled="disabled"
         >

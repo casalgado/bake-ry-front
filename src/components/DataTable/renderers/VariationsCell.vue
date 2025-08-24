@@ -1,12 +1,15 @@
 <script setup>
-import { formatMoney } from '@/utils/helpers';
-defineProps({
+import { computed } from 'vue';
+import { formatMoney, sortVariations } from '@/utils/helpers';
+
+const props = defineProps({
   variations: {
     type: Array,
     required: true,
   },
 });
 
+const sortedVariations = computed(() => sortVariations(props.variations));
 </script>
 
 <template>
@@ -14,7 +17,7 @@ defineProps({
     <table class="min-w-full ">
 
       <tbody class="">
-        <tr v-for="item in variations" :key="item.id" class="">
+        <tr v-for="item in sortedVariations" :key="item.id" class="">
           <td class="px-3 py-2 text-sm">
             <div class="flex items-center gap-2">
               <span class="">{{ item.name }}</span>

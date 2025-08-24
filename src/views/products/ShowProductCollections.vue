@@ -72,7 +72,7 @@ const handleAction = async ({ actionId, selectedIds }) => {
       );
       isFormOpen.value = true;
     } else if (actionId === 'delete') {
-      if (window.confirm('¿Estás seguro de querer eliminar esta colección?')) {
+      if (window.confirm('¿Estás seguro de querer eliminar esta categoría?')) {
         selectedCollection.value = productCollectionStore.items.find(
           collection => collection.id === selectedIds[0],
         );
@@ -124,11 +124,11 @@ const navigateToCreate = () => {
     <div class="flex justify-between items-center mb-1">
       <h2 class="text-2xl font-bold mb-0">Categorias</h2>
       <button
-        label="Crear Colección"
+        label="Crear Categoría"
         class="action-btn"
         @click="navigateToCreate"
       >
-        Crear Colección
+        Crear Categoría
       </button>
     </div>
 

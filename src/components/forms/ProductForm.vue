@@ -1,13 +1,14 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
-import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
-import RecipeSelector from './RecipeSelector.vue';
+import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import TemplateVariation from '@/components/TemplateVariation.vue';
-import YesNoToggle from './YesNoToggle.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import YesNoToggle from '@/components/forms/YesNoToggle.vue';
 import { cleanString, getVariationTypeLabel } from '@/utils/helpers';
 
-const emit = defineEmits(['submit', 'cancel']);
+const systemSettingsStore = useSystemSettingsStore();
+const collectionStore = useProductCollectionStore();
 
 const props = defineProps({
   title: {
@@ -24,52 +25,44 @@ const props = defineProps({
   },
 });
 
-const isEditMode = ref(false);
-const collectionStore = useProductCollectionStore();
-const bakerySettingsStore = useBakerySettingsStore();
+const emit = defineEmits(['submit', 'cancel']);
 
-// Base structure for a variation
-const createBaseVariation = (templateVariation = {}, isWholeGrain = false) => ({
-  name: isWholeGrain
-    ? `${templateVariation.name || ''} integral`
-    : templateVariation.name || '',
-  value: templateVariation.value || 0,
-  basePrice: templateVariation.basePrice || 0,
-  isWholeGrain,
-  recipe: {
-    recipeSource: 'base',
-    recipeId: null,
-    ingredients: [],
-  },
+// Form state
+const formData = ref(
+  props.initialData
+    ? {
+      ...props.initialData,
+      variations: props.initialData.variations || [],
+    }
+    : {
+      name: '',
+      description: '',
+      collectionId: '',
+      collectionName: '',
+      variations: [],
+      taxPercentage: 0,
+      isActive: true,
+      basePrice: 0,
+      customAttributes: {},
+    },
+);
+
+const errors = ref({});
+
+// Confirm dialog state
+const confirmDialog = ref({
+  isOpen: false,
+  title: '',
+  message: '',
+  onConfirm: null,
 });
 
-// Define the fixed variation
-const getFixedVariation = () => ({
-  id: 'otra-variation-fixed',
-  name: 'otra',
-  value: 1000,
-  basePrice: 10000,
-  isWholeGrain: false,
-});
+// Variation management state
+const variationType = ref('');
+const defaultUnit = ref('g');
+const hasWholeGrainVariations = ref(false);
 
-const formData = ref({
-  name: '',
-  collection: '',
-  description: '',
-  hasVariations: false,
-  hasWholeGrain: false,
-  variationType: '',
-  variations: [],
-  basePrice: 0,
-  taxPercentage: 0,
-  recipe: {
-    recipeSource: null,
-    recipeId: null,
-    ingredients: [],
-  },
-});
-
-// New template for adding variations
+// New variation template
 const newVariation = ref({
   name: '',
   value: 0,
@@ -77,118 +70,216 @@ const newVariation = ref({
   unit: 'g',
   type: 'WEIGHT',
   isWholeGrain: false,
-  recipe: {
-    recipeSource: 'base',
-    recipeId: null,
-    ingredients: [],
-  },
+  displayOrder: 0,
 });
 
-// Get suggested variations from bakery settings
-const suggestedVariations = computed(() => {
-  if (!bakerySettingsStore.items.length) return {};
-  return bakerySettingsStore.items[0].suggestedProductVariations;
+// Debounce timer for proportional pricing
+let proportionalPricingTimeout = null;
+
+// Get available categories
+const availableCategories = computed(() => {
+  return collectionStore.items || [];
 });
 
-// Separate functions for variation type handling
-const getVariationsForType = (type) => {
-  if (!type || !suggestedVariations.value[type]) return [];
+// Get selected category
+const selectedCategory = computed(() => {
+  if (!formData.value.collectionId) return null;
+  return availableCategories.value.find(cat => cat.id === formData.value.collectionId);
+});
 
-  return suggestedVariations.value[type].defaults.map((variation) =>
-    createBaseVariation(variation),
+// Check if selected category has variation templates
+const categoryHasTemplates = computed(() => {
+  return selectedCategory.value?.variationTemplates?.length > 0;
+});
+
+// Get system default templates
+const systemDefaultTemplates = computed(() => {
+  if (!systemSettingsStore.isLoaded) return {};
+  return systemSettingsStore.defaultVariationTemplates;
+});
+
+// Get available unit options from system settings, filtered by template
+const unitPillOptions = computed(() => {
+  const fallbackOptions = [
+    { symbol: 'Kg', name: 'Kilogram', type: 'weight', template: 'WEIGHT' },
+    { symbol: 'g', name: 'Gram', type: 'weight', template: 'WEIGHT' },
+    { symbol: 'L', name: 'Liter', type: 'volume', template: 'WEIGHT' },
+    { symbol: 'ml', name: 'Milliliter', type: 'volume', template: 'WEIGHT' },
+    { symbol: 'uds', name: 'Units', type: 'count', template: 'QUANTITY' },
+    { symbol: 'docena', name: 'Dozen', type: 'count', template: 'QUANTITY' },
+    { symbol: 'paquete', name: 'Package', type: 'count', template: 'QUANTITY' },
+  ];
+
+  const allOptions = systemSettingsStore.isLoaded
+    ? (systemSettingsStore.unitOptions || fallbackOptions)
+    : fallbackOptions;
+
+  // Filter by the selected variation type
+  const filtered = variationType.value
+    ? allOptions.filter(unit => unit.template === variationType.value)
+    : allOptions;
+
+  // Transform to pill options format (value, label)
+  return filtered.map(unit => ({
+    value: unit.symbol,
+    label: unit.symbol,
+  }));
+});
+
+// Show unit selection when needed
+const showUnitSelection = computed(() => {
+  return variationType.value &&
+         systemDefaultTemplates.value[variationType.value]?.unit;
+});
+
+// Reset variation template form
+const resetVariationForm = () => {
+  newVariation.value = {
+    name: '',
+    value: 0,
+    basePrice: 0,
+    unit: defaultUnit.value || 'g',
+    type: variationType.value || 'WEIGHT',
+    isWholeGrain: false,
+    displayOrder: formData.value.variations.length,
+  };
+};
+
+// Load system default templates
+const loadSystemDefaultTemplates = () => {
+  const type = variationType.value;
+  if (!type || !systemDefaultTemplates.value[type]) return;
+
+  const templates = systemDefaultTemplates.value[type].defaults.map((template, index) => ({
+    name: template.name,
+    value: template.value,
+    basePrice: 0, // Products need pricing set
+    unit: systemDefaultTemplates.value[type].unit || '',
+    type: type,
+    isWholeGrain: false,
+    displayOrder: index,
+  }));
+
+  formData.value.variations = templates;
+
+  // If whole grain variations are enabled, add integral versions
+  if (hasWholeGrainVariations.value) {
+    addWholeGrainVariations();
+  } else {
+    // Sort even if no whole grain variations for consistency
+    sortVariationsInPairs();
+  }
+};
+
+// Load category templates
+const loadCategoryTemplates = () => {
+  if (!selectedCategory.value?.variationTemplates?.length) return;
+
+  const templates = selectedCategory.value.variationTemplates.map((template, index) => ({
+    name: template.name,
+    value: template.value,
+    basePrice: 0, // Products need pricing set
+    unit: template.unit || '',
+    type: template.type || 'WEIGHT',
+    isWholeGrain: template.isWholeGrain || false,
+    displayOrder: index,
+  }));
+
+  formData.value.variations = templates;
+  variationType.value = templates[0]?.type || 'WEIGHT';
+  defaultUnit.value = templates[0]?.unit || 'g';
+
+  // Sort variations to maintain pairing
+  sortVariationsInPairs();
+};
+
+// Generate whole grain variation from regular variation
+const createWholeGrainVariation = (regularVariation) => ({
+  name: `${regularVariation.name} integral`,
+  value: regularVariation.value,
+  basePrice: regularVariation.basePrice,
+  unit: regularVariation.unit,
+  type: regularVariation.type,
+  isWholeGrain: true,
+  displayOrder: regularVariation.displayOrder,
+});
+
+// Add whole grain variations for all non-whole-grain variations
+const addWholeGrainVariations = () => {
+  const regularVariations = formData.value.variations.filter(v => !v.isWholeGrain && v.name !== 'otra');
+  const wholeGrainVariations = regularVariations.map(createWholeGrainVariation);
+  formData.value.variations.push(...wholeGrainVariations);
+
+  // Sort to maintain pairing
+  sortVariationsInPairs();
+};
+
+// Remove all whole grain variations
+const removeWholeGrainVariations = () => {
+  formData.value.variations = formData.value.variations.filter(v => !v.isWholeGrain);
+};
+
+// Sort variations to maintain pairing (regular, integral, regular, integral)
+const sortVariationsInPairs = () => {
+  const regularVariations = formData.value.variations.filter(v => !v.isWholeGrain);
+  const sorted = [];
+
+  regularVariations.forEach(regular => {
+    sorted.push(regular);
+    // Find corresponding integral variation
+    const integral = formData.value.variations.find(
+      v => v.isWholeGrain && v.name === `${regular.name} integral`,
+    );
+    if (integral) {
+      sorted.push(integral);
+    }
+  });
+
+  // Add any remaining integral variations that don't have a regular counterpart
+  const remainingIntegrals = formData.value.variations.filter(
+    v => v.isWholeGrain && !sorted.includes(v),
   );
+  sorted.push(...remainingIntegrals);
+
+  formData.value.variations = sorted;
 };
 
-const selectedVariationType = ref(formData.value.variationType);
+// Calculate proportional prices based on reference variation
+const calculateProportionalPrices = (referenceIndex, referencePrice) => {
+  if (!referencePrice || !formData.value.variations.length) return;
 
-// Get selected collection for variation type options
-const selectedCollection = computed(() => {
-  if (!formData.value.collection) return null;
-  return collectionStore.items.find(c => c.id === formData.value.collection);
-});
+  const referenceVariation = formData.value.variations[referenceIndex];
+  if (!referenceVariation || !referenceVariation.value) return;
 
-const handleVariationTypeChange = () => {
-  if (isEditMode.value) return;
+  const referenceValue = referenceVariation.value;
+  const pricePerUnit = referencePrice / referenceValue;
 
-  if (
-    formData.value.variations.length &&
-    !window.confirm(
-      '¿Está seguro que desea continuar? Se perderán algunas variaciones.',
-    )
-  ) {
-    // Revert the selection to the current variation type
-    selectedVariationType.value = formData.value.variationType;
-    return;
-  }
-
-  // Update the form data with the new variation type
-  formData.value.variationType = selectedVariationType.value;
-  formData.value.variations = [];
-
-  if (selectedVariationType.value === 'CUSTOM') {
-    addVariation();
-    return;
-  }
-
-  // Check if user selected the category's variation type
-  if (selectedVariationType.value === 'CATEGORY' && selectedCollection.value) {
-    loadVariationsFromCollection(selectedCollection.value);
-    return;
-  }
-
-  const baseVariations = getVariationsForType(selectedVariationType.value);
-  formData.value.variations = baseVariations;
-
-  if (formData.value.hasWholeGrain) {
-    applyWholeGrainVariations();
-  }
-};
-
-// Separate function for whole grain handling
-const applyWholeGrainVariations = () => {
-  if (isEditMode.value) return;
-
-  const newVariations = formData.value.variations.flatMap((variation) => [
-    variation,
-    createBaseVariation(variation, true),
-  ]);
-  formData.value.variations = newVariations;
-};
-
-// Update existing variation
-const updateVariation = (index, payload) => {
-  formData.value.variations[index][payload.field] = payload.value;
-
-  // Auto-update whole grain name if regular variation name changes
-  if (!isEditMode.value && formData.value.hasWholeGrain && payload.field === 'name' && !formData.value.variations[index].isWholeGrain) {
-    const nextIndex = index + 1;
-    if (formData.value.variations[nextIndex]?.isWholeGrain) {
-      formData.value.variations[nextIndex].name = `${payload.value} integral`;
+  // Calculate proportional prices for variations that have zero prices
+  formData.value.variations.forEach((variation, index) => {
+    if (index !== referenceIndex && variation.value > 0 && variation.basePrice === 0) {
+      const proportionalPrice = variation.value * pricePerUnit;
+      // Round to nearest 100
+      variation.basePrice = Math.round(proportionalPrice / 100) * 100;
     }
-  }
-
-  // Trigger proportional pricing if basePrice is updated (with debounce)
-  if (payload.field === 'basePrice' && payload.value > 0) {
-    // Clear existing timeout
-    if (proportionalPricingTimeout) {
-      clearTimeout(proportionalPricingTimeout);
-    }
-
-    // Set new timeout to trigger after user stops typing
-    proportionalPricingTimeout = setTimeout(() => {
-      calculateProportionalPrices(index, payload.value);
-    }, 800); // Wait 800ms after user stops typing
-  }
+  });
 };
 
-// Update new variation template
-const updateNewVariation = (payload) => {
-  newVariation.value[payload.field] = payload.value;
+// Debounced version of proportional pricing calculation
+const debouncedProportionalPricing = (referenceIndex, referencePrice) => {
+  // Clear existing timeout
+  if (proportionalPricingTimeout) {
+    clearTimeout(proportionalPricingTimeout);
+  }
+
+  // Set new timeout
+  proportionalPricingTimeout = setTimeout(() => {
+    calculateProportionalPrices(referenceIndex, referencePrice);
+  }, 800);
 };
 
-// Add new variation using template
+// Add new variation
 const addNewVariation = () => {
-  if (!newVariation.value.name || !newVariation.value.value) {
+  if (!newVariation.value.name || !newVariation.value.value || newVariation.value.basePrice < 0) {
     return;
   }
 
@@ -200,22 +291,35 @@ const addNewVariation = () => {
     unit: newVariation.value.unit,
     type: newVariation.value.type,
     isWholeGrain: false,
-    recipe: {
-      recipeSource: 'base',
-      recipeId: null,
-      ingredients: [],
-    },
+    displayOrder: newVariation.value.displayOrder,
   };
 
   formData.value.variations.push(baseVariation);
 
-  // If whole grain is enabled, add integral version
-  if (formData.value.hasWholeGrain) {
-    const wholeGrainVariation = createBaseVariation(baseVariation, true);
+  // If whole grain variations are enabled, add integral version
+  if (hasWholeGrainVariations.value) {
+    const wholeGrainVariation = createWholeGrainVariation(baseVariation);
     formData.value.variations.push(wholeGrainVariation);
   }
 
-  resetNewVariation();
+  // Sort to maintain pairing
+  sortVariationsInPairs();
+  resetVariationForm();
+};
+
+// Update existing variation
+const updateVariation = (index, payload) => {
+  formData.value.variations[index][payload.field] = payload.value;
+
+  // Trigger proportional pricing calculation if base price was updated
+  if (payload.field === 'basePrice' && payload.value > 0) {
+    debouncedProportionalPricing(index, payload.value);
+  }
+};
+
+// Update new variation
+const updateNewVariation = (payload) => {
+  newVariation.value[payload.field] = payload.value;
 };
 
 // Remove variation
@@ -223,258 +327,209 @@ const removeVariation = (index) => {
   formData.value.variations.splice(index, 1);
 };
 
-// Reset new variation template
-const resetNewVariation = () => {
-  newVariation.value = {
-    name: '',
-    value: 0,
-    basePrice: 0,
-    unit: formData.value.variationType === 'WEIGHT' ? 'g' : '',
-    type: formData.value.variationType || 'WEIGHT',
-    isWholeGrain: false,
-    recipe: {
-      recipeSource: 'base',
-      recipeId: null,
-      ingredients: [],
-    },
-  };
-};
-
-// Legacy addVariation function for compatibility
-const addVariation = () => {
-  if (isEditMode.value) {
-    formData.value.variations.push(createBaseVariation());
-    formData.value.variations.push(createBaseVariation({}, true));
+// Handle category selection
+const handleCategoryChange = () => {
+  if (!formData.value.collectionId) {
+    formData.value.collectionName = '';
     return;
   }
 
-  const baseVariation = createBaseVariation();
-  const newVariations = formData.value.hasWholeGrain
-    ? [baseVariation, createBaseVariation(baseVariation, true)]
-    : [baseVariation];
-  formData.value.variations.push(...newVariations);
-};
+  const category = selectedCategory.value;
+  if (category) {
+    formData.value.collectionName = category.name;
 
-// Watch for collection selection to load templates
-watch(
-  () => formData.value.collection,
-  (collectionId) => {
-    if (!collectionId || isEditMode.value) return;
-
-    const collection = collectionStore.items.find(c => c.id === collectionId);
-    if (collection?.variationTemplates?.length > 0) {
-      // Auto-enable variations
-      formData.value.hasVariations = true;
-
-      // Set variation type to CATEGORY to show category templates
-      formData.value.variationType = 'CATEGORY';
-      selectedVariationType.value = 'CATEGORY';
-
-      // Set whole grain option from collection
-      formData.value.hasWholeGrain = collection.hasWholeGrainVariations || false;
-
-      // Load variations from collection templates
-      loadVariationsFromCollection(collection);
-
-      // Update new variation template
-      newVariation.value.type = collection.defaultVariationType || 'WEIGHT';
-      newVariation.value.unit = collection.defaultVariationType === 'WEIGHT' ?
-        (collection.defaultUnit || 'g') : '';
-    }
-  },
-);
-
-// Function to load variations from collection templates
-const loadVariationsFromCollection = (collection) => {
-  if (!collection.variationTemplates?.length) return;
-
-  const loadedVariations = collection.variationTemplates.map(template => ({
-    name: template.name,
-    value: template.value,
-    basePrice: template.basePrice || 0,
-    unit: template.unit,
-    type: template.type,
-    isWholeGrain: template.isWholeGrain,
-    recipe: {
-      recipeSource: 'base',
-      recipeId: null,
-      ingredients: [],
-    },
-  }));
-
-  formData.value.variations = loadedVariations;
-};
-
-// Debounce timeout for proportional pricing
-let proportionalPricingTimeout = null;
-
-// Function to calculate proportional prices
-const calculateProportionalPrices = (referenceIndex, referencePrice) => {
-  if (!referencePrice || !formData.value.variations.length) return;
-
-  const referenceVariation = formData.value.variations[referenceIndex];
-  if (!referenceVariation || !referenceVariation.value) return;
-
-  // Check if all OTHER variation prices are zero (excluding the reference one)
-  const otherVariations = formData.value.variations.filter((_, index) => index !== referenceIndex);
-  const allOtherPricesZero = otherVariations.every(variation => variation.basePrice === 0);
-  if (!allOtherPricesZero) return;
-
-  const referenceValue = referenceVariation.value;
-  const pricePerUnit = referencePrice / referenceValue;
-
-  // Calculate proportional prices for all OTHER variations
-  formData.value.variations.forEach((variation, index) => {
-    if (index !== referenceIndex && variation.value > 0) {
-      const proportionalPrice = variation.value * pricePerUnit;
-      // Round to nearest 100
-      variation.basePrice = Math.round(proportionalPrice / 100) * 100;
-    }
-  });
-};
-
-// Removed base price watcher - now triggered from variation updates
-
-// Watch for variation type changes to update new variation template
-watch(
-  () => formData.value.variationType,
-  (newType) => {
-    if (newType) {
-      newVariation.value.type = newType;
-      newVariation.value.unit = newType === 'WEIGHT' ? 'g' : '';
-    }
-  },
-);
-
-// Watch for whole grain changes - only in create mode
-watch(
-  () => formData.value.hasWholeGrain,
-  (newValue, oldValue) => {
-    if (isEditMode.value || !formData.value.variationType) return;
-
-    if (
-      !newValue &&
-      oldValue &&
-      formData.value.variations.some((v) => v.isWholeGrain)
-    ) {
-      if (
-        !window.confirm(
-          '¿Está seguro que desea continuar? Se perderán algunas variaciones.',
-        )
-      ) {
-        formData.value.hasWholeGrain = true;
-        return;
-      }
-    }
-
-    if (newValue) {
-      applyWholeGrainVariations();
+    // Auto-load category templates if available
+    if (category.variationTemplates?.length > 0) {
+      variationType.value = 'CATEGORY_TEMPLATES';
+      loadCategoryTemplates();
     } else {
-      formData.value.variations = formData.value.variations.filter(
-        (v) => !v.isWholeGrain,
-      );
+      variationType.value = '';
+      formData.value.variations = [];
     }
-  },
-);
+  }
+};
+
+// Handle variation type change
+const handleVariationTypeChange = () => {
+  if (formData.value.variations.length > 0) {
+    confirmDialog.value = {
+      isOpen: true,
+      title: 'Cambiar tipo de variación',
+      message: '¿Deseas cambiar el tipo de variación? Esto reemplazará las variaciones actuales.',
+      onConfirm: () => {
+        applyVariationTypeChange();
+        confirmDialog.value.isOpen = false;
+      },
+    };
+    return;
+  }
+
+  applyVariationTypeChange();
+};
+
+const applyVariationTypeChange = () => {
+  if (variationType.value === 'CATEGORY_TEMPLATES') {
+    loadCategoryTemplates();
+  } else if (variationType.value) {
+    loadSystemDefaultTemplates();
+  } else {
+    formData.value.variations = [];
+  }
+};
+
+// Watch for unit changes and update all variations that use units
+watch(() => defaultUnit.value, (newUnit) => {
+  if (showUnitSelection.value) {
+    formData.value.variations.forEach(variation => {
+      if (variation.type === variationType.value) {
+        variation.unit = newUnit;
+      }
+    });
+    // Also update the new variation unit
+    if (newVariation.value.type === variationType.value) {
+      newVariation.value.unit = newUnit;
+    }
+  }
+  // Always reset the variation form to ensure reactivity
+  resetVariationForm();
+});
+
+// Watch for variation type change and auto-select default unit
+watch(() => variationType.value, (newType) => {
+  if (newType && newType !== 'CATEGORY_TEMPLATES' && systemDefaultTemplates.value[newType]?.unit) {
+    defaultUnit.value = systemDefaultTemplates.value[newType].unit;
+  }
+  // Update the new variation type and unit
+  newVariation.value.type = newType || 'WEIGHT';
+  newVariation.value.unit = systemDefaultTemplates.value[newType]?.unit || '';
+});
+
+// Watch for whole grain variations toggle
+watch(() => hasWholeGrainVariations.value, (newValue, oldValue) => {
+  if (newValue) {
+    // Add whole grain variations for existing variations
+    addWholeGrainVariations();
+  } else {
+    // Remove all whole grain variations
+    if (formData.value.variations.some(v => v.isWholeGrain)) {
+      confirmDialog.value = {
+        isOpen: true,
+        title: 'Eliminar variaciones integrales',
+        message: '¿Estás seguro de que deseas eliminar todas las variaciones integrales?',
+        onConfirm: () => {
+          removeWholeGrainVariations();
+          confirmDialog.value.isOpen = false;
+        },
+      };
+      // Revert the toggle until confirmed
+      hasWholeGrainVariations.value = oldValue;
+    }
+  }
+});
+
+// Computed properties for button text
+const submitButtonText = computed(() => {
+  return props.initialData ? 'Actualizar Producto' : 'Crear Producto';
+});
+
+const loadingText = computed(() => {
+  return props.initialData ? 'Actualizando...' : 'Creando...';
+});
+
+// Validation
+const validate = () => {
+  errors.value = {};
+
+  if (!formData.value.name) {
+    errors.value.name = 'Nombre es requerido';
+  }
+  if (formData.value.name.length < 3) {
+    errors.value.name = 'Nombre debe tener al menos 3 caracteres';
+  }
+  if (!formData.value.collectionId) {
+    errors.value.collectionId = 'Categoría es requerida';
+  }
+
+  // Validate base price if no variations exist
+  if (formData.value.variations.length === 0) {
+    if (!formData.value.basePrice || formData.value.basePrice <= 0) {
+      errors.value.basePrice = 'Precio base es requerido para productos sin variaciones';
+    }
+  }
+
+  // Validate variations if they exist
+  if (formData.value.variations.length > 0) {
+    formData.value.variations.forEach((variation, index) => {
+      if (!variation.name) {
+        errors.value[`variation_${index}_name`] = 'Nombre de variación es requerido';
+      }
+      if (!variation.value && variation.value !== 0) {
+        errors.value[`variation_${index}_value`] = 'Valor de variación es requerido';
+      }
+      if (variation.basePrice < 0) {
+        errors.value[`variation_${index}_price`] = 'Precio debe ser mayor o igual a 0';
+      }
+    });
+  }
+
+  return Object.keys(errors.value).length === 0;
+};
 
 const handleSubmit = () => {
-  let finalVariations = [...formData.value.variations, getFixedVariation()];
-  if (!formData.value.hasVariations) finalVariations = [];
+  if (!validate()) return;
+
   formData.value.name = cleanString(formData.value.name);
-  formData.value.collectionId = formData.value.collection;
-  formData.value.currentPrice = formData.value.basePrice;
-  formData.value.collectionName = collectionStore.items.find(
-    (c) => c.id === formData.value.collection,
-  )?.name;
-  emit('submit', { ...formData.value, variations: finalVariations });
+  formData.value.description = cleanString(formData.value.description);
+
+  emit('submit', formData.value);
 };
 
 const resetForm = () => {
   formData.value = {
     name: '',
-    collection: '',
+    description: '',
     collectionId: '',
     collectionName: '',
-    description: '',
-    hasVariations: false,
-    hasWholeGrain: false,
-    variationType: '',
     variations: [],
+    taxPercentage: 0,
+    isActive: true,
     basePrice: 0,
-    taxPercentage: 0, // Reset tax percentage
-    recipe: {
-      recipeSource: null,
-      recipeId: null,
-      ingredients: [],
-    },
+    customAttributes: {},
   };
+  errors.value = {};
+  variationType.value = '';
+  defaultUnit.value = 'g';
+  hasWholeGrainVariations.value = false;
+  resetVariationForm();
 };
 
-// Computed property for submit button text
-const submitButtonText = computed(() => {
-  return props.initialData ? 'Actualizar Producto' : 'Crear Producto';
-});
-
-// Computed property for loading text
-const loadingText = computed(() => {
-  return props.initialData ? 'Actualizando...' : 'Creando...';
-});
-
-const initializeForm = () => {
-  if (props.initialData) {
-    isEditMode.value = true;
-    // Filter out the 'otra' variation
-    const rawVariations = props.initialData.variations?.filter(v => v.name !== 'otra') || [];
-
-    // Organize variations in pairs
-    const organizedVariations = [];
-    const regularVariations = rawVariations.filter(v => !v.isWholeGrain);
-
-    regularVariations.forEach(regVar => {
-      // Add regular variation
-      organizedVariations.push(regVar);
-      // Find and add matching whole grain variation if exists
-      const wholeGrainMatch = rawVariations.find(v =>
-        v.isWholeGrain &&
-        v.name.includes(regVar.name),
-      );
-      if (wholeGrainMatch) {
-        organizedVariations.push(wholeGrainMatch);
-      }
-    });
-
-    // Add any remaining whole grain variations that didn't have matches
-    const remainingWholeGrain = rawVariations.filter(v =>
-      v.isWholeGrain &&
-      !organizedVariations.includes(v),
-    );
-    organizedVariations.push(...remainingWholeGrain);
-
-    formData.value = {
-      name: props.initialData.name || '',
-      collection: props.initialData.collectionId || '',
-      description: props.initialData.description || '',
-      hasVariations: organizedVariations.length > 0,
-      variations: organizedVariations,
-      basePrice: props.initialData.basePrice || 0,
-      taxPercentage: props.initialData.taxPercentage || 0,
-      recipe: props.initialData.recipe || {
-        recipeSource: null,
-        recipeId: null,
-        ingredients: [],
-      },
-    };
-  }
-};
-
+// Load data on mount
 onMounted(async () => {
-  if (collectionStore.items.length === 0) {
-    await collectionStore.fetchAll();
+  if (!collectionStore.isLoaded) {
+    try {
+      await collectionStore.fetchAll();
+    } catch (error) {
+      console.error('Failed to load product collections:', error);
+    }
   }
-  if (bakerySettingsStore.items.length === 0) {
-    await bakerySettingsStore.fetchById('default');
+
+  if (!systemSettingsStore.isLoaded) {
+    try {
+      await systemSettingsStore.fetchSettings();
+    } catch (error) {
+      console.error('Failed to load system settings:', error);
+    }
   }
-  initializeForm();
+
+  // Reset variation form to ensure proper initialization
+  resetVariationForm();
+});
+
+// Cleanup on unmount
+onUnmounted(() => {
+  if (proportionalPricingTimeout) {
+    clearTimeout(proportionalPricingTimeout);
+  }
 });
 </script>
 
@@ -484,102 +539,288 @@ onMounted(async () => {
     <form @submit.prevent="handleSubmit">
       <!-- Basic Information -->
       <div class="base-card">
-        <h4>Información Básica</h4>
-
-        <div>
-          <label for="productName">Nombre del Producto</label>
+        <!-- Name -->
+        <div class="mb-4">
+          <label
+            for="name"
+            class="block text-sm font-medium text-neutral-700 mb-1"
+          >
+            Nombre
+          </label>
           <input
-            id="productName"
+            id="name"
             type="text"
             v-model="formData.name"
+            class="w-full px-3 py-2 border border-neutral-300 rounded-md"
+            :class="{ 'border-danger': errors.name }"
             required
           />
+          <span
+            v-if="errors.name"
+            class="text-sm text-danger mt-1"
+          >
+            {{ errors.name }}
+          </span>
         </div>
 
-        <!-- <div>
-          <label for="description">Descripción</label>
+        <!-- Description -->
+        <div class="mb-4">
+          <label
+            for="description"
+            class="block text-sm font-medium text-neutral-700 mb-1"
+          >
+            Descripción
+          </label>
           <textarea
             id="description"
             v-model="formData.description"
             rows="3"
+            class="w-full px-3 py-2 border border-neutral-300 rounded-md"
           />
-        </div> -->
-
-        <div>
-          <label for="collection">Colección</label>
-          <select
-            id="collection"
-            v-model="formData.collection"
-            required
-          >
-            <option value="">Seleccionar colección</option>
-            <option
-              v-for="collection in collectionStore.items"
-              :key="collection.id"
-              :value="collection.id"
-            >
-              {{ collection.name }}
-            </option>
-          </select>
         </div>
 
-        <!-- Add tax percentage input -->
-        <div>
-          <label for="taxPercentage">Porcentaje de Impuesto (%)</label>
+        <!-- Category Selection -->
+        <div class="mb-4">
+          <label
+            for="collection"
+            class="block text-sm font-medium text-neutral-700 mb-1"
+          >
+            Categoría
+          </label>
+          <select
+            id="collection"
+            v-model="formData.collectionId"
+            @change="handleCategoryChange"
+            class="w-full px-3 py-2 border border-neutral-300 rounded-md"
+            :class="{ 'border-danger': errors.collectionId }"
+            required
+          >
+            <option value="">Selecciona una categoría</option>
+            <option
+              v-for="category in availableCategories"
+              :key="category.id"
+              :value="category.id"
+            >
+              {{ category.name }}
+            </option>
+          </select>
+          <span
+            v-if="errors.collectionId"
+            class="text-sm text-danger mt-1"
+          >
+            {{ errors.collectionId }}
+          </span>
+        </div>
+
+        <!-- Tax Percentage -->
+        <div class="mb-4">
+          <label
+            for="taxPercentage"
+            class="block text-sm font-medium text-neutral-700 mb-1"
+          >
+            Porcentaje de Impuesto (%)
+          </label>
           <input
             id="taxPercentage"
             type="number"
             v-model="formData.taxPercentage"
+            class="w-full px-3 py-2 border border-neutral-300 rounded-md"
             min="0"
             max="100"
-            step="0.5"
+            step="0.01"
           />
         </div>
 
-        <div>
+        <!-- Base Price (only show when no variations) -->
+        <div v-if="!variationType || formData.variations.length === 0" class="mb-4">
+          <label
+            for="basePrice"
+            class="block text-sm font-medium text-neutral-700 mb-1"
+          >
+            Precio ($)
+          </label>
+          <input
+            id="basePrice"
+            type="number"
+            v-model="formData.basePrice"
+            class="w-full px-3 py-2 border border-neutral-300 rounded-md"
+            :class="{ 'border-danger': errors.basePrice }"
+            min="0"
+            step="100"
+            placeholder="0"
+          />
+          <span
+            v-if="errors.basePrice"
+            class="text-sm text-danger mt-1"
+          >
+            {{ errors.basePrice }}
+          </span>
+        </div>
+
+        <!-- Active Status -->
+        <div class="mb-4">
           <YesNoToggle
-            v-model="formData.hasVariations"
-            label="¿Tiene variaciones?"
+            v-model="formData.isActive"
+            label="Producto activo"
           />
         </div>
       </div>
 
-      <!-- Variations Section -->
-      <div v-if="formData.hasVariations" class="base-card">
-        <h4>Variaciones del Producto</h4>
-
-        <!-- Variation Type Selection - only show in create mode -->
-        <template v-if="!isEditMode">
-          <div>
-            <label for="variationType">Tipo de Variación</label>
-            <select
-              id="variationType"
-              v-model="selectedVariationType"
-              @change="handleVariationTypeChange"
-            >
-              <option value="">Seleccionar tipo</option>
-              <option
-                v-if="selectedCollection?.variationTemplates?.length > 0"
-                value="CATEGORY"
+      <!-- Variation Type Selection -->
+      <div class="base-card">
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-neutral-700 mb-1">
+            Tipo de Variación
+          </label>
+          <div class="flex gap-1">
+            <div class="relative flex-1">
+              <input
+                type="radio"
+                id="variation-type-none"
+                value=""
+                name="variationType"
+                v-model="variationType"
+                @change="handleVariationTypeChange"
+                class="sr-only peer"
+              />
+              <label
+                for="variation-type-none"
+                class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
               >
-                {{ selectedCollection.name }} ({{ getVariationTypeLabel(selectedCollection.defaultVariationType) }})
-              </option>
-              <option value="WEIGHT">Peso (g)</option>
-              <option value="QUANTITY">Cantidad</option>
-              <option value="CUSTOM">Personalizado</option>
-            </select>
+                Sin variaciones
+              </label>
+            </div>
+            <div class="relative flex-1">
+              <input
+                type="radio"
+                id="variation-type-weight"
+                value="WEIGHT"
+                name="variationType"
+                v-model="variationType"
+                @change="handleVariationTypeChange"
+                class="sr-only peer"
+              />
+              <label
+                for="variation-type-weight"
+                class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
+              >
+                Peso / Volumen
+              </label>
+            </div>
+            <div class="relative flex-1">
+              <input
+                type="radio"
+                id="variation-type-quantity"
+                value="QUANTITY"
+                name="variationType"
+                v-model="variationType"
+                @change="handleVariationTypeChange"
+                class="sr-only peer"
+              />
+              <label
+                for="variation-type-quantity"
+                class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
+              >
+                Cantidad
+              </label>
+            </div>
+            <div class="relative flex-1">
+              <input
+                type="radio"
+                id="variation-type-size"
+                value="SIZE"
+                name="variationType"
+                v-model="variationType"
+                @change="handleVariationTypeChange"
+                class="sr-only peer"
+              />
+              <label
+                for="variation-type-size"
+                class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
+              >
+                Tamaño
+              </label>
+            </div>
+            <div
+              v-if="categoryHasTemplates"
+              class="relative flex-1"
+            >
+              <input
+                type="radio"
+                id="variation-type-category"
+                value="CATEGORY_TEMPLATES"
+                name="variationType"
+                v-model="variationType"
+                @change="handleVariationTypeChange"
+                class="sr-only peer"
+              />
+              <label
+                for="variation-type-category"
+                class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
+              >
+                Usar categoría
+              </label>
+            </div>
           </div>
+          <p class="text-xs text-neutral-500 mt-1">
+            Selecciona el tipo de variaciones que tendrá este producto
+          </p>
+        </div>
 
-          <!-- Whole Grain Toggle -->
-          <div v-if="formData.variationType">
-            <YesNoToggle
-              v-model="formData.hasWholeGrain"
-              label="¿Incluir versión integral?"
-            />
+        <!-- Unit Selection for types that use units -->
+        <div v-if="showUnitSelection" class="mb-4">
+          <label class="block text-sm font-medium text-neutral-700 mb-1">
+            Unidad por Defecto
+          </label>
+          <div class="flex gap-1">
+            <div
+              v-for="option in unitPillOptions"
+              :key="option.value"
+              class="relative flex-1"
+            >
+              <input
+                type="radio"
+                :id="`unit-${option.value}`"
+                :value="option.value"
+                name="defaultUnit"
+                v-model="defaultUnit"
+                class="sr-only peer"
+              />
+              <label
+                :for="`unit-${option.value}`"
+                class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
+              >
+                {{ option.label }}
+              </label>
+            </div>
           </div>
-        </template>
+          <p class="text-xs text-neutral-500 mt-1">
+            Todas las variaciones de peso/volumen usarán esta unidad
+          </p>
+        </div>
 
-        <!-- Variations List - Always Editable -->
+        <!-- Whole Grain Variations Toggle -->
+        <div v-if="variationType && variationType !== 'SIZE' && variationType !== 'CATEGORY_TEMPLATES'" class="mb-4">
+          <YesNoToggle
+            v-model="hasWholeGrainVariations"
+            label="¿Este producto ofrece variaciones integrales?"
+          />
+          <p class="text-xs text-neutral-500 mt-1">
+            Se creará automáticamente una versión integral para cada variación
+          </p>
+        </div>
+      </div>
+
+      <!-- Variations -->
+      <div v-if="variationType || formData.variations.length > 0" class="base-card">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="text-lg font-medium text-neutral-800">Variaciones del Producto</h4>
+          <span v-if="variationType" class="px-2 py-1 bg-primary-100 text-primary-800 rounded text-xs font-medium">
+            {{ variationType === 'CATEGORY_TEMPLATES' ? 'Plantillas de Categoría' : getVariationTypeLabel(variationType) }}
+          </span>
+        </div>
+
+        <!-- Variations List -->
         <div class="space-y-3">
           <!-- Existing Variations -->
           <TemplateVariation
@@ -587,57 +828,64 @@ onMounted(async () => {
             :key="`variation-${index}-${variation.id || ''}-${variation.name}-${variation.isWholeGrain ? 'whole' : 'regular'}`"
             :template="variation"
             :is-new="false"
-            :default-variation-type="isEditMode ? 'CUSTOM' : formData.variationType"
+            :default-variation-type="variationType"
             :base-price="true"
-            :disabled="loading"
             @remove="removeVariation(index)"
             @update="(payload) => updateVariation(index, payload)"
           />
 
           <!-- Add New Variation Form -->
           <TemplateVariation
-            v-if="formData.variationType || isEditMode"
+            v-if="variationType && variationType !== 'CATEGORY_TEMPLATES'"
+            :key="`new-variation-${defaultUnit}-${variationType}`"
             :template="newVariation"
             :is-new="true"
-            :default-variation-type="isEditMode ? 'CUSTOM' : formData.variationType"
+            :default-variation-type="variationType"
             :base-price="true"
-            :disabled="loading"
             @add="addNewVariation"
             @update="(payload) => updateNewVariation(payload)"
           />
         </div>
       </div>
 
-      <!-- Non-variation product details -->
-      <div v-if="!formData.hasVariations" class="base-card">
-        <h4>Detalles</h4>
-
-        <div>
-          <label for="basePrice">Precio Base</label>
-          <input
-            id="basePrice"
-            type="number"
-            v-model="formData.basePrice"
-            min="0"
-            step="50"
-          />
+      <!-- Form Actions -->
+      <div class="base-card">
+        <div class="flex gap-2 justify-end">
+          <button type="submit" :disabled="loading" class="action-btn">
+            {{ loading ? loadingText : submitButtonText }}
+          </button>
+          <button
+            type="button"
+            @click="$emit('cancel')"
+            :disabled="loading"
+            class="danger-btn"
+          >
+            Cancelar
+          </button>
         </div>
       </div>
-
-      <!-- Form Actions -->
-      <div class="base-card flex gap-2">
-        <button class="action-btn" type="submit" :disabled="loading">
-          {{ loading ? loadingText : submitButtonText}}
-        </button>
-        <button
-          class="action-btn"
-          type="button"
-          @click="resetForm"
-          :disabled="loading"
-        >
-          Resetear
-        </button>
-      </div>
     </form>
+
+    <!-- Confirm Dialog -->
+    <ConfirmDialog
+      :is-open="confirmDialog.isOpen"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      confirm-text="Confirmar"
+      cancel-text="Cancelar"
+      @confirm="confirmDialog.onConfirm"
+      @cancel="confirmDialog.isOpen = false"
+    />
   </div>
 </template>
+
+<style scoped>
+/* Remove browser default outlines from all form elements */
+select {
+  outline: none !important;
+}
+
+select:focus {
+  outline: none !important;
+}
+</style>

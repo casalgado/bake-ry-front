@@ -226,7 +226,7 @@ const collectionsData = computed(() => {
 });
 
 const collectionsColumns = [
-  { key: 'collection', label: 'Colección', formatter: 'capitalize' },
+  { key: 'collection', label: 'Categoría', formatter: 'capitalize' },
   {
     key: 'revenue',
     label: 'Ingresos',
@@ -268,7 +268,7 @@ const worstProductsData = computed(() => {
 
 const productsColumns = [
   { key: 'name', label: 'Producto', formatter: 'capitalize' },
-  { key: 'collection', label: 'Colección', formatter: 'capitalize' },
+  { key: 'collection', label: 'Categoría', formatter: 'capitalize' },
   {
     key: 'revenue',
     label: 'Ingresos',
