@@ -122,7 +122,7 @@ const navigateToCreate = () => {
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex justify-between items-center mb-1">
-      <h2 class="text-2xl font-bold mb-0">Colecciones</h2>
+      <h2 class="text-2xl font-bold mb-0">Categorias</h2>
       <button
         label="Crear Colección"
         class="action-btn"
@@ -137,7 +137,7 @@ const navigateToCreate = () => {
       v-if="productCollectionStore.loading"
       class="text-neutral-600 text-center py-4"
     >
-      Cargando colecciones...
+      Cargando categorias...
     </div>
 
     <!-- Error State -->

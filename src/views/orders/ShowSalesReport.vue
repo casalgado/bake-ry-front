@@ -445,7 +445,7 @@ onUnmounted(() => {
 
       <!-- Collections Table -->
       <div v-if="salesReport?.salesMetrics?.byCollection" class="mb-4 sm:mb-8">
-        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Colecciones</h3>
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Categorias</h3>
         <SimpleTable
           :data="collectionsData"
           :columns="collectionsColumns"

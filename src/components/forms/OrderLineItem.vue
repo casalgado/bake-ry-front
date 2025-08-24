@@ -49,7 +49,7 @@ const handleQuantityInput = (event) => {
 const handlePriceChange = (event) => {
   const newPrice = Number(event.target.value);
   discount.value = Math.round(
-    ((props.item.basePrice - newPrice) / props.item.basePrice) * 100
+    ((props.item.basePrice - newPrice) / props.item.basePrice) * 100,
   );
   emit('update:price', props.index, newPrice);
 };

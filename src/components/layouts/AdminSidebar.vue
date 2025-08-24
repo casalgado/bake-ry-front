@@ -181,7 +181,7 @@ const navigationSections = computed(() => [
       {
         id: 'colecciones',
         icon: PhDresser,
-        text: 'Collecciones',
+        text: 'Categorias',
         path: '/dashboard/product-collections',
       },
       {

@@ -21,10 +21,12 @@ const handleWizardSelect = (selection) => {
   const product = props.products.find(p => p.id === selection.product.id);
   if (!product) return;
 
+  console.log('selection', selection);
+
   const prices = selection.variation ?
     {
       basePrice: selection.variation.basePrice,
-      currentPrice: selection.variation.currentPrice,
+      currentPrice: selection.variation.basePrice,
     } :
     {
       basePrice: product.basePrice,
@@ -44,6 +46,7 @@ const handleWizardSelect = (selection) => {
       id: selection.variation.id,
       name: selection.variation.name,
       value: selection.variation.value,
+      unit: selection.variation.unit || '',
       recipeId: selection.variation.recipeId,
       isWholeGrain: selection.variation.isWholeGrain,
     } : null,
@@ -85,8 +88,8 @@ const removeItem = (index) => {
 
 <template>
   <div class="base-card grid grid-cols-3 gap-x-3 gap-y-2 md:gap-y-0">
-    <label class="col-span-3">Productos</label>
 
+    <label class="col-span-3">Productos</label>
     <ProductWizard
       @select="handleWizardSelect"
       :products="products"
