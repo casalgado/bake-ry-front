@@ -510,7 +510,7 @@ onMounted(async () => {
                 for="variation-type-size"
                 class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
               >
-                Tamaño
+                Tamaño / Color
               </label>
             </div>
           </div>

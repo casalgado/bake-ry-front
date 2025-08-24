@@ -631,11 +631,12 @@ onUnmounted(() => {
           />
         </div>
 
-        <!-- Base Price (only show when no variations) -->
-        <div v-if="!variationType || formData.variations.length === 0" class="mb-4">
+        <!-- Base Price -->
+        <div class="mb-4">
           <label
             for="basePrice"
-            class="block text-sm font-medium text-neutral-700 mb-1"
+            class="block text-sm font-medium mb-1"
+            :class="formData.variations.length > 0 ? 'text-neutral-400' : 'text-neutral-700'"
           >
             Precio ($)
           </label>
@@ -644,7 +645,11 @@ onUnmounted(() => {
             type="number"
             v-model="formData.basePrice"
             class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-            :class="{ 'border-danger': errors.basePrice }"
+            :class="{
+              'border-danger': errors.basePrice,
+              'bg-neutral-100 text-neutral-400 cursor-not-allowed': formData.variations.length > 0
+            }"
+            :disabled="formData.variations.length > 0"
             min="0"
             step="100"
             placeholder="0"
@@ -655,6 +660,12 @@ onUnmounted(() => {
           >
             {{ errors.basePrice }}
           </span>
+          <p v-if="formData.variations.length > 0" class="text-xs text-neutral-400 mt-1">
+            Los precios se configuran en las variaciones del producto
+          </p>
+          <p v-else class="text-xs text-neutral-500 mt-1">
+            Precio para productos sin variaciones
+          </p>
         </div>
 
         <!-- Active Status -->
@@ -738,7 +749,7 @@ onUnmounted(() => {
                 for="variation-type-size"
                 class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
               >
-                Tamaño
+                Tamaño / Color
               </label>
             </div>
             <div

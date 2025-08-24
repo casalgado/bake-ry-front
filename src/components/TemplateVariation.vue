@@ -170,7 +170,8 @@ const unitTypeLabel = computed(() => {
           type="button"
           @click="handleAdd"
           :disabled="!template.name || !template.value || disabled"
-          class="action-btn text-sm px-3 py-1 self-end m-0 h-[30px]"
+          class="utility-btn text-sm px-3 py-1 self-end m-0 h-[30px]"
+          :class="{ 'utility-btn-inactive': !template.name || !template.value || disabled }"
         >
           Agregar
         </button>
