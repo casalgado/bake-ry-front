@@ -131,6 +131,28 @@ const addItem = (array, newItem = '') => {
   }
 };
 
+// New unit form state
+const newUnitForm = reactive({
+  symbol: '',
+  name: '',
+  type: ''
+});
+
+const addUnitOption = () => {
+  if (newUnitForm.symbol.trim() && newUnitForm.name.trim() && newUnitForm.type) {
+    formData.unitOptions.push({
+      symbol: newUnitForm.symbol.trim(),
+      name: newUnitForm.name.trim(),
+      type: newUnitForm.type
+    });
+    
+    // Clear the form
+    newUnitForm.symbol = '';
+    newUnitForm.name = '';
+    newUnitForm.type = '';
+  }
+};
+
 const removeItem = (array, index) => {
   array.splice(index, 1);
 };
@@ -436,35 +458,77 @@ const cancelJsonChanges = () => {
 
         <div class="space-y-2 mb-4">
           <div v-for="(unit, index) in formData.unitOptions" :key="index" class="flex gap-2 items-center">
-            <input
-              v-model="formData.unitOptions[index]"
-              type="text"
-              class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
-            />
+            <div class="flex-1 grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-xs text-neutral-600 mb-1">Símbolo</label>
+                <input
+                  v-model="formData.unitOptions[index].symbol"
+                  type="text"
+                  class="w-full px-2 py-1 border border-neutral-300 rounded-md focus:outline-none text-sm"
+                  placeholder="kg"
+                />
+              </div>
+              <div>
+                <label class="block text-xs text-neutral-600 mb-1">Nombre</label>
+                <input
+                  v-model="formData.unitOptions[index].name"
+                  type="text"
+                  class="w-full px-2 py-1 border border-neutral-300 rounded-md focus:outline-none text-sm"
+                  placeholder="Kilogram"
+                />
+              </div>
+              <div>
+                <label class="block text-xs text-neutral-600 mb-1">Tipo</label>
+                <select
+                  v-model="formData.unitOptions[index].type"
+                  class="w-full px-2 py-1 border border-neutral-300 rounded-md focus:outline-none text-sm"
+                >
+                  <option value="weight">Peso</option>
+                  <option value="volume">Volumen</option>
+                  <option value="count">Cantidad</option>
+                </select>
+              </div>
+            </div>
             <button
               type="button"
               @click="removeItem(formData.unitOptions, index)"
-              class="danger-btn"
+              class="danger-btn self-end"
             >
               Eliminar
             </button>
           </div>
         </div>
 
-        <div class="flex gap-2">
-          <input
-            ref="newUnitOption"
-            type="text"
-            placeholder="Nueva unidad"
-            class="flex-1 px-3 py-2 border border-neutral-300 rounded-md focus:outline-none"
-            @keyup.enter="addItem(formData.unitOptions, $event.target.value); $event.target.value = ''"
-          />
+        <div class="space-y-2">
+          <div class="grid grid-cols-3 gap-2">
+            <input
+              v-model="newUnitForm.symbol"
+              type="text"
+              placeholder="Símbolo (ej: kg)"
+              class="px-2 py-1 border border-neutral-300 rounded-md focus:outline-none text-sm"
+            />
+            <input
+              v-model="newUnitForm.name"
+              type="text"
+              placeholder="Nombre (ej: Kilogram)"
+              class="px-2 py-1 border border-neutral-300 rounded-md focus:outline-none text-sm"
+            />
+            <select
+              v-model="newUnitForm.type"
+              class="px-2 py-1 border border-neutral-300 rounded-md focus:outline-none text-sm"
+            >
+              <option value="">Tipo</option>
+              <option value="weight">Peso</option>
+              <option value="volume">Volumen</option>
+              <option value="count">Cantidad</option>
+            </select>
+          </div>
           <button
             type="button"
-            @click="addItem(formData.unitOptions, $refs.newUnitOption.value); $refs.newUnitOption.value = ''"
+            @click="addUnitOption"
             class="utility-btn m-0"
           >
-            Agregar
+            Agregar Unidad
           </button>
         </div>
 

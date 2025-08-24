@@ -30,7 +30,13 @@ const categories = computed(() => {
 
 // Unit options from bakery settings
 const unitOptions = bakerySettingsStore.items?.[0]?.unitOptions || [
-  'kg', 'g', 'L', 'ml', 'unidades', 'docena', 'paquete',
+  { symbol: 'kg', name: 'Kilogram', type: 'weight' },
+  { symbol: 'g', name: 'Gram', type: 'weight' },
+  { symbol: 'L', name: 'Liter', type: 'volume' },
+  { symbol: 'ml', name: 'Milliliter', type: 'volume' },
+  { symbol: 'uds', name: 'Units', type: 'count' },
+  { symbol: 'docena', name: 'Dozen', type: 'count' },
+  { symbol: 'paquete', name: 'Package', type: 'count' },
 ];
 
 // Storage temperature options from bakery settings
@@ -273,8 +279,8 @@ const handleSubmit = async () => {
           :class="{ 'error': errors.unit }"
         >
           <option value="">Seleccione una unidad</option>
-          <option v-for="unit in unitOptions" :key="unit" :value="unit">
-            {{ unit }}
+          <option v-for="unit in unitOptions" :key="unit.symbol" :value="unit.symbol">
+            {{ unit.symbol }} - {{ unit.name }}
           </option>
         </select>
         <span v-if="errors.unit" class="error-text">{{ errors.unit }}</span>

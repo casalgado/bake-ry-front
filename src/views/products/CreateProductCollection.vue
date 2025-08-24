@@ -22,8 +22,6 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <div class="form-container">
-    <h2>Crear Colección</h2>
     <ProductCollectionForm
       :loading="productCollectionStore.loading"
       @submit="handleSubmit"
@@ -32,5 +30,5 @@ const handleCancel = () => {
     <div v-if="productCollectionStore.error">
       {{ productCollectionStore.error }}
     </div>
-  </div>
+
 </template>

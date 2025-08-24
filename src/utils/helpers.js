@@ -182,4 +182,64 @@ const categoryOrder = {
   'cafe el diario': 7,
 };
 
-export { abbreviateText, parseSpanishName, capitalize, formatMoney, cleanString, categoryOrder, formatTime };
+// Product variation formatting utilities
+const formatVariationValue = (value, type, unit = '') => {
+  if (!value && value !== 0) return '';
+
+  switch (type) {
+  case 'QUANTITY':
+    return `x${value}`;
+  case 'WEIGHT':
+    return `${value}${unit || 'g'}`;
+  case 'SIZE':
+    return value.toString();
+  default:
+    return `${value}${unit ? ` ${unit}` : ''}`;
+  }
+};
+
+const formatVariationDisplay = (variation) => {
+  if (!variation) return '';
+
+  const { name, value, type, unit } = variation;
+  const formattedValue = formatVariationValue(value, type, unit);
+
+  if (type === 'SIZE') {
+    return capitalize(name);
+  }
+
+  return `${capitalize(name)} - ${formattedValue}`;
+};
+
+const getVariationTypeLabel = (type) => {
+  const labels = {
+    'WEIGHT': 'Peso / Volumen',
+    'QUANTITY': 'Cantidad',
+    'SIZE': 'Tamaño',
+    'CUSTOM': 'Personalizado',
+  };
+  return labels[type] || type;
+};
+
+const getUnitTypeLabel = (unitType) => {
+  const labels = {
+    'weight': 'Peso',
+    'volume': 'Volumen',
+    'count': 'Unidades',
+  };
+  return labels[unitType] || 'Valor';
+};
+
+export {
+  abbreviateText,
+  parseSpanishName,
+  capitalize,
+  formatMoney,
+  cleanString,
+  categoryOrder,
+  formatTime,
+  formatVariationValue,
+  formatVariationDisplay,
+  getVariationTypeLabel,
+  getUnitTypeLabel,
+};

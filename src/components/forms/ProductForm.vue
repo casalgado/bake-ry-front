@@ -3,9 +3,9 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import RecipeSelector from './RecipeSelector.vue';
-import ProductVariationEditor from './ProductVariationEditor.vue';
+import TemplateVariation from '@/components/TemplateVariation.vue';
 import YesNoToggle from './YesNoToggle.vue';
-import { cleanString } from '@/utils/helpers';
+import { cleanString, getVariationTypeLabel } from '@/utils/helpers';
 
 const emit = defineEmits(['submit', 'cancel']);
 
@@ -68,6 +68,21 @@ const formData = ref({
   },
 });
 
+// New template for adding variations
+const newVariation = ref({
+  name: '',
+  value: 0,
+  basePrice: 0,
+  unit: 'g',
+  type: 'WEIGHT',
+  isWholeGrain: false,
+  recipe: {
+    recipeSource: 'base',
+    recipeId: null,
+    ingredients: [],
+  },
+});
+
 // Get suggested variations from bakery settings
 const suggestedVariations = computed(() => {
   if (!bakerySettingsStore.items.length) return {};
@@ -84,6 +99,12 @@ const getVariationsForType = (type) => {
 };
 
 const selectedVariationType = ref(formData.value.variationType);
+
+// Get selected collection for variation type options
+const selectedCollection = computed(() => {
+  if (!formData.value.collection) return null;
+  return collectionStore.items.find(c => c.id === formData.value.collection);
+});
 
 const handleVariationTypeChange = () => {
   if (isEditMode.value) return;
@@ -108,6 +129,12 @@ const handleVariationTypeChange = () => {
     return;
   }
 
+  // Check if user selected the category's variation type
+  if (selectedVariationType.value === 'CATEGORY' && selectedCollection.value) {
+    loadVariationsFromCollection(selectedCollection.value);
+    return;
+  }
+
   const baseVariations = getVariationsForType(selectedVariationType.value);
   formData.value.variations = baseVariations;
 
@@ -127,7 +154,92 @@ const applyWholeGrainVariations = () => {
   formData.value.variations = newVariations;
 };
 
-// Simplified variation management
+// Update existing variation
+const updateVariation = (index, payload) => {
+  formData.value.variations[index][payload.field] = payload.value;
+
+  // Auto-update whole grain name if regular variation name changes
+  if (!isEditMode.value && formData.value.hasWholeGrain && payload.field === 'name' && !formData.value.variations[index].isWholeGrain) {
+    const nextIndex = index + 1;
+    if (formData.value.variations[nextIndex]?.isWholeGrain) {
+      formData.value.variations[nextIndex].name = `${payload.value} integral`;
+    }
+  }
+
+  // Trigger proportional pricing if basePrice is updated (with debounce)
+  if (payload.field === 'basePrice' && payload.value > 0) {
+    // Clear existing timeout
+    if (proportionalPricingTimeout) {
+      clearTimeout(proportionalPricingTimeout);
+    }
+
+    // Set new timeout to trigger after user stops typing
+    proportionalPricingTimeout = setTimeout(() => {
+      calculateProportionalPrices(index, payload.value);
+    }, 800); // Wait 800ms after user stops typing
+  }
+};
+
+// Update new variation template
+const updateNewVariation = (payload) => {
+  newVariation.value[payload.field] = payload.value;
+};
+
+// Add new variation using template
+const addNewVariation = () => {
+  if (!newVariation.value.name || !newVariation.value.value) {
+    return;
+  }
+
+  // Create a deep copy to avoid reference issues
+  const baseVariation = {
+    name: newVariation.value.name,
+    value: newVariation.value.value,
+    basePrice: newVariation.value.basePrice,
+    unit: newVariation.value.unit,
+    type: newVariation.value.type,
+    isWholeGrain: false,
+    recipe: {
+      recipeSource: 'base',
+      recipeId: null,
+      ingredients: [],
+    },
+  };
+
+  formData.value.variations.push(baseVariation);
+
+  // If whole grain is enabled, add integral version
+  if (formData.value.hasWholeGrain) {
+    const wholeGrainVariation = createBaseVariation(baseVariation, true);
+    formData.value.variations.push(wholeGrainVariation);
+  }
+
+  resetNewVariation();
+};
+
+// Remove variation
+const removeVariation = (index) => {
+  formData.value.variations.splice(index, 1);
+};
+
+// Reset new variation template
+const resetNewVariation = () => {
+  newVariation.value = {
+    name: '',
+    value: 0,
+    basePrice: 0,
+    unit: formData.value.variationType === 'WEIGHT' ? 'g' : '',
+    type: formData.value.variationType || 'WEIGHT',
+    isWholeGrain: false,
+    recipe: {
+      recipeSource: 'base',
+      recipeId: null,
+      ingredients: [],
+    },
+  };
+};
+
+// Legacy addVariation function for compatibility
 const addVariation = () => {
   if (isEditMode.value) {
     formData.value.variations.push(createBaseVariation());
@@ -142,23 +254,96 @@ const addVariation = () => {
   formData.value.variations.push(...newVariations);
 };
 
-const removeVariation = (index) => {
-  formData.value.variations.splice(index, 1);
-};
+// Watch for collection selection to load templates
+watch(
+  () => formData.value.collection,
+  (collectionId) => {
+    if (!collectionId || isEditMode.value) return;
 
-const updateVariation = (index, updatedVariation) => {
-  formData.value.variations[index] = updatedVariation;
+    const collection = collectionStore.items.find(c => c.id === collectionId);
+    if (collection?.variationTemplates?.length > 0) {
+      // Auto-enable variations
+      formData.value.hasVariations = true;
 
-  if (!isEditMode.value && formData.value.hasWholeGrain && !updatedVariation.isWholeGrain) {
-    const nextIndex = index + 1;
-    if (formData.value.variations[nextIndex]?.isWholeGrain) {
-      formData.value.variations[nextIndex] = {
-        ...formData.value.variations[nextIndex],
-        name: `${updatedVariation.name} integral`,
-      };
+      // Set variation type to CATEGORY to show category templates
+      formData.value.variationType = 'CATEGORY';
+      selectedVariationType.value = 'CATEGORY';
+
+      // Set whole grain option from collection
+      formData.value.hasWholeGrain = collection.hasWholeGrainVariations || false;
+
+      // Load variations from collection templates
+      loadVariationsFromCollection(collection);
+
+      // Update new variation template
+      newVariation.value.type = collection.defaultVariationType || 'WEIGHT';
+      newVariation.value.unit = collection.defaultVariationType === 'WEIGHT' ?
+        (collection.defaultUnit || 'g') : '';
     }
-  }
+  },
+);
+
+// Function to load variations from collection templates
+const loadVariationsFromCollection = (collection) => {
+  if (!collection.variationTemplates?.length) return;
+
+  const loadedVariations = collection.variationTemplates.map(template => ({
+    name: template.name,
+    value: template.value,
+    basePrice: template.basePrice || 0,
+    unit: template.unit,
+    type: template.type,
+    isWholeGrain: template.isWholeGrain,
+    recipe: {
+      recipeSource: 'base',
+      recipeId: null,
+      ingredients: [],
+    },
+  }));
+
+  formData.value.variations = loadedVariations;
 };
+
+// Debounce timeout for proportional pricing
+let proportionalPricingTimeout = null;
+
+// Function to calculate proportional prices
+const calculateProportionalPrices = (referenceIndex, referencePrice) => {
+  if (!referencePrice || !formData.value.variations.length) return;
+
+  const referenceVariation = formData.value.variations[referenceIndex];
+  if (!referenceVariation || !referenceVariation.value) return;
+
+  // Check if all OTHER variation prices are zero (excluding the reference one)
+  const otherVariations = formData.value.variations.filter((_, index) => index !== referenceIndex);
+  const allOtherPricesZero = otherVariations.every(variation => variation.basePrice === 0);
+  if (!allOtherPricesZero) return;
+
+  const referenceValue = referenceVariation.value;
+  const pricePerUnit = referencePrice / referenceValue;
+
+  // Calculate proportional prices for all OTHER variations
+  formData.value.variations.forEach((variation, index) => {
+    if (index !== referenceIndex && variation.value > 0) {
+      const proportionalPrice = variation.value * pricePerUnit;
+      // Round to nearest 100
+      variation.basePrice = Math.round(proportionalPrice / 100) * 100;
+    }
+  });
+};
+
+// Removed base price watcher - now triggered from variation updates
+
+// Watch for variation type changes to update new variation template
+watch(
+  () => formData.value.variationType,
+  (newType) => {
+    if (newType) {
+      newVariation.value.type = newType;
+      newVariation.value.unit = newType === 'WEIGHT' ? 'g' : '';
+    }
+  },
+);
 
 // Watch for whole grain changes - only in create mode
 watch(
@@ -372,6 +557,12 @@ onMounted(async () => {
               @change="handleVariationTypeChange"
             >
               <option value="">Seleccionar tipo</option>
+              <option
+                v-if="selectedCollection?.variationTemplates?.length > 0"
+                value="CATEGORY"
+              >
+                {{ selectedCollection.name }} ({{ getVariationTypeLabel(selectedCollection.defaultVariationType) }})
+              </option>
               <option value="WEIGHT">Peso (g)</option>
               <option value="QUANTITY">Cantidad</option>
               <option value="CUSTOM">Personalizado</option>
@@ -387,29 +578,32 @@ onMounted(async () => {
           </div>
         </template>
 
-        <!-- Variations List -->
-        <div class="grid grid-cols-1 gap-2">
-          <div v-for="(variation, index) in formData.variations" :key="index">
-            <ProductVariationEditor
-              :variation="variation"
-              :variation-type="isEditMode ? 'CUSTOM' : formData.variationType"
-              :index="index"
-              :disabled="loading"
-              :is-fixed="variation.isFixed"
-              @update:variation="updateVariation(index, $event)"
-              @remove="removeVariation(index)"
-            />
-          </div>
-
-          <button
-            v-if="formData.variationType || isEditMode"
-            type="button"
-            @click="addVariation"
+        <!-- Variations List - Always Editable -->
+        <div class="space-y-3">
+          <!-- Existing Variations -->
+          <TemplateVariation
+            v-for="(variation, index) in formData.variations"
+            :key="`variation-${index}-${variation.id || ''}-${variation.name}-${variation.isWholeGrain ? 'whole' : 'regular'}`"
+            :template="variation"
+            :is-new="false"
+            :default-variation-type="isEditMode ? 'CUSTOM' : formData.variationType"
+            :base-price="true"
             :disabled="loading"
-            class="utility-btn !m-0 !mb-4 w-1/4"
-          >
-            Agregar Variación
-          </button>
+            @remove="removeVariation(index)"
+            @update="(payload) => updateVariation(index, payload)"
+          />
+
+          <!-- Add New Variation Form -->
+          <TemplateVariation
+            v-if="formData.variationType || isEditMode"
+            :template="newVariation"
+            :is-new="true"
+            :default-variation-type="isEditMode ? 'CUSTOM' : formData.variationType"
+            :base-price="true"
+            :disabled="loading"
+            @add="addNewVariation"
+            @update="(payload) => updateNewVariation(payload)"
+          />
         </div>
       </div>
 
