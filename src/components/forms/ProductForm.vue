@@ -27,6 +27,53 @@ const props = defineProps({
 
 const emit = defineEmits(['submit', 'cancel']);
 
+// Get all available unit options (shared between functions)
+const getAllUnitOptions = () => {
+  const fallbackOptions = [
+    { symbol: 'Kg', name: 'Kilogram', type: 'weight', template: 'WEIGHT' },
+    { symbol: 'g', name: 'Gram', type: 'weight', template: 'WEIGHT' },
+    { symbol: 'L', name: 'Liter', type: 'volume', template: 'WEIGHT' },
+    { symbol: 'ml', name: 'Milliliter', type: 'volume', template: 'WEIGHT' },
+    { symbol: 'uds', name: 'Units', type: 'count', template: 'QUANTITY' },
+    { symbol: 'docena', name: 'Dozen', type: 'count', template: 'QUANTITY' },
+    { symbol: 'paquete', name: 'Package', type: 'count', template: 'QUANTITY' },
+  ];
+
+  return systemSettingsStore.isLoaded
+    ? (systemSettingsStore.unitOptions || fallbackOptions)
+    : fallbackOptions;
+};
+
+// Extract variation type and default unit from existing variations
+const extractVariationSettings = (variations) => {
+  if (!variations || variations.length === 0) {
+    return { type: '', unit: 'g' };
+  }
+
+  // Get the type and unit from the first variation (all should be consistent)
+  const firstVariation = variations[0];
+  const extractedType = firstVariation.type || 'WEIGHT';
+  const extractedUnit = firstVariation.unit || 'g';
+
+  // Type defaults
+  const typeDefaults = {
+    'WEIGHT': 'g',
+    'QUANTITY': 'uds',
+    'SIZE': '',
+  };
+
+  // Check if the extracted unit exists in the available options for this type
+  const allOptions = getAllUnitOptions();
+  const validUnit = allOptions.some(option =>
+    option.symbol === extractedUnit && option.template === extractedType,
+  );
+
+  return {
+    type: extractedType,
+    unit: validUnit ? extractedUnit : (typeDefaults[extractedType] || 'g'),
+  };
+};
+
 // Form state
 const formData = ref(
   props.initialData
@@ -57,10 +104,17 @@ const confirmDialog = ref({
   onConfirm: null,
 });
 
+// Extract variation settings from initial data if editing
+const initialVariationSettings = props.initialData
+  ? extractVariationSettings(props.initialData.variations)
+  : { type: '', unit: 'g' };
+
 // Variation management state
-const variationType = ref('');
-const defaultUnit = ref('g');
-const hasWholeGrainVariations = ref(false);
+const variationType = ref(initialVariationSettings.type);
+const defaultUnit = ref(initialVariationSettings.unit);
+const hasWholeGrainVariations = ref(
+  props.initialData?.variations?.some(v => v.isWholeGrain) || false,
+);
 
 // New variation template
 const newVariation = ref({
@@ -100,19 +154,7 @@ const systemDefaultTemplates = computed(() => {
 
 // Get available unit options from system settings, filtered by template
 const unitPillOptions = computed(() => {
-  const fallbackOptions = [
-    { symbol: 'Kg', name: 'Kilogram', type: 'weight', template: 'WEIGHT' },
-    { symbol: 'g', name: 'Gram', type: 'weight', template: 'WEIGHT' },
-    { symbol: 'L', name: 'Liter', type: 'volume', template: 'WEIGHT' },
-    { symbol: 'ml', name: 'Milliliter', type: 'volume', template: 'WEIGHT' },
-    { symbol: 'uds', name: 'Units', type: 'count', template: 'QUANTITY' },
-    { symbol: 'docena', name: 'Dozen', type: 'count', template: 'QUANTITY' },
-    { symbol: 'paquete', name: 'Package', type: 'count', template: 'QUANTITY' },
-  ];
-
-  const allOptions = systemSettingsStore.isLoaded
-    ? (systemSettingsStore.unitOptions || fallbackOptions)
-    : fallbackOptions;
+  const allOptions = getAllUnitOptions();
 
   // Filter by the selected variation type
   const filtered = variationType.value

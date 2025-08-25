@@ -20,6 +20,10 @@
 - [ ] Check that 'otra' variation is present
 - [ ] Save without making changes
 
+### 4. Existing orders
+
+- [ ] Edit an existing order, change the products. 
+
 ## New Feature Tests
 
 ### 4. Create Collection with Templates
