@@ -227,8 +227,8 @@ const handleFormSubmit = async (formData) => {
             <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <PhTag class="w-6 h-6 text-primary" weight="bold" />
             </div>
-            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Crear Producto</h3>
-            <p class="text-sm text-neutral-600">Comienza agregando tus primeros productos al catálogo</p>
+            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Sube tus Productos</h3>
+            <p class="text-sm text-neutral-600">Comienza agregando los primeros productos al catálogo</p>
           </router-link>
 
           <!-- Create Client Card -->

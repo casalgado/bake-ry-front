@@ -5,7 +5,8 @@ import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import TemplateVariation from '@/components/TemplateVariation.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import YesNoToggle from '@/components/forms/YesNoToggle.vue';
-import { cleanString, getVariationTypeLabel } from '@/utils/helpers';
+import { cleanString, getVariationTypeLabel, capitalize } from '@/utils/helpers';
+import { PhTrash, PhX } from '@phosphor-icons/vue';
 
 const systemSettingsStore = useSystemSettingsStore();
 const collectionStore = useProductCollectionStore();
@@ -79,7 +80,9 @@ const formData = ref(
   props.initialData
     ? {
       ...props.initialData,
-      variations: props.initialData.variations || [],
+      variations: props.initialData.variations
+        ? props.initialData.variations.map(v => ({ ...v }))
+        : [],
     }
     : {
       name: '',
@@ -92,6 +95,14 @@ const formData = ref(
       basePrice: 0,
       customAttributes: {},
     },
+);
+
+const initialVariations = ref(
+  props.initialData ?
+    props.initialData.variations
+      ? props.initialData.variations.map(v => ({ ...v }))
+      : []
+    : [],
 );
 
 const errors = ref({});
@@ -111,7 +122,11 @@ const initialVariationSettings = props.initialData
 
 // Variation management state
 const variationType = ref(initialVariationSettings.type);
+const previousVariationType = ref(initialVariationSettings.type);
 const defaultUnit = ref(initialVariationSettings.unit);
+const hasVariations = ref(
+  props.initialData?.variations?.length > 0 || false,
+);
 const hasWholeGrainVariations = ref(
   props.initialData?.variations?.some(v => v.isWholeGrain) || false,
 );
@@ -165,6 +180,7 @@ const unitPillOptions = computed(() => {
   return filtered.map(unit => ({
     value: unit.symbol,
     label: unit.symbol,
+    name: unit.name,
   }));
 });
 
@@ -176,15 +192,32 @@ const showUnitSelection = computed(() => {
 
 // Reset variation template form
 const resetVariationForm = () => {
+  const currentType = variationType.value || 'WEIGHT';
+
   newVariation.value = {
     name: '',
     value: 0,
     basePrice: 0,
-    unit: defaultUnit.value || 'g',
-    type: variationType.value || 'WEIGHT',
+    unit: getDefaultUnitForType(currentType),
+    type: currentType,
     isWholeGrain: false,
     displayOrder: formData.value.variations.length,
   };
+};
+
+// Helper function to get default unit for a variation type
+const getDefaultUnitForType = (type) => {
+  if (type === 'SIZE') {
+    return ''; // SIZE variations don't use units
+  } else if (type && systemDefaultTemplates.value[type]?.unit) {
+    return systemDefaultTemplates.value[type].unit;
+  } else if (type === 'WEIGHT') {
+    return defaultUnit.value || 'g';
+  } else if (type === 'QUANTITY') {
+    return defaultUnit.value || 'uds';
+  } else {
+    return defaultUnit.value || 'g';
+  }
 };
 
 // Load system default templates
@@ -202,10 +235,21 @@ const loadSystemDefaultTemplates = () => {
     displayOrder: index,
   }));
 
-  formData.value.variations = templates;
+  console.log('IT', initialVariations.value);
+  const fromInitialVariations = initialVariations.value.map((variation, index) => ({
+    name: variation.name,
+    value: variation.value ? variation.value : templates[index]?.value || 0,
+    basePrice: variation.basePrice ? variation.basePrice : 0,
+    unit: systemDefaultTemplates.value[type].unit || '',
+    type: type,
+    isWholeGrain: variation.isWholeGrain || false,
+    displayOrder: variation.displayOrder !== undefined ? variation.displayOrder : index,
+  }));
+
+  formData.value.variations = initialVariations.value.length > 0 ? fromInitialVariations : templates;
 
   // If whole grain variations are enabled, add integral versions
-  if (hasWholeGrainVariations.value) {
+  if (hasWholeGrainVariations.value && initialVariations.value.length == 0) {
     addWholeGrainVariations();
   } else {
     // Sort even if no whole grain variations for consistency
@@ -216,7 +260,7 @@ const loadSystemDefaultTemplates = () => {
 // Load category templates
 const loadCategoryTemplates = () => {
   if (!selectedCategory.value?.variationTemplates?.length) return;
-
+  console.log('loadCT', selectedCategory.value.variationTemplates);
   const templates = selectedCategory.value.variationTemplates.map((template, index) => ({
     name: template.name,
     value: template.value,
@@ -227,9 +271,9 @@ const loadCategoryTemplates = () => {
     displayOrder: index,
   }));
 
+  console.log('templates', templates);
+
   formData.value.variations = templates;
-  variationType.value = templates[0]?.type || 'WEIGHT';
-  defaultUnit.value = templates[0]?.unit || 'g';
 
   // Sort variations to maintain pairing
   sortVariationsInPairs();
@@ -321,7 +365,7 @@ const debouncedProportionalPricing = (referenceIndex, referencePrice) => {
 
 // Add new variation
 const addNewVariation = () => {
-  if (!newVariation.value.name || !newVariation.value.value || newVariation.value.basePrice < 0) {
+  if (!newVariation.value.name || newVariation.value.basePrice <= 0) {
     return;
   }
 
@@ -369,6 +413,41 @@ const removeVariation = (index) => {
   formData.value.variations.splice(index, 1);
 };
 
+// Clear all variation prices (set basePrice to 0 for all variations)
+const clearVariationPrices = () => {
+  confirmDialog.value = {
+    isOpen: true,
+    title: 'Limpiar precios',
+    message: '¿Estás seguro de que deseas poner todos los precios en 0?',
+    onConfirm: () => {
+      formData.value.variations.forEach(variation => {
+        variation.basePrice = 0;
+      });
+      confirmDialog.value.isOpen = false;
+    },
+    onCancel: () => {
+      confirmDialog.value.isOpen = false;
+    },
+  };
+};
+
+// Clear all variation values (set value to 0 for all variations)
+const clearVariationValues = () => {
+  confirmDialog.value = {
+    isOpen: true,
+    title: 'Limpiar valores',
+    message: '¿Estás seguro de que deseas eliminar las variaciones actuales?',
+    onConfirm: () => {
+      initialVariations.value = [];
+      handleCategoryChange();
+      confirmDialog.value.isOpen = false;
+    },
+    onCancel: () => {
+      confirmDialog.value.isOpen = false;
+    },
+  };
+};
+
 // Handle category selection
 const handleCategoryChange = () => {
   if (!formData.value.collectionId) {
@@ -383,6 +462,7 @@ const handleCategoryChange = () => {
     // Auto-load category templates if available
     if (category.variationTemplates?.length > 0) {
       variationType.value = 'CATEGORY_TEMPLATES';
+      hasVariations.value = true;
       loadCategoryTemplates();
     } else {
       variationType.value = '';
@@ -393,23 +473,41 @@ const handleCategoryChange = () => {
 
 // Handle variation type change
 const handleVariationTypeChange = () => {
-  if (formData.value.variations.length > 0) {
+  // Skip confirmation if switching FROM 'SIZE' when initial variations exist
+  if (initialVariations.value.length > 0 && previousVariationType.value === 'SIZE') {
+    previousVariationType.value = variationType.value;
+    applyVariationTypeChange();
+    return;
+  }
+
+  if (activeVariations.value.length > 0) {
     confirmDialog.value = {
       isOpen: true,
       title: 'Cambiar tipo de variación',
-      message: '¿Deseas cambiar el tipo de variación? Esto reemplazará las variaciones actuales.',
+      message: '¿Deseas cambiar el tipo de variación? Esto modificará las variaciones actuales.',
       onConfirm: () => {
+        previousVariationType.value = variationType.value;
         applyVariationTypeChange();
+        confirmDialog.value.isOpen = false;
+      },
+      onCancel: () => {
+        variationType.value = previousVariationType.value;
         confirmDialog.value.isOpen = false;
       },
     };
     return;
   }
 
+  previousVariationType.value = variationType.value;
   applyVariationTypeChange();
 };
 
+const activeVariations = computed(() => {
+  return formData.value.variations.filter(v => v.basePrice > 0);
+});
+
 const applyVariationTypeChange = () => {
+  console.log(variationType.value);
   if (variationType.value === 'CATEGORY_TEMPLATES') {
     loadCategoryTemplates();
   } else if (variationType.value) {
@@ -436,14 +534,58 @@ watch(() => defaultUnit.value, (newUnit) => {
   resetVariationForm();
 });
 
+// Watch for variation type change and handle confirmation
+watch(() => variationType.value, (newType, oldType) => {
+  // Skip if this is the initial value or if we're reverting
+  if (oldType === undefined || newType === previousVariationType.value) {
+    return;
+  }
+
+  // Store the old value temporarily and call the handler
+  const oldValue = previousVariationType.value;
+  handleVariationTypeChange();
+});
+
 // Watch for variation type change and auto-select default unit
 watch(() => variationType.value, (newType) => {
   if (newType && newType !== 'CATEGORY_TEMPLATES' && systemDefaultTemplates.value[newType]?.unit) {
     defaultUnit.value = systemDefaultTemplates.value[newType].unit;
   }
-  // Update the new variation type and unit
+
+  // Update the new variation type and unit based on type
   newVariation.value.type = newType || 'WEIGHT';
-  newVariation.value.unit = systemDefaultTemplates.value[newType]?.unit || '';
+  newVariation.value.unit = getDefaultUnitForType(newType || 'WEIGHT');
+});
+
+// Watch for hasVariations toggle
+watch(() => hasVariations.value, (newValue, oldValue) => {
+  if (!newValue && formData.value.variations.length > 0) {
+    // Show confirmation dialog when disabling variations with existing data
+    confirmDialog.value = {
+      isOpen: true,
+      title: 'Eliminar variaciones',
+      message: '¿Estás seguro de que deseas eliminar todas las variaciones? Esta acción no se puede deshacer.',
+      onConfirm: () => {
+        // Clear variation data when variations are disabled
+        variationType.value = '';
+        formData.value.variations = [];
+        hasWholeGrainVariations.value = false;
+        confirmDialog.value.isOpen = false;
+        hasVariations.value = newValue;
+      },
+      onCancel: () => {
+        hasVariations.value = oldValue;
+        confirmDialog.value.isOpen = false;
+      },
+    };
+    // Revert the toggle until confirmed
+    hasVariations.value = oldValue;
+  } else if (!newValue) {
+    // Clear variation data when no existing variations
+    variationType.value = '';
+    formData.value.variations = [];
+    hasWholeGrainVariations.value = false;
+  }
 });
 
 // Watch for whole grain variations toggle
@@ -460,6 +602,11 @@ watch(() => hasWholeGrainVariations.value, (newValue, oldValue) => {
         message: '¿Estás seguro de que deseas eliminar todas las variaciones integrales?',
         onConfirm: () => {
           removeWholeGrainVariations();
+          confirmDialog.value.isOpen = false;
+          hasWholeGrainVariations.value = newValue;
+        },
+        onCancel: () => {
+          hasWholeGrainVariations.value = oldValue;
           confirmDialog.value.isOpen = false;
         },
       };
@@ -539,6 +686,7 @@ const resetForm = () => {
     customAttributes: {},
   };
   errors.value = {};
+  hasVariations.value = false;
   variationType.value = '';
   defaultUnit.value = 'g';
   hasWholeGrainVariations.value = false;
@@ -578,6 +726,7 @@ onUnmounted(() => {
 <template>
   <div class="form-container">
     <h2>{{ title }}</h2>
+
     <form @submit.prevent="handleSubmit">
       <!-- Basic Information -->
       <div class="base-card">
@@ -678,7 +827,7 @@ onUnmounted(() => {
           <label
             for="basePrice"
             class="block text-sm font-medium mb-1"
-            :class="formData.variations.length > 0 ? 'text-neutral-400' : 'text-neutral-700'"
+            :class="formData.variations.length > 0 || hasVariations ?  'text-neutral-400' : 'text-neutral-700'"
           >
             Precio ($)
           </label>
@@ -689,9 +838,9 @@ onUnmounted(() => {
             class="w-full px-3 py-2 border border-neutral-300 rounded-md"
             :class="{
               'border-danger': errors.basePrice,
-              'bg-neutral-100 text-neutral-400 cursor-not-allowed': formData.variations.length > 0
+              'bg-neutral-100 text-neutral-400 cursor-not-allowed': formData.variations.length > 0 || hasVariations
             }"
-            :disabled="formData.variations.length > 0"
+            :disabled="formData.variations.length > 0 || hasVariations"
             min="0"
             step="100"
             placeholder="0"
@@ -702,7 +851,7 @@ onUnmounted(() => {
           >
             {{ errors.basePrice }}
           </span>
-          <p v-if="formData.variations.length > 0" class="text-xs text-neutral-400 mt-1">
+          <p v-if="formData.variations.length > 0 || hasVariations" class="text-xs text-neutral-400 mt-1">
             Los precios se configuran en las variaciones del producto
           </p>
           <p v-else class="text-xs text-neutral-500 mt-1">
@@ -717,30 +866,40 @@ onUnmounted(() => {
             label="Producto activo"
           />
         </div>
+
+        <!-- Has Variations Toggle -->
+        <div class="mb-4">
+          <YesNoToggle
+            v-model="hasVariations"
+            label="¿Este producto tiene variaciones?"
+          />
+        </div>
       </div>
 
       <!-- Variation Type Selection -->
-      <div class="base-card">
+      <div v-if="hasVariations" class="base-card">
         <div class="mb-6">
           <label class="block text-sm font-medium text-neutral-700 mb-1">
             Tipo de Variación
           </label>
           <div class="flex gap-1">
-            <div class="relative flex-1">
+            <div
+              v-if="categoryHasTemplates"
+              class="relative flex-1"
+            >
               <input
                 type="radio"
-                id="variation-type-none"
-                value=""
+                id="variation-type-category"
+                value="CATEGORY_TEMPLATES"
                 name="variationType"
                 v-model="variationType"
-                @change="handleVariationTypeChange"
                 class="sr-only peer"
               />
               <label
-                for="variation-type-none"
+                for="variation-type-category"
                 class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
               >
-                Sin variaciones
+                {{ capitalize(selectedCategory?.name || '') }}
               </label>
             </div>
             <div class="relative flex-1">
@@ -750,7 +909,6 @@ onUnmounted(() => {
                 value="WEIGHT"
                 name="variationType"
                 v-model="variationType"
-                @change="handleVariationTypeChange"
                 class="sr-only peer"
               />
               <label
@@ -767,7 +925,6 @@ onUnmounted(() => {
                 value="QUANTITY"
                 name="variationType"
                 v-model="variationType"
-                @change="handleVariationTypeChange"
                 class="sr-only peer"
               />
               <label
@@ -784,7 +941,6 @@ onUnmounted(() => {
                 value="SIZE"
                 name="variationType"
                 v-model="variationType"
-                @change="handleVariationTypeChange"
                 class="sr-only peer"
               />
               <label
@@ -792,26 +948,6 @@ onUnmounted(() => {
                 class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
               >
                 Tamaño / Color
-              </label>
-            </div>
-            <div
-              v-if="categoryHasTemplates"
-              class="relative flex-1"
-            >
-              <input
-                type="radio"
-                id="variation-type-category"
-                value="CATEGORY_TEMPLATES"
-                name="variationType"
-                v-model="variationType"
-                @change="handleVariationTypeChange"
-                class="sr-only peer"
-              />
-              <label
-                for="variation-type-category"
-                class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
-              >
-                Usar categoría
               </label>
             </div>
           </div>
@@ -843,7 +979,7 @@ onUnmounted(() => {
                 :for="`unit-${option.value}`"
                 class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
               >
-                {{ option.label }}
+                {{ `${option.name.toLowerCase()}s (${option.label})` }}
               </label>
             </div>
           </div>
@@ -853,7 +989,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Whole Grain Variations Toggle -->
-        <div v-if="variationType && variationType !== 'SIZE' && variationType !== 'CATEGORY_TEMPLATES'" class="mb-4">
+        <div v-if="variationType" class="mb-4">
           <YesNoToggle
             v-model="hasWholeGrainVariations"
             label="¿Este producto ofrece variaciones integrales?"
@@ -865,12 +1001,26 @@ onUnmounted(() => {
       </div>
 
       <!-- Variations -->
-      <div v-if="variationType || formData.variations.length > 0" class="base-card">
+      <div v-if="hasVariations && (variationType || formData.variations.length > 0)" class="base-card">
         <div class="flex justify-between items-center mb-4">
           <h4 class="text-lg font-medium text-neutral-800">Variaciones del Producto</h4>
-          <span v-if="variationType" class="px-2 py-1 bg-primary-100 text-primary-800 rounded text-xs font-medium">
-            {{ variationType === 'CATEGORY_TEMPLATES' ? 'Plantillas de Categoría' : getVariationTypeLabel(variationType) }}
-          </span>
+          <div class="flex gap-2">
+
+            <button
+              type="button"
+              @click="clearVariationValues"
+              class="utility-btn flex gap-2 items-center"
+            >
+              <PhX weight="bold" class="text-lg"></PhX> Variaciones
+            </button>
+                     <button
+              type="button"
+              @click="clearVariationPrices"
+              class="utility-btn flex gap-2 items-center"
+            >
+              <PhX weight="bold" class="text-lg"></PhX> Precios
+            </button>
+          </div>
         </div>
 
         <!-- Variations List -->
@@ -878,7 +1028,7 @@ onUnmounted(() => {
           <!-- Existing Variations -->
           <TemplateVariation
             v-for="(variation, index) in formData.variations"
-            :key="`variation-${index}-${variation.id || ''}-${variation.name}-${variation.isWholeGrain ? 'whole' : 'regular'}`"
+            :key="`variation-${index}-${variation.id || ''}-${variation.isWholeGrain ? 'whole' : 'regular'}`"
             :template="variation"
             :is-new="false"
             :default-variation-type="variationType"
@@ -927,7 +1077,7 @@ onUnmounted(() => {
       confirm-text="Confirmar"
       cancel-text="Cancelar"
       @confirm="confirmDialog.onConfirm"
-      @cancel="confirmDialog.isOpen = false"
+      @cancel="confirmDialog.onCancel"
     />
   </div>
 </template>

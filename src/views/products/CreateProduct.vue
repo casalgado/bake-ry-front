@@ -11,13 +11,14 @@ const handleSubmit = async (formData) => {
     console.log('Creating product:', formData);
     await productStore.create(formData);
     window.alert('Producto creado correctamente');
+    router.push('/dashboard/products');
   } catch (error) {
     console.error('Failed to create product:', error);
   }
 };
 
 const handleCancel = () => {
-  router.push('/products');
+  router.push('/dashboard/products');
 };
 </script>
 

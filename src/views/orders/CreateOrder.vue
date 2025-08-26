@@ -29,7 +29,7 @@ const handleSubmit = async (formData) => {
 };
 
 const handleCancel = () => {
-  router.push('/orders');
+  router.push('/dashboard/orders');
 };
 </script>
 

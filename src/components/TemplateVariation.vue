@@ -34,7 +34,7 @@ const handleRemove = () => {
 };
 
 const handleAdd = () => {
-  if (!props.template.name || !props.template.value) {
+  if (!isValidForSubmit.value) {
     return;
   }
   emit('add');
@@ -70,6 +70,20 @@ const unitTypeLabel = computed(() => {
   }
 
   return `Valor (${props.template.unit})`;
+});
+
+// Validation computed property
+const isValidForSubmit = computed(() => {
+  // Name is always required
+  if (!props.template.name) return false;
+
+  // Base price is required when basePrice prop is true
+  if (props.basePrice && props.template.basePrice <= 0) return false;
+
+  // Value is required when the value field is visible (has unit)
+  if (unitTypeLabel.value && (!props.template.value || props.template.value <= 0)) return false;
+
+  return true;
 });
 </script>
 
@@ -169,9 +183,9 @@ const unitTypeLabel = computed(() => {
           v-if="isNew"
           type="button"
           @click="handleAdd"
-          :disabled="!template.name || !template.value || disabled"
+          :disabled="!isValidForSubmit || disabled"
           class="utility-btn text-sm px-3 py-1 self-end m-0 h-[30px]"
-          :class="{ 'utility-btn-inactive': !template.name || !template.value || disabled }"
+          :class="{ 'utility-btn-inactive': !isValidForSubmit || disabled }"
         >
           Agregar
         </button>
