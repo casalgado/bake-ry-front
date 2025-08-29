@@ -513,6 +513,7 @@ const formatOrderDate = (date) => {
   if (isCurrentOrderModified.value) {
     return 'nueva';
   }
+  if (!date) return null;
   return new Date(date)
     .toLocaleDateString('es-ES', {
       day: 'numeric',
@@ -824,7 +825,7 @@ const clearPartialPayment = () => {
         />
       </div>
 
-      <div class="flex justify-end mb-2" v-if="showHistoryNavigation">
+      <div class="flex justify-end mb-2" >
         <div
           class="inline-flex items-center gap-2 bg-neutral-50 p-1 rounded-lg border border-neutral-200"
         >
@@ -840,12 +841,13 @@ const clearPartialPayment = () => {
           <span
             class="text-sm font-medium text-neutral-600 min-w-[60px] text-center"
           >
+
             {{
               formatOrderDate(
-                userHistory[currentHistoryIndex].preparationDate
-                  ? userHistory[currentHistoryIndex].preparationDate
-                  : userHistory[currentHistoryIndex].dueDate
-              )
+                userHistory[currentHistoryIndex]?.preparationDate
+                  ? userHistory[currentHistoryIndex]?.preparationDate
+                  : userHistory[currentHistoryIndex]?.dueDate
+              ) || 'nueva'
             }}
           </span>
 

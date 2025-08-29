@@ -11,14 +11,14 @@ const props = defineProps({
     type: Object,
     default: () => ({
       user: {
-        name: 'beto',
-        email: 'a1@example.com',
-        password: 'aoeuao',
-        confirmPassword: 'aoeuao',
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
         phone: '',
       },
       bakery: {
-        name: 'aoeu',
+        name: '',
         address: '',
         socialMedia: {
           instagram: '',
