@@ -87,9 +87,8 @@ const removeItem = (index) => {
 </script>
 
 <template>
-  <div class="base-card grid grid-cols-3 gap-x-3 gap-y-2 md:gap-y-0">
+  <div class="mb-4 grid grid-cols-3 gap-x-3 gap-y-2 md:gap-y-0">
 
-    <label class="col-span-3">Productos</label>
     <ProductWizard
       @select="handleWizardSelect"
       :products="products"

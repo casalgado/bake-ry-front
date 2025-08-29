@@ -357,7 +357,7 @@ const getOptionDisplay = (option, index) => {
 </script>
 <template>
   <div
-    class="relative w-full aspect-square flat-card mb-0"
+    class="relative w-full aspect-square flat-card mb-0 p-1"
     tabindex="0"
     @keydown="handleKeydown"
     @keyup="handleKeyup"
@@ -368,7 +368,7 @@ const getOptionDisplay = (option, index) => {
     </div>
 
     <!-- Grid with numpad layout -->
-    <div class="grid grid-cols-3 grid-rows-3 gap-2 h-full p-1">
+    <div class="grid grid-cols-3 grid-rows-3 gap-2 h-full p-0">
       <button
         v-for="i in 9"
         type="button"
@@ -461,7 +461,7 @@ const getOptionDisplay = (option, index) => {
 
 <style scoped lang="scss">
 .button-number {
-  @apply absolute top-1 left-1 text-xs opacity-60 lowercase;
+  @apply absolute top-0 left-1 text-xs opacity-60 lowercase;
 }
 
 .flat-card {

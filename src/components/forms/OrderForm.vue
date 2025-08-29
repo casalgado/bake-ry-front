@@ -218,6 +218,7 @@ onMounted(async () => {
     'partialPaymentAmount',
     'partialPaymentDate',
     'deliveryAddress',
+    'orderItems',
   ]);
 });
 
@@ -358,6 +359,8 @@ const validate = () => {
     errors.value.dueDate =
       'La fecha de entrega no puede ser anterior a la fecha de preparación';
   }
+
+  console.log(errors.value);
 
   if (Object.keys(errors.value).length > 0) {
     scrollToError();
@@ -856,6 +859,10 @@ const clearPartialPayment = () => {
           </button>
         </div>
       </div>
+
+         <span v-if="errors.orderItems" class="text-danger text-sm">{{
+            errors.orderItems
+          }}</span>
 
       <OrderItemsManager
         v-model="formData.orderItems"
