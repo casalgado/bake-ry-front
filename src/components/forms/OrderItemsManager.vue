@@ -30,7 +30,7 @@ const handleWizardSelect = (selection) => {
     } :
     {
       basePrice: product.basePrice,
-      currentPrice: product.currentPrice || product.basePrice,
+      currentPrice: product.basePrice,
     };
 
   const newItem = {
@@ -41,7 +41,7 @@ const handleWizardSelect = (selection) => {
     taxPercentage: product.taxPercentage,
     quantity: selection.quantity,
     basePrice: prices.basePrice,
-    currentPrice: prices.currentPrice,
+    currentPrice: prices.basePrice,
     variation: selection.variation ? {
       id: selection.variation.id,
       name: selection.variation.name,

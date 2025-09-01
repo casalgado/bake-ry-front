@@ -45,25 +45,24 @@ const addBasePricesToOrderItems = (orderItems, products) => {
           return {
             ...item,
             basePrice: matchingVariation.basePrice,
+            currentPrice: matchingVariation.basePrice,
           };
         }
       }
       return {
         ...item,
         basePrice: product.variations[0].basePrice,
+        currentPrice: product.variations[0].basePrice,
       };
     }
 
     return {
       ...item,
       basePrice: product.basePrice,
+      currentPrice: product.basePrice,
     };
   });
 };
-
-const showHistoryNavigation = computed(() => {
-  return !props.initialData && userHistory.value.length > 0;
-});
 
 const emit = defineEmits(['submit', 'cancel']);
 
