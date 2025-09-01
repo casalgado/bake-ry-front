@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { getVariationTypeLabel, getUnitTypeLabel } from '@/utils/helpers';
 import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
+import { useAuthenticationStore } from '@/stores/authentication';
 import { PhTrash, PhPlus } from '@phosphor-icons/vue';
 
 const props = defineProps({
@@ -45,6 +46,10 @@ const updateTemplate = (field, value) => {
 };
 
 const systemSettingsStore = useSystemSettingsStore();
+const authStore = useAuthenticationStore();
+
+// Check if current user is system admin
+const isSystemAdmin = computed(() => authStore.isSystemAdmin);
 
 const stepValue = computed(() => {
   return props.defaultVariationType === 'WEIGHT' ? 1 : 1;
@@ -112,9 +117,15 @@ const isValidForSubmit = computed(() => {
       <div
         class="flex-1 grid gap-3"
         :class="[
-          basePrice && unitTypeLabel
+          basePrice && unitTypeLabel && isSystemAdmin
+            ? 'grid-cols-4'
+            : basePrice && unitTypeLabel && !isSystemAdmin
             ? 'grid-cols-3'
-            : (basePrice && !unitTypeLabel) || (!basePrice && unitTypeLabel)
+            : (basePrice && !unitTypeLabel && isSystemAdmin) || (!basePrice && unitTypeLabel && isSystemAdmin)
+            ? 'grid-cols-3'
+            : (basePrice && !unitTypeLabel && !isSystemAdmin) || (!basePrice && unitTypeLabel && !isSystemAdmin)
+            ? 'grid-cols-2'
+            : isSystemAdmin
             ? 'grid-cols-2'
             : 'grid-cols-1',
         ]"
@@ -175,6 +186,25 @@ const isValidForSubmit = computed(() => {
             />
 
           </div>
+        </div>
+
+        <div v-if="isSystemAdmin">
+          <label class="block text-xs font-medium text-neutral-600 mb-1"
+            >Orden</label
+          >
+          <input
+            :value="template.displayOrder !== undefined ? template.displayOrder : 0"
+            @input="updateTemplate('displayOrder', Number($event.target.value))"
+            type="number"
+            min="0"
+            step="1"
+            :class="[
+              'w-full px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none',
+              isNew ? 'border-primary-300 bg-white' : 'border-neutral-300',
+            ]"
+            :disabled="disabled"
+            title="Orden de visualización de la variación"
+          />
         </div>
       </div>
 
