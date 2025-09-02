@@ -12,7 +12,8 @@ const service = new OrderService(getBakeryId.value);
 
 export const useOrderStore = createResourceStore('orders', service);
 
-// Helper function to check if order falls within current period range
+// Helper function to check if order falls within current period range.
+// used in subscribe to changes. Possible bug if bakeries use dueDate.
 function isOrderInCurrentPeriod(order) {
   try {
     const periodStore = usePeriodStore();

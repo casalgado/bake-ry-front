@@ -12,6 +12,7 @@ const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const settingsStore = useBakerySettingsStore();
 const systemSettingsStore = useSystemSettingsStore();
+const reportSettings = ref(null);
 const unsubscribeRef = ref(null);
 const b2bClients = ref([]);
 const salesReport = ref({});
@@ -358,6 +359,7 @@ onMounted(async () => {
     await settingsStore.fetchById('default');
     await systemSettingsStore.fetchSettings();
     b2bClients.value = await settingsStore.b2b_clients;
+    //reportSettings.value = await settingsStore.items[0]?.features?.reports;
 
     // Then fetch orders
     salesReport.value = await orderStore.salesReport({

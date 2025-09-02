@@ -31,7 +31,7 @@ const props = defineProps({
   },
 });
 
-const addBasePricesToOrderItems = (orderItems, products) => {
+const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = false) => {
   return orderItems.map((item) => {
     const product = products.find((p) => p.id === item.productId);
     if (!product) return item;
@@ -45,21 +45,21 @@ const addBasePricesToOrderItems = (orderItems, products) => {
           return {
             ...item,
             basePrice: matchingVariation.basePrice,
-            currentPrice: matchingVariation.basePrice,
+            currentPrice: preserveCurrentPrice ? item.currentPrice : matchingVariation.basePrice,
           };
         }
       }
       return {
         ...item,
         basePrice: product.variations[0].basePrice,
-        currentPrice: product.variations[0].basePrice,
+        currentPrice: preserveCurrentPrice ? item.currentPrice : product.variations[0].basePrice,
       };
     }
 
     return {
       ...item,
       basePrice: product.basePrice,
-      currentPrice: product.basePrice,
+      currentPrice: preserveCurrentPrice ? item.currentPrice : product.basePrice,
     };
   });
 };
@@ -135,6 +135,7 @@ const formData = ref(
       orderItems: addBasePricesToOrderItems(
         props.initialData.orderItems,
         productStore.items,
+        true,
       ),
     }
     : getInitialFormState(),
