@@ -7,6 +7,7 @@ import { usePeriodStore } from '@/stores/periodStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import { formatMoney } from '@/utils/helpers';
+import { PhCaretRight } from '@phosphor-icons/vue';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -17,6 +18,10 @@ const unsubscribeRef = ref(null);
 const b2bClients = ref([]);
 const salesReport = ref({});
 const loading = ref(false);
+
+// Date field selection state
+const selectedDateField = ref(null);
+const dateFieldOptions = ['dueDate', 'paymentDate'];
 
 // Helper function to safely access nested properties
 const safeGet = (obj, path, defaultValue = null) => {
@@ -320,6 +325,22 @@ const keyValueColumns = [
   },
 ];
 
+// Active date field computed property
+const activeDateField = computed(() => {
+  return selectedDateField.value ||
+         reportSettings.value?.defaultReportFilter ||
+         'dueDate';
+});
+
+// Toggle date field function
+const toggleDateField = () => {
+  const current = activeDateField.value;
+  const currentIndex = dateFieldOptions.indexOf(current);
+  const nextIndex = (currentIndex + 1) % dateFieldOptions.length;
+  selectedDateField.value = dateFieldOptions[nextIndex];
+  console.log(`Date field changed to: ${selectedDateField.value}`);
+};
+
 watch(
   () => periodStore.periodRange,
   async (newRange) => {
@@ -335,7 +356,7 @@ watch(
       salesReport.value = await orderStore.salesReport({
         filters: {
           dateRange: {
-            dateField: 'dueDate',
+            dateField: activeDateField.value,
             startDate: newRange.start.toISOString(),
             endDate: newRange.end.toISOString(),
           },
@@ -351,6 +372,37 @@ watch(
   { deep: true },
 );
 
+// Watch for date field changes
+watch(
+  activeDateField,
+  async () => {
+    try {
+      loading.value = true;
+      // Ensure we have B2B clients first if not already loaded
+      if (b2bClients.value.length === 0) {
+        await settingsStore.fetchById('default');
+        b2bClients.value = await settingsStore.b2b_clients;
+      }
+
+      // Then fetch report
+      salesReport.value = await orderStore.salesReport({
+        filters: {
+          dateRange: {
+            dateField: activeDateField.value,
+            startDate: periodStore.periodRange.start.toISOString(),
+            endDate: periodStore.periodRange.end.toISOString(),
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+      orderStore.error = 'Error al cargar el reporte de ventas';
+    } finally {
+      loading.value = false;
+    }
+  },
+);
+
 onMounted(async () => {
   try {
     loading.value = true;
@@ -359,13 +411,14 @@ onMounted(async () => {
     await settingsStore.fetchById('default');
     await systemSettingsStore.fetchSettings();
     b2bClients.value = await settingsStore.b2b_clients;
-    //reportSettings.value = await settingsStore.items[0]?.features?.reports;
+    reportSettings.value = await settingsStore.items[0]?.features?.reports;
+    console.log(reportSettings.value);
 
     // Then fetch orders
     salesReport.value = await orderStore.salesReport({
       filters: {
         dateRange: {
-          dateField: 'dueDate',
+          dateField: activeDateField.value,
           startDate: periodStore.periodRange.start.toISOString(),
           endDate: periodStore.periodRange.end.toISOString(),
         },
@@ -393,7 +446,16 @@ onUnmounted(() => {
 <template>
   <div class="container p-2 sm:p-4 px-2 lg:px-4">
     <div class="flex flex-col lg:flex-row justify-between items-center mb-2 sm:mb-4">
-      <h2 class="text-lg sm:text-2xl font-bold text-neutral-800">Reporte de Ventas</h2>
+      <h2 class="text-lg sm:text-2xl font-bold text-neutral-800 flex items-center gap-2">
+        <button
+          v-if="reportSettings?.showMultipleReports"
+          @click="toggleDateField"
+          class="p-1 utility-btn"
+        >
+          <PhCaretRight :size="12" weight="bold" />
+        </button>
+        Reporte de Ventas
+      </h2>
       <div class="flex flex-col">
         <PeriodSelector />
       </div>
@@ -417,7 +479,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Period Data Table -->
-      <div v-if="periodData?.data" class="mb-4 sm:mb-8">
+      <div v-if="periodData?.data && false" class="mb-4 sm:mb-8">
         <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">
           Datos por {{ periodData.display }}
         </h3>
