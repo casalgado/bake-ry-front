@@ -1,6 +1,6 @@
 <script setup>
 // Vue and Headless UI
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 
 // DataTable Core
@@ -23,6 +23,7 @@ import TotalsSummary from '@/components/common/TotalsSummary.vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
+import { usePeriodStore } from '@/stores/periodStore';
 
 // Icons
 import {
@@ -46,7 +47,11 @@ import { formatMoney } from '@/utils/helpers';
 const orderStore = useOrderStore();
 const settingsStore = useBakerySettingsStore();
 const systemSettingsStore = useSystemSettingsStore();
+const periodStore = usePeriodStore();
 const b2bClients = ref([]);
+
+// Store previous period state to restore on unmount
+const previousPeriodState = ref(null);
 
 // Dialog state
 const isFormOpen = ref(false);
@@ -86,6 +91,18 @@ const {
   },
   // Initial setup before fetching data
   async onBeforeFetch() {
+    // Save current period state before changing it
+    previousPeriodState.value = {
+      periodType: periodStore.periodType,
+      currentDate: new Date(periodStore.currentDate),
+      customStartDate: periodStore.customStartDate ? new Date(periodStore.customStartDate) : null,
+      customEndDate: periodStore.customEndDate ? new Date(periodStore.customEndDate) : null,
+    };
+
+    // Set period to current year so all unpaid orders from this year are included in realtime updates
+    periodStore.setPeriodType('year');
+    periodStore.currentDate = new Date();
+
     await settingsStore.fetchById('default');
     await systemSettingsStore.fetchSettings();
     b2bClients.value = await settingsStore.b2b_clients;
@@ -318,6 +335,25 @@ const closeDialog = () => {
   isHistoryOpen.value = false;
   clearSelection();
 };
+
+// Restore previous period state when component unmounts
+onUnmounted(() => {
+  if (previousPeriodState.value) {
+    // Use setPeriodType to properly restore the period type
+    periodStore.setPeriodType(previousPeriodState.value.periodType);
+    periodStore.currentDate = previousPeriodState.value.currentDate;
+
+    // Only restore custom dates if the previous period was custom
+    if (previousPeriodState.value.periodType === 'custom' &&
+        previousPeriodState.value.customStartDate &&
+        previousPeriodState.value.customEndDate) {
+      periodStore.setCustomRange(
+        previousPeriodState.value.customStartDate,
+        previousPeriodState.value.customEndDate,
+      );
+    }
+  }
+});
 </script>
 
 <template>
