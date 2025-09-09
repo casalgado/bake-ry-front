@@ -39,6 +39,16 @@ const props = defineProps({
 
 const emit = defineEmits(['submit', 'cancel']);
 
+// Combined options with both role and category values
+const userTypeOptions = [
+  { value: 'client', label: 'Cliente', role: 'bakery_customer', category: 'B2C' },
+  { value: 'company', label: 'Empresa', role: 'bakery_customer', category: 'B2B' },
+  { value: 'staff', label: 'Supervisor', role: 'bakery_staff', category: 'PER' },
+  { value: 'delivery', label: 'Asistente Domicilio', role: 'delivery_assistant', category: 'PER' },
+  { value: 'production', label: 'Asistente Produccion', role: 'production_assistant', category: 'PER' },
+  { value: 'accounting', label: 'Asistente Contable', role: 'accounting_assistant', category: 'PER' },
+];
+
 // Compute defaults based on allowedUserTypes
 const getComputedInitialData = () => {
   const data = { ...props.initialData };
@@ -56,16 +66,6 @@ const getComputedInitialData = () => {
 };
 
 const formData = ref(getComputedInitialData());
-
-// Combined options with both role and category values
-const userTypeOptions = [
-  { value: 'client', label: 'Cliente', role: 'bakery_customer', category: 'B2C' },
-  { value: 'company', label: 'Empresa', role: 'bakery_customer', category: 'B2B' },
-  { value: 'staff', label: 'Supervisor', role: 'bakery_staff', category: 'PER' },
-  { value: 'delivery', label: 'Asistente Domicilio', role: 'delivery_assistant', category: 'PER' },
-  { value: 'production', label: 'Asistente Produccion', role: 'production_assistant', category: 'PER' },
-  { value: 'accounting', label: 'Asistente Contable', role: 'accounting_assistant', category: 'PER' },
-];
 
 // Filter options based on allowedUserTypes prop
 const filteredUserTypeOptions = computed(() => {

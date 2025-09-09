@@ -90,6 +90,7 @@
   .form-container select,
   .form-container textarea {
     @apply w-full border text-[13px] border-neutral-850 bg-gray-50 rounded-md p-2 py-1;
+    min-height: 2.25rem;
   }
 
   /* iOS-specific fixes for date/time inputs */

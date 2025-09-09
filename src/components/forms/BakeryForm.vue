@@ -430,7 +430,7 @@ onMounted(() => {
           </div>
 
           <!-- Default Date Type -->
-          <div class="mt-6">
+          <div class="mt-6 hidden">
             <RadioButtonGroup
               v-model="formData.settings.features.order.defaultDate"
               :options="defaultDateOptions"

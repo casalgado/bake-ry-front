@@ -26,6 +26,13 @@ const featuresFormData = ref({
   allowPartialPayment: false,
   timeOfDay: false,
   offlineMode: false,
+  // Reports features
+  defaultReportFilter: 'dueDate',
+  showMultipleReports: false,
+  // Users features
+  collectLegalName: false,
+  // Products features
+  useProductCost: false,
 });
 const isFeaturesSaving = ref(false);
 
@@ -106,7 +113,9 @@ const loadPaymentMethods = async () => {
 const loadSubscriptionData = async () => {
   isLoadingSubscription.value = true;
   try {
-    const response = await api.get(`/bakeries/${authStore.getBakeryId}/settings/default`);
+    const response = await api.get(
+      `/bakeries/${authStore.getBakeryId}/settings/default`,
+    );
     subscriptionData.value = response.data?.subscription || null;
     console.log('Subscription data loaded:', subscriptionData.value);
   } catch (error) {
@@ -139,12 +148,15 @@ const loadJWTClaims = async () => {
 const retryPayment = async () => {
   subscriptionActions.value.retryPayment = true;
   try {
-    const response = await api.patch(`/bakeries/${authStore.getBakeryId}/settings/default`, {
-      subscription: {
-        _action: 'retry_payment',
-        recurringPaymentId: subscriptionData.value?.recurringPaymentId,
+    const response = await api.patch(
+      `/bakeries/${authStore.getBakeryId}/settings/default`,
+      {
+        subscription: {
+          _action: 'retry_payment',
+          recurringPaymentId: subscriptionData.value?.recurringPaymentId,
+        },
       },
-    });
+    );
 
     await loadSubscriptionData();
     await loadJWTClaims();
@@ -169,11 +181,14 @@ const retryPayment = async () => {
 const cancelSubscription = async () => {
   subscriptionActions.value.cancelSubscription = true;
   try {
-    const response = await api.patch(`/bakeries/${authStore.getBakeryId}/settings/default`, {
-      subscription: {
-        _action: 'cancel_subscription',
+    const response = await api.patch(
+      `/bakeries/${authStore.getBakeryId}/settings/default`,
+      {
+        subscription: {
+          _action: 'cancel_subscription',
+        },
       },
-    });
+    );
 
     await loadSubscriptionData();
     await loadJWTClaims();
@@ -213,12 +228,15 @@ const createSubscription = async (selectedCardId = null) => {
 
   subscriptionActions.value.createSubscription = true;
   try {
-    const response = await api.patch(`/bakeries/${authStore.getBakeryId}/settings/default`, {
-      subscription: {
-        _action: 'create_subscription',
-        savedCardId: selectedCardId,
+    const response = await api.patch(
+      `/bakeries/${authStore.getBakeryId}/settings/default`,
+      {
+        subscription: {
+          _action: 'create_subscription',
+          savedCardId: selectedCardId,
+        },
       },
-    });
+    );
 
     await loadSubscriptionData();
     await loadJWTClaims();
@@ -259,12 +277,15 @@ const reactivateSubscription = async (selectedCardId = null) => {
 
   subscriptionActions.value.reactivateSubscription = true;
   try {
-    const response = await api.patch(`/bakeries/${authStore.getBakeryId}/settings/default`, {
-      subscription: {
-        _action: 'reactivate_subscription',
-        savedCardId: selectedCardId,
+    const response = await api.patch(
+      `/bakeries/${authStore.getBakeryId}/settings/default`,
+      {
+        subscription: {
+          _action: 'reactivate_subscription',
+          savedCardId: selectedCardId,
+        },
       },
-    });
+    );
 
     await loadSubscriptionData();
     await loadJWTClaims();
@@ -274,12 +295,17 @@ const reactivateSubscription = async (selectedCardId = null) => {
       'La suscripción ha sido reactivada exitosamente',
     );
 
-    console.log('Subscription reactivated with card:', selectedCardId, response);
+    console.log(
+      'Subscription reactivated with card:',
+      selectedCardId,
+      response,
+    );
   } catch (error) {
     console.error('Error reactivating subscription:', error);
     toastRef.value?.showError(
       'Error al Reactivar Suscripción',
-      error.message || 'No se pudo reactivar la suscripción. Intenta nuevamente.',
+      error.message ||
+        'No se pudo reactivar la suscripción. Intenta nuevamente.',
     );
   } finally {
     subscriptionActions.value.reactivateSubscription = false;
@@ -324,7 +350,8 @@ const addCard = async (cardData) => {
     console.error('Error adding card:', error);
     toastRef.value?.showError(
       'Error al Agregar Tarjeta',
-      error.message || 'No se pudo agregar la tarjeta. Verifica los datos e intenta nuevamente.',
+      error.message ||
+        'No se pudo agregar la tarjeta. Verifica los datos e intenta nuevamente.',
     );
   } finally {
     isAddingCard.value = false;
@@ -408,64 +435,129 @@ const currentOrderFeatures = computed(() => {
   return settingsStore.items[0].features?.order || {};
 });
 
+const currentReportsFeatures = computed(() => {
+  if (!settingsStore.items.length) return {};
+  return settingsStore.items[0].features?.reports || {};
+});
+
+const currentUsersFeatures = computed(() => {
+  if (!settingsStore.items.length) return {};
+  return settingsStore.items[0].features?.users || {};
+});
+
+const currentProductsFeatures = computed(() => {
+  if (!settingsStore.items.length) return {};
+  return settingsStore.items[0].features?.products || {};
+});
+
 // Filter available payment methods to exclude complimentary (always enabled by default)
 const configurablePaymentMethods = computed(() => {
   const allMethods = systemSettingsStore.availablePaymentMethods || [];
-  return allMethods.filter(method => method.value !== 'complimentary');
+  return allMethods.filter((method) => method.value !== 'complimentary');
 });
 
 // Features form handlers
 const initializeFeaturesForm = () => {
   const orderFeatures = currentOrderFeatures.value;
+  const reportsFeatures = currentReportsFeatures.value;
+  const usersFeatures = currentUsersFeatures.value;
+  const productsFeatures = currentProductsFeatures.value;
+
   // Only update if we have valid data and avoid overriding existing values
+  const newFormData = { ...featuresFormData.value };
+
+  // Order features
   if (orderFeatures && Object.keys(orderFeatures).length > 0) {
-    featuresFormData.value = {
-      activePaymentMethods: [...(orderFeatures.activePaymentMethods || featuresFormData.value.activePaymentMethods || [])],
-      allowPartialPayment: Object.prototype.hasOwnProperty.call(orderFeatures, 'allowPartialPayment') ? orderFeatures.allowPartialPayment : featuresFormData.value.allowPartialPayment,
-      timeOfDay: Object.prototype.hasOwnProperty.call(orderFeatures, 'timeOfDay') ? orderFeatures.timeOfDay : featuresFormData.value.timeOfDay,
-      offlineMode: Object.prototype.hasOwnProperty.call(orderFeatures, 'offlineMode') ? orderFeatures.offlineMode : featuresFormData.value.offlineMode,
-    };
+    if (orderFeatures.activePaymentMethods) {
+      newFormData.activePaymentMethods = [...orderFeatures.activePaymentMethods];
+    }
+    if (Object.prototype.hasOwnProperty.call(orderFeatures, 'allowPartialPayment')) {
+      newFormData.allowPartialPayment = orderFeatures.allowPartialPayment;
+    }
+    if (Object.prototype.hasOwnProperty.call(orderFeatures, 'timeOfDay')) {
+      newFormData.timeOfDay = orderFeatures.timeOfDay;
+    }
+    if (Object.prototype.hasOwnProperty.call(orderFeatures, 'offlineMode')) {
+      newFormData.offlineMode = orderFeatures.offlineMode;
+    }
   }
+
+  // Reports features
+  if (reportsFeatures && Object.keys(reportsFeatures).length > 0) {
+    if (Object.prototype.hasOwnProperty.call(reportsFeatures, 'defaultReportFilter')) {
+      newFormData.defaultReportFilter = reportsFeatures.defaultReportFilter;
+    }
+    if (Object.prototype.hasOwnProperty.call(reportsFeatures, 'showMultipleReports')) {
+      newFormData.showMultipleReports = reportsFeatures.showMultipleReports;
+    }
+  }
+
+  // Users features
+  if (usersFeatures && Object.keys(usersFeatures).length > 0) {
+    if (Object.prototype.hasOwnProperty.call(usersFeatures, 'collectLegalName')) {
+      newFormData.collectLegalName = usersFeatures.collectLegalName;
+    }
+  }
+
+  // Products features
+  if (productsFeatures && Object.keys(productsFeatures).length > 0) {
+    if (Object.prototype.hasOwnProperty.call(productsFeatures, 'useProductCost')) {
+      newFormData.useProductCost = productsFeatures.useProductCost;
+    }
+  }
+
+  featuresFormData.value = newFormData;
 };
 
 // Watch for settings changes and reinitialize form
-watch(() => settingsStore.items, () => {
-  if (settingsStore.items.length > 0) {
-    initializeFeaturesForm();
-  }
-}, { immediate: true });
+watch(
+  () => settingsStore.items,
+  () => {
+    if (settingsStore.items.length > 0) {
+      initializeFeaturesForm();
+    }
+  },
+  { immediate: true },
+);
 
 const handleFeaturesSubmit = async (formData) => {
   isFeaturesSaving.value = true;
   try {
-    // Preserve existing order features and merge with new data
+    // Preserve existing features and merge with new data
     const currentFeatures = settingsStore.items[0]?.features || {};
-    const currentOrderFeatures = currentFeatures.order || {};
 
     await settingsStore.patch('default', {
       features: {
         ...currentFeatures,
         order: {
-          ...currentOrderFeatures,
+          ...(currentFeatures.order || {}),
           activePaymentMethods: formData.activePaymentMethods,
           allowPartialPayment: formData.allowPartialPayment,
           timeOfDay: formData.timeOfDay,
           offlineMode: formData.offlineMode,
         },
+        reports: {
+          ...(currentFeatures.reports || {}),
+          defaultReportFilter: formData.defaultReportFilter,
+          showMultipleReports: formData.showMultipleReports,
+        },
+        users: {
+          ...(currentFeatures.users || {}),
+          collectLegalName: formData.collectLegalName,
+        },
+        products: {
+          ...(currentFeatures.products || {}),
+          useProductCost: formData.useProductCost,
+        },
       },
     });
 
-    // Update local form data after successful save - preserve all values
-    featuresFormData.value = {
-      activePaymentMethods: formData.activePaymentMethods,
-      allowPartialPayment: formData.allowPartialPayment,
-      timeOfDay: formData.timeOfDay,
-      offlineMode: formData.offlineMode,
-    };
+    // Update local form data after successful save
+    featuresFormData.value = { ...formData };
 
     toastRef.value?.showSuccess(
       'Configuración Guardada',
-      'Las configuraciones de pedidos han sido actualizadas',
+      'Todas las configuraciones han sido actualizadas exitosamente',
     );
   } catch (error) {
     console.error('Error saving features:', error);
@@ -480,367 +572,590 @@ const handleFeaturesSubmit = async (formData) => {
 </script>
 
 <template>
-  <!-- Payment Methods Features Form -->
+  <!-- Bakery Features Form -->
   <BakeryFeaturesForm
-    title="Configuracion de Ventas y Pedidos"
+    title="Configuración de Características"
     :initial-data="featuresFormData"
     :available-payment-methods="configurablePaymentMethods"
     :loading="isFeaturesSaving"
     @submit="handleFeaturesSubmit"
   />
+  <div class="hidden">
+    <!-- Add Credit Card Form -->
+    <CreditCardForm
+      ref="creditCardFormRef"
+      :initial-data="newCardForm"
+      :loading="isAddingCard"
+      @submit="addCard"
+    />
 
-  <!-- Add Credit Card Form -->
-  <CreditCardForm
-    ref="creditCardFormRef"
-    :initial-data="newCardForm"
-    :loading="isAddingCard"
-    @submit="addCard"
+    <!-- Stored Cards List -->
+    <div class="form-container">
+      <h2>Tarjetas Guardadas</h2>
+      <div class="base-card p-6" style="margin-bottom: 1rem">
+        <div
+          v-if="paymentMethods.length === 0"
+          class="text-center py-8 text-neutral-600"
+        >
+          No hay tarjetas guardadas
+        </div>
+
+        <div v-else class="space-y-3">
+          <div
+            v-for="card in paymentMethods"
+            :key="card.id"
+            class="flex items-center justify-between p-4 border border-neutral-200 rounded-lg"
+          >
+            <div class="flex items-center space-x-4">
+              <div
+                class="w-12 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded flex items-center justify-center"
+              >
+                <span class="text-white text-xs font-bold">💳</span>
+              </div>
+              <div>
+                <div class="font-medium font-mono">
+                  {{ `****-****-****-${card.maskedNumber}` }}
+                </div>
+                <div class="text-sm text-neutral-600">
+                  {{ card.cardholderName }} • Exp:
+                  {{ convertToDisplayFormat(card.expirationDate) }}
+                </div>
+                <!-- <div class="text-xs text-neutral-500">Token: {{ card.token }}</div> -->
+              </div>
+            </div>
+            <button
+              @click="confirmDeleteCard(card)"
+              class="text-red-600 hover:text-red-800 px-3 py-1 text-sm"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subscription Management -->
+    <div class="form-container">
+      <h2>Gestión de Suscripción</h2>
+      <div class="base-card p-6" style="margin-bottom: 1rem">
+        <div v-if="isLoadingSubscription" class="text-center py-8">
+          <div
+            class="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"
+          ></div>
+          <p class="text-neutral-600">Cargando información de suscripción...</p>
+        </div>
+
+        <div v-else class="space-y-6">
+          <!-- JWT Claims Section -->
+          <div class="border border-neutral-200 rounded-lg p-4 bg-gray-50">
+            <h3 class="font-medium text-sm text-gray-800 mb-3">
+              Información JWT (Token Claims)
+            </h3>
+            <div v-if="jwtClaims" class="space-y-2 text-sm">
+              <div>
+                <span class="font-medium">Role:</span>
+                {{ jwtClaims.role || "N/A" }}
+              </div>
+              <div>
+                <span class="font-medium">Bakery ID:</span>
+                {{ jwtClaims.bakeryId || "N/A" }}
+              </div>
+              <div>
+                <span class="font-medium">Subscription Status:</span>
+                <span
+                  :class="{
+                    'text-green-600': jwtClaims.subscriptionStatus === 'ACTIVE',
+                    'text-blue-600': jwtClaims.subscriptionStatus === 'TRIAL',
+                    'text-orange-600':
+                      jwtClaims.subscriptionStatus === 'PAYMENT_FAILED',
+                    'text-red-600':
+                      jwtClaims.subscriptionStatus === 'SUSPENDED',
+                    'text-gray-600':
+                      jwtClaims.subscriptionStatus === 'CANCELLED',
+                  }"
+                >
+                  {{ jwtClaims.subscriptionStatus || "N/A" }}
+                </span>
+              </div>
+              <div>
+                <span class="font-medium">Subscription Tier:</span>
+                {{ jwtClaims.subscriptionTier || "N/A" }}
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-600">
+              No se pudieron cargar los claims JWT
+            </div>
+          </div>
+
+          <!-- No Subscription - Create Subscription Section -->
+          <div
+            v-if="
+              subscriptionData?.status == 'TRIAL' && paymentMethods.length > 0
+            "
+            class="border border-blue-200 rounded-lg p-4 bg-blue-50"
+          >
+            <h3 class="font-medium text-sm text-blue-800 mb-3">
+              Crear Suscripción
+            </h3>
+            <p class="text-sm text-blue-700 mb-4">
+              No tienes una suscripción activa. Selecciona una tarjeta para
+              crear tu suscripción:
+            </p>
+
+            <!-- Card Selection for Creation -->
+            <div class="space-y-2 mb-4">
+              <div
+                v-for="card in paymentMethods"
+                :key="card.id"
+                @click="selectedCardForCreation = card.id"
+                class="flex items-center p-3 border rounded-lg cursor-pointer transition-colors"
+                :class="{
+                  'border-blue-500 bg-blue-100':
+                    selectedCardForCreation === card.id,
+                  'border-gray-200 hover:border-gray-300':
+                    selectedCardForCreation !== card.id,
+                }"
+              >
+                <input
+                  type="radio"
+                  :value="card.id"
+                  v-model="selectedCardForCreation"
+                  class="mr-3 text-blue-600"
+                />
+                <div class="flex items-center space-x-3">
+                  <div
+                    class="w-8 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded flex items-center justify-center"
+                  >
+                    <span class="text-white text-xs font-bold">💳</span>
+                  </div>
+                  <div>
+                    <div class="font-medium text-sm">
+                      {{ `****-****-****-${card.maskedNumber}` }}
+                    </div>
+                    <div class="text-xs text-gray-600">
+                      {{ card.cardholderName }} • Exp:
+                      {{ convertToDisplayFormat(card.expirationDate) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Create Subscription Button -->
+            <button
+              @click="createSubscription(selectedCardForCreation)"
+              :disabled="
+                subscriptionActions.createSubscription ||
+                !selectedCardForCreation
+              "
+              class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              :title="
+                !selectedCardForCreation
+                  ? 'Selecciona una tarjeta para crear la suscripción'
+                  : ''
+              "
+            >
+              {{
+                subscriptionActions.createSubscription
+                  ? "Creando..."
+                  : "Crear Suscripción"
+              }}
+            </button>
+          </div>
+
+          <!-- No Subscription - No Cards Available -->
+          <div
+            v-if="!subscriptionData && paymentMethods.length === 0"
+            class="border border-orange-200 rounded-lg p-4 bg-orange-50"
+          >
+            <h3 class="font-medium text-sm text-orange-800 mb-3">
+              Suscripción No Disponible
+            </h3>
+            <p class="text-sm text-orange-700 mb-2">
+              Para crear una suscripción, primero necesitas agregar una tarjeta
+              de pago.
+            </p>
+            <p class="text-sm text-orange-600">
+              Usa el formulario de "Agregar Tarjeta de Crédito" arriba para
+              continuar.
+            </p>
+          </div>
+
+          <!-- Subscription Data Section -->
+          <div class="border border-neutral-200 rounded-lg p-4">
+            <h3 class="font-medium text-sm text-gray-800 mb-3">
+              Datos de Suscripción (Backend)
+            </h3>
+            <div v-if="subscriptionData" class="space-y-2 text-sm">
+              <div>
+                <span class="font-medium">Status:</span>
+                <span
+                  :class="{
+                    'text-green-600': subscriptionData.status === 'ACTIVE',
+                    'text-blue-600': subscriptionData.status === 'TRIAL',
+                    'text-orange-600':
+                      subscriptionData.status === 'PAYMENT_FAILED',
+                    'text-red-600': subscriptionData.status === 'SUSPENDED',
+                    'text-gray-600': subscriptionData.status === 'CANCELLED',
+                  }"
+                >
+                  {{ subscriptionData.status }}
+                </span>
+              </div>
+              <div>
+                <span class="font-medium">Tier:</span>
+                {{ subscriptionData.tier }}
+              </div>
+              <div v-if="subscriptionData.amount">
+                <span class="font-medium">Amount:</span>
+                {{ (subscriptionData.amount / 100).toFixed(2) }}
+                {{ subscriptionData.currency }}
+              </div>
+              <div v-if="subscriptionData.subscriptionStartDate">
+                <span class="font-medium">Start Date:</span>
+                {{
+                  new Date(
+                    subscriptionData.subscriptionStartDate
+                  ).toLocaleDateString()
+                }}
+              </div>
+              <div v-if="subscriptionData.savedCardId">
+                <span class="font-medium">Saved Card ID:</span>
+                {{ subscriptionData.savedCardId }}
+              </div>
+              <div v-if="subscriptionData.recurringPaymentId">
+                <span class="font-medium">Recurring Payment ID:</span>
+                {{ subscriptionData.recurringPaymentId }}
+              </div>
+              <div>
+                <span class="font-medium">Consecutive Failures:</span>
+                {{ subscriptionData.consecutiveFailures || 0 }}
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-600">
+              No se encontraron datos de suscripción
+            </div>
+          </div>
+
+          <!-- Card Selection for Reactivation -->
+          <div
+            v-if="
+              subscriptionData?.status === 'CANCELLED' &&
+              paymentMethods.length > 0
+            "
+            class="border border-neutral-200 rounded-lg p-4 bg-yellow-50"
+          >
+            <h3 class="font-medium text-sm text-gray-800 mb-3">
+              Seleccionar Tarjeta para Reactivación
+            </h3>
+            <div class="space-y-2">
+              <div
+                v-for="card in paymentMethods"
+                :key="card.id"
+                @click="selectedCardForReactivation = card.id"
+                class="flex items-center p-3 border rounded-lg cursor-pointer transition-colors"
+                :class="{
+                  'border-green-500 bg-green-50':
+                    selectedCardForReactivation === card.id,
+                  'border-gray-200 hover:border-gray-300':
+                    selectedCardForReactivation !== card.id,
+                }"
+              >
+                <input
+                  type="radio"
+                  :value="card.id"
+                  v-model="selectedCardForReactivation"
+                  class="mr-3 text-green-600"
+                />
+                <div class="flex items-center space-x-3">
+                  <div
+                    class="w-8 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded flex items-center justify-center"
+                  >
+                    <span class="text-white text-xs font-bold">💳</span>
+                  </div>
+                  <div>
+                    <div class="font-medium text-sm">
+                      {{ `****-****-****-${card.maskedNumber}` }}
+                    </div>
+                    <div class="text-xs text-gray-600">
+                      {{ card.cardholderName }} • Exp:
+                      {{ convertToDisplayFormat(card.expirationDate) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-wrap gap-3">
+            <button
+              @click="retryPayment"
+              :disabled="subscriptionActions.retryPayment"
+              class="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              {{
+                subscriptionActions.retryPayment
+                  ? "Reintentando..."
+                  : "Reintentar Pago"
+              }}
+            </button>
+
+            <button
+              @click="cancelSubscription"
+              :disabled="subscriptionActions.cancelSubscription"
+              class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              {{
+                subscriptionActions.cancelSubscription
+                  ? "Cancelando..."
+                  : "Cancelar Suscripción"
+              }}
+            </button>
+
+            <button
+              @click="reactivateSubscription(selectedCardForReactivation)"
+              :disabled="
+                subscriptionActions.reactivateSubscription ||
+                (subscriptionData?.status === 'CANCELLED' &&
+                  paymentMethods.length > 0 &&
+                  !selectedCardForReactivation)
+              "
+              class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              :title="
+                subscriptionData?.status === 'CANCELLED' &&
+                paymentMethods.length > 0 &&
+                !selectedCardForReactivation
+                  ? 'Selecciona una tarjeta para reactivar'
+                  : ''
+              "
+            >
+              {{
+                subscriptionActions.reactivateSubscription
+                  ? "Reactivando..."
+                  : "Reactivar Suscripción"
+              }}
+            </button>
+
+            <button
+              @click="loadSubscriptionData"
+              :disabled="isLoadingSubscription"
+              class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              {{ isLoadingSubscription ? "Cargando..." : "Recargar Datos" }}
+            </button>
+
+            <button
+              @click="loadJWTClaims"
+              class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 text-sm"
+            >
+              Recargar JWT Claims
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Debug Section for Payment Methods Comparison -->
+    <div class="form-container">
+      <h2>🐛 Debug: Payment Methods Comparison</h2>
+      <div class="base-card p-6" style="margin-bottom: 1rem">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Bakery Settings Payment Methods -->
+          <div class="border border-blue-200 rounded-lg p-4 bg-blue-50">
+            <h3 class="font-medium text-sm text-blue-800 mb-3">
+              Bakery Settings - availablePaymentMethods
+            </h3>
+            <div class="space-y-2 text-sm">
+              <div>
+                <strong>Source:</strong>
+                settingsStore.items[0].availablePaymentMethods
+              </div>
+              <div>
+                <strong>Length:</strong>
+                {{
+                  settingsStore.items[0]?.availablePaymentMethods?.length || 0
+                }}
+              </div>
+              <div><strong>Loading:</strong> {{ settingsStore.loading }}</div>
+              <div>
+                <strong>Error:</strong> {{ settingsStore.error || "None" }}
+              </div>
+              <div class="mt-3">
+                <pre
+                  class="text-xs bg-white p-2 rounded border overflow-auto max-h-40"
+                  >{{
+                    JSON.stringify(
+                      settingsStore.items[0]?.availablePaymentMethods || [],
+                      null,
+                      2
+                    )
+                  }}</pre
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- System Settings Payment Methods -->
+          <div class="border border-green-200 rounded-lg p-4 bg-green-50">
+            <h3 class="font-medium text-sm text-green-800 mb-3">
+              System Settings - availablePaymentMethods
+            </h3>
+            <div class="space-y-2 text-sm">
+              <div>
+                <strong>Source:</strong>
+                systemSettingsStore.availablePaymentMethods
+              </div>
+              <div>
+                <strong>Length:</strong>
+                {{ systemSettingsStore.availablePaymentMethods?.length || 0 }}
+              </div>
+              <div>
+                <strong>Loading:</strong> {{ systemSettingsStore.loading }}
+              </div>
+              <div>
+                <strong>Error:</strong>
+                {{ systemSettingsStore.error || "None" }}
+              </div>
+              <div class="mt-3">
+                <pre
+                  class="text-xs bg-white p-2 rounded border overflow-auto max-h-40"
+                  >{{
+                    JSON.stringify(
+                      systemSettingsStore.availablePaymentMethods || [],
+                      null,
+                      2
+                    )
+                  }}</pre
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comparison Result -->
+        <div class="mt-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <h3 class="font-medium text-sm text-gray-800 mb-3">
+            🔍 Comparison Analysis
+          </h3>
+          <div class="space-y-2 text-sm">
+            <div>
+              <strong>Arrays are identical:</strong>
+              <span
+                :class="{
+                  'text-green-600':
+                    JSON.stringify(
+                      settingsStore.items[0]?.availablePaymentMethods || []
+                    ) ===
+                    JSON.stringify(
+                      systemSettingsStore.availablePaymentMethods || []
+                    ),
+                  'text-red-600':
+                    JSON.stringify(
+                      settingsStore.items[0]?.availablePaymentMethods || []
+                    ) !==
+                    JSON.stringify(
+                      systemSettingsStore.availablePaymentMethods || []
+                    ),
+                }"
+              >
+                {{
+                  JSON.stringify(
+                    settingsStore.items[0]?.availablePaymentMethods || []
+                  ) ===
+                  JSON.stringify(
+                    systemSettingsStore.availablePaymentMethods || []
+                  )
+                    ? "✅ YES"
+                    : "❌ NO"
+                }}
+              </span>
+            </div>
+            <div>
+              <strong>Lengths match:</strong>
+              <span
+                :class="{
+                  'text-green-600':
+                    (settingsStore.items[0]?.availablePaymentMethods?.length ||
+                      0) ===
+                    (systemSettingsStore.availablePaymentMethods?.length || 0),
+                  'text-red-600':
+                    (settingsStore.items[0]?.availablePaymentMethods?.length ||
+                      0) !==
+                    (systemSettingsStore.availablePaymentMethods?.length || 0),
+                }"
+              >
+                {{
+                  (settingsStore.items[0]?.availablePaymentMethods?.length ||
+                    0) ===
+                  (systemSettingsStore.availablePaymentMethods?.length || 0)
+                    ? "✅ YES"
+                    : "❌ NO"
+                }}
+              </span>
+            </div>
+            <div>
+              <strong>Both loaded:</strong>
+              <span
+                :class="{
+                  'text-green-600':
+                    settingsStore.items.length > 0 &&
+                    systemSettingsStore.isLoaded,
+                  'text-orange-600':
+                    settingsStore.items.length === 0 ||
+                    !systemSettingsStore.isLoaded,
+                }"
+              >
+                {{
+                  settingsStore.items.length > 0 && systemSettingsStore.isLoaded
+                    ? "✅ YES"
+                    : "⚠️ NO"
+                }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Refresh Buttons -->
+        <div class="mt-4 flex gap-3">
+          <button
+            @click="settingsStore.fetchById('default')"
+            :disabled="settingsStore.loading"
+            class="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+          >
+            {{
+              settingsStore.loading ? "Loading..." : "Refresh Bakery Settings"
+            }}
+          </button>
+          <button
+            @click="systemSettingsStore.fetchSettings()"
+            :disabled="systemSettingsStore.loading"
+            class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 disabled:opacity-50"
+          >
+            {{
+              systemSettingsStore.loading
+                ? "Loading..."
+                : "Refresh System Settings"
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <ToastNotification ref="toastRef" />
+
+  <!-- Confirmation Dialog -->
+  <ConfirmDialog
+    :is-open="isConfirmOpen"
+    :title="confirmAction?.title || ''"
+    :message="confirmAction?.message || ''"
+    confirm-text="Eliminar"
+    cancel-text="Cancelar"
+    @confirm="handleConfirm"
+    @cancel="handleCancel"
   />
-
-  <!-- Stored Cards List -->
-  <div class="form-container">
-    <h2>Tarjetas Guardadas</h2>
-    <div class="base-card p-6" style="margin-bottom: 1rem;">
-
-    <div
-      v-if="paymentMethods.length === 0"
-      class="text-center py-8 text-neutral-600"
-    >
-      No hay tarjetas guardadas
-    </div>
-
-    <div v-else class="space-y-3">
-      <div
-        v-for="card in paymentMethods"
-        :key="card.id"
-        class="flex items-center justify-between p-4 border border-neutral-200 rounded-lg"
-      >
-        <div class="flex items-center space-x-4">
-          <div
-            class="w-12 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded flex items-center justify-center"
-          >
-            <span class="text-white text-xs font-bold">💳</span>
-          </div>
-          <div>
-            <div class="font-medium font-mono">
-              {{ `****-****-****-${card.maskedNumber}` }}
-            </div>
-            <div class="text-sm text-neutral-600">
-              {{ card.cardholderName }} • Exp:
-              {{ convertToDisplayFormat(card.expirationDate) }}
-            </div>
-            <!-- <div class="text-xs text-neutral-500">Token: {{ card.token }}</div> -->
-          </div>
-        </div>
-        <button
-          @click="confirmDeleteCard(card)"
-          class="text-red-600 hover:text-red-800 px-3 py-1 text-sm"
-        >
-          Eliminar
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Subscription Management -->
-<div class="form-container">
-  <h2>Gestión de Suscripción</h2>
-  <div class="base-card p-6" style="margin-bottom: 1rem;">
-
-    <div v-if="isLoadingSubscription" class="text-center py-8">
-      <div class="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-      <p class="text-neutral-600">Cargando información de suscripción...</p>
-    </div>
-
-    <div v-else class="space-y-6">
-      <!-- JWT Claims Section -->
-      <div class="border border-neutral-200 rounded-lg p-4 bg-gray-50">
-        <h3 class="font-medium text-sm text-gray-800 mb-3">Información JWT (Token Claims)</h3>
-        <div v-if="jwtClaims" class="space-y-2 text-sm">
-          <div><span class="font-medium">Role:</span> {{ jwtClaims.role || 'N/A' }}</div>
-          <div><span class="font-medium">Bakery ID:</span> {{ jwtClaims.bakeryId || 'N/A' }}</div>
-          <div><span class="font-medium">Subscription Status:</span>
-            <span :class="{
-              'text-green-600': jwtClaims.subscriptionStatus === 'ACTIVE',
-              'text-blue-600': jwtClaims.subscriptionStatus === 'TRIAL',
-              'text-orange-600': jwtClaims.subscriptionStatus === 'PAYMENT_FAILED',
-              'text-red-600': jwtClaims.subscriptionStatus === 'SUSPENDED',
-              'text-gray-600': jwtClaims.subscriptionStatus === 'CANCELLED'
-            }">
-              {{ jwtClaims.subscriptionStatus || 'N/A' }}
-            </span>
-          </div>
-          <div><span class="font-medium">Subscription Tier:</span> {{ jwtClaims.subscriptionTier || 'N/A' }}</div>
-        </div>
-        <div v-else class="text-sm text-gray-600">No se pudieron cargar los claims JWT</div>
-      </div>
-
-      <!-- No Subscription - Create Subscription Section -->
-      <div v-if="subscriptionData?.status == 'TRIAL' && paymentMethods.length > 0" class="border border-blue-200 rounded-lg p-4 bg-blue-50">
-        <h3 class="font-medium text-sm text-blue-800 mb-3">Crear Suscripción</h3>
-        <p class="text-sm text-blue-700 mb-4">No tienes una suscripción activa. Selecciona una tarjeta para crear tu suscripción:</p>
-
-        <!-- Card Selection for Creation -->
-        <div class="space-y-2 mb-4">
-          <div
-            v-for="card in paymentMethods"
-            :key="card.id"
-            @click="selectedCardForCreation = card.id"
-            class="flex items-center p-3 border rounded-lg cursor-pointer transition-colors"
-            :class="{
-              'border-blue-500 bg-blue-100': selectedCardForCreation === card.id,
-              'border-gray-200 hover:border-gray-300': selectedCardForCreation !== card.id
-            }"
-          >
-            <input
-              type="radio"
-              :value="card.id"
-              v-model="selectedCardForCreation"
-              class="mr-3 text-blue-600"
-            />
-            <div class="flex items-center space-x-3">
-              <div class="w-8 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded flex items-center justify-center">
-                <span class="text-white text-xs font-bold">💳</span>
-              </div>
-              <div>
-                <div class="font-medium text-sm">
-                  {{ `****-****-****-${card.maskedNumber}` }}
-                </div>
-                <div class="text-xs text-gray-600">
-                  {{ card.cardholderName }} • Exp: {{ convertToDisplayFormat(card.expirationDate) }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Create Subscription Button -->
-        <button
-          @click="createSubscription(selectedCardForCreation)"
-          :disabled="subscriptionActions.createSubscription || !selectedCardForCreation"
-          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-          :title="!selectedCardForCreation ? 'Selecciona una tarjeta para crear la suscripción' : ''"
-        >
-          {{ subscriptionActions.createSubscription ? 'Creando...' : 'Crear Suscripción' }}
-        </button>
-      </div>
-
-      <!-- No Subscription - No Cards Available -->
-      <div v-if="!subscriptionData && paymentMethods.length === 0" class="border border-orange-200 rounded-lg p-4 bg-orange-50">
-        <h3 class="font-medium text-sm text-orange-800 mb-3">Suscripción No Disponible</h3>
-        <p class="text-sm text-orange-700 mb-2">Para crear una suscripción, primero necesitas agregar una tarjeta de pago.</p>
-        <p class="text-sm text-orange-600">Usa el formulario de "Agregar Tarjeta de Crédito" arriba para continuar.</p>
-      </div>
-
-      <!-- Subscription Data Section -->
-      <div class="border border-neutral-200 rounded-lg p-4">
-        <h3 class="font-medium text-sm text-gray-800 mb-3">Datos de Suscripción (Backend)</h3>
-        <div v-if="subscriptionData" class="space-y-2 text-sm">
-          <div><span class="font-medium">Status:</span>
-            <span :class="{
-              'text-green-600': subscriptionData.status === 'ACTIVE',
-              'text-blue-600': subscriptionData.status === 'TRIAL',
-              'text-orange-600': subscriptionData.status === 'PAYMENT_FAILED',
-              'text-red-600': subscriptionData.status === 'SUSPENDED',
-              'text-gray-600': subscriptionData.status === 'CANCELLED'
-            }">
-              {{ subscriptionData.status }}
-            </span>
-          </div>
-          <div><span class="font-medium">Tier:</span> {{ subscriptionData.tier }}</div>
-          <div v-if="subscriptionData.amount"><span class="font-medium">Amount:</span> {{ (subscriptionData.amount / 100).toFixed(2) }} {{ subscriptionData.currency }}</div>
-          <div v-if="subscriptionData.subscriptionStartDate"><span class="font-medium">Start Date:</span> {{ new Date(subscriptionData.subscriptionStartDate).toLocaleDateString() }}</div>
-          <div v-if="subscriptionData.savedCardId"><span class="font-medium">Saved Card ID:</span> {{ subscriptionData.savedCardId }}</div>
-          <div v-if="subscriptionData.recurringPaymentId"><span class="font-medium">Recurring Payment ID:</span> {{ subscriptionData.recurringPaymentId }}</div>
-          <div><span class="font-medium">Consecutive Failures:</span> {{ subscriptionData.consecutiveFailures || 0 }}</div>
-        </div>
-        <div v-else class="text-sm text-gray-600">No se encontraron datos de suscripción</div>
-      </div>
-
-      <!-- Card Selection for Reactivation -->
-      <div v-if="subscriptionData?.status === 'CANCELLED' && paymentMethods.length > 0" class="border border-neutral-200 rounded-lg p-4 bg-yellow-50">
-        <h3 class="font-medium text-sm text-gray-800 mb-3">Seleccionar Tarjeta para Reactivación</h3>
-        <div class="space-y-2">
-          <div
-            v-for="card in paymentMethods"
-            :key="card.id"
-            @click="selectedCardForReactivation = card.id"
-            class="flex items-center p-3 border rounded-lg cursor-pointer transition-colors"
-            :class="{
-              'border-green-500 bg-green-50': selectedCardForReactivation === card.id,
-              'border-gray-200 hover:border-gray-300': selectedCardForReactivation !== card.id
-            }"
-          >
-            <input
-              type="radio"
-              :value="card.id"
-              v-model="selectedCardForReactivation"
-              class="mr-3 text-green-600"
-            />
-            <div class="flex items-center space-x-3">
-              <div class="w-8 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded flex items-center justify-center">
-                <span class="text-white text-xs font-bold">💳</span>
-              </div>
-              <div>
-                <div class="font-medium text-sm">
-                  {{ `****-****-****-${card.maskedNumber}` }}
-                </div>
-                <div class="text-xs text-gray-600">
-                  {{ card.cardholderName }} • Exp: {{ convertToDisplayFormat(card.expirationDate) }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="flex flex-wrap gap-3">
-        <button
-          @click="retryPayment"
-          :disabled="subscriptionActions.retryPayment"
-          class="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-        >
-          {{ subscriptionActions.retryPayment ? 'Reintentando...' : 'Reintentar Pago' }}
-        </button>
-
-        <button
-          @click="cancelSubscription"
-          :disabled="subscriptionActions.cancelSubscription"
-          class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-        >
-          {{ subscriptionActions.cancelSubscription ? 'Cancelando...' : 'Cancelar Suscripción' }}
-        </button>
-
-        <button
-          @click="reactivateSubscription(selectedCardForReactivation)"
-          :disabled="subscriptionActions.reactivateSubscription || (subscriptionData?.status === 'CANCELLED' && paymentMethods.length > 0 && !selectedCardForReactivation)"
-          class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-          :title="(subscriptionData?.status === 'CANCELLED' && paymentMethods.length > 0 && !selectedCardForReactivation) ? 'Selecciona una tarjeta para reactivar' : ''"
-        >
-          {{ subscriptionActions.reactivateSubscription ? 'Reactivando...' : 'Reactivar Suscripción' }}
-        </button>
-
-        <button
-          @click="loadSubscriptionData"
-          :disabled="isLoadingSubscription"
-          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-        >
-          {{ isLoadingSubscription ? 'Cargando...' : 'Recargar Datos' }}
-        </button>
-
-        <button
-          @click="loadJWTClaims"
-          class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 text-sm"
-        >
-          Recargar JWT Claims
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Debug Section for Payment Methods Comparison -->
-<div class="form-container">
-  <h2>🐛 Debug: Payment Methods Comparison</h2>
-  <div class="base-card p-6" style="margin-bottom: 1rem;">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-      <!-- Bakery Settings Payment Methods -->
-      <div class="border border-blue-200 rounded-lg p-4 bg-blue-50">
-        <h3 class="font-medium text-sm text-blue-800 mb-3">Bakery Settings - availablePaymentMethods</h3>
-        <div class="space-y-2 text-sm">
-          <div><strong>Source:</strong> settingsStore.items[0].availablePaymentMethods</div>
-          <div><strong>Length:</strong> {{ settingsStore.items[0]?.availablePaymentMethods?.length || 0 }}</div>
-          <div><strong>Loading:</strong> {{ settingsStore.loading }}</div>
-          <div><strong>Error:</strong> {{ settingsStore.error || 'None' }}</div>
-          <div class="mt-3">
-            <pre class="text-xs bg-white p-2 rounded border overflow-auto max-h-40">{{ JSON.stringify(settingsStore.items[0]?.availablePaymentMethods || [], null, 2) }}</pre>
-          </div>
-        </div>
-      </div>
-
-      <!-- System Settings Payment Methods -->
-      <div class="border border-green-200 rounded-lg p-4 bg-green-50">
-        <h3 class="font-medium text-sm text-green-800 mb-3">System Settings - availablePaymentMethods</h3>
-        <div class="space-y-2 text-sm">
-          <div><strong>Source:</strong> systemSettingsStore.availablePaymentMethods</div>
-          <div><strong>Length:</strong> {{ systemSettingsStore.availablePaymentMethods?.length || 0 }}</div>
-          <div><strong>Loading:</strong> {{ systemSettingsStore.loading }}</div>
-          <div><strong>Error:</strong> {{ systemSettingsStore.error || 'None' }}</div>
-          <div class="mt-3">
-            <pre class="text-xs bg-white p-2 rounded border overflow-auto max-h-40">{{ JSON.stringify(systemSettingsStore.availablePaymentMethods || [], null, 2) }}</pre>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Comparison Result -->
-    <div class="mt-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
-      <h3 class="font-medium text-sm text-gray-800 mb-3">🔍 Comparison Analysis</h3>
-      <div class="space-y-2 text-sm">
-        <div><strong>Arrays are identical:</strong>
-          <span :class="{
-            'text-green-600': JSON.stringify(settingsStore.items[0]?.availablePaymentMethods || []) === JSON.stringify(systemSettingsStore.availablePaymentMethods || []),
-            'text-red-600': JSON.stringify(settingsStore.items[0]?.availablePaymentMethods || []) !== JSON.stringify(systemSettingsStore.availablePaymentMethods || [])
-          }">
-            {{ JSON.stringify(settingsStore.items[0]?.availablePaymentMethods || []) === JSON.stringify(systemSettingsStore.availablePaymentMethods || []) ? '✅ YES' : '❌ NO' }}
-          </span>
-        </div>
-        <div><strong>Lengths match:</strong>
-          <span :class="{
-            'text-green-600': (settingsStore.items[0]?.availablePaymentMethods?.length || 0) === (systemSettingsStore.availablePaymentMethods?.length || 0),
-            'text-red-600': (settingsStore.items[0]?.availablePaymentMethods?.length || 0) !== (systemSettingsStore.availablePaymentMethods?.length || 0)
-          }">
-            {{ (settingsStore.items[0]?.availablePaymentMethods?.length || 0) === (systemSettingsStore.availablePaymentMethods?.length || 0) ? '✅ YES' : '❌ NO' }}
-          </span>
-        </div>
-        <div><strong>Both loaded:</strong>
-          <span :class="{
-            'text-green-600': settingsStore.items.length > 0 && systemSettingsStore.isLoaded,
-            'text-orange-600': settingsStore.items.length === 0 || !systemSettingsStore.isLoaded
-          }">
-            {{ settingsStore.items.length > 0 && systemSettingsStore.isLoaded ? '✅ YES' : '⚠️ NO' }}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Refresh Buttons -->
-    <div class="mt-4 flex gap-3">
-      <button
-        @click="settingsStore.fetchById('default')"
-        :disabled="settingsStore.loading"
-        class="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
-      >
-        {{ settingsStore.loading ? 'Loading...' : 'Refresh Bakery Settings' }}
-      </button>
-      <button
-        @click="systemSettingsStore.fetchSettings()"
-        :disabled="systemSettingsStore.loading"
-        class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 disabled:opacity-50"
-      >
-        {{ systemSettingsStore.loading ? 'Loading...' : 'Refresh System Settings' }}
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Toast Notifications -->
-<ToastNotification ref="toastRef" />
-
-<!-- Confirmation Dialog -->
-<ConfirmDialog
-  :is-open="isConfirmOpen"
-  :title="confirmAction?.title || ''"
-  :message="confirmAction?.message || ''"
-  confirm-text="Eliminar"
-  cancel-text="Cancelar"
-  @confirm="handleConfirm"
-  @cancel="handleCancel"
-/>
 </template>
 
 <style scoped lang="scss">

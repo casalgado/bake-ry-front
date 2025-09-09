@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import FeatureCard from './FeatureCard.vue';
+import RadioFeatureCard from './RadioFeatureCard.vue';
 import {
   PhMoney,
   PhDeviceMobile,
@@ -10,6 +11,9 @@ import {
   PhClock,
   PhCurrencyDollar,
   PhWifiX,
+  PhChartBar,
+  PhUser,
+  PhPackage,
 } from '@phosphor-icons/vue';
 import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
 import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
@@ -26,6 +30,13 @@ const props = defineProps({
       allowPartialPayment: false,
       timeOfDay: false,
       offlineMode: false,
+      // Reports features
+      defaultReportFilter: 'dueDate',
+      showMultipleReports: false,
+      // Users features
+      collectLegalName: false,
+      // Products features
+      useProductCost: false,
     }),
   },
   availablePaymentMethods: {
@@ -42,6 +53,12 @@ const emit = defineEmits(['submit']);
 
 const settingsStore = useBakerySettingsStore();
 const formData = ref({ ...props.initialData });
+
+// Radio button options for reports
+const reportFilterOptions = [
+  { value: 'dueDate', label: 'Fecha de Entrega' },
+  { value: 'paymentDate', label: 'Fecha de Pago' },
+];
 
 // Payment method icon mapping
 const paymentIconMap = {
@@ -99,7 +116,14 @@ const hasChanges = computed(() => {
   const timeOfDayChanged = (initial.timeOfDay || false) !== current.timeOfDay;
   const offlineModeChanged = (initial.offlineMode || false) !== current.offlineMode;
 
-  return paymentMethodsChanged || partialPaymentChanged || timeOfDayChanged || offlineModeChanged;
+  // Compare new features
+  const defaultReportFilterChanged = (initial.defaultReportFilter || 'dueDate') !== current.defaultReportFilter;
+  const showMultipleReportsChanged = (initial.showMultipleReports || false) !== current.showMultipleReports;
+  const collectLegalNameChanged = (initial.collectLegalName || false) !== current.collectLegalName;
+  const useProductCostChanged = (initial.useProductCost || false) !== current.useProductCost;
+
+  return paymentMethodsChanged || partialPaymentChanged || timeOfDayChanged || offlineModeChanged ||
+         defaultReportFilterChanged || showMultipleReportsChanged || collectLegalNameChanged || useProductCostChanged;
 });
 
 const handleSubmit = () => {
@@ -113,6 +137,11 @@ const handleCancel = () => {
     allowPartialPayment: props.initialData.allowPartialPayment || false,
     timeOfDay: props.initialData.timeOfDay || false,
     offlineMode: props.initialData.offlineMode || false,
+    // Reset new features
+    defaultReportFilter: props.initialData.defaultReportFilter || 'dueDate',
+    showMultipleReports: props.initialData.showMultipleReports || false,
+    collectLegalName: props.initialData.collectLegalName || false,
+    useProductCost: props.initialData.useProductCost || false,
   };
 };
 
@@ -134,6 +163,23 @@ watch(() => props.initialData, (newData, oldData) => {
 
     if (Object.prototype.hasOwnProperty.call(newData, 'offlineMode') && newData.offlineMode !== formData.value.offlineMode) {
       formData.value.offlineMode = newData.offlineMode;
+    }
+
+    // Watch for new features changes
+    if (Object.prototype.hasOwnProperty.call(newData, 'defaultReportFilter') && newData.defaultReportFilter !== formData.value.defaultReportFilter) {
+      formData.value.defaultReportFilter = newData.defaultReportFilter;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(newData, 'showMultipleReports') && newData.showMultipleReports !== formData.value.showMultipleReports) {
+      formData.value.showMultipleReports = newData.showMultipleReports;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(newData, 'collectLegalName') && newData.collectLegalName !== formData.value.collectLegalName) {
+      formData.value.collectLegalName = newData.collectLegalName;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(newData, 'useProductCost') && newData.useProductCost !== formData.value.useProductCost) {
+      formData.value.useProductCost = newData.useProductCost;
     }
   }
 }, { deep: true, immediate: true });
@@ -191,6 +237,67 @@ watch(() => props.initialData, (newData, oldData) => {
             :icon="PhWifiX"
             title="Modo Sin Conexión"
             description="Habilita formulario para crear pedidos sin conexión a internet"
+            :disabled="loading"
+          />
+        </div>
+      </div>
+
+      <!-- Reports Features Section -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-neutral-900 mb-2">Configuración de Reportes</h3>
+        <p class="text-sm text-neutral-600 mb-4">
+          Personaliza cómo se muestran y filtran los reportes
+        </p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <RadioFeatureCard
+            v-model="formData.defaultReportFilter"
+            :icon="PhChartBar"
+            title="Filtro de Fecha por Defecto"
+            description="Selecciona el filtro de fecha que aparecerá por defecto en los reportes"
+            :options="reportFilterOptions"
+            name="default-report-filter"
+            :disabled="loading"
+          />
+
+          <FeatureCard
+            v-model="formData.showMultipleReports"
+            :icon="PhChartBar"
+            title="Múltiples Reportes"
+            description="Permite alternar entre diferentes reportes desde el panel de ventas"
+            :disabled="loading"
+          />
+        </div>
+      </div>
+
+      <!-- Users Features Section -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-neutral-900 mb-2">Configuración de Usuarios</h3>
+        <p class="text-sm text-neutral-600 mb-4">
+          Define qué información recopilar de los usuarios
+        </p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <FeatureCard
+            v-model="formData.collectLegalName"
+            :icon="PhUser"
+            title="Habilitar razón social"
+            description="Solicita la razón social de los clientes en el registro"
+            :disabled="loading"
+          />
+        </div>
+      </div>
+
+      <!-- Products Features Section -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-neutral-900 mb-2">Configuración de Productos</h3>
+        <p class="text-sm text-neutral-600 mb-4">
+          Opciones avanzadas para el manejo de productos
+        </p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <FeatureCard
+            v-model="formData.useProductCost"
+            :icon="PhPackage"
+            title="Usar Costo de Productos"
+            description="Habilita el seguimiento y cálculo de costos de producción"
             :disabled="loading"
           />
         </div>
