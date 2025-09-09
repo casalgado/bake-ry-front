@@ -10,6 +10,7 @@ const transformOrderToRows = (order, orderIndex) => {
     pago_recibido: order.isPaid ? 'si' : 'no',
     metodo: getPaymentMethodText(order.paymentMethod),
     cliente: order.userName || '',
+    razon_social: order.userLegalName || '',
     correo: order.userEmail || '',
     nationalId: order.userNationalId || '',
     direccion: order.deliveryAddress || '',
@@ -464,6 +465,7 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
       : '',
     tipo_pago: entry.paymentType,
     cliente: order.userName || '',
+    razon_social: order.userLegalName || '',
     correo: order.userEmail || '',
     nationalId: order.userNationalId || '',
     direccion: order.deliveryAddress || '',
@@ -491,6 +493,7 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
         fecha_pedido: '',
         tipo_pago: '',
         cliente: '',
+        razon_social: '',
         correo: '',
         nationalId: '',
         direccion: '',
@@ -535,6 +538,7 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
     fecha_pedido: '',
     tipo_pago: '',
     cliente: '',
+    razon_social: '',
     correo: '',
     nationalId: '',
     direccion: '',
@@ -581,6 +585,7 @@ const exportPaymentReport = (orders, options = {}) => {
     { width: 12 }, // fecha_pedido
     { width: 12 }, // tipo_pago
     { width: 20 }, // cliente
+    { width: 25 }, // razon_social
     { width: 25 }, // correo
     { width: 15 }, // nationalId
     { width: 30 }, // direccion

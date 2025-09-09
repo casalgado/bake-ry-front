@@ -240,6 +240,8 @@ const handleUserChange = async (user) => {
   formData.value.userName = user.name;
   formData.value.userEmail = user.email;
   formData.value.userPhone = user.phone;
+  formData.value.userLegalName = user.legalName || ''; // Added userLegalName
+  formData.value.userCategory = user.category || '';
   formData.value.userNationalId = user.nationalId || ''; // Added userNationalId
   if (props.initialData) {
     formData.value.deliveryAddress = props.initialData.deliveryAddress;

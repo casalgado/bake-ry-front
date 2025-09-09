@@ -180,6 +180,8 @@ const columns = computed(() => [
     sortable: true,
     component: ClientCell,
     getProps: (row) => ({
+      category: row.userCategory,
+      legalName: row.userLegalName,
       name: row.userName,
       comment: row.internalNotes,
     }),

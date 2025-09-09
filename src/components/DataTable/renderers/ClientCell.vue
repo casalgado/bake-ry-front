@@ -1,11 +1,13 @@
 <!-- components/DataTable/renderers/ClientCell.vue -->
 <script setup>
-import { PhCheckFat } from '@phosphor-icons/vue';
+import { PhCheckFat, PhBuildings } from '@phosphor-icons/vue';
 import { formatTime } from '@/utils/helpers';
 
 defineProps({
   name: String,
   phone: String,
+  legalName: String,
+  category: String,
   showIsPaid: {
     type: Boolean,
     default: false,
@@ -31,7 +33,8 @@ const formatPhoneNumber = (phone) => {
 <template>
   <div class="flex flex-col">
     <span class="flex items-center gap-2">
-      {{ name }}
+      <PhBuildings v-if="category === 'B2B'" class="w-4 h-4" weight="regular" />
+      <span>{{ name }} {{ legalName ? `- ${legalName} -` : '' }}</span>
       <PhCheckFat v-if="showIsPaid" weight="fill" class="w-3 h-3 flex-shrink-0" />
     </span>
     <a

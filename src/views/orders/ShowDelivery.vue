@@ -138,6 +138,8 @@ const columns = [
     sortable: true,
     component: ClientCell,
     getProps: (row) => ({
+      category: row.userCategory,
+      legalName: row.userLegalName,
       name: row.userName,
       comment: `${row.internalNotes}${row.internalNotes ? '. ' : ' '}${
         row.deliveryNotes
