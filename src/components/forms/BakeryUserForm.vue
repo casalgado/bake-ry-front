@@ -3,13 +3,12 @@ import { ref, defineProps, defineEmits, computed } from 'vue';
 import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
 import { parseSpanishName } from '@/utils/helpers';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
-import { se } from 'date-fns/locale';
 
 const bakerySettingsStore = useBakerySettingsStore();
 
 const features = computed(() => {
   if (!bakerySettingsStore.items.length) return {};
-  return bakerySettingsStore.items[0].features;
+  return bakerySettingsStore.items[0]?.features || {};
 });
 
 const props = defineProps({
@@ -177,7 +176,6 @@ const validate = () => {
     errors.value.email = 'Formato de correo electrónico inválido';
   }
 
-  console.log(errors.value);
   return Object.keys(errors.value).length === 0;
 };
 
@@ -199,7 +197,6 @@ const handleSubmit = () => {
   };
 
   if (!validate()) return;
-  console.log('valido');
   emit('submit', submitData);
 };
 </script>

@@ -39,10 +39,8 @@ const formatPhoneNumber = (phone) => {
     </span>
     <a
       v-if="phone"
-
       :href="`tel:${formatPhoneNumber(phone)}`"
       class="underline cursor-pointer"
-
     >
       {{ phone }}
     </a>

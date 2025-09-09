@@ -2,7 +2,6 @@ import * as XLSX from 'xlsx';
 
 // Function to transform order data into rows
 const transformOrderToRows = (order, orderIndex) => {
-  console.log(order);
   const baseRow = {
     pedido: orderIndex + 1, // Order-level index
     id: order.id,
