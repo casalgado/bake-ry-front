@@ -15,7 +15,7 @@ const showEmail = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <div class="flex flex-col max-w-48">
     <span v-if="showEmail" class="flex items-center gap-2">
       <span>{{ showEmail }}</span>
     </span>

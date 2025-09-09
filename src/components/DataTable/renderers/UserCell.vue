@@ -24,12 +24,11 @@ defineProps({
 </script>
 
 <template>
-  <div class="flex flex-col">
+  <div class="flex flex-col min-w-48">
     <span class="flex items-center gap-2">
       <PhBuildings v-if="category === 'B2B'" class="w-4 h-4" weight="regular" />
       <span>{{ name }}</span>
     </span>
-    <span v-if="legalName" class="text-xs text-neutral-500 in">   {{ legalName }}</span>
-
+    <span v-if="legalName" class="text-xs text-neutral-500 whitespace-nowrap">{{ legalName }}</span>
   </div>
 </template>
