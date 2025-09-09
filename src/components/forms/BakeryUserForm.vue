@@ -13,9 +13,9 @@ const props = defineProps({
     default: () => ({
       email: '',
       password: '',
-      role: 'bakery_customer',
+      role: '', // Will be computed later
       name: '',
-      category: 'B2C',
+      category: '', // Will be computed later
       address: '',
       birthday: '',
       comment: '',
@@ -39,7 +39,23 @@ const props = defineProps({
 
 const emit = defineEmits(['submit', 'cancel']);
 
-const formData = ref({ ...props.initialData });
+// Compute defaults based on allowedUserTypes
+const getComputedInitialData = () => {
+  const data = { ...props.initialData };
+
+  // If role/category are empty, compute from first allowed user type
+  if (!data.role || !data.category) {
+    const firstAllowedType = props.allowedUserTypes[0];
+    const defaultOption = userTypeOptions.find(opt => opt.value === firstAllowedType);
+
+    data.role = defaultOption ? defaultOption.role : 'bakery_customer';
+    data.category = defaultOption ? defaultOption.category : 'B2C';
+  }
+
+  return data;
+};
+
+const formData = ref(getComputedInitialData());
 
 // Combined options with both role and category values
 const userTypeOptions = [
