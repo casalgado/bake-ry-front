@@ -28,25 +28,25 @@ const {
     const selectedClient = selectedItems[0];
 
     switch (actionId) {
-      case 'edit':
-        isFormOpen.value = true;
-        console.log(selectedClient);
-        break;
+    case 'edit':
+      isFormOpen.value = true;
+      console.log(selectedClient);
+      break;
 
-      case 'delete': {
-        const confirmDelete = window.confirm(
-          `¿Estás seguro de que deseas eliminar al cliente "${selectedClient.name}"?`
-        );
-        if (confirmDelete) {
-          try {
-            await bakeryUserStore.remove(selectedClient.id);
-            clearSelection();
-          } catch (error) {
-            console.error('Error al eliminar cliente:', error);
-          }
+    case 'delete': {
+      const confirmDelete = window.confirm(
+        `¿Estás seguro de que deseas eliminar al cliente "${selectedClient.name}"?`,
+      );
+      if (confirmDelete) {
+        try {
+          await bakeryUserStore.remove(selectedClient.id);
+          clearSelection();
+        } catch (error) {
+          console.error('Error al eliminar cliente:', error);
         }
-        break;
       }
+      break;
+    }
     }
   },
 });
@@ -165,7 +165,7 @@ const closeForm = () => {
         >
           <BakeryUserForm
             v-if="selectedItems[0]"
-            :title="'Editar Cliente'"
+            :title="'Editar Usuario'"
             :key="selectedItems[0].id"
             :initial-data="selectedItems[0]"
             :loading="bakeryUserStore.loading"

@@ -24,6 +24,7 @@ const handleCancel = () => {
 <template>
   <BakeryUserForm
     title="Crear Nuevo Miembro del Equipo"
+    formUserType="staff"
     :loading="bakeryUserStore.loading"
     :allowedUserTypes="['staff', 'delivery', 'production', 'accounting']"
     @submit="handleSubmit"

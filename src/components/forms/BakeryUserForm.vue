@@ -2,11 +2,24 @@
 import { ref, defineProps, defineEmits, computed } from 'vue';
 import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
 import { parseSpanishName } from '@/utils/helpers';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { se } from 'date-fns/locale';
+
+const bakerySettingsStore = useBakerySettingsStore();
+
+const features = computed(() => {
+  if (!bakerySettingsStore.items.length) return {};
+  return bakerySettingsStore.items[0].features;
+});
 
 const props = defineProps({
   title: {
     type: String,
     default: 'Crear Usuario',
+  },
+  formUserType: {
+    type: String,
+    default: 'client', // or 'staff'
   },
   initialData: {
     type: Object,
@@ -15,6 +28,7 @@ const props = defineProps({
       password: '',
       role: '', // Will be computed later
       name: '',
+      legalName: '',
       category: '', // Will be computed later
       address: '',
       birthday: '',
@@ -33,7 +47,14 @@ const props = defineProps({
   },
   allowedUserTypes: {
     type: Array,
-    default: () => ['client', 'company', 'staff', 'delivery', 'production', 'accounting'],
+    default: () => [
+      'client',
+      'company',
+      'staff',
+      'delivery',
+      'production',
+      'accounting',
+    ],
   },
 });
 
@@ -41,12 +62,42 @@ const emit = defineEmits(['submit', 'cancel']);
 
 // Combined options with both role and category values
 const userTypeOptions = [
-  { value: 'client', label: 'Cliente', role: 'bakery_customer', category: 'B2C' },
-  { value: 'company', label: 'Empresa', role: 'bakery_customer', category: 'B2B' },
-  { value: 'staff', label: 'Supervisor', role: 'bakery_staff', category: 'PER' },
-  { value: 'delivery', label: 'Asistente Domicilio', role: 'delivery_assistant', category: 'PER' },
-  { value: 'production', label: 'Asistente Produccion', role: 'production_assistant', category: 'PER' },
-  { value: 'accounting', label: 'Asistente Contable', role: 'accounting_assistant', category: 'PER' },
+  {
+    value: 'client',
+    label: 'Cliente',
+    role: 'bakery_customer',
+    category: 'B2C',
+  },
+  {
+    value: 'company',
+    label: 'Empresa',
+    role: 'bakery_customer',
+    category: 'B2B',
+  },
+  {
+    value: 'staff',
+    label: 'Supervisor',
+    role: 'bakery_staff',
+    category: 'PER',
+  },
+  {
+    value: 'delivery',
+    label: 'Asistente Domicilio',
+    role: 'delivery_assistant',
+    category: 'PER',
+  },
+  {
+    value: 'production',
+    label: 'Asistente Produccion',
+    role: 'production_assistant',
+    category: 'PER',
+  },
+  {
+    value: 'accounting',
+    label: 'Asistente Contable',
+    role: 'accounting_assistant',
+    category: 'PER',
+  },
 ];
 
 // Compute defaults based on allowedUserTypes
@@ -56,7 +107,9 @@ const getComputedInitialData = () => {
   // If role/category are empty, compute from first allowed user type
   if (!data.role || !data.category) {
     const firstAllowedType = props.allowedUserTypes[0];
-    const defaultOption = userTypeOptions.find(opt => opt.value === firstAllowedType);
+    const defaultOption = userTypeOptions.find(
+      (opt) => opt.value === firstAllowedType,
+    );
 
     data.role = defaultOption ? defaultOption.role : 'bakery_customer';
     data.category = defaultOption ? defaultOption.category : 'B2C';
@@ -69,7 +122,9 @@ const formData = ref(getComputedInitialData());
 
 // Filter options based on allowedUserTypes prop
 const filteredUserTypeOptions = computed(() => {
-  return userTypeOptions.filter(option => props.allowedUserTypes.includes(option.value));
+  return userTypeOptions.filter((option) =>
+    props.allowedUserTypes.includes(option.value),
+  );
 });
 
 // Compute initial selected value based on role and category
@@ -90,14 +145,18 @@ const getInitialUserType = () => {
   }
 
   // Ensure the computed type is in the allowed types, otherwise use first allowed type
-  return props.allowedUserTypes.includes(userType) ? userType : props.allowedUserTypes[0];
+  return props.allowedUserTypes.includes(userType)
+    ? userType
+    : props.allowedUserTypes[0];
 };
 
 const selectedUserType = ref(getInitialUserType());
 
 // Update both role and category when user type changes
 const handleUserTypeChange = (value) => {
-  const selected = filteredUserTypeOptions.value.find(opt => opt.value === value);
+  const selected = filteredUserTypeOptions.value.find(
+    (opt) => opt.value === value,
+  );
   if (selected) {
     formData.value.role = selected.role;
     formData.value.category = selected.category;
@@ -133,9 +192,9 @@ const loadingText = computed(() => {
 });
 
 const handleSubmit = () => {
-
   const submitData = {
     ...formData.value,
+    legalName: formData.value.legalName || '',
     ...parseSpanishName(formData.value.name, formData.value.category),
   };
 
@@ -152,24 +211,18 @@ const handleSubmit = () => {
     <form @submit.prevent="handleSubmit" class="base-card">
       <div>
         <label>Nombre</label>
-        <input
-          type="text"
-          v-model="formData.name"
-          required
-          class="w-full"
-        />
-        <span v-if="errors.name" class="text-danger text-sm">{{ errors.name }}</span>
+        <input type="text" v-model="formData.name" required class="w-full" />
+        <span v-if="errors.name" class="text-danger text-sm">{{
+          errors.name
+        }}</span>
       </div>
 
       <div>
         <label>Correo Electrónico</label>
-        <input
-          type="email"
-          v-model="formData.email"
-          :disabled="isEdit"
-
-        />
-        <span v-if="errors.email" class="text-danger text-sm">{{ errors.email }}</span>
+        <input type="email" v-model="formData.email" :disabled="isEdit" />
+        <span v-if="errors.email" class="text-danger text-sm">{{
+          errors.email
+        }}</span>
       </div>
 
       <div>
@@ -180,61 +233,61 @@ const handleSubmit = () => {
           label="Tipo de Usuario"
           @update:modelValue="handleUserTypeChange"
         />
-        <span v-if="errors.role" class="text-danger text-sm">{{ errors.role }}</span>
+        <span v-if="errors.role" class="text-danger text-sm">{{
+          errors.role
+        }}</span>
+      </div>
+
+      <div
+        v-if="features?.users?.collectLegalName && formUserType === 'client'"
+        :class="{
+          'text-neutral-400': selectedUserType !== 'company',
+        }"
+      >
+        <label>Razon Social</label>
+        <input
+          type="text"
+          v-model="formData.legalName"
+          class="w-full"
+          :disabled="selectedUserType !== 'company'"
+          :class="{
+            'bg-neutral-100 text-neutral-400 cursor-default !border-neutral-200':
+              selectedUserType !== 'company',
+          }"
+        />
+        <span v-if="errors.legalName" class="text-danger text-sm">{{
+          errors.legalName
+        }}</span>
       </div>
 
       <div>
         <label>Teléfono</label>
-        <input
-          type="tel"
-          v-model="formData.phone"
-
-        />
+        <input type="tel" v-model="formData.phone" />
       </div>
 
       <div>
         <label>Dirección</label>
-        <input
-          type="text"
-          v-model="formData.address"
-
-        />
+        <input type="text" v-model="formData.address" />
       </div>
 
       <div>
         <label>Documento de Identidad</label>
-        <input
-          type="text"
-          v-model="formData.nationalId"
-
-        />
+        <input type="text" v-model="formData.nationalId" />
       </div>
 
       <div>
         <label>Fecha de Nacimiento</label>
-        <input
-          type="date"
-          v-model="formData.birthday"
-
-        />
+        <input type="date" v-model="formData.birthday" />
       </div>
 
       <div>
         <label>Comentarios</label>
-        <textarea
-          v-model="formData.comment"
-          rows="3"
-
-        ></textarea>
+        <textarea v-model="formData.comment" rows="3"></textarea>
       </div>
 
       <div class="flex gap-2 justify-end">
-        <button
-          type="submit"
-          :disabled="loading"
-          class="action-btn"
-        >
-          {{ loading ? loadingText : submitButtonText}}
+        <button type="submit" :disabled="loading" class="action-btn">
+          {{ loading ? loadingText : submitButtonText }}
         </button>
         <button
           type="button"
@@ -244,9 +297,7 @@ const handleSubmit = () => {
         >
           Cancelar
         </button>
-
       </div>
-
     </form>
   </div>
 </template>
