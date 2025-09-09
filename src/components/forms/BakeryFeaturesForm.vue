@@ -56,7 +56,7 @@ const formData = ref({ ...props.initialData });
 
 // Radio button options for reports
 const reportFilterOptions = [
-  { value: 'dueDate', label: 'Fecha de Entrega' },
+  { value: 'dueDate', label: 'Fecha de Pedido' },
   { value: 'paymentDate', label: 'Fecha de Pago' },
 ];
 
@@ -252,8 +252,8 @@ watch(() => props.initialData, (newData, oldData) => {
           <RadioFeatureCard
             v-model="formData.defaultReportFilter"
             :icon="PhChartBar"
-            title="Filtro de Fecha por Defecto"
-            description="Selecciona el filtro de fecha que aparecerá por defecto en los reportes"
+            title="Reporte de Ventas"
+            description="Elige qué fecha se usará en los reportes: la fecha en que se tomó el pedido o la fecha en que se recibió el pago."
             :options="reportFilterOptions"
             name="default-report-filter"
             :disabled="loading"

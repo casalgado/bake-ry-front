@@ -6,6 +6,8 @@ import { useDataTable } from '@/components/DataTable/composables/useDataTable.js
 import BakeryUserForm from '@/components/forms/BakeryUserForm.vue';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import { PhPen, PhTrash } from '@phosphor-icons/vue'; // 👈 Importar ícono de basura
+import UserCell from '@/components/DataTable/renderers/UserCell.vue';
+import EmailCell from '@/components/DataTable/renderers/EmailCell.vue';
 
 const bakeryUserStore = useBakeryUserStore();
 const isFormOpen = ref(false);
@@ -58,12 +60,22 @@ const columns = [
     label: 'Nombre',
     field: 'name',
     sortable: true,
+    component: UserCell,
+    getProps: (row) => ({
+      category: row.category,
+      legalName: row.legalName,
+      name: row.name,
+    }),
   },
   {
     id: 'email',
     label: 'Mail',
     field: 'email',
     sortable: true,
+    component: EmailCell,
+    getProps: (row) => ({
+      email: row.email,
+    }),
   },
   {
     id: 'address',
@@ -120,9 +132,8 @@ const tableFilters = [
   {
     field: 'category',
     options: [
-      { label: 'B2C', value: 'B2C' },
-      { label: 'B2B', value: 'B2B' },
-      { label: 'PER', value: 'PER' },
+      { label: 'B2C', value: 'b2c' },
+      { label: 'B2B', value: 'b2b' },
     ],
   },
 ];
