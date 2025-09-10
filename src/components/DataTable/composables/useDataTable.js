@@ -129,7 +129,7 @@ export const useDataTable = (store, options = {}) => {
   onUnmounted(() => {
     if (unsubscribeRef.value && options.subscribeToChanges) {
       unsubscribeRef.value();
-      store.unsubscribe();
+      // store.unsubscribe();
     }
   });
 

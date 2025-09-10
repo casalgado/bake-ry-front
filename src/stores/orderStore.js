@@ -5,6 +5,7 @@ import { useAuthenticationStore } from './authentication';
 import { usePeriodStore } from './periodStore';
 import { storeToRefs } from 'pinia';
 import QueryBuilder from '@/utils/queryBuilder';
+import router from '@/router';
 
 const authStore = useAuthenticationStore();
 const { getBakeryId } = storeToRefs(authStore);
@@ -123,68 +124,123 @@ function deepMerge(target, source) {
   return result;
 }
 
+// Reference counting for subscription management
+let subscriptionCount = 0;
+let unsubscribeFunction = null;
+
 // Override realtime handler specifically for orders to handle orderItems updates
 const originalSubscribeToChanges = store.subscribeToChanges;
 store.subscribeToChanges = async () => {
-  if (store.isSubscribed) {
-    console.log('⚠️ Already subscribed to orders - skipping');
-    return;
-  }
+  subscriptionCount++; // Increment reference count
 
-  console.log('🎯 Creating new subscription for orders');
+  if (subscriptionCount === 1 && !store.isSubscribed) {
+    // First subscriber AND no existing subscription - create the actual Firebase listener
+    console.log('🎯 Creating Firebase subscription for orders');
 
-  const handleOrderRealtimeUpdate = (changes) => {
-    changes.forEach((change) => {
-      switch (change.type) {
-      case 'added': {
-        const index = store.items.findIndex(item => item.id === change.data.id);
-        // Only add if it doesn't already exist, not bulk initial load, and falls within current period
-        if (index === -1 && changes.length < 2 && isOrderInCurrentPeriod(change.data)) {
-          // Insert at the beginning to match typical newest-first order
-          store.items.unshift(change.data);
+    const handleOrderRealtimeUpdate = (changes) => {
+      changes.forEach((change) => {
+        switch (change.type) {
+        case 'added': {
+          const index = store.items.findIndex(item => item.id === change.data.id);
+          // Only add if it doesn't already exist, not bulk initial load, and falls within current period
+          if (index === -1 && changes.length < 2 && isOrderInCurrentPeriod(change.data)) {
+            // Insert at the beginning to match typical newest-first order
+            store.items.unshift(change.data);
+          }
+          break;
         }
-        break;
-      }
-      case 'modified': {
-        const index = store.items.findIndex(item => item.id === change.data.id);
-        if (index !== -1) {
-          const currentItem = store.items[index];
+        case 'modified': {
+          const index = store.items.findIndex(item => item.id === change.data.id);
+          if (index !== -1) {
+            const currentItem = store.items[index];
 
-          Object.entries(change.data).forEach(([key, newValue]) => {
-            // Skip id field
-            if (key === 'id') return;
+            Object.entries(change.data).forEach(([key, newValue]) => {
+              // Skip id field
+              if (key === 'id') return;
 
-            // Handle orderItems array specially
-            if (key === 'orderItems' && Array.isArray(newValue)) {
-              store.items[index][key] = newValue;
-            }
-            // Handle primitive values normally
-            else if (
-              typeof newValue === 'string' ||
-              typeof newValue === 'number' ||
-              typeof newValue === 'boolean'
-            ) {
-              if (currentItem[key] !== newValue) {
+              // Handle orderItems array specially
+              if (key === 'orderItems' && Array.isArray(newValue)) {
                 store.items[index][key] = newValue;
               }
-            }
-            // For other objects and arrays, keep existing value (original logic)
-          });
+              // Handle primitive values normally
+              else if (
+                typeof newValue === 'string' ||
+                typeof newValue === 'number' ||
+                typeof newValue === 'boolean'
+              ) {
+                if (currentItem[key] !== newValue) {
+                  store.items[index][key] = newValue;
+                }
+              }
+              // For other objects and arrays, keep existing value (original logic)
+            });
+          }
+          break;
         }
-        break;
-      }
-      case 'removed': {
-        console.log('REMOVED REALTIME NOT IMPLEMENTED YET', change.data);
-        break;
-      }
-      }
-    });
-  };
+        case 'removed': {
+          console.log('REMOVED REALTIME NOT IMPLEMENTED YET', change.data);
+          break;
+        }
+        }
+      });
+    };
 
-  const unsubscribe = service.subscribeToChanges(handleOrderRealtimeUpdate);
-  store.isSubscribed = true;
-  return unsubscribe;
+    unsubscribeFunction = service.subscribeToChanges(handleOrderRealtimeUpdate);
+    store.isSubscribed = true;
+  } else if (store.isSubscribed) {
+    console.log(`⚠️ Orders already subscribed (${subscriptionCount} components using it)`);
+  } else {
+    console.log(`🔄 Subscription exists but not marked as subscribed (${subscriptionCount} components)`);
+  }
+
+  // Return component-specific cleanup function
+  return () => store.unsubscribeComponent();
 };
+
+// Check if we're still in orders-related routes
+const isInOrdersRoute = () => {
+  return window.location.pathname.startsWith('/dashboard/orders');
+};
+
+// Add component-specific unsubscribe method
+store.unsubscribeComponent = () => {
+  subscriptionCount--; // Decrement reference count
+  console.log(`📊 Component unsubscribed, ${subscriptionCount} remaining`);
+
+  if (subscriptionCount === 0) {
+    // Check if we're still in orders domain before unsubscribing
+    if (isInOrdersRoute()) {
+      console.log('🔄 Still in orders route, keeping Firebase listener active');
+    } else {
+      console.log('🛑 Leaving orders domain, closing Firebase listener');
+      unsubscribeFunction?.();
+      store.isSubscribed = false;
+      unsubscribeFunction = null;
+    }
+  } else {
+    console.log(`📊 Still ${subscriptionCount} components subscribed to orders`);
+  }
+};
+
+// Method to force cleanup when leaving orders domain entirely
+store.forceUnsubscribe = () => {
+  if (store.isSubscribed) {
+    console.log('🛑 Force unsubscribing from orders (leaving domain)');
+    unsubscribeFunction?.();
+    store.isSubscribed = false;
+    unsubscribeFunction = null;
+    subscriptionCount = 0; // Reset count
+  }
+};
+
+// Navigation guard to cleanup when leaving orders domain
+router.afterEach((to, from) => {
+  // If we're leaving orders routes and going somewhere else
+  if (from.path?.startsWith('/dashboard/orders') && !to.path?.startsWith('/dashboard/orders')) {
+    console.log('🚪 Navigating away from orders domain, forcing cleanup');
+    store.forceUnsubscribe();
+  }
+});
 
 // Override patchAll specifically for orders to handle orderItems correctly
 store.patchAll = async (updates) => {
