@@ -19,6 +19,8 @@ sandbox.*.html
 sandbox.*.json
 sandbox.*.txt
 
+zdocs
+
 /cypress/videos/
 /cypress/screenshots/
 
