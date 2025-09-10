@@ -87,19 +87,24 @@ const {
   processData,
   subscribeToChanges: true,
   fetchAll: {
-    filters: {
-      dateRange: {
-        dateField: 'preparationDate',
-        startDate: periodStore.periodRange.start.toISOString(),
-        endDate: periodStore.periodRange.end.toISOString(),
-      },
-    },
+    // Static options can go here, filters will be dynamic
   },
   // Initial setup before fetching data
   async onBeforeFetch() {
     await settingsStore.fetchById('default');
     await systemSettingsStore.fetchSettings();
     b2bClients.value = await settingsStore.b2b_clients;
+
+    // Return dynamic filters based on current period state
+    return {
+      filters: {
+        dateRange: {
+          dateField: 'preparationDate',
+          startDate: periodStore.periodRange.start.toISOString(),
+          endDate: periodStore.periodRange.end.toISOString(),
+        },
+      },
+    };
   },
   // Action handler
   async onAction({ actionId, selectedItems }) {

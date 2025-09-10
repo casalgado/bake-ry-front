@@ -98,14 +98,19 @@ export const useDataTable = (store, options = {}) => {
   onMounted(async () => {
     isLoading.value = true;
     try {
+      let fetchOptions = options.fetchAll || {};
+
       // Allow for initial setup if provided
       if (options.onBeforeFetch) {
-        await options.onBeforeFetch();
+        const dynamicOptions = await options.onBeforeFetch();
+        // Merge dynamic options with static options, with dynamic taking precedence
+        if (dynamicOptions) {
+          fetchOptions = { ...fetchOptions, ...dynamicOptions };
+        }
       }
 
       // Fetch data with provided filters
-
-      await store.fetchAll(options.fetchAll || {});
+      await store.fetchAll(fetchOptions);
 
       // Setup real-time updates
       if (options.subscribeToChanges) {
