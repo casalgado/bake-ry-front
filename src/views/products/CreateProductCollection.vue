@@ -7,7 +7,6 @@ const router = useRouter();
 const productCollectionStore = useProductCollectionStore();
 
 const handleSubmit = async (formData) => {
-  console.log('formData', formData);
   try {
     await productCollectionStore.create(formData);
   } catch (error) {

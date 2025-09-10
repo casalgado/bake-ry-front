@@ -30,7 +30,7 @@ const processData = (orders) => {
   // Create client summaries
   return Object.values(clientOrders).map((orders) => {
     const sortedOrders = orders.sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
     );
     const mostRecent = sortedOrders[0];
 
@@ -111,7 +111,7 @@ watch(
       console.error('Failed to fetch orders:', error);
     }
   },
-  { deep: true }
+  { deep: true },
 );
 </script>
 

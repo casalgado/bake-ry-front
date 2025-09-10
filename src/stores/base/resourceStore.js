@@ -95,8 +95,12 @@ export const createResourceStore = (resourceName, resourceService) => {
     }
 
     async function subscribeToChanges() {
-      if (isSubscribed.value) return;
+      if (isSubscribed.value) {
+        console.log(`⚠️ Already subscribed to ${resourceName} - skipping`);
+        return;
+      }
 
+      console.log(`🎯 Creating new subscription for ${resourceName}`);
       const unsubscribe = resourceService.subscribeToChanges(
         handleRealtimeUpdate,
       );
@@ -107,6 +111,7 @@ export const createResourceStore = (resourceName, resourceService) => {
 
     function unsubscribe() {
       if (isSubscribed.value) {
+        console.log(`🛑 Unsubscribing from ${resourceName}`);
         resourceService.unsubscribeFromChanges();
         isSubscribed.value = false;
       }

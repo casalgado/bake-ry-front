@@ -70,7 +70,6 @@ const columns = [
 
 // Selection handler
 const handleSelectionChange = (selectedIds) => {
-  console.log('Selected recipes:', selectedIds);
   // If only one recipe is selected, we can show the edit form
   if (selectedIds.length === 1) {
     selectedRecipe.value = recipeStore.items.find(r => r.id === selectedIds[0]);

@@ -139,8 +139,6 @@ const totals = computed(() => {
     }))
     : tableData.value;
 
-  console.log(ordersToCalculate);
-
   const b2bTotal = ordersToCalculate
     .filter(order => order.userCategory === 'B2B')
     .reduce((sum, order) => sum + order.total, 0);

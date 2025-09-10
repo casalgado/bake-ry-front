@@ -169,7 +169,6 @@ const validate = () => {
 
 const scrollToError = async () => {
   await nextTick(); // Wait for the DOM to update
-  console.log('Scrolling to error');
   // Add a small delay to ensure error elements are rendered
   setTimeout(() => {
     const firstErrorElement = document.querySelector('.text-danger');

@@ -412,7 +412,6 @@ onMounted(async () => {
     await systemSettingsStore.fetchSettings();
     b2bClients.value = await settingsStore.b2b_clients;
     reportSettings.value = await settingsStore.items[0]?.features?.reports;
-    console.log(reportSettings.value);
 
     // Then fetch orders
     salesReport.value = await orderStore.salesReport({

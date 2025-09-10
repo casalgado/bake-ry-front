@@ -53,7 +53,6 @@ export const useTableSort = () => {
   // Sort data based on current sort state
   const sortData = (data) => {
     if (!sortState.value.length) return [...data];
-    console.log('sort', data);
     return [...data].sort((a, b) => {
       for (const sort of sortState.value) {
         const aVal = a[sort.columnId];

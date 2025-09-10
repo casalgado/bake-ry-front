@@ -137,7 +137,6 @@ const handleRowClick = (event, row) => {
 
 const handleCellClick = (payload) => {
   const { event, row, column } = payload;
-  console.log('Cell clicked:', { event, row, column });
   if (column && column.type === 'toggle') {
     event.stopPropagation();
     emit('toggle-update', { row, column });

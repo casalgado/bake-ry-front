@@ -286,11 +286,21 @@ export class BaseService {
     );
     const q = query(collectionRef);
 
+    let isInitialLoad = true;
+
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        if (isInitialLoad) {
+          // Skip processing initial snapshot as "changes"
+          isInitialLoad = false;
+          console.log(`📊 Initial load: ${snapshot.size} documents for ${this.resource}`);
+          return;
+        }
+
         const changes = [];
         snapshot.docChanges().forEach((change) => {
+          console.log('🔄 Real change detected:', change.type, change.doc.id);
           const rawData = {
             id: change.doc.id,
             ...change.doc.data(),
@@ -300,7 +310,11 @@ export class BaseService {
           const convertedData = this.convertTimestamps(rawData);
           changes.push({ type: change.type, data: convertedData });
         });
-        onUpdate(changes);
+
+        if (changes.length > 0) {
+          console.log(`🔄 Processed ${changes.length} real changes for ${this.resource}`);
+          onUpdate(changes);
+        }
       },
       (error) => {
         console.error('Firestore subscription error:', error);

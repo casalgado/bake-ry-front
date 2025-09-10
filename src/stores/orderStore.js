@@ -126,7 +126,12 @@ function deepMerge(target, source) {
 // Override realtime handler specifically for orders to handle orderItems updates
 const originalSubscribeToChanges = store.subscribeToChanges;
 store.subscribeToChanges = async () => {
-  if (store.isSubscribed) return;
+  if (store.isSubscribed) {
+    console.log('⚠️ Already subscribed to orders - skipping');
+    return;
+  }
+
+  console.log('🎯 Creating new subscription for orders');
 
   const handleOrderRealtimeUpdate = (changes) => {
     changes.forEach((change) => {
