@@ -192,8 +192,6 @@ onMounted(async () => {
   ]);
   fetching.value = false;
 
-  console.log(bakerySettingsStore.items?.[0]);
-
   if (props.initialData?.userId) {
     const user = userStore.items.find((u) => u.id === props.initialData.userId);
     if (user) {
