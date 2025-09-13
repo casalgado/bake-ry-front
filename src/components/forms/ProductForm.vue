@@ -5,8 +5,8 @@ import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import TemplateVariation from '@/components/TemplateVariation.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import YesNoToggle from '@/components/forms/YesNoToggle.vue';
-import { cleanString, getVariationTypeLabel, capitalize } from '@/utils/helpers';
-import { PhTrash, PhX } from '@phosphor-icons/vue';
+import { cleanString, capitalize } from '@/utils/helpers';
+import { PhX } from '@phosphor-icons/vue';
 
 const systemSettingsStore = useSystemSettingsStore();
 const collectionStore = useProductCollectionStore();
