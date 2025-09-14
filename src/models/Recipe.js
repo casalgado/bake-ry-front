@@ -1,4 +1,4 @@
-const BaseModel = require('./base/BaseModel');
+import BaseModel from './base/BaseModel.js';
 
 class RecipeIngredient {
   constructor({

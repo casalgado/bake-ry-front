@@ -1,6 +1,6 @@
-const BaseModel = require('./base/BaseModel');
-const ProductVariation = require('./ProductVariation');
-const { generateId } = require('../utils/helpers');
+import BaseModel from './base/BaseModel.js';
+import ProductVariation from './ProductVariation.js';
+import { generateId  } from '../utils/helpers.js';
 
 class ProductCollection extends BaseModel {
 
@@ -113,4 +113,4 @@ class ProductCollection extends BaseModel {
 
 }
 
-module.exports = ProductCollection;
+export default ProductCollection;

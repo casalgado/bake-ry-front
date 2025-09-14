@@ -1,4 +1,4 @@
-const BaseModel = require('./base/BaseModel');
+import BaseModel from './base/BaseModel.js';
 
 class Bakery extends BaseModel {
   constructor({
@@ -95,4 +95,4 @@ class Bakery extends BaseModel {
   }
 }
 
-module.exports = Bakery;
+export default Bakery;

@@ -1,6 +1,6 @@
 // models/SalesReport.js
 
-const { Order } = require('./Order');
+import { Order  } from './Order.js';
 
 class SalesReport {
   constructor(orders, b2b_clients, all_products) {
@@ -447,4 +447,4 @@ class SalesReport {
 
 }
 
-module.exports = SalesReport;
+export default SalesReport;

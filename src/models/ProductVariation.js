@@ -1,5 +1,5 @@
-const { BadRequestError } = require('../utils/errors');
-const { generateId } = require('../utils/helpers');
+import { BadRequestError  } from '../utils/errors.js';
+import { generateId  } from '../utils/helpers.js';
 
 class ProductVariation {
   constructor({
@@ -112,4 +112,4 @@ class ProductVariation {
   }
 }
 
-module.exports = ProductVariation;
+export default ProductVariation;

@@ -1,5 +1,5 @@
-const BaseModel = require('./base/BaseModel');
-const { parseSpanishName } = require('../utils/helpers');
+import BaseModel from './base/BaseModel.js';
+import { parseSpanishName  } from '../utils/helpers.js';
 
 class User extends BaseModel {
   constructor({
@@ -71,4 +71,4 @@ class User extends BaseModel {
   }
 }
 
-module.exports = User;
+export default User;

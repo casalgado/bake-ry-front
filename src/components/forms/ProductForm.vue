@@ -179,7 +179,7 @@ const handleSubmit = () => {
   formData.value.name = cleanString(formData.value.name);
   formData.value.description = cleanString(formData.value.description);
   console.log('Submitting form data:', formData.value);
-  //emit('submit', formData.value);
+  emit('submit', formData.value);
 };
 
 const resetForm = () => {
@@ -204,6 +204,7 @@ const resetForm = () => {
 
 // Load data on mount
 onMounted(async () => {
+  console.log('ProductForm mounted');
   if (!collectionStore.isLoaded) {
     try {
       await collectionStore.fetchAll();
@@ -211,6 +212,8 @@ onMounted(async () => {
       console.error('Failed to load product collections:', error);
     }
   }
+
+  console.log('props.initialData:', props.initialData);
 
   // Check if initial data has variations
   if (props.initialData && props.initialData.variations) {

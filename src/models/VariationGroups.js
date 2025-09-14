@@ -1,4 +1,4 @@
-import { generateId } from '../utils/helpers.js';
+import { generateId  } from '../utils/helpers.js';
 
 /**
  * @typedef {Object} DimensionOption

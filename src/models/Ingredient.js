@@ -1,6 +1,6 @@
 // models/Ingredient.js
-const BaseModel = require('./base/BaseModel');
-const { BadRequestError } = require('../utils/errors');
+import BaseModel from './base/BaseModel.js';
+import { BadRequestError  } from '../utils/errors.js';
 
 class Ingredient extends BaseModel {
   static TYPES = {
@@ -96,4 +96,4 @@ class Ingredient extends BaseModel {
 
 }
 
-module.exports = Ingredient;
+export default Ingredient;

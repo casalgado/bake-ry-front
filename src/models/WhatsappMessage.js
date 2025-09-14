@@ -1,5 +1,5 @@
 // Updated WhatsappMessage class
-const BaseModel = require('./base/BaseModel');
+import BaseModel from './base/BaseModel.js';
 
 class WhatsappMessage extends BaseModel {
   constructor(webhookData) {

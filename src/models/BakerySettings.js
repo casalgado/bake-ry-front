@@ -1,5 +1,5 @@
-const BaseModel = require('./base/BaseModel');
-const { generateId } = require('../utils/helpers');
+import BaseModel from './base/BaseModel.js';
+import { generateId  } from '../utils/helpers.js';
 
 class IngredientCategory {
   constructor({

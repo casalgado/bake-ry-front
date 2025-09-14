@@ -1,4 +1,4 @@
-const BaseModel = require('./base/BaseModel');
+import BaseModel from './base/BaseModel.js';
 
 class SystemSettings extends BaseModel {
   static ORDER_STATUSES = [
@@ -106,4 +106,4 @@ class SystemSettings extends BaseModel {
   }
 }
 
-module.exports = SystemSettings;
+export default SystemSettings;

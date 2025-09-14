@@ -1,5 +1,5 @@
 // models/OrderHistory.js
-const BaseModel = require('./base/BaseModel');
+import BaseModel from './base/BaseModel.js';
 
 class OrderHistoryChange {
   constructor(change = {}) {
@@ -108,4 +108,4 @@ class OrderHistory extends BaseModel {
   }
 }
 
-module.exports = OrderHistory;
+export default OrderHistory;

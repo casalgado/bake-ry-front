@@ -1,4 +1,4 @@
-const BaseModel = require('./base/BaseModel');
+import BaseModel from './base/BaseModel.js';
 
 class PayuCard extends BaseModel {
   constructor({
@@ -92,4 +92,4 @@ class PayuCard extends BaseModel {
   }
 }
 
-module.exports = PayuCard;
+export default PayuCard;
