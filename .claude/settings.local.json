@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Read(/C:\\Users\\casal\\documents\\web\\front\\bake-ry-front\\src\\components\\forms/**)",
-      "Read(/C:\\Users\\casal\\documents\\web\\front\\bake-ry-front\\src\\components\\forms/**)"
+      "Read(/C:\\Users\\casal\\documents\\web\\front\\bake-ry-front\\src\\components\\forms/**)",
+      "Bash(npm test)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []

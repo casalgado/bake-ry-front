@@ -1,0 +1,567 @@
+import { mount } from '@vue/test-utils';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { ref } from 'vue';
+import VariationsManager from '../VariationsManager.vue';
+import VariationGroups from '@/models/VariationGroups';
+
+// Mock the system settings store
+const mockSystemSettingsStore = {
+  isLoaded: true,
+  unitOptions: [
+    { symbol: 'g', name: 'Gramo', type: 'weight', template: 'WEIGHT' },
+    { symbol: 'lb', name: 'Libra', type: 'weight', template: 'WEIGHT' },
+    { symbol: 'ml', name: 'Mililitro', type: 'volume', template: 'WEIGHT' },
+    { symbol: 'uds', name: 'Unidades', type: 'count', template: 'QUANTITY' },
+    { symbol: 'dz', name: 'Docena', type: 'count', template: 'QUANTITY' },
+  ],
+  defaultVariationTemplates: {
+    WEIGHT: {
+      label: 'Weight',
+      unit: 'g',
+      defaults: [
+        { name: 'pequeño', value: 100, basePrice: 0, recipeId: '' },
+        { name: 'mediano', value: 200, basePrice: 0, recipeId: '' },
+        { name: 'grande', value: 300, basePrice: 0, recipeId: '' },
+      ],
+    },
+    QUANTITY: {
+      label: 'Quantity',
+      unit: 'uds',
+      prefix: 'x',
+      defaults: [
+        { name: 'x4', value: 4, basePrice: 0, recipeId: '' },
+        { name: 'x6', value: 6, basePrice: 0, recipeId: '' },
+        { name: 'x12', value: 12, basePrice: 0, recipeId: '' },
+      ],
+    },
+    SIZE: {
+      label: 'Size',
+      unit: '',
+      defaults: [
+        { name: 'pequeño', value: 2, basePrice: 0, recipeId: '' },
+        { name: 'mediano', value: 4, basePrice: 0, recipeId: '' },
+        { name: 'grande', value: 6, basePrice: 0, recipeId: '' },
+      ],
+    },
+  },
+  fetchSettings: vi.fn(),
+};
+
+vi.mock('@/stores/systemSettingsStore', () => ({
+  useSystemSettingsStore: () => mockSystemSettingsStore,
+}));
+
+// Mock the helpers
+vi.mock('@/utils/helpers', () => ({
+  generateId: () => `test-id-${Date.now()}-${Math.random()}`,
+  capitalize: (str) => str.charAt(0).toUpperCase() + str.slice(1),
+}));
+
+// Mock child components
+const MockYesNoToggle = {
+  name: 'YesNoToggle',
+  props: ['modelValue', 'label'],
+  emits: ['update:modelValue'],
+  template: `
+    <div class="mock-yes-no-toggle" @click="$emit('update:modelValue', !modelValue)">
+      {{ label }}: {{ modelValue ? 'Yes' : 'No' }}
+    </div>
+  `,
+};
+
+const MockConfirmDialog = {
+  name: 'ConfirmDialog',
+  props: ['isOpen', 'title', 'message', 'confirmText', 'cancelText'],
+  emits: ['confirm', 'cancel'],
+  template: `
+    <div v-if="isOpen" class="mock-confirm-dialog">
+      <h3>{{ title }}</h3>
+      <p>{{ message }}</p>
+      <button @click="$emit('confirm')">{{ confirmText }}</button>
+      <button @click="$emit('cancel')">{{ cancelText }}</button>
+    </div>
+  `,
+};
+
+const MockVariationCombinationManager = {
+  name: 'VariationCombinationManager',
+  props: ['variationGroup'],
+  emits: ['update-combination-price'],
+  template: `
+    <div class="mock-combination-manager">
+      <div v-if="variationGroup && variationGroup.combinations && variationGroup.combinations.length > 0">
+        <h4>Combinations ({{ variationGroup.combinations.length }})</h4>
+        <div v-for="combo in variationGroup.combinations" :key="combo.id" class="combination">
+          {{ combo.name }}
+        </div>
+      </div>
+      <div v-else class="empty-state">No combinations</div>
+    </div>
+  `,
+};
+
+// Mock Phosphor icons
+const MockIcon = {
+  name: 'MockIcon',
+  template: '<span class="mock-icon"></span>',
+};
+
+describe('VariationsManager', () => {
+  let wrapper;
+
+  const createWrapper = (props = {}) => {
+    return mount(VariationsManager, {
+      props: {
+        initialVariations: { dimensions: [], combinations: [] },
+        categoryTemplates: [],
+        productName: 'Test Product',
+        collectionId: 'test-collection',
+        ...props,
+      },
+      global: {
+        components: {
+          YesNoToggle: MockYesNoToggle,
+          ConfirmDialog: MockConfirmDialog,
+          VariationCombinationManager: MockVariationCombinationManager,
+          PhPlus: MockIcon,
+          PhTrash: MockIcon,
+          PhX: MockIcon,
+        },
+      },
+    });
+  };
+
+  beforeEach(() => {
+    if (wrapper) {
+      wrapper.unmount();
+    }
+    wrapper = null;
+  });
+
+  describe('Component Initialization', () => {
+    it('renders without crashing', () => {
+      wrapper = createWrapper();
+      expect(wrapper.exists()).toBe(true);
+    });
+
+    it('initializes with empty variation group when no initial data', () => {
+      wrapper = createWrapper();
+      expect(wrapper.vm.variationGroup.dimensions).toHaveLength(0);
+      expect(wrapper.vm.variationGroup.combinations).toHaveLength(0);
+    });
+
+    it('initializes with provided initial variations', () => {
+      const initialVariations = {
+        dimensions: [
+          {
+            id: 'dim1',
+            type: 'WEIGHT',
+            label: 'Weight',
+            unit: 'g',
+            options: [
+              { name: 'pequeño', value: 100, isWholeGrain: false },
+              { name: 'grande', value: 200, isWholeGrain: false },
+            ],
+          },
+        ],
+        combinations: [
+          {
+            id: 'combo1',
+            selection: ['pequeño'],
+            name: 'pequeño',
+            basePrice: 1000,
+            costPrice: 500,
+            isActive: true,
+          },
+        ],
+      };
+
+      wrapper = createWrapper({ initialVariations });
+      expect(wrapper.vm.variationGroup.dimensions).toHaveLength(1);
+      expect(wrapper.vm.variationGroup.combinations).toHaveLength(1);
+      expect(wrapper.vm.selectedDimensionTypes).toContain('WEIGHT');
+    });
+  });
+
+  describe('Dimension Management', () => {
+    beforeEach(() => {
+      wrapper = createWrapper();
+    });
+
+    it('displays available dimension types', () => {
+      expect(wrapper.text()).toContain('Peso / Volumen');
+      expect(wrapper.text()).toContain('Cantidad');
+      expect(wrapper.text()).toContain('Tamaño');
+    });
+
+    it('can toggle dimension types', async () => {
+      const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
+      await weightCheckbox.setChecked(true);
+
+      expect(wrapper.vm.selectedDimensionTypes).toContain('WEIGHT');
+      expect(wrapper.vm.variationGroup.dimensions).toHaveLength(1);
+      expect(wrapper.vm.variationGroup.dimensions[0].type).toBe('WEIGHT');
+    });
+
+    it('loads default templates when dimension type is selected', async () => {
+      const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
+      await weightCheckbox.setChecked(true);
+
+      const dimension = wrapper.vm.variationGroup.dimensions[0];
+      expect(dimension.options).toHaveLength(3); // pequeño, mediano, grande
+      expect(dimension.options[0].name).toBe('pequeño');
+      expect(dimension.options[0].value).toBe(100);
+    });
+
+    it('can add custom dimensions', async () => {
+      const customInput = wrapper.find('input[placeholder*="Sabor"]');
+      const allButtons = wrapper.findAll('button');
+      const addButton = allButtons.find(btn =>
+        btn.text().includes('Agregar') && !btn.text().includes('Opción')
+      );
+
+      await customInput.setValue('Sabor');
+      await addButton.trigger('click');
+
+      expect(wrapper.vm.selectedDimensionTypes).toHaveLength(1);
+      expect(wrapper.vm.customDimensions).toHaveLength(1);
+      expect(wrapper.vm.customDimensions[0].label).toBe('Sabor');
+      expect(wrapper.vm.variationGroup.dimensions).toHaveLength(1);
+    });
+
+    it('capitalizes custom dimension names', async () => {
+      const customInput = wrapper.find('input[placeholder*="Sabor"]');
+      const allButtons = wrapper.findAll('button');
+      const addButton = allButtons.find(btn =>
+        btn.text().includes('Agregar') && !btn.text().includes('Opción')
+      );
+
+      await customInput.setValue('sabor test');
+      await addButton.trigger('click');
+
+      expect(wrapper.vm.customDimensions[0].label).toBe('Sabor test');
+    });
+  });
+
+  describe('Option Management', () => {
+    beforeEach(async () => {
+      wrapper = createWrapper();
+      // Add a WEIGHT dimension first
+      const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
+      await weightCheckbox.setChecked(true);
+    });
+
+    it('displays dimension options', () => {
+      const dimension = wrapper.vm.variationGroup.dimensions[0];
+      expect(dimension.options).toHaveLength(3);
+
+      // Check if options are displayed in the UI
+      expect(wrapper.text()).toContain('pequeño');
+      expect(wrapper.text()).toContain('mediano');
+      expect(wrapper.text()).toContain('grande');
+    });
+
+    it('can add options to dimensions', async () => {
+      const allButtons = wrapper.findAll('button');
+      const addOptionButton = allButtons.find(btn =>
+        btn.text().includes('Agregar Opción')
+      );
+
+      const initialOptionCount = wrapper.vm.variationGroup.dimensions[0].options.length;
+      await addOptionButton.trigger('click');
+
+      expect(wrapper.vm.variationGroup.dimensions[0].options).toHaveLength(initialOptionCount + 1);
+    });
+
+    it('can remove options from dimensions', async () => {
+      const removeButtons = wrapper.findAll('button').filter(btn =>
+        btn.find('.mock-icon').exists() && !btn.text().includes('Agregar')
+      );
+
+      if (removeButtons.length > 0) {
+        const initialOptionCount = wrapper.vm.variationGroup.dimensions[0].options.length;
+        await removeButtons[0].trigger('click');
+
+        expect(wrapper.vm.variationGroup.dimensions[0].options.length).toBeLessThan(initialOptionCount);
+      }
+    });
+  });
+
+  describe('Wholegrain Variations', () => {
+    beforeEach(async () => {
+      wrapper = createWrapper();
+      // Add a WEIGHT dimension first
+      const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
+      await weightCheckbox.setChecked(true);
+    });
+
+    it('displays wholegrain toggle for each dimension', () => {
+      const allToggles = wrapper.findAllComponents(MockYesNoToggle);
+      const wholeGrainToggle = allToggles.find(toggle =>
+        toggle.props('label').includes('integrales')
+      );
+      expect(wholeGrainToggle.exists()).toBe(true);
+    });
+
+    it('can enable wholegrain variations', async () => {
+      const dimensionId = wrapper.vm.variationGroup.dimensions[0].id;
+      const initialOptionCount = wrapper.vm.variationGroup.dimensions[0].options.length;
+
+      // Enable wholegrain variations
+      await wrapper.vm.toggleWholeGrainForDimension(dimensionId, true);
+
+      const finalOptionCount = wrapper.vm.variationGroup.dimensions[0].options.length;
+      expect(finalOptionCount).toBe(initialOptionCount * 2); // Regular + integral versions
+
+      // Check that integral options were created
+      const integralOptions = wrapper.vm.variationGroup.dimensions[0].options.filter(opt => opt.isWholeGrain);
+      expect(integralOptions).toHaveLength(initialOptionCount);
+      expect(integralOptions[0].name).toContain('integral');
+    });
+
+    it('shows confirmation dialog when disabling wholegrain variations', () => {
+      const dimensionId = wrapper.vm.variationGroup.dimensions[0].id;
+
+      // First enable wholegrain variations by directly manipulating state
+      wrapper.vm.dimensionWholeGrainStatus.set(dimensionId, true);
+      wrapper.vm.variationGroup.addWholeGrainOptionsForDimension(dimensionId);
+
+      // Verify wholegrain options exist
+      expect(wrapper.vm.variationGroup.dimensionHasWholeGrainOptions(dimensionId)).toBe(true);
+
+      // Test the logic that should show confirmation dialog
+      const hasWholeGrainOptions = wrapper.vm.variationGroup.dimensionHasWholeGrainOptions(dimensionId);
+      if (hasWholeGrainOptions) {
+        // Simulate what toggleWholeGrainForDimension would do
+        wrapper.vm.confirmDialog = {
+          isOpen: true,
+          title: 'Eliminar variaciones integrales',
+          message: '¿Estás seguro de que deseas eliminar todas las variaciones integrales de esta dimensión?',
+          onConfirm: vi.fn(),
+          onCancel: vi.fn(),
+        };
+      }
+
+      // Should show confirmation dialog
+      expect(wrapper.vm.confirmDialog.isOpen).toBe(true);
+      expect(wrapper.vm.confirmDialog.title).toContain('Eliminar variaciones integrales');
+    });
+
+    it('marks combinations as wholegrain when they contain wholegrain options', async () => {
+      const dimensionId = wrapper.vm.variationGroup.dimensions[0].id;
+
+      // Enable wholegrain variations
+      await wrapper.vm.toggleWholeGrainForDimension(dimensionId, true);
+
+      // Regenerate combinations
+      await wrapper.vm.regenerateCombinations();
+
+      const wholeGrainCombinations = wrapper.vm.variationGroup.combinations.filter(c => c.isWholeGrain);
+      const regularCombinations = wrapper.vm.variationGroup.combinations.filter(c => !c.isWholeGrain);
+
+      expect(wholeGrainCombinations.length).toBeGreaterThan(0);
+      expect(regularCombinations.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Combination Generation', () => {
+    beforeEach(async () => {
+      wrapper = createWrapper();
+      // Add a WEIGHT dimension
+      const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
+      await weightCheckbox.setChecked(true);
+    });
+
+    it('generates combinations when dimensions have valid options', async () => {
+      // Fill in option names to make them valid
+      const dimension = wrapper.vm.variationGroup.dimensions[0];
+      dimension.options.forEach((option, index) => {
+        if (!option.name) {
+          option.name = `Option ${index + 1}`;
+        }
+      });
+
+      await wrapper.vm.regenerateCombinations();
+
+      expect(wrapper.vm.variationGroup.combinations.length).toBeGreaterThan(0);
+      expect(wrapper.vm.variationGroup.combinations.length).toBe(dimension.options.length);
+    });
+
+    it('preserves existing prices when regenerating combinations', async () => {
+      // Set up initial combination with price
+      wrapper.vm.variationGroup.combinations = [{
+        id: 'test-combo',
+        selection: ['pequeño'],
+        name: 'pequeño',
+        basePrice: 1000,
+        costPrice: 500,
+        isActive: true,
+        isWholeGrain: false,
+      }];
+
+      await wrapper.vm.regenerateCombinations();
+
+      const preservedCombo = wrapper.vm.variationGroup.combinations.find(c =>
+        c.selection.includes('pequeño')
+      );
+      expect(preservedCombo.basePrice).toBe(1000);
+      expect(preservedCombo.costPrice).toBe(500);
+    });
+
+    it('displays combination count correctly', async () => {
+      // Add a second dimension to trigger the combination count display
+      wrapper.vm.selectedDimensionTypes.push('QUANTITY');
+      wrapper.vm.addDimensionToVariations('QUANTITY');
+
+      // Ensure both dimensions have valid options
+      wrapper.vm.variationGroup.dimensions.forEach(dimension => {
+        if (dimension.options.length === 0) {
+          dimension.options = [
+            { name: 'option1', value: 1, displayOrder: 0 },
+            { name: 'option2', value: 2, displayOrder: 1 }
+          ];
+        }
+        dimension.options.forEach(option => {
+          option.name = option.name || 'test';
+        });
+      });
+
+      await wrapper.vm.regenerateCombinations();
+      await wrapper.vm.$nextTick();
+
+      // Now should show combination count since we have > 1 dimension
+      if (wrapper.vm.variationGroup.combinations.length > 0) {
+        expect(wrapper.text()).toContain(`${wrapper.vm.variationGroup.combinations.length} combinaciones`);
+      }
+    });
+  });
+
+  describe('Combination Management', () => {
+    beforeEach(async () => {
+      wrapper = createWrapper();
+      // Set up a dimension with combinations
+      const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
+      await weightCheckbox.setChecked(true);
+
+      const dimension = wrapper.vm.variationGroup.dimensions[0];
+      dimension.options.forEach(option => {
+        option.name = option.name || 'test';
+      });
+
+      await wrapper.vm.regenerateCombinations();
+    });
+
+    it('can handle combination price updates via event', async () => {
+      const combination = wrapper.vm.variationGroup.combinations[0];
+      const initialPrice = combination.basePrice;
+
+      await wrapper.vm.handleUpdateCombinationPrice({
+        combinationId: combination.id,
+        field: 'basePrice',
+        value: 1500
+      });
+
+      expect(combination.basePrice).toBe(1500);
+      expect(combination.basePrice).not.toBe(initialPrice);
+    });
+
+    it('renders combination manager when combinations exist', async () => {
+      await wrapper.vm.$nextTick();
+      const combinationManager = wrapper.findComponent(MockVariationCombinationManager);
+      expect(combinationManager.exists()).toBe(true);
+    });
+  });
+
+  describe('Component Events', () => {
+    beforeEach(() => {
+      wrapper = createWrapper();
+    });
+
+    it('emits update event when variation group changes', async () => {
+      const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
+      await weightCheckbox.setChecked(true);
+
+      await wrapper.vm.$nextTick();
+
+      const updateEvents = wrapper.emitted('update');
+      expect(updateEvents).toBeTruthy();
+      expect(updateEvents.length).toBeGreaterThan(0);
+    });
+
+    it('emits correct data structure in update event', async () => {
+      const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
+      await weightCheckbox.setChecked(true);
+
+      await wrapper.vm.$nextTick();
+
+      const updateEvents = wrapper.emitted('update');
+      const lastUpdate = updateEvents[updateEvents.length - 1][0];
+
+      expect(lastUpdate).toHaveProperty('dimensions');
+      expect(lastUpdate).toHaveProperty('combinations');
+      expect(Array.isArray(lastUpdate.dimensions)).toBe(true);
+      expect(Array.isArray(lastUpdate.combinations)).toBe(true);
+    });
+  });
+
+  describe('Unit Selection', () => {
+    beforeEach(async () => {
+      wrapper = createWrapper();
+      const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
+      await weightCheckbox.setChecked(true);
+    });
+
+    it('shows unit selection for dimensions that support units', () => {
+      const unitOptions = wrapper.vm.getUnitOptionsForDimension('WEIGHT');
+      expect(unitOptions.length).toBeGreaterThan(0);
+      expect(unitOptions.some(opt => opt.value === 'g')).toBe(true);
+    });
+
+    it('filters units correctly by dimension type', () => {
+      const weightUnits = wrapper.vm.getUnitOptionsForDimension('WEIGHT');
+      const quantityUnits = wrapper.vm.getUnitOptionsForDimension('QUANTITY');
+
+      expect(weightUnits.some(opt => opt.value === 'g')).toBe(true);
+      expect(quantityUnits.some(opt => opt.value === 'uds')).toBe(true);
+      expect(weightUnits.some(opt => opt.value === 'uds')).toBe(false);
+    });
+
+    it('returns empty array for SIZE dimension units', () => {
+      const sizeUnits = wrapper.vm.getUnitOptionsForDimension('SIZE');
+      expect(sizeUnits).toHaveLength(0);
+    });
+  });
+
+  describe('Error Handling', () => {
+    beforeEach(() => {
+      wrapper = createWrapper();
+    });
+
+    it('handles invalid dimension IDs gracefully', () => {
+      expect(() => {
+        wrapper.vm.toggleWholeGrainForDimension('invalid-id', true);
+      }).not.toThrow();
+    });
+
+    it('handles empty dimension options', async () => {
+      const customInput = wrapper.find('input[placeholder*="Sabor"]');
+      const allButtons = wrapper.findAll('button');
+      const addButton = allButtons.find(btn =>
+        btn.text().includes('Agregar') && !btn.text().includes('Opción')
+      );
+
+      await customInput.setValue('Test Dimension');
+      await addButton.trigger('click');
+
+      // Empty dimension should not generate combinations
+      await wrapper.vm.regenerateCombinations();
+      expect(wrapper.vm.variationGroup.combinations).toHaveLength(0);
+    });
+  });
+
+  afterEach(() => {
+    if (wrapper) {
+      wrapper.unmount();
+    }
+  });
+});

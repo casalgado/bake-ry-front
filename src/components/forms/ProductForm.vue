@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import YesNoToggle from '@/components/forms/YesNoToggle.vue';
+import VariationsManager from '@/components/forms/VariationsManager.vue';
 import { cleanString } from '@/utils/helpers';
 
 const collectionStore = useProductCollectionStore();
@@ -93,7 +94,12 @@ const handleCategoryChange = () => {
 // Handle variation updates from VariationsManager component
 const handleVariationUpdate = (variationData) => {
   formData.value.variations = variationData;
-  formData.value.hasVariations = variationData.combinations && variationData.combinations.length > 0;
+
+  // Keep hasVariations true if dimensions exist (even without combinations)
+  // This allows users to continue configuring dimensions
+  formData.value.hasVariations =
+    (variationData.dimensions && variationData.dimensions.length > 0) ||
+    (variationData.combinations && variationData.combinations.length > 0);
 
   // Clear base price and cost price if variations exist
   if (formData.value.hasVariations) {
@@ -172,8 +178,8 @@ const handleSubmit = () => {
 
   formData.value.name = cleanString(formData.value.name);
   formData.value.description = cleanString(formData.value.description);
-
-  emit('submit', formData.value);
+  console.log('Submitting form data:', formData.value);
+  //emit('submit', formData.value);
 };
 
 const resetForm = () => {
@@ -216,7 +222,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="form-container">
+  <div class="">
     <h2>{{ title }}</h2>
 
     <form @submit.prevent="handleSubmit">
@@ -332,29 +338,15 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Variations Manager Placeholder -->
-      <div v-if="hasVariations" class="base-card">
-        <h4 class="text-lg font-medium text-neutral-800 mb-4">Configuración de Variaciones</h4>
-
-        <!-- This will be replaced with the actual VariationsManager component -->
-        <!-- For now, just showing a placeholder -->
-        <div class="p-8 border-2 border-dashed border-neutral-300 rounded-lg text-center">
-          <p class="text-neutral-500">
-            VariationsManager component will be integrated here
-          </p>
-          <p class="text-sm text-neutral-400 mt-2">
-            Current variations: {{ formData.variations.combinations.length }} combinations
-          </p>
-        </div>
-
-        <!-- When ready, replace above with: -->
-        <!-- <VariationsManager
+      <!-- Variations Manager -->
+      <div v-if="hasVariations">
+        <VariationsManager
           :initial-variations="formData.variations"
           :category-templates="selectedCategory?.variationTemplates"
           :product-name="formData.name"
           :collection-id="formData.collectionId"
           @update="handleVariationUpdate"
-        /> -->
+        />
 
         <span
           v-if="errors.variations"

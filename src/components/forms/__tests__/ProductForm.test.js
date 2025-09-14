@@ -39,6 +39,14 @@ const MockYesNoToggle = {
   `,
 };
 
+// Mock VariationCombinationManager
+const MockVariationCombinationManager = {
+  name: 'VariationCombinationManager',
+  props: ['variationGroup'],
+  emits: ['update-combination-price'],
+  template: '<div class="mock-combination-manager">Mock Combination Manager</div>',
+};
+
 // Mock VariationsManager that doesn't exist yet
 const MockVariationsManager = {
   name: 'VariationsManager',
@@ -62,6 +70,7 @@ describe('ProductForm', () => {
           ConfirmDialog: MockConfirmDialog,
           YesNoToggle: MockYesNoToggle,
           VariationsManager: MockVariationsManager,
+          VariationCombinationManager: MockVariationCombinationManager,
         },
         stubs: {
           teleport: true,
