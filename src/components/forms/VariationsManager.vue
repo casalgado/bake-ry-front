@@ -488,7 +488,7 @@ watch(
         <button
           type="button"
           @click="toggleDimensionType(dimension.type)"
-          class="danger-btn-small flex items-center gap-1"
+          class="danger-btn flex items-center gap-1"
         >
           <PhTrash class="w-4 h-4" />
           Eliminar

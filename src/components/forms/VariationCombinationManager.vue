@@ -153,6 +153,7 @@ const formatPriceRange = (group) => {
 
       <!-- Expand/Collapse All -->
       <button
+        v-if="variationGroup.dimensions.length > 1"
         type="button"
         @click="toggleAllGroups"
         class="text-sm flex items-center gap-1 utility-btn"
@@ -180,14 +181,15 @@ const formatPriceRange = (group) => {
           :class="group.expanded ? 'border-blue-400 bg-neutral-50' : ''"
         >
           <!-- Group Name (col-span-6) -->
-          <div class="col-span-6 flex items-center cursor-pointer"
-               @click="console.log('🖱️ Group name clicked:', group.key); toggleGroup(group.key)">
-            <PhCaretDown v-if="group.expanded" class="w-4 h-4 mr-3 text-neutral-500" />
-            <PhCaretRight v-else class="w-4 h-4 mr-3 text-neutral-500" />
+          <div class="col-span-6 flex items-center"
+               :class="variationGroup.dimensions.length > 1 ? 'cursor-pointer' : ''"
+               @click="variationGroup.dimensions.length > 1 ? toggleGroup(group.key) : null">
+            <PhCaretDown v-if="variationGroup.dimensions.length > 1 && group.expanded" class="w-4 h-4 mr-3 text-neutral-500" />
+            <PhCaretRight v-else-if="variationGroup.dimensions.length > 1" class="w-4 h-4 mr-3 text-neutral-500" />
             <div>
               <span class="font-medium text-neutral-800">{{ group.name }}</span>
-              <span class="text-sm text-neutral-500 ml-2">
-                {{ group.variants.length }} variante{{ group.variants.length !== 1 ? 's' : '' }}
+              <span v-if="group.variants.length > 1" class="text-sm text-neutral-500 ml-2">
+                {{ group.variants.length }} variantes
               </span>
             </div>
           </div>
