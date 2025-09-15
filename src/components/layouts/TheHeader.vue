@@ -9,6 +9,12 @@ const router = useRouter();
 
 const authStore = useAuthenticationStore();
 
+const isUsingEmulator = import.meta.env.VITE_USE_AUTH_EMULATOR === 'true';
+
+const headerBackgroundClass = computed(() => {
+  return isUsingEmulator ? 'bg-blue-400 border-blue-500' : 'bg-white border-neutral-200';
+});
+
 const homeRoute = computed(() => {
   if (!authStore.isLoggedIn) return '/';
   return authStore.getUserData?.role === 'delivery_assistant'
@@ -33,7 +39,7 @@ const handleAuthClick = () => {
 </script>
 
 <template>
-  <header class="bg-white border-b border-neutral-200">
+  <header :class="`border-b ${headerBackgroundClass}`">
     <nav class="flex items-center justify-between px-4 max-w-8xl mx-auto">
       <!-- Home/Logo Button -->
       <RouterLink

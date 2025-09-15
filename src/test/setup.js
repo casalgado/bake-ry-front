@@ -1,6 +1,21 @@
 import { config } from '@vue/test-utils';
 import { vi } from 'vitest';
 
+// CRITICAL SAFETY CHECK: Prevent tests from running against production auth
+const useAuthEmulator = import.meta.env.VITE_USE_AUTH_EMULATOR;
+if (useAuthEmulator !== 'true' && useAuthEmulator !== true) {
+  console.error('🚨 CRITICAL ERROR: Tests MUST run with VITE_USE_AUTH_EMULATOR=true');
+  console.error('Current value:', useAuthEmulator);
+  console.error('Type:', typeof useAuthEmulator);
+  console.error('Tests are BLOCKED to prevent hitting production Firebase Auth');
+  console.error('');
+  console.error('To fix this:');
+  console.error('1. Ensure .env.local contains: VITE_USE_AUTH_EMULATOR=true');
+  console.error('2. Never set VITE_USE_AUTH_EMULATOR=false in any environment file');
+  console.error('3. Do not override this variable when running tests');
+  process.exit(1);
+}
+
 // Mock window.matchMedia for Headless UI components
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
