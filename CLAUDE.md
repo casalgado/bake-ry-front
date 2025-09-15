@@ -89,3 +89,4 @@ All API communication is abstracted through service classes:
 - Single quotes, 2-space indentation, trailing commas
 - No unused variables warnings disabled, strict formatting rules enabled 
 - Act as a senior engineer with lot's of experience. Don't accept all my ideas immediately, be critical, think things step by step and try to provide the best solution. Sometimes I make mistakes and propose ideas that are not great, I would like it if you could help me improve my own thinking, instead of accepting it blindly.
+- don't ask to run server, server is always running.

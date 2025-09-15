@@ -1,9 +1,9 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import YesNoToggle from '@/components/forms/YesNoToggle.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import VariationCombinationManager from '@/components/forms/VariationCombinationManager.vue';
-import { PhPlus, PhTrash, PhX } from '@phosphor-icons/vue';
+import { PhPlus, PhTrash, PhX, PhCaretUp, PhCaretDown } from '@phosphor-icons/vue';
 import VariationGroups from '@/models/VariationGroups';
 import { generateId, capitalize } from '@/utils/helpers';
 import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
@@ -40,6 +40,7 @@ const selectedDimensionTypes = ref([]);
 const customDimensions = ref([]);
 const newCustomDimension = ref({ label: '', value: '' });
 const dimensionWholeGrainStatus = ref(new Map()); // Map of dimensionId -> boolean
+const optionPositionDropdowns = ref(new Map()); // Map of optionKey -> boolean for dropdown visibility
 
 // Fixed dimension types
 const availableDimensionTypes = [
@@ -83,6 +84,12 @@ onMounted(() => {
         dimensionWholeGrainStatus.value.set(dim.id, true);
       }
     });
+
+    // Normalize display orders on mount
+    variationGroup.value.dimensions.forEach(dim => {
+      variationGroup.value.normalizeOptionDisplayOrders(dim.id);
+    });
+    variationGroup.value.normalizeDimensionDisplayOrders();
   }
 
   // Load system settings if not already loaded
@@ -202,6 +209,7 @@ const addOptionToDimension = (dimensionId) => {
   };
 
   variationGroup.value.addOptionToDimension(dimensionId, newOption);
+  variationGroup.value.normalizeOptionDisplayOrders(dimensionId);
   regenerateCombinations();
 };
 
@@ -210,6 +218,7 @@ const removeOptionFromDimension = (dimensionId, optionIndex) => {
   if (!dimension) return;
 
   dimension.options.splice(optionIndex, 1);
+  variationGroup.value.normalizeOptionDisplayOrders(dimensionId);
   regenerateCombinations();
 };
 
@@ -326,6 +335,7 @@ const toggleWholeGrainForDimension = (dimensionId, enabled) => {
     // Enable wholegrain variations
     dimensionWholeGrainStatus.value.set(dimensionId, true);
     variationGroup.value.addWholeGrainOptionsForDimension(dimensionId);
+    variationGroup.value.normalizeOptionDisplayOrders(dimensionId);
     regenerateCombinations();
   } else {
     // Disable wholegrain variations
@@ -337,6 +347,7 @@ const toggleWholeGrainForDimension = (dimensionId, enabled) => {
         onConfirm: () => {
           dimensionWholeGrainStatus.value.set(dimensionId, false);
           variationGroup.value.removeWholeGrainOptionsFromDimension(dimensionId);
+          variationGroup.value.normalizeOptionDisplayOrders(dimensionId);
           regenerateCombinations();
           confirmDialog.value.isOpen = false;
         },
@@ -349,6 +360,135 @@ const toggleWholeGrainForDimension = (dimensionId, enabled) => {
     }
   }
 };
+
+// Option ordering functions
+const moveOptionUp = (dimensionId, optionName) => {
+  // Use the VariationGroups method which should handle the update
+  variationGroup.value.moveOptionUpDown(dimensionId, optionName, 'up');
+
+  // Force a complete re-creation to trigger reactivity
+  const plainObj = variationGroup.value.toPlainObject();
+  variationGroup.value = new VariationGroups(plainObj);
+
+  regenerateCombinations();
+};
+
+const moveOptionDown = (dimensionId, optionName) => {
+  // Use the VariationGroups method which should handle the update
+  variationGroup.value.moveOptionUpDown(dimensionId, optionName, 'down');
+
+  // Force a complete re-creation to trigger reactivity
+  const plainObj = variationGroup.value.toPlainObject();
+  variationGroup.value = new VariationGroups(plainObj);
+
+  regenerateCombinations();
+};
+
+const moveOptionToPosition = (dimensionId, optionName, newPosition) => {
+  // Use the VariationGroups method which should handle the update
+  variationGroup.value.moveOptionToPosition(dimensionId, optionName, newPosition);
+
+  // Force a complete re-creation to trigger reactivity
+  const plainObj = variationGroup.value.toPlainObject();
+  variationGroup.value = new VariationGroups(plainObj);
+
+  regenerateCombinations();
+
+  // Close the dropdown
+  const key = `${dimensionId}-${optionName}`;
+  optionPositionDropdowns.value.set(key, false);
+};
+
+const togglePositionDropdown = (dimensionId, optionName) => {
+  const key = `${dimensionId}-${optionName}`;
+  const currentState = optionPositionDropdowns.value.get(key) || false;
+
+  // Close all other dropdowns
+  optionPositionDropdowns.value.forEach((value, k) => {
+    if (k !== key) {
+      optionPositionDropdowns.value.set(k, false);
+    }
+  });
+
+  // Toggle current dropdown
+  optionPositionDropdowns.value.set(key, !currentState);
+};
+
+const isPositionDropdownOpen = (dimensionId, optionName) => {
+  const key = `${dimensionId}-${optionName}`;
+  return optionPositionDropdowns.value.get(key) || false;
+};
+
+// Dimension ordering functions
+const moveDimensionUp = (dimensionId) => {
+  variationGroup.value.moveDimensionUpDown(dimensionId, 'up');
+
+  // Force a complete re-creation to trigger reactivity
+  const plainObj = variationGroup.value.toPlainObject();
+  variationGroup.value = new VariationGroups(plainObj);
+
+  regenerateCombinations();
+};
+
+const moveDimensionDown = (dimensionId) => {
+  variationGroup.value.moveDimensionUpDown(dimensionId, 'down');
+
+  // Force a complete re-creation to trigger reactivity
+  const plainObj = variationGroup.value.toPlainObject();
+  variationGroup.value = new VariationGroups(plainObj);
+
+  regenerateCombinations();
+};
+
+// Get sorted dimensions for display
+const sortedDimensions = computed(() => {
+  return variationGroup.value.getSortedDimensions();
+});
+
+// Get sorted options for a dimension
+const getSortedOptions = (dimensionId) => {
+  return variationGroup.value.getSortedOptions(dimensionId);
+};
+
+// Get position number for display
+const getOptionPosition = (dimensionId, optionName) => {
+  const options = getSortedOptions(dimensionId);
+  const index = options.findIndex(opt => opt.name === optionName);
+  return index !== -1 ? index + 1 : 0;
+};
+
+const getDimensionPosition = (dimensionId) => {
+  const index = sortedDimensions.value.findIndex(d => d.id === dimensionId);
+  return index !== -1 ? index + 1 : 0;
+};
+
+// Close dropdowns when clicking outside
+const handleClickOutside = (event) => {
+  // Check if click is outside all dropdowns
+  const dropdownElements = document.querySelectorAll('.position-dropdown-container');
+  let clickedInside = false;
+
+  dropdownElements.forEach(el => {
+    if (el.contains(event.target)) {
+      clickedInside = true;
+    }
+  });
+
+  if (!clickedInside) {
+    // Close all dropdowns
+    optionPositionDropdowns.value.clear();
+  }
+};
+
+// Add/remove click outside listener
+watch(optionPositionDropdowns, (newMap) => {
+  const hasOpenDropdown = Array.from(newMap.values()).some(v => v);
+  if (hasOpenDropdown) {
+    document.addEventListener('click', handleClickOutside);
+  } else {
+    document.removeEventListener('click', handleClickOutside);
+  }
+});
 
 // Watch for changes and emit updates
 watch(
@@ -474,17 +614,45 @@ watch(
 
     <!-- Dimension Configuration -->
     <div
-      v-for="dimension in variationGroup.dimensions"
+      v-for="(dimension, dimIndex) in sortedDimensions"
       :key="dimension.id"
-      class="base-card mb-6"
+      class="base-card mb-6 relative"
     >
       <div class="flex justify-between items-center mb-4">
-        <h5 class="text-md font-medium text-neutral-800">
-          {{ dimension.label }}
-          <span v-if="dimension.unit" class="text-sm text-neutral-500"
-            >({{ dimension.unit }})</span
-          >
-        </h5>
+        <div class="flex items-center gap-3">
+          <!-- Dimension position badge -->
+          <div class="flex items-center gap-1">
+            <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-neutral-600 bg-neutral-200 rounded">
+              {{ getDimensionPosition(dimension.id) }}
+            </span>
+            <div class="flex flex-col -my-1">
+              <button
+                type="button"
+                @click="moveDimensionUp(dimension.id)"
+                :disabled="dimIndex === 0"
+                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                title="Mover arriba"
+              >
+                <PhCaretUp class="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                @click="moveDimensionDown(dimension.id)"
+                :disabled="dimIndex === sortedDimensions.length - 1"
+                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                title="Mover abajo"
+              >
+                <PhCaretDown class="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+          <h5 class="text-md font-medium text-neutral-800">
+            {{ dimension.label }}
+            <span v-if="dimension.unit" class="text-sm text-neutral-500"
+              >({{ dimension.unit }})</span
+            >
+          </h5>
+        </div>
         <button
           type="button"
           @click="toggleDimensionType(dimension.type)"
@@ -542,11 +710,71 @@ watch(
       <!-- Options List -->
       <div class="space-y-2 mb-4">
         <div
-          v-for="(option, optionIndex) in dimension.options"
-          :key="optionIndex"
-          class="flex gap-3 items-center p-3 rounded-lg"
+          v-for="(option, optionIndex) in getSortedOptions(dimension.id)"
+          :key="option.name"
+          class="flex gap-3 items-center p-3 rounded-lg relative"
           :class="option.isWholeGrain ? 'bg-neutral-150' : 'bg-neutral-50'"
         >
+          <!-- Position controls -->
+          <div class="flex items-center gap-1">
+            <!-- Position badge (clickable) -->
+            <div class="relative position-dropdown-container">
+              <button
+                type="button"
+                @click="togglePositionDropdown(dimension.id, option.name)"
+                class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-neutral-600 bg-neutral-200 rounded hover:bg-neutral-300 transition-colors"
+                title="Cambiar posición"
+              >
+                {{ getOptionPosition(dimension.id, option.name) }}
+              </button>
+
+              <!-- Position dropdown -->
+              <div
+                v-if="isPositionDropdownOpen(dimension.id, option.name)"
+                class="absolute z-10 mt-1 w-32 bg-white border border-neutral-300 rounded-md shadow-lg position-dropdown"
+              >
+                <div class="p-2">
+                  <label class="text-xs text-neutral-600 block mb-1">Mover a posición:</label>
+                  <select
+                    @change="moveOptionToPosition(dimension.id, option.name, parseInt($event.target.value))"
+                    class="w-full text-sm border border-neutral-300 rounded px-2 py-1"
+                    :value="getOptionPosition(dimension.id, option.name)"
+                  >
+                    <option
+                      v-for="n in getSortedOptions(dimension.id).length"
+                      :key="n"
+                      :value="n"
+                    >
+                      {{ n }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Up/Down arrows -->
+            <div class="flex flex-col -my-1">
+              <button
+                type="button"
+                @click="moveOptionUp(dimension.id, option.name)"
+                :disabled="optionIndex === 0"
+                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                title="Mover arriba"
+              >
+                <PhCaretUp class="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                @click="moveOptionDown(dimension.id, option.name)"
+                :disabled="optionIndex === getSortedOptions(dimension.id).length - 1"
+                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                title="Mover abajo"
+              >
+                <PhCaretDown class="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
           <div class="flex-1">
             <input
               type="text"
@@ -569,8 +797,9 @@ watch(
 
           <button
             type="button"
-            @click="removeOptionFromDimension(dimension.id, optionIndex)"
+            @click="removeOptionFromDimension(dimension.id, getSortedOptions(dimension.id).findIndex(o => o.name === option.name))"
             class="text-danger hover:text-danger-dark"
+            title="Eliminar opción"
           >
             <PhX class="w-4 h-4" />
           </button>
@@ -626,5 +855,68 @@ watch(
 /* Additional styles for better visual hierarchy */
 .variations-manager {
   @apply space-y-6;
+}
+
+/* Position badge styles */
+.position-badge {
+  @apply inline-flex items-center justify-center w-6 h-6 text-xs font-semibold;
+  @apply text-neutral-600 bg-neutral-200 rounded;
+  @apply transition-all duration-200;
+}
+
+.position-badge:hover {
+  @apply bg-neutral-300 transform scale-110;
+}
+
+/* Arrow button styles */
+.arrow-button {
+  @apply p-0.5 text-neutral-500 hover:text-neutral-700;
+  @apply disabled:opacity-30 disabled:cursor-not-allowed;
+  @apply transition-colors duration-150;
+}
+
+/* Option and dimension card transitions */
+.dimension-card {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.option-item {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+/* Dropdown animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.position-dropdown {
+  animation: slideDown 0.2s ease-out;
+}
+
+/* Visual feedback for reordering */
+.reordering {
+  @apply ring-2 ring-blue-400 ring-opacity-50;
+}
+
+/* Smooth hover effects */
+.option-item:hover {
+  @apply shadow-sm;
+}
+
+/* Position controls container */
+.position-controls {
+  @apply flex items-center gap-1;
+}
+
+/* Make position badge more prominent on hover */
+.position-badge-wrapper:hover .position-badge {
+  @apply bg-blue-100 text-blue-700;
 }
 </style>
