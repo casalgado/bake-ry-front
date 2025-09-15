@@ -223,14 +223,12 @@ const removeOptionFromDimension = (dimensionId, optionIndex) => {
 };
 
 // Combination management
-const regenerateCombinations = () => {
-  // Only regenerate if we have valid dimensions with options
+const regenerateCombinations = () => {  // Only regenerate if we have valid dimensions with options
   const hasValidDimensions = variationGroup.value.dimensions.every(
     d => d.options.length > 0 && d.options.every(o => o.name),
   );
 
   if (!hasValidDimensions) {
-    variationGroup.value.combinations = [];
     return;
   }
 
@@ -713,7 +711,7 @@ watch(
       <div class="space-y-2 mb-4">
         <div
           v-for="(option, optionIndex) in getSortedOptions(dimension.id)"
-          :key="option.name"
+          :key="dimension.id + '-' + optionIndex"
           class="flex gap-2 items-center p-3 rounded-lg relative group/option"
           :class="option.isWholeGrain ? 'bg-neutral-150' : 'bg-neutral-50'"
         >
