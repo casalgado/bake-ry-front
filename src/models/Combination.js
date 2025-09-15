@@ -38,6 +38,28 @@ class Combination extends BaseModel {
     return this.selection.length === 1;
   }
 
+  toPlainObject() {
+    const obj = {
+      id: this.id,
+      selection: this.selection.filter(item => item !== undefined && item !== null),
+      name: this.name,
+      basePrice: this.basePrice,
+      currentPrice: this.currentPrice,
+      isWholeGrain: this.isWholeGrain,
+      isActive: this.isActive,
+    };
+
+    // Only include date fields if they have values
+    if (this.createdAt !== undefined) {
+      obj.createdAt = this.createdAt;
+    }
+    if (this.updatedAt !== undefined) {
+      obj.updatedAt = this.updatedAt;
+    }
+
+    return obj;
+  }
+
   toFirestore() {
     const data = super.toFirestore();
     return {
