@@ -1,9 +1,8 @@
-import BaseModel from './base/BaseModel.js';
 import { generateId  } from '../utils/helpers.js';
 
-class Combination extends BaseModel {
+class Combination {
   constructor(data = {}) {
-    super(data);
+    this.id = data.id;
     this.selection = data.selection || [];
     this.name = data.name || '';
     this.basePrice = data.basePrice || 0;
@@ -49,21 +48,12 @@ class Combination extends BaseModel {
       isActive: this.isActive,
     };
 
-    // Only include date fields if they have values
-    if (this.createdAt !== undefined) {
-      obj.createdAt = this.createdAt;
-    }
-    if (this.updatedAt !== undefined) {
-      obj.updatedAt = this.updatedAt;
-    }
-
     return obj;
   }
 
   toFirestore() {
-    const data = super.toFirestore();
     return {
-      ...data,
+      id: this.id,
       selection: this.selection.filter(item => item !== undefined && item !== null),
       name: this.name,
       basePrice: this.basePrice,
