@@ -494,6 +494,7 @@ watch(optionPositionDropdowns, (newMap) => {
 watch(
   variationGroup,
   (newVariationGroup) => {
+    console.log('emitting update', newVariationGroup);
     emit('update', newVariationGroup.toPlainObject());
   },
   { deep: true },
@@ -503,6 +504,7 @@ watch(
 watch(
   () => variationGroup.value.dimensions,
   () => {
+    console.log('watched dimensions change');
     // Debounce regeneration to avoid excessive updates
     clearTimeout(window.variationsDebounceTimer);
     window.variationsDebounceTimer = setTimeout(() => {
@@ -616,16 +618,16 @@ watch(
     <div
       v-for="(dimension, dimIndex) in sortedDimensions"
       :key="dimension.id"
-      class="base-card mb-6 relative"
+      class="base-card mb-6 relative group"
     >
       <div class="flex justify-between items-center mb-4">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <!-- Dimension position badge -->
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-2">
             <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-neutral-600 bg-neutral-200 rounded">
               {{ getDimensionPosition(dimension.id) }}
             </span>
-            <div class="flex flex-col -my-1">
+            <div class="flex flex-col -my-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
                 type="button"
                 @click="moveDimensionUp(dimension.id)"
@@ -712,11 +714,11 @@ watch(
         <div
           v-for="(option, optionIndex) in getSortedOptions(dimension.id)"
           :key="option.name"
-          class="flex gap-3 items-center p-3 rounded-lg relative"
+          class="flex gap-2 items-center p-3 rounded-lg relative group/option"
           :class="option.isWholeGrain ? 'bg-neutral-150' : 'bg-neutral-50'"
         >
           <!-- Position controls -->
-          <div class="flex items-center gap-1">
+          <div class="flex items-center gap-2">
             <!-- Position badge (clickable) -->
             <div class="relative position-dropdown-container">
               <button
@@ -753,7 +755,7 @@ watch(
             </div>
 
             <!-- Up/Down arrows -->
-            <div class="flex flex-col -my-1">
+            <div class="flex flex-col -my-1 opacity-0 group-hover/option:opacity-100 transition-opacity duration-200">
               <button
                 type="button"
                 @click="moveOptionUp(dimension.id, option.name)"
