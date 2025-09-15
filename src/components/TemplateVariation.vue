@@ -177,7 +177,7 @@ const isValidForSubmit = computed(() => {
               @input="updateTemplate('basePrice', Number($event.target.value))"
               type="number"
               min="0"
-              step="0.01"
+              step="1"
               :class="[
                 'w-full px-3 py-2 pr-8 text-sm border rounded-md focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none',
                 isNew ? 'border-primary-300 bg-white' : 'border-neutral-300',

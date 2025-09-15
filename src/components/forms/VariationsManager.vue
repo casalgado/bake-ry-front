@@ -785,14 +785,16 @@ watch(
           </div>
 
           <div v-if="dimension.unit" class="w-24">
-            <input
-              type="number"
-              v-model="option.value"
-              :placeholder="dimension.unit"
-              class="w-full px-3 py-1 border border-neutral-300 rounded-md text-sm"
-              min="0"
-              step="1"
-            />
+            <div class="input-with-unit compact" :data-unit="dimension.unit">
+              <input
+                type="number"
+                v-model="option.value"
+                placeholder="0"
+                class="w-full px-3 py-1 border border-neutral-300 rounded-md text-sm"
+                min="0"
+                step="1"
+              />
+            </div>
           </div>
 
           <button

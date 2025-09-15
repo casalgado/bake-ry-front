@@ -196,32 +196,36 @@ const formatPriceRange = (group) => {
 
           <!-- Base Price (col-span-2) -->
           <div class="col-span-2" @click.stop="console.log('🛑 Group base price div clicked')">
-            <input
-              type="number"
-              :value="getGroupPriceValue(group.key, 'basePrice')"
-              :placeholder="getGroupPriceDisplay(group.key, 'basePrice')"
-              @input.stop="updateGroupPrice(group.key, 'basePrice', parseFloat($event.target.value) || 0)"
-              @click.stop
-              @focus.stop
-              class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
-              min="0"
-              step="100"
-            />
+            <div class="input-with-unit compact" data-unit="$">
+              <input
+                type="number"
+                :value="getGroupPriceValue(group.key, 'basePrice')"
+                :placeholder="getGroupPriceDisplay(group.key, 'basePrice')"
+                @input.stop="updateGroupPrice(group.key, 'basePrice', parseFloat($event.target.value) || 0)"
+                @click.stop
+                @focus.stop
+                class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
+                min="0"
+                step="50"
+              />
+            </div>
           </div>
 
           <!-- Cost Price (col-span-2) -->
           <div class="col-span-2" @click.stop>
-            <input
-              type="number"
-              :value="getGroupPriceValue(group.key, 'costPrice')"
-              :placeholder="getGroupPriceDisplay(group.key, 'costPrice')"
-              @input.stop="updateGroupPrice(group.key, 'costPrice', parseFloat($event.target.value) || 0)"
-              @click.stop
-              @focus.stop
-              class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
-              min="0"
-              step="100"
-            />
+            <div class="input-with-unit compact" data-unit="$">
+              <input
+                type="number"
+                :value="getGroupPriceValue(group.key, 'costPrice')"
+                :placeholder="getGroupPriceDisplay(group.key, 'costPrice')"
+                @input.stop="updateGroupPrice(group.key, 'costPrice', parseFloat($event.target.value) || 0)"
+                @click.stop
+                @focus.stop
+                class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
+                min="0"
+                step="50"
+              />
+            </div>
           </div>
         </div>
 
@@ -250,45 +254,49 @@ const formatPriceRange = (group) => {
 
               <!-- Base Price -->
               <div class="col-span-2" @click.stop="console.log('🛑 Variant base price div clicked')">
-                <input
-                  type="number"
-                  :value="variant.basePrice"
-                  @input.stop="
-                    console.log('⌨️ Variant base price input:', $event.target.value, 'for variant:', variant.id);
-                    updateCombinationPrice(
-                      variant.id,
-                      'basePrice',
-                      parseFloat($event.target.value) || 0
-                    )
-                  "
-                  @click.stop="console.log('🖱️ Variant base price input clicked')"
-                  @focus.stop="console.log('🎯 Variant base price input focused')"
-                  placeholder="$0"
-                  class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
-                  min="0"
-                  step="100"
-                />
+                <div class="input-with-unit compact" data-unit="$">
+                  <input
+                    type="number"
+                    :value="variant.basePrice"
+                    @input.stop="
+                      console.log('⌨️ Variant base price input:', $event.target.value, 'for variant:', variant.id);
+                      updateCombinationPrice(
+                        variant.id,
+                        'basePrice',
+                        parseFloat($event.target.value) || 0
+                      )
+                    "
+                    @click.stop="console.log('🖱️ Variant base price input clicked')"
+                    @focus.stop="console.log('🎯 Variant base price input focused')"
+                    placeholder="0"
+                    class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
+                    min="0"
+                    step="50"
+                  />
+                </div>
               </div>
 
               <!-- Cost Price -->
               <div class="col-span-2" @click.stop>
-                <input
-                  type="number"
-                  :value="variant.costPrice"
-                  @input.stop="
-                    updateCombinationPrice(
-                      variant.id,
-                      'costPrice',
-                      parseFloat($event.target.value) || 0
-                    )
-                  "
-                  @click.stop
-                  @focus.stop
-                  placeholder="$0"
-                  class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
-                  min="0"
-                  step="100"
-                />
+                <div class="input-with-unit compact" data-unit="$">
+                  <input
+                    type="number"
+                    :value="variant.costPrice"
+                    @input.stop="
+                      updateCombinationPrice(
+                        variant.id,
+                        'costPrice',
+                        parseFloat($event.target.value) || 0
+                      )
+                    "
+                    @click.stop
+                    @focus.stop
+                    placeholder="0"
+                    class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
+                    min="0"
+                    step="50"
+                  />
+                </div>
               </div>
 
             </div>

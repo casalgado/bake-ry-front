@@ -310,17 +310,19 @@ onMounted(async () => {
             for="taxPercentage"
             class="block text-sm font-medium text-neutral-700 mb-1"
           >
-            Porcentaje de Impuesto (%)
+            Porcentaje de Impuesto
           </label>
-          <input
-            id="taxPercentage"
-            type="number"
-            v-model="formData.taxPercentage"
-            class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-            min="0"
-            max="100"
-            step="0.01"
-          />
+          <div class="input-with-unit" data-unit="%">
+            <input
+              id="taxPercentage"
+              type="number"
+              v-model="formData.taxPercentage"
+              class="w-full px-3 py-2 border border-neutral-300 rounded-md"
+              min="0"
+              max="100"
+              step="0.01"
+            />
+          </div>
         </div>
 
         <!-- Active Status -->
@@ -370,18 +372,20 @@ onMounted(async () => {
               for="basePrice"
               class="block text-sm font-medium text-neutral-700 mb-1"
             >
-              Precio de Venta ($)
+              Precio de Venta
             </label>
-            <input
-              id="basePrice"
-              type="number"
-              v-model="formData.basePrice"
-              class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-              :class="{ 'border-danger': errors.basePrice }"
-              min="0"
-              step="100"
-              placeholder="0"
-            />
+            <div class="input-with-unit" data-unit="$">
+              <input
+                id="basePrice"
+                type="number"
+                v-model="formData.basePrice"
+                class="w-full px-3 py-2 border border-neutral-300 rounded-md"
+                :class="{ 'border-danger': errors.basePrice }"
+                min="0"
+                step="50"
+                placeholder="0"
+              />
+            </div>
             <span
               v-if="errors.basePrice"
               class="text-sm text-danger mt-1 block"
@@ -396,18 +400,20 @@ onMounted(async () => {
               for="costPrice"
               class="block text-sm font-medium text-neutral-700 mb-1"
             >
-              Precio de Costo ($)
+              Precio de Costo
             </label>
-            <input
-              id="costPrice"
-              type="number"
-              v-model="formData.costPrice"
-              class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-              :class="{ 'border-danger': errors.costPrice }"
-              min="0"
-              step="100"
-              placeholder="0"
-            />
+            <div class="input-with-unit" data-unit="$">
+              <input
+                id="costPrice"
+                type="number"
+                v-model="formData.costPrice"
+                class="w-full px-3 py-2 border border-neutral-300 rounded-md"
+                :class="{ 'border-danger': errors.costPrice }"
+                min="0"
+                step="50"
+                placeholder="0"
+              />
+            </div>
             <span
               v-if="errors.costPrice"
               class="text-sm text-danger mt-1 block"

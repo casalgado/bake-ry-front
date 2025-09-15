@@ -180,7 +180,7 @@ const isValid = computed(() => {
             type="number"
             :value="variation.basePrice"
             @input="updateField('basePrice', Number($event.target.value))"
-            step="500"
+            step="50"
             :disabled="disabled"
             min="0"
             class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary text-sm pr-8"

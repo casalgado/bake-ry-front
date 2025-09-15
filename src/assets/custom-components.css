@@ -141,6 +141,36 @@
     @apply fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center w-full h-full;
   }
 
+  /* Input with unit styles */
+  .input-with-unit {
+    position: relative;
+  }
+
+  .input-with-unit::after {
+    content: attr(data-unit);
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6b7280; /* neutral-500 */
+    font-size: 0.875rem; /* text-sm */
+    pointer-events: none;
+  }
+
+  .input-with-unit input {
+    padding-right: 35px; /* Make room for the unit */
+  }
+
+  /* Smaller variant for compact inputs */
+  .input-with-unit.compact::after {
+    right: 8px;
+    font-size: 0.75rem; /* text-xs */
+  }
+
+  .input-with-unit.compact input {
+    padding-right: 25px; /* Less padding for compact variant */
+  }
+
   /* Scrollbar Styles */
   .scrollbar-hide {
     -ms-overflow-style: none;

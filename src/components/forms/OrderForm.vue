@@ -820,7 +820,7 @@ const clearPartialPayment = () => {
               type="number"
               v-model="formData.deliveryFee"
               min="0"
-              step="100"
+              step="50"
               placeholder="Ingrese valor personalizado"
               class="mt-2 w-full"
             />

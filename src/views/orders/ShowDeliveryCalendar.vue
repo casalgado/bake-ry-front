@@ -479,7 +479,7 @@ watch(
             type="number"
             v-model="selectedDeliveryCost"
             min="0"
-            step="500"
+            step="50"
             placeholder="Valor del domicilio"
             class="w-full mb-4 p-2 border rounded"
           />

@@ -234,14 +234,16 @@ const handleSubmit = async () => {
       <div class="flex gap-4">
         <div class="flex-1">
           <label class="block">Costo por Unidad</label>
-          <input
-            type="number"
-            v-model="formData.costPerUnit"
-            step="0.01"
-            min="0"
-            class="form-input"
-            :class="{ 'error': errors.costPerUnit }"
-          />
+          <div class="input-with-unit" data-unit="$">
+            <input
+              type="number"
+              v-model="formData.costPerUnit"
+              step="0.01"
+              min="0"
+              class="form-input"
+              :class="{ 'error': errors.costPerUnit }"
+            />
+          </div>
           <span v-if="errors.costPerUnit" class="error-text">{{ errors.costPerUnit }}</span>
         </div>
 
