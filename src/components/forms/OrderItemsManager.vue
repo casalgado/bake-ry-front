@@ -23,6 +23,29 @@ const handleWizardSelect = (selection) => {
 
   console.log('selection', selection);
 
+  // Handle combination if present (new multi-dimensional system)
+  if (selection.combination) {
+    const newItem = {
+      productId: product.id,
+      productName: product.name,
+      collectionId: product.collectionId,
+      collectionName: product.collectionName,
+      taxPercentage: product.taxPercentage,
+      quantity: selection.quantity,
+      basePrice: selection.combination.basePrice,
+      currentPrice: selection.combination.basePrice,
+      combination: selection.combination,
+      // Keep variation for backward compatibility if it exists
+      variation: selection.variation || null,
+      recipeId: selection.combination.recipeId || product.recipeId,
+      isComplimentary: false,
+    };
+
+    emit('update:modelValue', [...props.modelValue, newItem]);
+    return;
+  }
+
+  // Fallback to legacy variation handling
   const prices = selection.variation ?
     {
       basePrice: selection.variation.basePrice,

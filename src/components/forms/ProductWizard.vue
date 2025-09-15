@@ -3,6 +3,7 @@
 import { ref, computed } from 'vue';
 import { abbreviateText, sortVariations } from '@/utils/helpers';
 import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
+import Combination from '@/models/Combination';
 
 const props = defineProps({
   products: {
@@ -52,6 +53,10 @@ const customQuantityMode = ref(false);
 const customQuantity = ref('');
 const currentPage = ref(0);
 
+// Multi-dimensional support
+const currentDimensionIndex = ref(0);
+const dimensionSelections = ref([]);
+
 // Get unique categories
 const categories = computed(() =>
   [...new Set(props.products.map(p => p.collectionName))],
@@ -65,12 +70,37 @@ const categoryProducts = computed(() =>
   ),
 );
 
-// Get variations for selected product
+// Check if selected product has VariationGroups (multi-dimensional)
+const hasVariationGroups = computed(() => {
+  const product = props.products.find(p => p.id === selectedProduct.value?.id);
+  return product?.variations?.dimensions && product?.variations?.dimensions.length > 0;
+});
+
+// Get current dimension for multi-dimensional products
+const currentDimension = computed(() => {
+  if (!hasVariationGroups.value) return null;
+  const product = props.products.find(p => p.id === selectedProduct.value?.id);
+  return product?.variations?.dimensions[currentDimensionIndex.value];
+});
+
+// Get variations for selected product (legacy support)
 const productVariations = computed(() => {
   const product = props.products.find(p => p.id === selectedProduct.value?.id);
+
+  // If product has VariationGroups, return empty (handled separately)
+  if (hasVariationGroups.value) {
+    return [];
+  }
+
+  // Legacy flat variations
   if (!product?.variations) return [];
 
-  return sortVariations(product.variations);
+  // Handle legacy variations array
+  if (Array.isArray(product.variations)) {
+    return sortVariations(product.variations);
+  }
+
+  return [];
 });
 
 // Current options to display based on step
@@ -82,6 +112,9 @@ const currentOptions = computed(() => {
     return categoryProducts.value;
   case 'variation':
     return productVariations.value;
+  case 'dimension':
+    // For multi-dimensional products, show current dimension options
+    return currentDimension.value?.options || [];
   case 'quantity':
     return Array.from({ length: 16 }, (_, i) => ({
       name: `${i + 1}`,
@@ -130,6 +163,13 @@ const displayedQuantity = computed(() => {
   return selectedQuantity.value || '#';
 });
 
+// Get display text for current dimension selection
+const currentDimensionText = computed(() => {
+  if (currentStep.value !== 'dimension') return '';
+  const selection = dimensionSelections.value[currentDimensionIndex.value];
+  return selection || '#';
+});
+
 const resetPage = () => {
   currentPage.value = 0;
 };
@@ -157,7 +197,13 @@ const handleSelection = (index) => {
 
   case 'product':
     selectedProduct.value = selected;
-    if (selected.variations?.length > 0) {
+
+    // Check if product has multi-dimensional variations
+    if (hasVariationGroups.value) {
+      currentStep.value = 'dimension';
+      currentDimensionIndex.value = 0;
+      dimensionSelections.value = [];
+    } else if (selected.variations?.length > 0) {
       currentStep.value = 'variation';
     } else {
       currentStep.value = 'quantity';
@@ -166,22 +212,104 @@ const handleSelection = (index) => {
     break;
 
   case 'variation':
+    // Legacy single variation handling
     selectedVariation.value = selected;
     currentStep.value = 'quantity';
     resetPage();
     break;
 
-  case 'quantity':
+  case 'dimension': {
+    // Multi-dimensional handling
+    dimensionSelections.value[currentDimensionIndex.value] = selected.name;
+
+    const selectedProd = props.products.find(p => p.id === selectedProduct.value?.id);
+    const totalDimensions = selectedProd?.variations?.dimensions?.length || 0;
+
+    if (currentDimensionIndex.value < totalDimensions - 1) {
+      // Move to next dimension
+      currentDimensionIndex.value++;
+      resetPage();
+    } else {
+      // All dimensions selected, move to quantity
+      currentStep.value = 'quantity';
+      resetPage();
+    }
+    break;
+  }
+
+  case 'quantity': {
     selectedQuantity.value = selected.value;
-    emit('select', {
-      category: selectedCategory.value,
-      product: selectedProduct.value,
-      variation: selectedVariation.value,
-      quantity: selected.value,
-    });
+
+    // Build the final selection object
+    const currentProduct = props.products.find(p => p.id === selectedProduct.value?.id);
+
+    if (hasVariationGroups.value && dimensionSelections.value.length > 0) {
+      // Find matching combination from product's VariationGroups
+      const combination = findMatchingCombination(currentProduct, dimensionSelections.value);
+
+      if (combination) {
+        emit('select', {
+          category: selectedCategory.value,
+          product: selectedProduct.value,
+          combination: combination,
+          quantity: selected.value,
+        });
+      } else {
+        // Create a new combination from selections
+        const newCombination = new Combination({
+          selection: dimensionSelections.value,
+          name: dimensionSelections.value.join(' + '),
+          basePrice: currentProduct.basePrice || 0,
+          currentPrice: currentProduct.basePrice || 0,
+          isWholeGrain: checkIfWholeGrain(currentProduct, dimensionSelections.value),
+          isActive: true,
+        });
+
+        emit('select', {
+          category: selectedCategory.value,
+          product: selectedProduct.value,
+          combination: newCombination,
+          quantity: selected.value,
+        });
+      }
+    } else {
+      // Legacy variation or no variations
+      emit('select', {
+        category: selectedCategory.value,
+        product: selectedProduct.value,
+        variation: selectedVariation.value,
+        quantity: selected.value,
+      });
+    }
+
     resetSelection();
     break;
   }
+  }
+};
+
+// Helper function to find matching combination in product's VariationGroups
+const findMatchingCombination = (product, selections) => {
+  if (!product?.variations?.combinations) return null;
+
+  return product.variations.combinations.find(combo => {
+    if (!combo.selection || combo.selection.length !== selections.length) return false;
+    return selections.every(sel => combo.selection.includes(sel));
+  });
+};
+
+// Helper function to check if any selected option is whole grain
+const checkIfWholeGrain = (product, selections) => {
+  if (!product?.variations?.dimensions) return false;
+
+  for (const dimension of product.variations.dimensions) {
+    for (const option of dimension.options) {
+      if (selections.includes(option.name) && option.isWholeGrain) {
+        return true;
+      }
+    }
+  }
+  return false;
 };
 
 const handleBreadcrumbClick = (step) => {
@@ -192,6 +320,8 @@ const handleBreadcrumbClick = (step) => {
     selectedProduct.value = null;
     selectedVariation.value = null;
     selectedQuantity.value = null;
+    dimensionSelections.value = [];
+    currentDimensionIndex.value = 0;
     resetPage();
     break;
   case 'product':
@@ -199,11 +329,19 @@ const handleBreadcrumbClick = (step) => {
     selectedProduct.value = null;
     selectedVariation.value = null;
     selectedQuantity.value = null;
+    dimensionSelections.value = [];
+    currentDimensionIndex.value = 0;
     resetPage();
     break;
   case 'variation':
     currentStep.value = 'variation';
     selectedVariation.value = null;
+    selectedQuantity.value = null;
+    resetPage();
+    break;
+  case 'dimension':
+    // Go back to specific dimension
+    currentStep.value = 'dimension';
     selectedQuantity.value = null;
     resetPage();
     break;
@@ -223,6 +361,8 @@ const resetSelection = () => {
   highlightedIndex.value = null;
   customQuantity.value = '';
   customQuantityMode.value = false;
+  dimensionSelections.value = [];
+  currentDimensionIndex.value = 0;
   resetPage();
 };
 
@@ -236,8 +376,25 @@ const handleBackKey = () => {
     selectedProduct.value = null;
     currentStep.value = 'product';
     break;
+  case 'dimension':
+    if (currentDimensionIndex.value > 0) {
+      // Go back to previous dimension
+      currentDimensionIndex.value--;
+      dimensionSelections.value.pop();
+    } else {
+      // Go back to product selection
+      selectedProduct.value = null;
+      dimensionSelections.value = [];
+      currentStep.value = 'product';
+    }
+    break;
   case 'quantity':
-    if (selectedVariation.value) {
+    if (hasVariationGroups.value && dimensionSelections.value.length > 0) {
+      // Go back to last dimension
+      const foundProduct = props.products.find(p => p.id === selectedProduct.value?.id);
+      currentDimensionIndex.value = foundProduct.variations.dimensions.length - 1;
+      currentStep.value = 'dimension';
+    } else if (selectedVariation.value) {
       selectedVariation.value = null;
       currentStep.value = 'variation';
     } else {
@@ -282,12 +439,33 @@ const handleKeydown = (event) => {
       event.preventDefault();
       const quantity = parseInt(customQuantity.value, 10);
       if (quantity > 0) {
-        emit('select', {
-          category: selectedCategory.value,
-          product: selectedProduct.value,
-          variation: selectedVariation.value,
-          quantity: quantity,
-        });
+        const targetProduct = props.products.find(p => p.id === selectedProduct.value?.id);
+
+        if (hasVariationGroups.value && dimensionSelections.value.length > 0) {
+          const combination = findMatchingCombination(targetProduct, dimensionSelections.value) ||
+            new Combination({
+              selection: dimensionSelections.value,
+              name: dimensionSelections.value.join(' + '),
+              basePrice: targetProduct.basePrice || 0,
+              currentPrice: targetProduct.basePrice || 0,
+              isWholeGrain: checkIfWholeGrain(targetProduct, dimensionSelections.value),
+              isActive: true,
+            });
+
+          emit('select', {
+            category: selectedCategory.value,
+            product: selectedProduct.value,
+            combination: combination,
+            quantity: quantity,
+          });
+        } else {
+          emit('select', {
+            category: selectedCategory.value,
+            product: selectedProduct.value,
+            variation: selectedVariation.value,
+            quantity: quantity,
+          });
+        }
         resetSelection();
       }
       return;
@@ -347,6 +525,7 @@ const getOptionDisplay = (option, index) => {
     return option;
   case 'product':
   case 'variation':
+  case 'dimension':
     return option.name;
   case 'quantity':
     return `${option.value}`;
@@ -377,7 +556,7 @@ const getOptionDisplay = (option, index) => {
         :class="{
           'invisible': !paginatedOptions[i-1],
           'utility-btn-active': highlightedIndex === i-1,
-          'bg-neutral-300 hover:bg-neutral-350': currentStep === 'variation' && paginatedOptions[i-1]?.isWholeGrain,
+          'bg-neutral-300 hover:bg-neutral-350': (currentStep === 'variation' || currentStep === 'dimension') && paginatedOptions[i-1]?.isWholeGrain,
           'bg-neutral-300 hover:bg-neutral-350': paginatedOptions[i-1]?.isNavigationNext || paginatedOptions[i-1]?.isNavigationPrev
 
         }"
@@ -421,17 +600,37 @@ const getOptionDisplay = (option, index) => {
         {{ abbreviateText(productName) || '#' }}
       </button>
 
-      <span v-if="selectedProduct && productVariations.length > 0" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
+      <!-- Show dimensions for multi-dimensional products -->
+      <template v-if="hasVariationGroups && selectedProduct">
+        <span
+          v-for="(dim, idx) in selectedProduct.variations?.dimensions"
+          :key="dim.id"
+        >
+          <span v-if="idx <= currentDimensionIndex" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
+          <button
+            v-if="idx <= currentDimensionIndex"
+            class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
+            :class="{ 'cursor-pointer': currentStep !== 'dimension' || idx < currentDimensionIndex }"
+            @click="() => { currentDimensionIndex = idx; handleBreadcrumbClick('dimension'); }"
+            :disabled="currentStep === 'dimension' && idx === currentDimensionIndex"
+          >
+            {{ abbreviateText(dimensionSelections[idx]) || '#' }}
+          </button>
+        </span>
+      </template>
 
-      <button
-        v-if="selectedProduct && productVariations.length > 0"
-        class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
-        :class="{ 'cursor-pointer': currentStep !== 'variation' }"
-        @click="handleBreadcrumbClick('variation')"
-        :disabled="currentStep === 'variation'"
-      >
-        {{ abbreviateText(selectedVariation?.name) || '#' }}
-      </button>
+      <!-- Show single variation for legacy products -->
+      <template v-else-if="selectedProduct && productVariations.length > 0">
+        <span class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
+        <button
+          class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
+          :class="{ 'cursor-pointer': currentStep !== 'variation' }"
+          @click="handleBreadcrumbClick('variation')"
+          :disabled="currentStep === 'variation'"
+        >
+          {{ abbreviateText(selectedVariation?.name) || '#' }}
+        </button>
+      </template>
 
       <span v-if="currentStep === 'quantity'" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
 

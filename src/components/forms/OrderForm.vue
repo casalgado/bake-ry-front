@@ -36,6 +36,16 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
     const product = products.find((p) => p.id === item.productId);
     if (!product) return item;
 
+    // Handle combination-based items (new system)
+    if (item.combination) {
+      return {
+        ...item,
+        basePrice: item.combination.basePrice,
+        currentPrice: preserveCurrentPrice ? item.currentPrice : item.combination.basePrice,
+      };
+    }
+
+    // Handle legacy variation-based items
     if (product.variations?.length > 0) {
       if (item.variation?.id) {
         const matchingVariation = product.variations.find(

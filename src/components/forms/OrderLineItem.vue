@@ -80,7 +80,10 @@ const handleRemove = () => {
         </div>
         <div class="text-pill text-neutral-700 text-xs">
           {{ item.productName }}
-          <span v-if="item.variation" class="text-xs"
+          <span v-if="item.combination" class="text-xs"
+            >- {{ item.combination.getDisplayName ? item.combination.getDisplayName() : item.combination.name }}</span
+          >
+          <span v-else-if="item.variation" class="text-xs"
             >- {{ item.variation.name }}</span
           >
         </div>
