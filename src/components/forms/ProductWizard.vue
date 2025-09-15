@@ -1,9 +1,8 @@
 <script setup>
 // ProductWizard.vue
 import { ref, computed } from 'vue';
-import { abbreviateText, sortVariations } from '@/utils/helpers';
+import { abbreviateText } from '@/utils/helpers';
 import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
-import Combination from '@/models/Combination';
 
 const props = defineProps({
   products: {
@@ -70,37 +69,17 @@ const categoryProducts = computed(() =>
   ),
 );
 
-// Check if selected product has VariationGroups (multi-dimensional)
-const hasVariationGroups = computed(() => {
-  const product = props.products.find(p => p.id === selectedProduct.value?.id);
-  return product?.variations?.dimensions && product?.variations?.dimensions.length > 0;
-});
-
 // Get current dimension for multi-dimensional products
 const currentDimension = computed(() => {
-  if (!hasVariationGroups.value) return null;
   const product = props.products.find(p => p.id === selectedProduct.value?.id);
+
+  // Check for legacy variations and warn
+  if (product?.variations && Array.isArray(product.variations)) {
+    console.error('Legacy variations detected on product:', product.name, 'All products should use VariationGroups');
+    return null;
+  }
+
   return product?.variations?.dimensions[currentDimensionIndex.value];
-});
-
-// Get variations for selected product (legacy support)
-const productVariations = computed(() => {
-  const product = props.products.find(p => p.id === selectedProduct.value?.id);
-
-  // If product has VariationGroups, return empty (handled separately)
-  if (hasVariationGroups.value) {
-    return [];
-  }
-
-  // Legacy flat variations
-  if (!product?.variations) return [];
-
-  // Handle legacy variations array
-  if (Array.isArray(product.variations)) {
-    return sortVariations(product.variations);
-  }
-
-  return [];
 });
 
 // Current options to display based on step
@@ -110,10 +89,7 @@ const currentOptions = computed(() => {
     return categories.value;
   case 'product':
     return categoryProducts.value;
-  case 'variation':
-    return productVariations.value;
   case 'dimension':
-    // For multi-dimensional products, show current dimension options
     return currentDimension.value?.options || [];
   case 'quantity':
     return Array.from({ length: 16 }, (_, i) => ({
@@ -198,23 +174,20 @@ const handleSelection = (index) => {
   case 'product':
     selectedProduct.value = selected;
 
-    // Check if product has multi-dimensional variations
-    if (hasVariationGroups.value) {
+    // Check for legacy variations
+    if (selected.variations && Array.isArray(selected.variations)) {
+      console.error('Legacy variations detected on product:', selected.name, 'All products should use VariationGroups');
+      // Gracefully handle by skipping to quantity
+      currentStep.value = 'quantity';
+    } else if (selected.variations?.dimensions?.length > 0) {
+      // Modern VariationGroups system
       currentStep.value = 'dimension';
       currentDimensionIndex.value = 0;
       dimensionSelections.value = [];
-    } else if (selected.variations?.length > 0) {
-      currentStep.value = 'variation';
     } else {
+      // No variations
       currentStep.value = 'quantity';
     }
-    resetPage();
-    break;
-
-  case 'variation':
-    // Legacy single variation handling
-    selectedVariation.value = selected;
-    currentStep.value = 'quantity';
     resetPage();
     break;
 
@@ -243,7 +216,7 @@ const handleSelection = (index) => {
     // Build the final selection object
     const currentProduct = props.products.find(p => p.id === selectedProduct.value?.id);
 
-    if (hasVariationGroups.value && dimensionSelections.value.length > 0) {
+    if (dimensionSelections.value.length > 0) {
       // Find matching combination from product's VariationGroups
       const combination = findMatchingCombination(currentProduct, dimensionSelections.value);
 
@@ -255,29 +228,16 @@ const handleSelection = (index) => {
           quantity: selected.value,
         });
       } else {
-        // Create a new combination from selections
-        const newCombination = new Combination({
-          selection: dimensionSelections.value,
-          name: dimensionSelections.value.join(' + '),
-          basePrice: currentProduct.basePrice || 0,
-          currentPrice: currentProduct.basePrice || 0,
-          isWholeGrain: checkIfWholeGrain(currentProduct, dimensionSelections.value),
-          isActive: true,
-        });
-
-        emit('select', {
-          category: selectedCategory.value,
-          product: selectedProduct.value,
-          combination: newCombination,
-          quantity: selected.value,
-        });
+        console.error('No matching combination found for selections:', dimensionSelections.value, 'on product:', currentProduct.name);
+        // This should not happen since all combinations are pre-configured
+        return;
       }
     } else {
-      // Legacy variation or no variations
+      // No variations - emit without combination
       emit('select', {
         category: selectedCategory.value,
         product: selectedProduct.value,
-        variation: selectedVariation.value,
+        variation: null,
         quantity: selected.value,
       });
     }
@@ -296,20 +256,6 @@ const findMatchingCombination = (product, selections) => {
     if (!combo.selection || combo.selection.length !== selections.length) return false;
     return selections.every(sel => combo.selection.includes(sel));
   });
-};
-
-// Helper function to check if any selected option is whole grain
-const checkIfWholeGrain = (product, selections) => {
-  if (!product?.variations?.dimensions) return false;
-
-  for (const dimension of product.variations.dimensions) {
-    for (const option of dimension.options) {
-      if (selections.includes(option.name) && option.isWholeGrain) {
-        return true;
-      }
-    }
-  }
-  return false;
 };
 
 const handleBreadcrumbClick = (step) => {
@@ -331,12 +277,6 @@ const handleBreadcrumbClick = (step) => {
     selectedQuantity.value = null;
     dimensionSelections.value = [];
     currentDimensionIndex.value = 0;
-    resetPage();
-    break;
-  case 'variation':
-    currentStep.value = 'variation';
-    selectedVariation.value = null;
-    selectedQuantity.value = null;
     resetPage();
     break;
   case 'dimension':
@@ -389,14 +329,11 @@ const handleBackKey = () => {
     }
     break;
   case 'quantity':
-    if (hasVariationGroups.value && dimensionSelections.value.length > 0) {
+    if (dimensionSelections.value.length > 0) {
       // Go back to last dimension
       const foundProduct = props.products.find(p => p.id === selectedProduct.value?.id);
       currentDimensionIndex.value = foundProduct.variations.dimensions.length - 1;
       currentStep.value = 'dimension';
-    } else if (selectedVariation.value) {
-      selectedVariation.value = null;
-      currentStep.value = 'variation';
     } else {
       selectedProduct.value = null;
       currentStep.value = 'product';
@@ -441,28 +378,25 @@ const handleKeydown = (event) => {
       if (quantity > 0) {
         const targetProduct = props.products.find(p => p.id === selectedProduct.value?.id);
 
-        if (hasVariationGroups.value && dimensionSelections.value.length > 0) {
-          const combination = findMatchingCombination(targetProduct, dimensionSelections.value) ||
-            new Combination({
-              selection: dimensionSelections.value,
-              name: dimensionSelections.value.join(' + '),
-              basePrice: targetProduct.basePrice || 0,
-              currentPrice: targetProduct.basePrice || 0,
-              isWholeGrain: checkIfWholeGrain(targetProduct, dimensionSelections.value),
-              isActive: true,
-            });
+        if (dimensionSelections.value.length > 0) {
+          const combination = findMatchingCombination(targetProduct, dimensionSelections.value);
 
-          emit('select', {
-            category: selectedCategory.value,
-            product: selectedProduct.value,
-            combination: combination,
-            quantity: quantity,
-          });
+          if (combination) {
+            emit('select', {
+              category: selectedCategory.value,
+              product: selectedProduct.value,
+              combination: combination,
+              quantity: quantity,
+            });
+          } else {
+            console.error('No matching combination found for selections:', dimensionSelections.value);
+            return;
+          }
         } else {
           emit('select', {
             category: selectedCategory.value,
             product: selectedProduct.value,
-            variation: selectedVariation.value,
+            variation: null,
             quantity: quantity,
           });
         }
@@ -524,7 +458,6 @@ const getOptionDisplay = (option, index) => {
   case 'category':
     return option;
   case 'product':
-  case 'variation':
   case 'dimension':
     return option.name;
   case 'quantity':
@@ -556,7 +489,7 @@ const getOptionDisplay = (option, index) => {
         :class="{
           'invisible': !paginatedOptions[i-1],
           'utility-btn-active': highlightedIndex === i-1,
-          'bg-neutral-300 hover:bg-neutral-350': (currentStep === 'variation' || currentStep === 'dimension') && paginatedOptions[i-1]?.isWholeGrain,
+          'bg-neutral-300 hover:bg-neutral-350': currentStep === 'dimension' && paginatedOptions[i-1]?.isWholeGrain,
           'bg-neutral-300 hover:bg-neutral-350': paginatedOptions[i-1]?.isNavigationNext || paginatedOptions[i-1]?.isNavigationPrev
 
         }"
@@ -617,19 +550,6 @@ const getOptionDisplay = (option, index) => {
             {{ abbreviateText(dimensionSelections[idx]) || '#' }}
           </button>
         </span>
-      </template>
-
-      <!-- Show single variation for legacy products -->
-      <template v-else-if="selectedProduct && productVariations.length > 0">
-        <span class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
-        <button
-          class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
-          :class="{ 'cursor-pointer': currentStep !== 'variation' }"
-          @click="handleBreadcrumbClick('variation')"
-          :disabled="currentStep === 'variation'"
-        >
-          {{ abbreviateText(selectedVariation?.name) || '#' }}
-        </button>
       </template>
 
       <span v-if="currentStep === 'quantity'" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>

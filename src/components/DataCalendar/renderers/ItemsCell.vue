@@ -28,7 +28,7 @@ const categoryShortener = (text) => {
       class="flex items-center gap-1"
     >
       <span class="">{{ item.quantity }}</span>
-      <span class="">{{ categoryShortener(item.collectionName) }} {{ item.productName }} {{ item.variation?.name }}</span>
+      <span class="">{{ categoryShortener(item.collectionName) }} {{ item.productName }} {{ item.combination?.getDisplayName ? item.combination.getDisplayName() : item.combination?.name || item.variation?.name }}</span>
 
     </div>
     <div
