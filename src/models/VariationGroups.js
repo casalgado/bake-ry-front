@@ -308,8 +308,29 @@ class VariationGroups {
   toPlainObject() {
     return {
       dimensions: this.dimensions,
-      combinations: this.combinations.map(combo => combo.toFirestore()),
+      combinations: this.combinations,
     };
+  }
+
+  /**
+   * Convert to flat array format (legacy support)
+   * @returns {Array} - Flat array of all options from all dimensions
+   */
+  toFirestoreArray() {
+    const flatArray = [];
+
+    this.dimensions.forEach(dimension => {
+      dimension.options.forEach(option => {
+        flatArray.push({
+          ...option,
+          type: dimension.type,
+          unit: dimension.unit || '',
+        });
+      });
+    });
+
+    // Sort by displayOrder
+    return flatArray.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   }
 
   /**

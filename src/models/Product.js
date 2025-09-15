@@ -1,6 +1,5 @@
 // models/Product.js
 import BaseModel from './base/BaseModel.js';
-import ProductVariation from './ProductVariation.js';
 import VariationGroups from './VariationGroups.js';
 
 class Product extends BaseModel {
@@ -62,7 +61,6 @@ class Product extends BaseModel {
     // Custom Attributes
     this.customAttributes = customAttributes;
   }
-
 
   // Override toFirestore to handle variations
   toFirestore() {
