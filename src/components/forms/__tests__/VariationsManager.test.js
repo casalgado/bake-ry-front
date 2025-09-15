@@ -44,7 +44,7 @@ const mockSystemSettingsStore = {
       ],
     },
   },
-  fetchSettings: vi.fn(),
+  fetchSettings: vi.fn().mockResolvedValue({}),
 };
 
 vi.mock('@/stores/systemSettingsStore', () => ({

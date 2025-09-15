@@ -1,5 +1,136 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import VariationGroups from '../VariationGroups';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import VariationGroups from '../VariationGroups.js';
+
+// Mock generateId
+vi.mock('../../utils/helpers.js', () => ({
+  generateId: vi.fn(() => Math.random().toString(36).substring(2, 18)),
+}));
+
+describe('VariationGroups - Constructor and Basic Operations', () => {
+  describe('Constructor', () => {
+    it('creates empty VariationGroups with defaults', () => {
+      const vg = new VariationGroups();
+
+      expect(vg.dimensions).toEqual([]);
+      expect(vg.combinations).toEqual([]);
+    });
+
+    it('creates VariationGroups with provided dimensions and combinations', () => {
+      const data = {
+        dimensions: [{
+          id: 'existing-dim',
+          type: 'WEIGHT',
+          label: 'Weight',
+          options: [{ name: 'small', value: 500 }],
+        }],
+        combinations: [{
+          id: 'existing-combo',
+          selection: ['small'],
+          basePrice: 1200,
+        }],
+      };
+
+      const vg = new VariationGroups(data);
+
+      expect(vg.dimensions).toHaveLength(1);
+      expect(vg.combinations).toHaveLength(1);
+      expect(vg.dimensions[0].id).toBe('existing-dim');
+      expect(vg.combinations[0].id).toBe('existing-combo');
+    });
+  });
+
+  describe('Price Management', () => {
+    it('returns price data for existing combination', () => {
+      const vg = new VariationGroups({
+        combinations: [{
+          id: 'combo1',
+          basePrice: 1500,
+          costPrice: 800,
+        }],
+      });
+
+      const price = vg.getCombinationPrice('combo1');
+
+      expect(price.totalPrice).toBe(1500);
+      expect(price.totalCost).toBe(800);
+      expect(price.profit).toBe(700);
+      expect(price.profitMargin).toBe('46.67');
+    });
+
+    it('returns zero values for non-existent combination', () => {
+      const vg = new VariationGroups();
+      const price = vg.getCombinationPrice('nonexistent');
+
+      expect(price.totalPrice).toBe(0);
+      expect(price.totalCost).toBe(0);
+      expect(price.profit).toBe(0);
+      expect(price.profitMargin).toBe(0);
+    });
+  });
+
+  describe('Validation', () => {
+    it('validates dimension type', () => {
+      const vg = new VariationGroups({
+        dimensions: [{
+          id: 'dim1',
+          options: [],
+        }],
+      });
+
+      const errors = vg.validate();
+      expect(errors).toContain('Dimension 0: type is required');
+    });
+
+    it('validates combination basePrice', () => {
+      const vg = new VariationGroups({
+        combinations: [{
+          id: 'combo1',
+          selection: ['small'],
+          basePrice: -100,
+        }],
+      });
+
+      const errors = vg.validate();
+      expect(errors).toContain('Combination 0: basePrice must be non-negative');
+    });
+  });
+
+  describe('Legacy Conversion', () => {
+    it('converts flat variations to VariationGroups', () => {
+      const legacyVariations = [
+        {
+          id: 'var1',
+          name: 'small',
+          type: 'WEIGHT',
+          value: 500,
+          unit: 'g',
+          basePrice: 1200,
+          costPrice: 600,
+          isWholeGrain: false,
+        },
+        {
+          id: 'var2',
+          name: 'large',
+          type: 'WEIGHT',
+          value: 1000,
+          unit: 'g',
+          basePrice: 2000,
+          costPrice: 1000,
+          isWholeGrain: false,
+        },
+      ];
+
+      const vg = VariationGroups.fromLegacyVariations(legacyVariations);
+
+      expect(vg).toBeInstanceOf(VariationGroups);
+      expect(vg.dimensions).toHaveLength(1);
+      expect(vg.dimensions[0].type).toBe('WEIGHT');
+      expect(vg.dimensions[0].unit).toBe('g');
+      expect(vg.dimensions[0].options).toHaveLength(2);
+      expect(vg.combinations).toHaveLength(2);
+    });
+  });
+});
 
 describe('VariationGroups - Display Order', () => {
   let variationGroup;

@@ -164,11 +164,25 @@ describe('ProductForm', () => {
     it('does not validate prices when variations exist', async () => {
       wrapper = createWrapper();
 
-      // Enable variations
+      // Enable variations with proper structure
       wrapper.vm.formData.hasVariations = true;
       wrapper.vm.formData.variations = {
-        dimensions: [{ id: 'dim1', type: 'SIZE', options: [] }],
-        combinations: [{ id: 'combo1', basePrice: 100 }],
+        dimensions: [{
+          id: 'dim1',
+          type: 'SIZE',
+          label: 'Size',
+          options: [{ name: 'small', value: 1 }],
+          displayOrder: 0
+        }],
+        combinations: [{
+          id: 'combo1',
+          selection: ['small'],
+          name: 'small',
+          basePrice: 100,
+          costPrice: 50,
+          isActive: true,
+          isWholeGrain: false
+        }],
       };
 
       await wrapper.find('#name').setValue('Test Product');
@@ -201,10 +215,24 @@ describe('ProductForm', () => {
     it('shows confirmation when disabling variations with data', async () => {
       wrapper = createWrapper();
 
-      // Add some variations
+      // Add some variations with proper structure
       wrapper.vm.formData.variations = {
-        dimensions: [{ id: 'dim1', type: 'SIZE', options: [] }],
-        combinations: [{ id: 'combo1', basePrice: 100 }],
+        dimensions: [{
+          id: 'dim1',
+          type: 'SIZE',
+          label: 'Size',
+          options: [{ name: 'small', value: 1 }],
+          displayOrder: 0
+        }],
+        combinations: [{
+          id: 'combo1',
+          selection: ['small'],
+          name: 'small',
+          basePrice: 100,
+          costPrice: 50,
+          isActive: true,
+          isWholeGrain: false
+        }],
       };
       wrapper.vm.formData.hasVariations = true;
 
@@ -221,8 +249,22 @@ describe('ProductForm', () => {
       wrapper = createWrapper();
 
       wrapper.vm.formData.variations = {
-        dimensions: [{ id: 'dim1', type: 'SIZE', options: [] }],
-        combinations: [{ id: 'combo1', basePrice: 100 }],
+        dimensions: [{
+          id: 'dim1',
+          type: 'SIZE',
+          label: 'Size',
+          options: [{ name: 'small', value: 1 }],
+          displayOrder: 0
+        }],
+        combinations: [{
+          id: 'combo1',
+          selection: ['small'],
+          name: 'small',
+          basePrice: 100,
+          costPrice: 50,
+          isActive: true,
+          isWholeGrain: false
+        }],
       };
       wrapper.vm.formData.hasVariations = true;
 
@@ -325,8 +367,22 @@ describe('ProductForm', () => {
         costPrice: 1000,
         isActive: false,
         variations: {
-          dimensions: [{ id: 'dim1', type: 'SIZE' }],
-          combinations: [{ id: 'combo1', basePrice: 100 }],
+          dimensions: [{
+            id: 'dim1',
+            type: 'SIZE',
+            label: 'Size',
+            options: [{ name: 'medium', value: 1 }],
+            displayOrder: 0
+          }],
+          combinations: [{
+            id: 'combo1',
+            selection: ['medium'],
+            name: 'medium',
+            basePrice: 100,
+            costPrice: 50,
+            isActive: true,
+            isWholeGrain: false
+          }],
         },
       };
 

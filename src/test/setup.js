@@ -23,6 +23,24 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }));
 
+// Mock localStorage to avoid authentication token errors
+const localStorageMock = {
+  getItem: vi.fn((key) => {
+    if (key === 'AuthToken') return 'mock-auth-token';
+    return null;
+  }),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+  length: 0,
+  key: vi.fn(),
+};
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
+
 // Configure global test utils
 config.global.stubs = {
   teleport: true,
