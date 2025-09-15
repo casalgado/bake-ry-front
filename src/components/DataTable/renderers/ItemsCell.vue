@@ -1,6 +1,6 @@
 <!-- components/DataTable/renderers/ItemsCell.vue -->
 <script setup>
-import { abbreviateText } from '@/utils/helpers';
+import { abbreviateText, capitalize } from '@/utils/helpers';
 defineProps({
   items: {
     type: Array,
@@ -13,9 +13,9 @@ defineProps({
 });
 
 const categoryShortener = (text) => {
-  if (text == 'sourdough') return 'pan';
-  if (text == 'tortillas') return 'tort';
-  if (text == 'baguette') return 'bag';
+  if (text == 'sourdough') return 'Pan';
+  if (text == 'tortillas') return 'Tort';
+  if (text == 'baguette') return 'Bag';
   return '';
 };
 </script>
@@ -27,8 +27,8 @@ const categoryShortener = (text) => {
       :key="item.id"
       class="flex items-center gap-1"
     >
-      <span class="">{{ item.quantity }}</span>
-      <span class="">{{ categoryShortener(item.collectionName) }} {{ item.productName }} {{ item.combination?.getDisplayName ? item.combination.getDisplayName() : item.combination?.name || item.variation?.name }}</span>
+      <span class=" px-1 rounded-md">{{ item.quantity }}</span>
+      <span class="">{{ categoryShortener(item.collectionName) }} {{ capitalize(item.productName) }} {{ item.combination?.getDisplayName ? item.combination.getDisplayName() : capitalize(item.combination?.name || item.variation?.name) }}</span>
 
     </div>
     <div

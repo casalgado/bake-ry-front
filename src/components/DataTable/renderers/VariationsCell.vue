@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { formatMoney, sortVariations } from '@/utils/helpers';
+import { formatMoney, sortVariations, capitalize } from '@/utils/helpers';
 
 const props = defineProps({
   variations: {
@@ -18,7 +18,7 @@ const props = defineProps({
       <tbody class="">
         <tr v-for="item in variations.combinations" :key="item.id" class="">
           <td class="px-3 py-0 text-sm">
-              <span class="">{{ item.name }}</span>
+              <span class="">{{ capitalize(item.name) }}</span>
               <!-- <span v-if="item.isWholeGrain"
                     class="bg-primary-100 text-primary-600 text-xs px-2 py-0.5 rounded-full">
                 WG

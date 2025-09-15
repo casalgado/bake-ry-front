@@ -1,7 +1,7 @@
 <!-- components/DataTable/renderers/ClientCell.vue -->
 <script setup>
 import { PhCheckFat, PhBuildings } from '@phosphor-icons/vue';
-import { formatTime } from '@/utils/helpers';
+import { formatTime, capitalize } from '@/utils/helpers';
 
 defineProps({
   name: String,
@@ -34,7 +34,7 @@ const formatPhoneNumber = (phone) => {
   <div class="flex flex-col">
     <span class="flex items-center gap-2">
       <PhBuildings v-if="category === 'B2B'" class="w-4 h-4" weight="regular" />
-      <span>{{ name }} {{ legalName ? `- ${legalName} -` : '' }}</span>
+      <span>{{ capitalize(name) }} {{ legalName ? `- ${capitalize(legalName)} -` : '' }}</span>
       <PhCheckFat v-if="showIsPaid" weight="fill" class="w-3 h-3 flex-shrink-0" />
     </span>
     <a
@@ -45,7 +45,7 @@ const formatPhoneNumber = (phone) => {
       {{ phone }}
     </a>
     <span v-if="dueTime" class="text-xs text-neutral-500">{{ formatTime(dueTime) }}</span>
-    <span v-if="comment" class="text-xs text-neutral-500">{{ comment }}</span>
+    <span v-if="comment" class="text-xs text-neutral-500">{{ capitalize(comment) }}</span>
 
   </div>
 </template>

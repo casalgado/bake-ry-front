@@ -2,6 +2,7 @@
 <script setup>
 import { computed, ref, onUnmounted } from 'vue';
 import { PhArrowRight } from '@phosphor-icons/vue';
+import { capitalize } from '@/utils/helpers';
 
 const props = defineProps({
   column: {
@@ -180,7 +181,7 @@ onUnmounted(() => {
             :is="currentOption.icon"
             class="w-5 h-5"
           />
-          <span v-if="currentOption.displayText">{{ currentOption.displayText }}</span>
+          <span v-if="currentOption.displayText">{{ capitalize(currentOption.displayText) }}</span>
         </div>
       </template>
       <component
@@ -191,10 +192,10 @@ onUnmounted(() => {
       <template v-else>
         <template v-if="column.displayText">
 
-          {{ column.displayText[row[column.field]] }}
+          {{ capitalize(column.displayText[row[column.field]]) }}
         </template>
         <template v-else>
-          {{ row[column.field] }}
+          {{ capitalize(row[column.field]) }}
         </template>
       </template>
 
@@ -214,7 +215,7 @@ onUnmounted(() => {
               :is="tooltipContent.icon"
               class="w-3 h-3"
             />
-            <span>{{ tooltipContent.value }}</span>
+            <span>{{ capitalize(tooltipContent.value) }}</span>
           </div>
         </div>
 

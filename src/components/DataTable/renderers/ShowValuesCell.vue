@@ -1,5 +1,7 @@
 <!-- components/DataTable/renderers/ShowValuesCell.vue -->
 <script setup>
+import { capitalize } from '@/utils/helpers';
+
 defineProps({
   object: {
     type: Object,
@@ -22,7 +24,7 @@ defineProps({
     layout === 'horizontal' ? 'flex gap-2 items-center' : ''
   ]">
     <div v-for="field in fields" :key="field">
-      {{ object[field] }}
+      {{ capitalize(object[field]) }}
     </div>
   </div>
   <div v-else>-</div>

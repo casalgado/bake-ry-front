@@ -1,4 +1,6 @@
 <script setup>
+import { capitalize } from '@/utils/helpers';
+
 const props = defineProps({
   driverId: {
     type: String,
@@ -13,5 +15,5 @@ const props = defineProps({
 
 <template>
 
-  <span>{{ drivers.find(driver => driver.value === driverId)?.displayText || '-' }}</span>
+  <span>{{ capitalize(drivers.find(driver => driver.value === driverId)?.displayText) || '-' }}</span>
 </template>

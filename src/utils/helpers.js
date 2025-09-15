@@ -158,13 +158,20 @@ function formatTime(time24) {
 
 // Helper function to capitalize words
 const capitalize = (str) => {
+  if (!str && str !== 0) return '';
 
-  if (!str) return '';
-  return str.split(' ')
+  // Convert to string if it's not already
+  const text = String(str);
+
+  return text.split(' ')
     .map(word => {
       // Don't capitalize connectors and prepositions
       if (['de', 'del', 'la', 'las', 'los', 'y', 'e', 'sin', 'el'].includes(word)) {
         return word;
+      }
+      // Don't capitalize words that start with 'x' followed by a number
+      if (/^x\d/.test(word.toLowerCase())) {
+        return word.toLowerCase();
       }
       return word.charAt(0).toUpperCase() + word.slice(1);
     })
