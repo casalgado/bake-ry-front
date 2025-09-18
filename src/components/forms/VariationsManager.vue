@@ -232,7 +232,7 @@ const regenerateCombinations = () => {  // Only regenerate if we have valid dime
     return;
   }
 
-  const allCombos = variationGroup.value.generateAllCombinations();
+  // const allCombos = variationGroup.value.generateAllCombinations();
 
   // Preserve existing combination prices if they exist
   const existingPrices = {};
@@ -523,11 +523,11 @@ watch(
     <!-- Dimension Type Selection -->
     <div class="base-card mb-6">
       <h4 class="text-lg font-medium text-neutral-800 mb-4">
-        Seleccionar Dimensiones de Variación
+        Seleccionar Tipos de Variación
       </h4>
       <p class="text-sm text-neutral-600 mb-4">
-        Selecciona una o más dimensiones para crear variaciones del producto.
-        Por ejemplo, puedes combinar peso y sabor.
+        Selecciona una o más variaciones del producto. Tambien puedes crear variaciones personalizadas.
+        Por ejemplo, puedes combinar peso y aroma.
       </p>
 
       <div class="space-y-4">
@@ -580,7 +580,7 @@ watch(
           <div class="flex gap-2 items-end">
             <div class="flex-1">
               <label class="block text-sm font-medium text-neutral-700 mb-1">
-                Crear dimensión personalizada
+                Crear variación personalizada
               </label>
               <input
                 type="text"
@@ -605,8 +605,7 @@ watch(
             </button>
           </div>
           <p class="text-xs text-neutral-500 mt-1">
-            Las dimensiones personalizadas te permiten crear variaciones
-            específicas para tu producto
+            Presiona Enter o haz clic en "Agregar" para crear una variación personalizada.
           </p>
         </div>
       </div>
@@ -700,7 +699,7 @@ watch(
         <YesNoToggle
           :model-value="getDimensionWholeGrainStatus(dimension.id)"
           @update:modelValue="(value) => toggleWholeGrainForDimension(dimension.id, value)"
-          label="¿Ofrecer variaciones integrales para esta dimensión?"
+          label="¿Ofrecer opciones integrales para esta variación?"
         />
         <p class="text-xs text-neutral-500 mt-1">
           Se creará automáticamente una versión integral para cada opción
@@ -832,10 +831,10 @@ watch(
     >
       <div class="text-neutral-500 mb-2">
         <PhPlus class="w-12 h-12 mx-auto mb-4 text-neutral-300" />
-        <p class="text-lg font-medium">No hay dimensiones seleccionadas</p>
+        <p class="text-lg font-medium">No hay variaciones seleccionadas</p>
         <p class="text-sm mt-2">
-          Selecciona al menos una dimensión arriba para comenzar a configurar
-          las variaciones.
+          Selecciona al menos una variación arriba para comenzar a configurar
+          las opciones.
         </p>
       </div>
     </div>

@@ -266,8 +266,8 @@ const formatPriceRange = (group) => {
                         parseFloat($event.target.value) || 0
                       )
                     "
-                    @click.stop="console.log('🖱️ Variant base price input clicked')"
-                    @focus.stop="console.log('🎯 Variant base price input focused')"
+                    @click.stop="console.log('🖱️ Option base price input clicked')"
+                    @focus.stop="console.log('🎯 Option base price input focused')"
                     placeholder="0"
                     class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
                     min="0"
@@ -338,7 +338,7 @@ const formatPriceRange = (group) => {
     <div class="text-neutral-500">
       <p class="text-md font-medium">Configurando combinaciones...</p>
       <p class="text-sm mt-2">
-        Completa la configuración de las dimensiones para ver las combinaciones disponibles.
+        Completa la configuración para ver las combinaciones disponibles.
       </p>
     </div>
   </div>
