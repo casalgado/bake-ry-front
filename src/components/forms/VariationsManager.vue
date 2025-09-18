@@ -625,12 +625,12 @@ watch(
             <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-neutral-600 bg-neutral-200 rounded">
               {{ getDimensionPosition(dimension.id) }}
             </span>
-            <div class="flex flex-col -my-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div class="flex flex-col -my-1 transition-opacity duration-200" :class="{ 'opacity-0 group-hover:opacity-100': sortedDimensions.length > 1, 'hidden': sortedDimensions.length <= 1 }">
               <button
                 type="button"
                 @click="moveDimensionUp(dimension.id)"
                 :disabled="dimIndex === 0"
-                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 leading-none"
                 title="Mover arriba"
               >
                 <PhCaretUp class="w-3 h-3" />
@@ -639,7 +639,7 @@ watch(
                 type="button"
                 @click="moveDimensionDown(dimension.id)"
                 :disabled="dimIndex === sortedDimensions.length - 1"
-                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 leading-none"
                 title="Mover abajo"
               >
                 <PhCaretDown class="w-3 h-3" />
@@ -753,12 +753,12 @@ watch(
             </div>
 
             <!-- Up/Down arrows -->
-            <div class="flex flex-col -my-1 opacity-0 group-hover/option:opacity-100 transition-opacity duration-200">
+            <div class="flex flex-col -my-1 transition-opacity duration-200" :class="{ 'opacity-0 group-hover/option:opacity-100': getSortedOptions(dimension.id).length > 1, 'hidden': getSortedOptions(dimension.id).length <= 1 }">
               <button
                 type="button"
                 @click="moveOptionUp(dimension.id, option.name)"
                 :disabled="optionIndex === 0"
-                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 leading-none"
                 title="Mover arriba"
               >
                 <PhCaretUp class="w-3 h-3" />
@@ -767,7 +767,7 @@ watch(
                 type="button"
                 @click="moveOptionDown(dimension.id, option.name)"
                 :disabled="optionIndex === getSortedOptions(dimension.id).length - 1"
-                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 leading-none"
                 title="Mover abajo"
               >
                 <PhCaretDown class="w-3 h-3" />

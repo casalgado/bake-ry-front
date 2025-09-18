@@ -27,6 +27,9 @@ const emit = defineEmits([
 ]);
 
 const isPriceModified = computed(() => {
+  console.log(props.item);
+  console.log('current price', props.item.currentPrice);
+  console.log('base price', props.item.basePrice);
   return props.item.currentPrice !== props.item.basePrice;
 });
 
@@ -121,7 +124,7 @@ const handleRemove = () => {
                 type="number"
                 @input="handleDiscountChange"
                 :value="discount"
-                class="w-12 px-1 py-0.5 text-right border rounded text-xs max-w-12 min-w-8"
+                class="w-14 px-1 py-0.5 text-right border rounded text-xs max-w-14 min-w-14"
                 :disabled="item.isComplimentary"
                 max="100"
               />

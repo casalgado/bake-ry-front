@@ -38,10 +38,22 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
 
     // Handle combination-based items (new system)
     if (item.combination) {
+      const basePrice = item.combination.basePrice || item.basePrice || 0;
       return {
         ...item,
-        basePrice: item.combination.basePrice,
-        currentPrice: preserveCurrentPrice ? item.currentPrice : item.combination.basePrice,
+        basePrice: basePrice,
+        currentPrice: preserveCurrentPrice ? item.currentPrice : basePrice,
+        // Ensure combination object is a plain object with all necessary properties
+        combination: {
+          id: item.combination.id,
+          selection: [...(item.combination.selection || [])],
+          name: item.combination.name,
+          basePrice: basePrice,
+          currentPrice: preserveCurrentPrice ? item.currentPrice : basePrice,
+          isWholeGrain: item.combination.isWholeGrain || false,
+          isActive: item.combination.isActive !== undefined ? item.combination.isActive : true,
+          getDisplayName: item.combination.getDisplayName || (() => item.combination.name || item.combination.selection?.join(' + ')),
+        },
       };
     }
 

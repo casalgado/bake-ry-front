@@ -146,6 +146,11 @@ const currentDimensionText = computed(() => {
   return selection || '#';
 });
 
+// Check if selected product has variation groups
+const hasVariationGroups = computed(() => {
+  return selectedProduct.value?.variations?.dimensions?.length > 0;
+});
+
 const resetPage = () => {
   currentPage.value = 0;
 };

@@ -25,6 +25,7 @@ const handleWizardSelect = (selection) => {
 
   // Handle combination if present (new multi-dimensional system)
   if (selection.combination) {
+    const basePrice = selection.combination.basePrice || 0;
     const newItem = {
       productId: product.id,
       productName: product.name,
@@ -32,9 +33,19 @@ const handleWizardSelect = (selection) => {
       collectionName: product.collectionName,
       taxPercentage: product.taxPercentage,
       quantity: selection.quantity,
-      basePrice: selection.combination.basePrice,
-      currentPrice: selection.combination.basePrice,
-      combination: selection.combination,
+      basePrice: basePrice,
+      currentPrice: basePrice,
+      // Convert combination to plain object to avoid reference issues
+      combination: {
+        id: selection.combination.id,
+        selection: [...(selection.combination.selection || [])],
+        name: selection.combination.name,
+        basePrice: basePrice,
+        currentPrice: basePrice,
+        isWholeGrain: selection.combination.isWholeGrain || false,
+        isActive: selection.combination.isActive !== undefined ? selection.combination.isActive : true,
+        getDisplayName: () => selection.combination.name || selection.combination.selection?.join(' + '),
+      },
       // Keep variation for backward compatibility if it exists
       variation: selection.variation || null,
       recipeId: selection.combination.recipeId || product.recipeId,
