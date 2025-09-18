@@ -271,75 +271,81 @@ onMounted(async () => {
           />
         </div>
 
-        <!-- Category Selection -->
-        <div class="mb-4">
-          <label
-            for="collection"
-            class="block text-sm font-medium text-neutral-700 mb-1"
-          >
-            Categoría
-          </label>
-          <select
-            id="collection"
-            v-model="formData.collectionId"
-            @change="handleCategoryChange"
-            class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-            :class="{ 'border-danger': errors.collectionId }"
-            required
-          >
-            <option value="">Selecciona una categoría</option>
-            <option
-              v-for="category in availableCategories"
-              :key="category.id"
-              :value="category.id"
+        <!-- Category and Tax Percentage Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <!-- Category Selection -->
+          <div>
+            <label
+              for="collection"
+              class="block text-sm font-medium text-neutral-700 mb-1"
             >
-              {{ category.name }}
-            </option>
-          </select>
-          <span
-            v-if="errors.collectionId"
-            class="text-sm text-danger mt-1"
-          >
-            {{ errors.collectionId }}
-          </span>
-        </div>
-
-        <!-- Tax Percentage -->
-        <div class="mb-4">
-          <label
-            for="taxPercentage"
-            class="block text-sm font-medium text-neutral-700 mb-1"
-          >
-            Porcentaje de Impuesto
-          </label>
-          <div class="input-with-unit" data-unit="%">
-            <input
-              id="taxPercentage"
-              type="number"
-              v-model="formData.taxPercentage"
+              Categoría
+            </label>
+            <select
+              id="collection"
+              v-model="formData.collectionId"
+              @change="handleCategoryChange"
               class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-              min="0"
-              max="100"
-              step="0.01"
-            />
+              :class="{ 'border-danger': errors.collectionId }"
+              required
+            >
+              <option value="">Selecciona una categoría</option>
+              <option
+                v-for="category in availableCategories"
+                :key="category.id"
+                :value="category.id"
+              >
+                {{ category.name }}
+              </option>
+            </select>
+            <span
+              v-if="errors.collectionId"
+              class="text-sm text-danger mt-1 block"
+            >
+              {{ errors.collectionId }}
+            </span>
+          </div>
+
+          <!-- Tax Percentage -->
+          <div>
+            <label
+              for="taxPercentage"
+              class="block text-sm font-medium text-neutral-700 mb-1"
+            >
+              Porcentaje de Impuesto
+            </label>
+            <div class="input-with-unit" data-unit="%">
+              <input
+                id="taxPercentage"
+                type="number"
+                v-model="formData.taxPercentage"
+                class="w-full px-3 py-2 border border-neutral-300 rounded-md"
+                min="0"
+                max="100"
+                step="0.01"
+              />
+            </div>
           </div>
         </div>
 
-        <!-- Active Status -->
-        <div class="mb-4">
-          <YesNoToggle
-            v-model="formData.isActive"
-            label="Producto activo"
-          />
-        </div>
+        <!-- Variations and Active Status Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <!-- Has Variations Toggle -->
+          <div>
+            <YesNoToggle
+              v-model="formData.hasVariations"
+              @update:modelValue="toggleVariations"
+              label="¿Este producto tiene variaciones?"
+            />
+          </div>
 
-        <!-- Has Variations Toggle -->
-        <div class="mb-4">
-          <YesNoToggle
-            v-model="formData.hasVariations"
-            @update:modelValue="toggleVariations"
-            label="¿Este producto tiene variaciones?"
-          />
+          <!-- Active Status -->
+          <div>
+            <YesNoToggle
+              v-model="formData.isActive"
+              label="Producto activo"
+            />
+          </div>
         </div>
       </div>
 

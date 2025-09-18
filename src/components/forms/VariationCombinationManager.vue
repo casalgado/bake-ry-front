@@ -164,8 +164,8 @@ const formatPriceRange = (group) => {
       </button>
     </div>
 
-    <!-- Column Headers -->
-    <div class="grid grid-cols-10 gap-3 mb-2 px-4 py-2 text-xs font-medium text-neutral-600 uppercase tracking-wide">
+    <!-- Column Headers (Desktop only) -->
+    <div class="hidden sm:grid grid-cols-10 gap-3 mb-2 px-4 py-2 text-xs font-medium text-neutral-600 uppercase tracking-wide">
       <div class="col-span-6">Variante</div>
       <div class="col-span-2">Precio Venta</div>
       <div class="col-span-2">Precio Costo</div>
@@ -177,54 +177,61 @@ const formatPriceRange = (group) => {
 
         <!-- Group Header -->
         <div
-          class="group-header grid grid-cols-10 gap-3 items-center px-4 py-3 hover:bg-neutral-100 border-l-4 border-neutral-300"
+          class="group-header flex flex-col sm:grid sm:grid-cols-10 gap-2 sm:gap-3 sm:items-center px-4 py-3 hover:bg-neutral-100 border-l-4 border-neutral-300"
           :class="group.expanded ? 'border-blue-400 bg-neutral-50' : ''"
         >
-          <!-- Group Name (col-span-6) -->
-          <div class="col-span-6 flex items-center"
+          <!-- Mobile: Group Name row -->
+          <div class="flex items-center justify-between sm:col-span-6 sm:justify-start"
                :class="variationGroup.dimensions.length > 1 ? 'cursor-pointer' : ''"
                @click="variationGroup.dimensions.length > 1 ? toggleGroup(group.key) : null">
-            <PhCaretDown v-if="variationGroup.dimensions.length > 1 && group.expanded" class="w-4 h-4 mr-3 text-neutral-500" />
-            <PhCaretRight v-else-if="variationGroup.dimensions.length > 1" class="w-4 h-4 mr-3 text-neutral-500" />
-            <div>
-              <span class="font-medium text-neutral-800">{{ group.name }}</span>
-              <span v-if="group.variants.length > 1" class="text-sm text-neutral-500 ml-2">
-                {{ group.variants.length }} variantes
-              </span>
+            <div class="flex items-center">
+              <PhCaretDown v-if="variationGroup.dimensions.length > 1 && group.expanded" class="w-4 h-4 mr-3 text-neutral-500" />
+              <PhCaretRight v-else-if="variationGroup.dimensions.length > 1" class="w-4 h-4 mr-3 text-neutral-500" />
+              <div>
+                <span class="font-medium text-neutral-800">{{ group.name }}</span>
+                <span v-if="group.variants.length > 1" class="text-sm text-neutral-500 ml-2">
+                  {{ group.variants.length }} variantes
+                </span>
+              </div>
             </div>
           </div>
 
-          <!-- Base Price (col-span-2) -->
-          <div class="col-span-2" @click.stop="console.log('🛑 Group base price div clicked')">
-            <div class="input-with-unit compact" data-unit="$">
-              <input
-                type="number"
-                :value="getGroupPriceValue(group.key, 'basePrice')"
-                :placeholder="getGroupPriceDisplay(group.key, 'basePrice')"
-                @input.stop="updateGroupPrice(group.key, 'basePrice', parseFloat($event.target.value) || 0)"
-                @click.stop
-                @focus.stop
-                class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
-                min="0"
-                step="50"
-              />
+          <!-- Mobile: Price fields row / Desktop: Inline price fields -->
+          <div class="flex gap-2 sm:contents">
+            <!-- Base Price -->
+            <div class="flex-1 sm:col-span-2" @click.stop="console.log('🛑 Group base price div clicked')">
+              <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Precio Venta</label>
+              <div class="input-with-unit compact" data-unit="$">
+                <input
+                  type="number"
+                  :value="getGroupPriceValue(group.key, 'basePrice')"
+                  :placeholder="getGroupPriceDisplay(group.key, 'basePrice')"
+                  @input.stop="updateGroupPrice(group.key, 'basePrice', parseFloat($event.target.value) || 0)"
+                  @click.stop
+                  @focus.stop
+                  class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
+                  min="0"
+                  step="50"
+                />
+              </div>
             </div>
-          </div>
 
-          <!-- Cost Price (col-span-2) -->
-          <div class="col-span-2" @click.stop>
-            <div class="input-with-unit compact" data-unit="$">
-              <input
-                type="number"
-                :value="getGroupPriceValue(group.key, 'costPrice')"
-                :placeholder="getGroupPriceDisplay(group.key, 'costPrice')"
-                @input.stop="updateGroupPrice(group.key, 'costPrice', parseFloat($event.target.value) || 0)"
-                @click.stop
-                @focus.stop
-                class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
-                min="0"
-                step="50"
-              />
+            <!-- Cost Price -->
+            <div class="flex-1 sm:col-span-2" @click.stop>
+              <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Precio Costo</label>
+              <div class="input-with-unit compact" data-unit="$">
+                <input
+                  type="number"
+                  :value="getGroupPriceValue(group.key, 'costPrice')"
+                  :placeholder="getGroupPriceDisplay(group.key, 'costPrice')"
+                  @input.stop="updateGroupPrice(group.key, 'costPrice', parseFloat($event.target.value) || 0)"
+                  @click.stop
+                  @focus.stop
+                  class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
+                  min="0"
+                  step="50"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -235,11 +242,11 @@ const formatPriceRange = (group) => {
             <div
               v-for="variant in group.variants"
               :key="variant.id"
-              class="variant-row grid grid-cols-10 gap-3 items-center px-4 py-3 pl-8 hover:bg-neutral-75 border-l-4 border-neutral-200"
+              class="variant-row flex flex-col sm:grid sm:grid-cols-10 gap-2 sm:gap-3 sm:items-center px-4 py-3 pl-4 sm:pl-8 hover:bg-neutral-75 border-l-4 border-neutral-200"
               :class="variant.isWholeGrain ? 'bg-amber-25' : ''"
             >
               <!-- Variant Name -->
-              <div class="col-span-6">
+              <div class="sm:col-span-6">
                 <div class="flex items-center">
                   <div>
                     <div class="text-sm font-medium text-neutral-800">
@@ -252,50 +259,55 @@ const formatPriceRange = (group) => {
                 </div>
               </div>
 
-              <!-- Base Price -->
-              <div class="col-span-2" @click.stop="console.log('🛑 Variant base price div clicked')">
-                <div class="input-with-unit compact" data-unit="$">
-                  <input
-                    type="number"
-                    :value="variant.basePrice"
-                    @input.stop="
-                      console.log('⌨️ Variant base price input:', $event.target.value, 'for variant:', variant.id);
-                      updateCombinationPrice(
-                        variant.id,
-                        'basePrice',
-                        parseFloat($event.target.value) || 0
-                      )
-                    "
-                    @click.stop="console.log('🖱️ Option base price input clicked')"
-                    @focus.stop="console.log('🎯 Option base price input focused')"
-                    placeholder="0"
-                    class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
-                    min="0"
-                    step="50"
-                  />
+              <!-- Mobile: Price fields row / Desktop: Inline price fields -->
+              <div class="flex gap-2 sm:contents">
+                <!-- Base Price -->
+                <div class="flex-1 sm:col-span-2" @click.stop="console.log('🛑 Variant base price div clicked')">
+                  <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Precio Venta</label>
+                  <div class="input-with-unit compact" data-unit="$">
+                    <input
+                      type="number"
+                      :value="variant.basePrice"
+                      @input.stop="
+                        console.log('⌨️ Variant base price input:', $event.target.value, 'for variant:', variant.id);
+                        updateCombinationPrice(
+                          variant.id,
+                          'basePrice',
+                          parseFloat($event.target.value) || 0
+                        )
+                      "
+                      @click.stop="console.log('🖱️ Option base price input clicked')"
+                      @focus.stop="console.log('🎯 Option base price input focused')"
+                      placeholder="0"
+                      class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
+                      min="0"
+                      step="50"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <!-- Cost Price -->
-              <div class="col-span-2" @click.stop>
-                <div class="input-with-unit compact" data-unit="$">
-                  <input
-                    type="number"
-                    :value="variant.costPrice"
-                    @input.stop="
-                      updateCombinationPrice(
-                        variant.id,
-                        'costPrice',
-                        parseFloat($event.target.value) || 0
-                      )
-                    "
-                    @click.stop
-                    @focus.stop
-                    placeholder="0"
-                    class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
-                    min="0"
-                    step="50"
-                  />
+                <!-- Cost Price -->
+                <div class="flex-1 sm:col-span-2" @click.stop>
+                  <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Precio Costo</label>
+                  <div class="input-with-unit compact" data-unit="$">
+                    <input
+                      type="number"
+                      :value="variant.costPrice"
+                      @input.stop="
+                        updateCombinationPrice(
+                          variant.id,
+                          'costPrice',
+                          parseFloat($event.target.value) || 0
+                        )
+                      "
+                      @click.stop
+                      @focus.stop
+                      placeholder="0"
+                      class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
+                      min="0"
+                      step="50"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -307,7 +319,7 @@ const formatPriceRange = (group) => {
 
     <!-- Summary -->
     <div class="mt-6 p-4 bg-neutral-100 rounded-lg">
-      <div class="grid grid-cols-3 gap-4 text-sm">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
         <div>
           <div class="text-neutral-600">Con precios definidos:</div>
           <div class="font-medium text-neutral-900">

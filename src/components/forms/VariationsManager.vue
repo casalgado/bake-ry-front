@@ -106,8 +106,8 @@ const toggleDimensionType = (type) => {
     // Remove dimension type
     confirmDialog.value = {
       isOpen: true,
-      title: 'Eliminar dimensión',
-      message: '¿Estás seguro de eliminar esta dimensión? Se perderán todas las opciones y combinaciones asociadas.',
+      title: 'Eliminar variación',
+      message: '¿Estás seguro de eliminar esta variación? Se perderán todas las opciones y combinaciones asociadas.',
       onConfirm: () => {
         selectedDimensionTypes.value.splice(index, 1);
         removeDimensionFromVariations(type);
@@ -711,99 +711,106 @@ watch(
         <div
           v-for="(option, optionIndex) in getSortedOptions(dimension.id)"
           :key="dimension.id + '-' + optionIndex"
-          class="flex gap-2 items-center p-3 rounded-lg relative group/option"
+          class="flex flex-col sm:flex-row gap-2 sm:gap-2 sm:items-center p-2 sm:p-3 rounded-lg relative group/option"
           :class="option.isWholeGrain ? 'bg-neutral-150' : 'bg-neutral-50'"
         >
-          <!-- Position controls -->
-          <div class="flex items-center gap-2">
-            <!-- Position badge (clickable) -->
-            <div class="relative position-dropdown-container">
-              <button
-                type="button"
-                @click="togglePositionDropdown(dimension.id, option.name)"
-                class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-neutral-600 bg-neutral-200 rounded hover:bg-neutral-300 transition-colors"
-                title="Cambiar posición"
-              >
-                {{ getOptionPosition(dimension.id, option.name) }}
-              </button>
+          <!-- Mobile: Position controls and delete button row -->
+          <div class="flex items-center justify-between sm:contents">
+            <!-- Position controls -->
+            <div class="flex items-center gap-4 sm:gap-2">
+              <!-- Position badge (clickable) -->
+              <div class="relative position-dropdown-container">
+                <button
+                  type="button"
+                  @click="togglePositionDropdown(dimension.id, option.name)"
+                  class="inline-flex items-center justify-center w-7 h-7 sm:w-6 sm:h-6 text-xs font-semibold text-neutral-600 bg-neutral-200 rounded hover:bg-neutral-300 transition-colors touch-manipulation"
+                  title="Cambiar posición"
+                >
+                  {{ getOptionPosition(dimension.id, option.name) }}
+                </button>
 
-              <!-- Position dropdown -->
-              <div
-                v-if="isPositionDropdownOpen(dimension.id, option.name)"
-                class="absolute z-10 mt-1 w-32 bg-white border border-neutral-300 rounded-md shadow-lg position-dropdown"
-              >
-                <div class="p-2">
-                  <label class="text-xs text-neutral-600 block mb-1">Mover a posición:</label>
-                  <select
-                    @change="moveOptionToPosition(dimension.id, option.name, parseInt($event.target.value))"
-                    class="w-full text-sm border border-neutral-300 rounded px-2 py-1"
-                    :value="getOptionPosition(dimension.id, option.name)"
-                  >
-                    <option
-                      v-for="n in getSortedOptions(dimension.id).length"
-                      :key="n"
-                      :value="n"
+                <!-- Position dropdown -->
+                <div
+                  v-if="isPositionDropdownOpen(dimension.id, option.name)"
+                  class="absolute z-10 mt-1 w-36 sm:w-32 bg-white border border-neutral-300 rounded-md shadow-lg position-dropdown left-0 sm:left-auto right-0 sm:right-auto"
+                >
+                  <div class="p-2">
+                    <label class="text-xs text-neutral-600 block mb-1">Mover a posición:</label>
+                    <select
+                      @change="moveOptionToPosition(dimension.id, option.name, parseInt($event.target.value))"
+                      class="w-full text-sm border border-neutral-300 rounded px-2 py-1.5 sm:py-1"
+                      :value="getOptionPosition(dimension.id, option.name)"
                     >
-                      {{ n }}
-                    </option>
-                  </select>
+                      <option
+                        v-for="n in getSortedOptions(dimension.id).length"
+                        :key="n"
+                        :value="n"
+                      >
+                        {{ n }}
+                      </option>
+                    </select>
+                  </div>
                 </div>
+              </div>
+
+              <!-- Up/Down arrows -->
+              <div class="flex gap-4 sm:flex-col sm:-my-1 transition-opacity duration-200" :class="{ 'opacity-50 sm:opacity-0 sm:group-hover/option:opacity-100': getSortedOptions(dimension.id).length > 1, 'hidden': getSortedOptions(dimension.id).length <= 1 }">
+                <button
+                  type="button"
+                  @click="moveOptionUp(dimension.id, option.name)"
+                  :disabled="optionIndex === 0"
+                  class="p-1 sm:p-0 text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100 rounded disabled:opacity-30 leading-none touch-manipulation transition-colors"
+                  title="Mover arriba"
+                >
+                  <PhCaretUp class="w-4 h-4 sm:w-3 sm:h-3" weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  @click="moveOptionDown(dimension.id, option.name)"
+                  :disabled="optionIndex === getSortedOptions(dimension.id).length - 1"
+                  class="p-1 sm:p-0 text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100 rounded disabled:opacity-30 leading-none touch-manipulation transition-colors"
+                  title="Mover abajo"
+                >
+                  <PhCaretDown class="w-4 h-4 sm:w-3 sm:h-3" weight="bold"/>
+                </button>
               </div>
             </div>
 
-            <!-- Up/Down arrows -->
-            <div class="flex flex-col -my-1 transition-opacity duration-200" :class="{ 'opacity-0 group-hover/option:opacity-100': getSortedOptions(dimension.id).length > 1, 'hidden': getSortedOptions(dimension.id).length <= 1 }">
-              <button
-                type="button"
-                @click="moveOptionUp(dimension.id, option.name)"
-                :disabled="optionIndex === 0"
-                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 leading-none"
-                title="Mover arriba"
-              >
-                <PhCaretUp class="w-3 h-3" />
-              </button>
-              <button
-                type="button"
-                @click="moveOptionDown(dimension.id, option.name)"
-                :disabled="optionIndex === getSortedOptions(dimension.id).length - 1"
-                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 leading-none"
-                title="Mover abajo"
-              >
-                <PhCaretDown class="w-3 h-3" />
-              </button>
-            </div>
+            <!-- Delete button (top row on mobile, end on desktop) -->
+            <button
+              type="button"
+              @click="removeOptionFromDimension(dimension.id, getSortedOptions(dimension.id).findIndex(o => o.name === option.name))"
+              class="text-danger hover:text-danger-dark p-1 sm:p-0 touch-manipulation flex-shrink-0 sm:order-last"
+              title="Eliminar opción"
+            >
+              <PhX class="w-4 h-4" />
+            </button>
           </div>
 
-          <div class="flex-1">
-            <input
-              type="text"
-              v-model="option.name"
-              placeholder="Nombre de la opción"
-              class="w-full px-3 py-1 border border-neutral-300 rounded-md text-sm"
-            />
-          </div>
-
-          <div v-if="dimension.unit" class="w-24">
-            <div class="input-with-unit compact" :data-unit="dimension.unit">
+          <!-- Input fields row -->
+          <div class="flex gap-2 sm:flex-1 sm:min-w-0">
+            <div class="flex-1 min-w-0">
               <input
-                type="number"
-                v-model="option.value"
-                placeholder="0"
-                class="w-full px-3 py-1 border border-neutral-300 rounded-md text-sm"
-                min="0"
-                step="1"
+                type="text"
+                v-model="option.name"
+                placeholder="Nombre de la opción"
+                class="w-full px-2 sm:px-3 py-1 border border-neutral-300 rounded-md text-sm"
               />
             </div>
-          </div>
 
-          <button
-            type="button"
-            @click="removeOptionFromDimension(dimension.id, getSortedOptions(dimension.id).findIndex(o => o.name === option.name))"
-            class="text-danger hover:text-danger-dark"
-            title="Eliminar opción"
-          >
-            <PhX class="w-4 h-4" />
-          </button>
+            <div v-if="dimension.unit" class="w-24 flex-shrink-0">
+              <div class="input-with-unit compact" :data-unit="dimension.unit">
+                <input
+                  type="number"
+                  v-model="option.value"
+                  placeholder="0"
+                  class="w-full px-2 sm:px-3 py-1 border border-neutral-300 rounded-md text-sm"
+                  min="0"
+                  step="1"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
