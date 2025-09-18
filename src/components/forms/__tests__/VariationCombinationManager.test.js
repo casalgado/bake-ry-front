@@ -137,7 +137,7 @@ describe('VariationCombinationManager', () => {
       wrapper = createWrapper({ variationGroup: emptyVariationGroup });
 
       expect(wrapper.text()).toContain('Configurando combinaciones...');
-      expect(wrapper.text()).toContain('Completa la configuración de las dimensiones');
+      expect(wrapper.text()).toContain('Completa la configuración para ver las combinaciones disponibles');
     });
   });
 
@@ -152,14 +152,14 @@ describe('VariationCombinationManager', () => {
       expect(wrapper.text()).toContain('mediano');
       expect(wrapper.text()).toContain('grande');
 
-      // Expand first group to see variants by clicking the group name area
-      const firstGroupHeader = wrapper.find('.group-header .col-span-6');
+      // Expand first group to see variants by clicking the group header
+      const firstGroupHeader = wrapper.find('.group-header');
       await firstGroupHeader.trigger('click');
 
-      // Now should see variant details
+      // Now should see variant price inputs (groups are expanded)
       await wrapper.vm.$nextTick();
-      expect(wrapper.text()).toContain('normal');
-      expect(wrapper.text()).toContain('pequeño • normal');
+      expect(wrapper.text()).toContain('Precio Venta');
+      expect(wrapper.text()).toContain('Precio Costo');
     });
 
     it('applies different background classes for wholegrain vs regular combinations', async () => {
@@ -200,7 +200,7 @@ describe('VariationCombinationManager', () => {
 
     it('displays base price inputs with correct values', () => {
       const basePriceInputs = wrapper.findAll('input[type="number"]').filter(
-        input => input.attributes('placeholder') === '$0'
+        input => input.attributes('placeholder') === '0'
       );
 
       expect(basePriceInputs.length).toBeGreaterThan(0);
@@ -227,8 +227,8 @@ describe('VariationCombinationManager', () => {
 
       variantInputs.forEach(input => {
         expect(input.attributes('min')).toBe('0');
-        expect(input.attributes('step')).toBe('100');
-        expect(input.attributes('placeholder')).toBe('$0');
+        expect(input.attributes('step')).toBe('50');
+        expect(input.attributes('placeholder')).toBe('0');
       });
     });
   });

@@ -56,8 +56,75 @@ Object.defineProperty(window, 'localStorage', {
   writable: true,
 });
 
+// Mock HeadlessUI Dialog to prevent FocusTrap warnings
+const MockDialog = {
+  name: 'Dialog',
+  props: ['open'],
+  emits: ['close'],
+  template: '<div v-if="open" class="mock-dialog"><slot /></div>',
+};
+
+const MockDialogPanel = {
+  name: 'DialogPanel',
+  template: '<div class="mock-dialog-panel"><slot /></div>',
+};
+
 // Configure global test utils
 config.global.stubs = {
   teleport: true,
   Teleport: true,
+  Dialog: MockDialog,
+  DialogPanel: MockDialogPanel,
 };
+
+config.global.components = {
+  Dialog: MockDialog,
+  DialogPanel: MockDialogPanel,
+};
+
+// Mock fetch to prevent network requests
+global.fetch = vi.fn().mockImplementation(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(''),
+    headers: {
+      get: vi.fn(),
+    },
+  })
+);
+
+// Mock XMLHttpRequest for axios
+global.XMLHttpRequest = vi.fn().mockImplementation(() => ({
+  open: vi.fn(),
+  send: vi.fn(),
+  setRequestHeader: vi.fn(),
+  readyState: 4,
+  status: 200,
+  response: '{}',
+  responseText: '{}',
+  abort: vi.fn(),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+}));
+
+// Mock AbortController for cleaner test teardown
+global.AbortController = vi.fn().mockImplementation(() => ({
+  abort: vi.fn(),
+  signal: {
+    aborted: false,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  },
+}));
+
+// Suppress Vue warnings in test environment
+const originalConsoleWarn = console.warn;
+console.warn = vi.fn().mockImplementation((message) => {
+  // Allow specific warnings through, suppress FocusTrap warnings
+  if (typeof message === 'string' && message.includes('FocusTrap')) {
+    return; // Suppress FocusTrap warnings
+  }
+  originalConsoleWarn(message);
+});
