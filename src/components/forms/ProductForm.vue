@@ -88,6 +88,27 @@ const handleCategoryChange = () => {
   const category = selectedCategory.value;
   if (category) {
     formData.value.collectionName = category.name;
+
+    // Load category dimension templates if available and product has no existing dimensions
+    if (category.dimensionTemplates &&
+        category.dimensionTemplates.dimensions &&
+        category.dimensionTemplates.dimensions.length > 0 &&
+        (!formData.value.variations.dimensions || formData.value.variations.dimensions.length === 0)) {
+
+      // Auto-load category dimensions
+      loadCategoryDimensions(category.dimensionTemplates);
+    }
+  }
+};
+
+// Load category dimensions into product variations
+const loadCategoryDimensions = (categoryDimensionTemplates) => {
+  if (categoryDimensionTemplates && categoryDimensionTemplates.dimensions) {
+    formData.value.variations = {
+      dimensions: [...categoryDimensionTemplates.dimensions],
+      combinations: [],
+    };
+    formData.value.hasVariations = true;
   }
 };
 
@@ -285,7 +306,7 @@ onMounted(async () => {
               id="collection"
               v-model="formData.collectionId"
               @change="handleCategoryChange"
-              class="w-full px-3 py-2 border border-neutral-300 rounded-md"
+              class="w-full px-2 py-2 border border-neutral-300 rounded-md"
               :class="{ 'border-danger': errors.collectionId }"
               required
             >
@@ -355,7 +376,6 @@ onMounted(async () => {
           :initial-variations="formData.variations"
           :category-templates="selectedCategory?.variationTemplates"
           :product-name="formData.name"
-          :collection-id="formData.collectionId"
           @update="handleVariationUpdate"
         />
 

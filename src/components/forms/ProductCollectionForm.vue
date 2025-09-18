@@ -6,6 +6,7 @@ import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import TemplateVariation from '@/components/TemplateVariation.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import YesNoToggle from '@/components/forms/YesNoToggle.vue';
+import VariationsManager from '@/components/forms/VariationsManager.vue';
 
 const systemSettingsStore = useSystemSettingsStore();
 
@@ -31,6 +32,10 @@ const hasVariationTemplates = ref(
   props.initialData?.variationTemplates?.length > 0 || false,
 );
 
+const hasDimensionTemplates = ref(
+  props.initialData?.dimensionTemplates?.dimensions?.length > 0 || false,
+);
+
 const formData = ref(
   props.initialData
     ? {
@@ -38,6 +43,7 @@ const formData = ref(
       variationTemplates: props.initialData.variationTemplates
         ? props.initialData.variationTemplates.map(t => ({ ...t }))
         : [],
+      dimensionTemplates: props.initialData.dimensionTemplates || { dimensions: [] },
       defaultUnit: props.initialData.defaultUnit || 'g',
       hasWholeGrainVariations: props.initialData.hasWholeGrainVariations || false,
     }
@@ -50,6 +56,7 @@ const formData = ref(
       defaultUnit: 'g',
       hasWholeGrainVariations: false,
       variationTemplates: [],
+      dimensionTemplates: { dimensions: [] },
     },
 );
 
@@ -375,6 +382,31 @@ watch(() => formData.value.hasWholeGrainVariations, (newValue, oldValue) => {
   }
 });
 
+// Watch for dimension templates toggle
+watch(() => hasDimensionTemplates.value, (newValue, oldValue) => {
+  if (!newValue && formData.value.dimensionTemplates.dimensions.length > 0) {
+    // Show confirmation dialog when disabling dimension templates with existing data
+    confirmDialog.value = {
+      isOpen: true,
+      title: 'Eliminar variaciones',
+      message: '¿Estás seguro de que deseas eliminar todas las variaciones? Esta acción no se puede deshacer.',
+      onConfirm: () => {
+        formData.value.dimensionTemplates = { dimensions: [] };
+        confirmDialog.value.isOpen = false;
+      },
+      onCancel: () => {
+        hasDimensionTemplates.value = oldValue;
+        confirmDialog.value.isOpen = false;
+      },
+    };
+    // Revert the toggle until confirmed
+    hasDimensionTemplates.value = oldValue;
+  } else if (!newValue) {
+    // Clear dimension templates when no existing templates
+    formData.value.dimensionTemplates = { dimensions: [] };
+  }
+});
+
 // Computed properties for button text
 const submitButtonText = computed(() => {
   return props.initialData ? 'Actualizar Categoría' : 'Crear Categoría';
@@ -406,6 +438,14 @@ const handleSubmit = () => {
   emit('submit', formData.value);
 };
 
+// Handle dimension template updates from VariationsManager
+const handleDimensionTemplateUpdate = (variationData) => {
+  // Only store dimensions, no combinations for category templates
+  formData.value.dimensionTemplates = {
+    dimensions: variationData.dimensions || [],
+  };
+};
+
 const resetForm = () => {
   formData.value = {
     name: '',
@@ -416,8 +456,10 @@ const resetForm = () => {
     defaultUnit: 'g',
     hasWholeGrainVariations: false,
     variationTemplates: [],
+    dimensionTemplates: { dimensions: [] },
   };
   hasVariationTemplates.value = false;
+  hasDimensionTemplates.value = false;
   errors.value = {};
   resetTemplateForm();
 };
@@ -483,12 +525,15 @@ onMounted(async () => {
           />
         </div>
 
-        <!-- Has Variation Templates Toggle -->
+        <!-- Has Dimension Templates Toggle -->
         <div class="mb-4">
           <YesNoToggle
-            v-model="hasVariationTemplates"
-            label="¿Los productos de esta categoría tendrán variaciones?"
+            v-model="hasDimensionTemplates"
+            label="¿Los productos de esta categoria tendran variaciones?"
           />
+          <p v-if="hasDimensionTemplates" class="text-xs text-neutral-500 mt-1">
+            Las variaciones definidas aquí se cargarán automáticamente al crear productos en esta categoría
+          </p>
         </div>
 
         <!-- Display Order
@@ -658,6 +703,14 @@ onMounted(async () => {
           Cargar plantillas por defecto para {{ getVariationTypeLabel(formData.defaultVariationType) }}
         </button>
       </div>
+
+        <VariationsManager
+        v-if="hasDimensionTemplates"
+          :initial-variations="formData.dimensionTemplates"
+          :product-name="`Plantilla para ${formData.name || 'Categoría'}`"
+          :is-category-template-mode="true"
+          @update="handleDimensionTemplateUpdate"
+        />
 
       <!-- Form Actions -->
       <div class="base-card">

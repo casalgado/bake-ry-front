@@ -21,9 +21,9 @@ const props = defineProps({
     type: String,
     default: '',
   },
-  collectionId: {
-    type: String,
-    default: '',
+  isCategoryTemplateMode: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -223,7 +223,13 @@ const removeOptionFromDimension = (dimensionId, optionIndex) => {
 };
 
 // Combination management
-const regenerateCombinations = () => {  // Only regenerate if we have valid dimensions with options
+const regenerateCombinations = () => {
+  // Skip combination generation in category template mode
+  if (props.isCategoryTemplateMode) {
+    return;
+  }
+
+  // Only regenerate if we have valid dimensions with options
   const hasValidDimensions = variationGroup.value.dimensions.every(
     d => d.options.length > 0 && d.options.every(o => o.name),
   );
@@ -519,15 +525,22 @@ watch(
 </script>
 
 <template>
-  <div class="variations-manager">
+  <div class="variations-manager mb-4">
+
     <!-- Dimension Type Selection -->
     <div class="base-card mb-6">
       <h4 class="text-lg font-medium text-neutral-800 mb-4">
         Seleccionar Tipos de Variación
       </h4>
       <p class="text-sm text-neutral-600 mb-4">
-        Selecciona una o más variaciones del producto. Tambien puedes crear variaciones personalizadas.
-        Por ejemplo, puedes combinar peso y aroma.
+        <span v-if="props.isCategoryTemplateMode">
+           Selecciona una o más variaciones. Tambien puedes crear variaciones personalizadas.
+          Por ejemplo, puedes combinar peso y aroma.
+        </span>
+        <span v-else>
+          Selecciona una o más variaciones del producto. Tambien puedes crear variaciones personalizadas.
+          Por ejemplo, puedes combinar peso y aroma.
+        </span>
       </p>
 
       <div class="space-y-4">
@@ -827,13 +840,14 @@ watch(
 
     <!-- Combinations/Prices Section -->
     <VariationCombinationManager
+      v-if="!props.isCategoryTemplateMode"
       :variation-group="variationGroup"
       @update-combination-price="handleUpdateCombinationPrice"
     />
 
     <!-- Empty State -->
     <div
-      v-if="selectedDimensionTypes.length === 0"
+      v-if="selectedDimensionTypes.length === 0 && !props.isCategoryTemplateMode"
       class="base-card text-center py-12"
     >
       <div class="text-neutral-500 mb-2">
