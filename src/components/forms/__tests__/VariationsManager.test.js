@@ -209,7 +209,7 @@ describe('VariationsManager', () => {
 
       const dimension = wrapper.vm.variationGroup.dimensions[0];
       expect(dimension.options).toHaveLength(3); // pequeño, mediano, grande
-      expect(dimension.options[0].name).toBe('pequeño');
+      expect(dimension.options[0].name).toBe('Pequeño');
       expect(dimension.options[0].value).toBe(100);
     });
 
@@ -255,10 +255,10 @@ describe('VariationsManager', () => {
       const dimension = wrapper.vm.variationGroup.dimensions[0];
       expect(dimension.options).toHaveLength(3);
 
-      // Check if options are displayed in the UI
-      expect(wrapper.text()).toContain('pequeño');
-      expect(wrapper.text()).toContain('mediano');
-      expect(wrapper.text()).toContain('grande');
+      // Check if options are displayed in the UI (names are capitalized)
+      expect(wrapper.text()).toContain('Pequeño');
+      expect(wrapper.text()).toContain('Mediano');
+      expect(wrapper.text()).toContain('Grande');
     });
 
     it('can add options to dimensions', async () => {
@@ -388,11 +388,11 @@ describe('VariationsManager', () => {
     });
 
     it('preserves existing prices when regenerating combinations', async () => {
-      // Set up initial combination with price
+      // Set up initial combination with price (names are capitalized)
       wrapper.vm.variationGroup.combinations = [{
         id: 'test-combo',
-        selection: ['pequeño'],
-        name: 'pequeño',
+        selection: ['Pequeño'],
+        name: 'Pequeño',
         basePrice: 1000,
         costPrice: 500,
         isActive: true,
@@ -402,7 +402,7 @@ describe('VariationsManager', () => {
       await wrapper.vm.regenerateCombinations();
 
       const preservedCombo = wrapper.vm.variationGroup.combinations.find(c =>
-        c.selection.includes('pequeño')
+        c.selection.includes('Pequeño')
       );
       expect(preservedCombo.basePrice).toBe(1000);
       expect(preservedCombo.costPrice).toBe(500);

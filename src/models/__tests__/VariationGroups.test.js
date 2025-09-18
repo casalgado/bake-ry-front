@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import VariationGroups from '../VariationGroups.js';
 
-// Mock generateId
+// Mock helpers
 vi.mock('../../utils/helpers.js', () => ({
   generateId: vi.fn(() => Math.random().toString(36).substring(2, 18)),
+  capitalize: vi.fn((str) => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : ''),
 }));
 
 describe('VariationGroups - Constructor and Basic Operations', () => {
@@ -182,15 +183,15 @@ describe('VariationGroups - Display Order', () => {
       expect(options[6].displayOrder).toBe(7);
       expect(options[7].displayOrder).toBe(8);
 
-      // Check that the order of options hasn't changed
-      expect(options[0].name).toBe('pequeño');
-      expect(options[1].name).toBe('mediano');
-      expect(options[2].name).toBe('grande');
-      expect(options[3].name).toBe('pequeño integral');
-      expect(options[4].name).toBe('mediano integral');
-      expect(options[5].name).toBe('grande integral');
-      expect(options[6].name).toBe('rectangular mediano');
-      expect(options[7].name).toBe('otra');
+      // Check that the order of options hasn't changed (names are capitalized)
+      expect(options[0].name).toBe('Pequeño');
+      expect(options[1].name).toBe('Mediano');
+      expect(options[2].name).toBe('Grande');
+      expect(options[3].name).toBe('Pequeño integral');
+      expect(options[4].name).toBe('Mediano integral');
+      expect(options[5].name).toBe('Grande integral');
+      expect(options[6].name).toBe('Rectangular mediano');
+      expect(options[7].name).toBe('Otra');
     });
   });
 
@@ -201,14 +202,14 @@ describe('VariationGroups - Display Order', () => {
       // Normalize first to have sequential orders
       variationGroup.normalizeOptionDisplayOrders(dimensionId);
 
-      // Move 'mediano' (position 2) up
-      variationGroup.moveOptionUpDown(dimensionId, 'mediano', 'up');
+      // Move 'Mediano' (position 2) up
+      variationGroup.moveOptionUpDown(dimensionId, 'Mediano', 'up');
 
       const options = variationGroup.getDimensionById(dimensionId).options;
 
-      // 'mediano' should now be at position 0, 'pequeño' at position 1
-      expect(options[0].name).toBe('mediano');
-      expect(options[1].name).toBe('pequeño');
+      // 'mediano' should now be at position 0, 'pequeño' at position 1 (names are capitalized)
+      expect(options[0].name).toBe('Mediano');
+      expect(options[1].name).toBe('Pequeño');
 
       // Display orders should be sequential
       expect(options[0].displayOrder).toBe(1);
@@ -221,14 +222,14 @@ describe('VariationGroups - Display Order', () => {
       // Normalize first to have sequential orders
       variationGroup.normalizeOptionDisplayOrders(dimensionId);
 
-      // Move 'pequeño' (position 1) down
-      variationGroup.moveOptionUpDown(dimensionId, 'pequeño', 'down');
+      // Move 'Pequeño' (position 1) down
+      variationGroup.moveOptionUpDown(dimensionId, 'Pequeño', 'down');
 
       const options = variationGroup.getDimensionById(dimensionId).options;
 
-      // 'mediano' should now be at position 0, 'pequeño' at position 1
-      expect(options[0].name).toBe('mediano');
-      expect(options[1].name).toBe('pequeño');
+      // 'mediano' should now be at position 0, 'pequeño' at position 1 (names are capitalized)
+      expect(options[0].name).toBe('Mediano');
+      expect(options[1].name).toBe('Pequeño');
 
       // Display orders should be sequential
       expect(options[0].displayOrder).toBe(1);
@@ -242,7 +243,7 @@ describe('VariationGroups - Display Order', () => {
       const optionsBefore = [...variationGroup.getDimensionById(dimensionId).options];
 
       // Try to move first option up (should do nothing)
-      variationGroup.moveOptionUpDown(dimensionId, 'pequeño', 'up');
+      variationGroup.moveOptionUpDown(dimensionId, 'Pequeño', 'up');
 
       const optionsAfter = variationGroup.getDimensionById(dimensionId).options;
 
@@ -257,7 +258,7 @@ describe('VariationGroups - Display Order', () => {
       const optionsBefore = [...variationGroup.getDimensionById(dimensionId).options];
 
       // Try to move last option down (should do nothing)
-      variationGroup.moveOptionUpDown(dimensionId, 'otra', 'down');
+      variationGroup.moveOptionUpDown(dimensionId, 'Otra', 'down');
 
       const optionsAfter = variationGroup.getDimensionById(dimensionId).options;
 
@@ -273,13 +274,13 @@ describe('VariationGroups - Display Order', () => {
       // Normalize first to have sequential orders
       variationGroup.normalizeOptionDisplayOrders(dimensionId);
 
-      // Move 'grande' (position 3) to position 7
-      variationGroup.moveOptionToPosition(dimensionId, 'grande', 7);
+      // Move 'Grande' (position 3) to position 7
+      variationGroup.moveOptionToPosition(dimensionId, 'Grande', 7);
 
       const options = variationGroup.getDimensionById(dimensionId).options;
 
-      // 'grande' should now be at position 6 (0-indexed)
-      expect(options[6].name).toBe('grande');
+      // 'Grande' should now be at position 6 (0-indexed)
+      expect(options[6].name).toBe('Grande');
 
       // Display orders should be sequential
       for (let i = 0; i < options.length; i++) {
@@ -291,13 +292,13 @@ describe('VariationGroups - Display Order', () => {
       const dimensionId = 'test-dim-1';
       variationGroup.normalizeOptionDisplayOrders(dimensionId);
 
-      // Move 'otra' (last position) to position 1
-      variationGroup.moveOptionToPosition(dimensionId, 'otra', 1);
+      // Move 'Otra' (last position) to position 1
+      variationGroup.moveOptionToPosition(dimensionId, 'Otra', 1);
 
       const options = variationGroup.getDimensionById(dimensionId).options;
 
-      // 'otra' should now be at position 0
-      expect(options[0].name).toBe('otra');
+      // 'Otra' should now be at position 0
+      expect(options[0].name).toBe('Otra');
       expect(options[0].displayOrder).toBe(1);
     });
   });
@@ -310,9 +311,9 @@ describe('VariationGroups - Display Order', () => {
       const sortedOptions = variationGroup.getSortedOptions(dimensionId);
 
       // With initial display orders 1,1,1,2,2,2,3,999
-      // The order should be maintained as defined
-      expect(sortedOptions[0].name).toBe('pequeño');
-      expect(sortedOptions[7].name).toBe('otra');
+      // The order should be maintained as defined (names are capitalized)
+      expect(sortedOptions[0].name).toBe('Pequeño');
+      expect(sortedOptions[7].name).toBe('Otra');
     });
 
     it('should reflect changes after moving options', () => {
@@ -320,13 +321,13 @@ describe('VariationGroups - Display Order', () => {
 
       // Normalize and move an option
       variationGroup.normalizeOptionDisplayOrders(dimensionId);
-      variationGroup.moveOptionUpDown(dimensionId, 'grande', 'down');
+      variationGroup.moveOptionUpDown(dimensionId, 'Grande', 'down');
 
       const sortedOptions = variationGroup.getSortedOptions(dimensionId);
 
-      // 'grande' should have moved down one position
-      expect(sortedOptions[3].name).toBe('grande');
-      expect(sortedOptions[2].name).toBe('pequeño integral');
+      // 'Grande' should have moved down one position (names are capitalized)
+      expect(sortedOptions[3].name).toBe('Grande');
+      expect(sortedOptions[2].name).toBe('Pequeño integral');
     });
   });
 
@@ -336,7 +337,7 @@ describe('VariationGroups - Display Order', () => {
 
       // Normalize and make some changes
       variationGroup.normalizeOptionDisplayOrders(dimensionId);
-      variationGroup.moveOptionUpDown(dimensionId, 'mediano', 'down');
+      variationGroup.moveOptionUpDown(dimensionId, 'Mediano', 'down');
 
       // Convert to plain object
       const plainObj = variationGroup.toPlainObject();
@@ -344,10 +345,10 @@ describe('VariationGroups - Display Order', () => {
       // Create new instance from plain object
       const newVariationGroup = new VariationGroups(plainObj);
 
-      // Check that the order is preserved
+      // Check that the order is preserved (names are capitalized)
       const options = newVariationGroup.getDimensionById(dimensionId).options;
-      expect(options[1].name).toBe('grande');
-      expect(options[2].name).toBe('mediano');
+      expect(options[1].name).toBe('Grande');
+      expect(options[2].name).toBe('Mediano');
 
       // Display orders should still be sequential
       for (let i = 0; i < options.length; i++) {

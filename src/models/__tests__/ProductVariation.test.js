@@ -13,6 +13,7 @@ vi.mock('../../utils/errors.js', () => ({
 
 vi.mock('../../utils/helpers.js', () => ({
   generateId: vi.fn(() => 'mock-id-123'),
+  capitalize: vi.fn((str) => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : ''),
 }));
 
 describe('ProductVariation', () => {
