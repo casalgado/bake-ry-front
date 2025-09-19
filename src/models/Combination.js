@@ -19,7 +19,7 @@ class Combination {
       id: variation.id || generateId(),
       selection: [capitalize(name)].filter(Boolean), // Filter out undefined/null values
       name: capitalize(name),
-      basePrice: basePrice,
+      basePrice: variation.basePrice || 0,
       currentPrice: currentPrice || variation.currentPrice || variation.basePrice || 0,
       costPrice: variation.costPrice || 0,
       isWholeGrain: variation.isWholeGrain || false,
