@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import {
   PhGift,
   PhTrash,
@@ -27,7 +27,6 @@ const emit = defineEmits([
 ]);
 
 const isPriceModified = computed(() => {
-
   return props.item.currentPrice !== props.item.basePrice;
 });
 
@@ -66,6 +65,13 @@ const handleToggleComplimentary = () => {
 const handleRemove = () => {
   emit('remove', props.index);
 };
+
+onMounted(() => {
+  discount.value = Math.round(
+    ((props.item.basePrice - props.item.currentPrice) / props.item.basePrice) * 100,
+  );
+  console.log('mounted discount', discount.value);
+});
 </script>
 
 <template>
