@@ -33,8 +33,6 @@ const props = defineProps({
       // Reports features
       defaultReportFilter: 'dueDate',
       showMultipleReports: false,
-      // Users features
-      collectLegalName: false,
       // Products features
       useProductCost: false,
     }),
@@ -119,11 +117,10 @@ const hasChanges = computed(() => {
   // Compare new features
   const defaultReportFilterChanged = (initial.defaultReportFilter || 'dueDate') !== current.defaultReportFilter;
   const showMultipleReportsChanged = (initial.showMultipleReports || false) !== current.showMultipleReports;
-  const collectLegalNameChanged = (initial.collectLegalName || false) !== current.collectLegalName;
   const useProductCostChanged = (initial.useProductCost || false) !== current.useProductCost;
 
   return paymentMethodsChanged || partialPaymentChanged || timeOfDayChanged || offlineModeChanged ||
-         defaultReportFilterChanged || showMultipleReportsChanged || collectLegalNameChanged || useProductCostChanged;
+         defaultReportFilterChanged || showMultipleReportsChanged || useProductCostChanged;
 });
 
 const handleSubmit = () => {
@@ -140,7 +137,6 @@ const handleCancel = () => {
     // Reset new features
     defaultReportFilter: props.initialData.defaultReportFilter || 'dueDate',
     showMultipleReports: props.initialData.showMultipleReports || false,
-    collectLegalName: props.initialData.collectLegalName || false,
     useProductCost: props.initialData.useProductCost || false,
   };
 };
@@ -172,10 +168,6 @@ watch(() => props.initialData, (newData, oldData) => {
 
     if (Object.prototype.hasOwnProperty.call(newData, 'showMultipleReports') && newData.showMultipleReports !== formData.value.showMultipleReports) {
       formData.value.showMultipleReports = newData.showMultipleReports;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(newData, 'collectLegalName') && newData.collectLegalName !== formData.value.collectLegalName) {
-      formData.value.collectLegalName = newData.collectLegalName;
     }
 
     if (Object.prototype.hasOwnProperty.call(newData, 'useProductCost') && newData.useProductCost !== formData.value.useProductCost) {
@@ -269,25 +261,8 @@ watch(() => props.initialData, (newData, oldData) => {
         </div>
       </div>
 
-      <!-- Users Features Section -->
-      <div class="mb-6">
-        <h3 class="text-lg font-semibold text-neutral-900 mb-2">Configuración de Usuarios</h3>
-        <p class="text-sm text-neutral-600 mb-4">
-          Define qué información recopilar de los usuarios
-        </p>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <FeatureCard
-            v-model="formData.collectLegalName"
-            :icon="PhUser"
-            title="Habilitar razón social"
-            description="Solicita la razón social de los clientes en el registro"
-            :disabled="loading"
-          />
-        </div>
-      </div>
-
       <!-- Products Features Section -->
-      <div class="mb-6">
+      <div class="mb-6 hidden">
         <h3 class="text-lg font-semibold text-neutral-900 mb-2">Configuración de Productos</h3>
         <p class="text-sm text-neutral-600 mb-4">
           Opciones avanzadas para el manejo de productos

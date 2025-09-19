@@ -29,10 +29,7 @@ const featuresFormData = ref({
   // Reports features
   defaultReportFilter: 'dueDate',
   showMultipleReports: false,
-  // Users features
-  collectLegalName: false,
-  // Products features
-  useProductCost: false,
+
 });
 const isFeaturesSaving = ref(false);
 
@@ -492,13 +489,6 @@ const initializeFeaturesForm = () => {
     }
   }
 
-  // Users features
-  if (usersFeatures && Object.keys(usersFeatures).length > 0) {
-    if (Object.prototype.hasOwnProperty.call(usersFeatures, 'collectLegalName')) {
-      newFormData.collectLegalName = usersFeatures.collectLegalName;
-    }
-  }
-
   // Products features
   if (productsFeatures && Object.keys(productsFeatures).length > 0) {
     if (Object.prototype.hasOwnProperty.call(productsFeatures, 'useProductCost')) {
@@ -540,10 +530,6 @@ const handleFeaturesSubmit = async (formData) => {
           ...(currentFeatures.reports || {}),
           defaultReportFilter: formData.defaultReportFilter,
           showMultipleReports: formData.showMultipleReports,
-        },
-        users: {
-          ...(currentFeatures.users || {}),
-          collectLegalName: formData.collectLegalName,
         },
         products: {
           ...(currentFeatures.products || {}),
