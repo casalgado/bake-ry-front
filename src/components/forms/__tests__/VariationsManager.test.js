@@ -454,7 +454,7 @@ describe('VariationsManager', () => {
     });
 
     it('preserves prices when adding new option to existing dimension', async () => {
-      // Setup: Create initial combinations with prices
+      // Setup: Create initial combinations with prices using the actual dimension options
       wrapper.vm.variationGroup.combinations = [
         {
           id: 'combo1',
@@ -476,27 +476,36 @@ describe('VariationsManager', () => {
         }
       ];
 
-      // Add a custom dimension with option "B"
-      wrapper.vm.selectedDimensionTypes.push('CUSTOM_FLAVOR_TEST');
+      // Add a second dimension with options A and B
       const flavorDimensionId = wrapper.vm.variationGroup.addDimension(
         'CUSTOM_FLAVOR_TEST',
         'Flavor',
         [
-          { name: 'A', value: '', displayOrder: 0 },
-          { name: 'B', value: '', displayOrder: 1 }  // Adding B option
+          { name: 'A', value: '', displayOrder: 0, isWholeGrain: false },
+          { name: 'B', value: '', displayOrder: 1, isWholeGrain: false }
         ],
         '',
-        1
+        1,
+        'test-flavor-dim'
       );
 
       // Regenerate combinations - should create x6+A, x6+B, x10+A, x10+B
       await wrapper.vm.regenerateCombinations();
+
+      // Debug: log what combinations were actually created
+      console.log('Generated combinations after regen:', wrapper.vm.variationGroup.combinations.map(c => ({ name: c.name, basePrice: c.basePrice })));
 
       // Verify price preservation
       const x6A = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x6 + A');
       const x6B = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x6 + B');
       const x10A = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x10 + A');
       const x10B = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x10 + B');
+
+      // Verify all combinations exist
+      expect(x6A).toBeDefined();
+      expect(x6B).toBeDefined();
+      expect(x10A).toBeDefined();
+      expect(x10B).toBeDefined();
 
       // Exact matches should preserve exact prices
       expect(x6A.basePrice).toBe(9400);
