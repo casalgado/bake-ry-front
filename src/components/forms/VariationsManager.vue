@@ -228,6 +228,8 @@ const regenerateCombinations = () => {
   if (props.isCategoryTemplateMode) {
     return;
   }
+  console.log('XXX - Regenerating combinations...');
+  console.log('existing combinations before regen:', variationGroup.value.combinations);
 
   // Only regenerate if we have valid dimensions with options
   const hasValidDimensions = variationGroup.value.dimensions.every(
@@ -238,32 +240,64 @@ const regenerateCombinations = () => {
     return;
   }
 
-  // const allCombos = variationGroup.value.generateAllCombinations();
-
-  // Preserve existing combination prices if they exist
-  const existingPrices = {};
+  // Preserve existing combination data with more information for smart matching
+  const existingCombinations = {};
   variationGroup.value.combinations.forEach(combo => {
-    const key = combo.selection.join('|');
-    existingPrices[key] = {
+    existingCombinations[combo.name] = {
       basePrice: combo.basePrice,
       costPrice: combo.costPrice,
+      selection: combo.selection,
     };
   });
+  console.log('Existing combinations map:', existingCombinations);
 
   // Generate new combinations with wholegrain status
   const newCombinations = variationGroup.value.generateCombinationsWithWholeGrainStatus();
 
-  // Apply existing prices to new combinations
-  variationGroup.value.combinations = newCombinations.map(combo => {
-    const key = combo.selection.join('|');
-    const existing = existingPrices[key];
+  console.log('Generated combinations:', newCombinations);
+
+  const updatedCombinations = newCombinations.map(combo => {
+    let matchedCombination = null;
+
+    // Try exact name match first (for unchanged combinations)
+    matchedCombination = existingCombinations[combo.name];
+
+    // If no exact match, try partial matching based on primary dimensions
+    if (!matchedCombination) {
+      let bestMatch = null;
+      let bestMatchCount = 0;
+
+      for (const [oldName, oldData] of Object.entries(existingCombinations)) {
+        // Count how many primary dimension values match
+        const sharedPrimaryValues = oldData.selection.filter(item => {
+          // Check if this item is from a primary dimension (WEIGHT, QUANTITY, SIZE)
+          const dim = variationGroup.value.getDimensionForOption(item);
+          return dim && ['WEIGHT', 'QUANTITY', 'SIZE'].includes(dim.type) &&
+                 combo.selection.includes(item);
+        });
+
+        if (sharedPrimaryValues.length > bestMatchCount) {
+          bestMatch = oldData;
+          bestMatchCount = sharedPrimaryValues.length;
+          console.log(`Found better match: "${oldName}" -> "${combo.name}" (${bestMatchCount} shared primary values: ${sharedPrimaryValues.join(', ')})`);
+        }
+      }
+
+      if (bestMatch) {
+        matchedCombination = bestMatch;
+      }
+    }
 
     return {
       ...combo,
-      basePrice: existing?.basePrice || 0,
-      costPrice: existing?.costPrice || 0,
+      basePrice: matchedCombination?.basePrice || 0,
+      costPrice: matchedCombination?.costPrice || 0,
     };
   });
+
+  console.log('Updated combinations with prices:', updatedCombinations);
+  // Apply existing prices to new combinations
+  variationGroup.value.combinations = updatedCombinations;
 };
 
 const handleUpdateCombinationPrice = ({ combinationId, field, value }) => {
@@ -851,7 +885,7 @@ watch(
       class="base-card text-center py-12"
     >
       <div class="text-neutral-500 mb-2">
-        <PhPlus class="w-12 h-12 mx-auto mb-4 text-neutral-300" />
+        <PhPlus class="w-12 h-12 mx-auto mb-4 text-neutral-300 " />
         <p class="text-lg font-medium">No hay variaciones seleccionadas</p>
         <p class="text-sm mt-2">
           Selecciona al menos una variación arriba para comenzar a configurar

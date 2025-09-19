@@ -239,7 +239,7 @@ const handleFormSubmit = async (formData) => {
             <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <PhUserPlus class="w-6 h-6 text-primary" weight="bold" />
             </div>
-            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Agregar Cliente</h3>
+            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Agrega Clientes</h3>
             <p class="text-sm text-neutral-600">Registra tu primer cliente para comenzar a recibir pedidos</p>
           </router-link>
 
@@ -251,7 +251,7 @@ const handleFormSubmit = async (formData) => {
             <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <PhUserCirclePlus class="w-6 h-6 text-primary" weight="bold" />
             </div>
-            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Agrandar Equipo</h3>
+            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Agranda tu Equipo</h3>
             <p class="text-sm text-neutral-600">Invita miembros de tu equipo para colaborar</p>
           </router-link>
         </div>

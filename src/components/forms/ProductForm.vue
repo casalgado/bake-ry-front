@@ -450,7 +450,7 @@ onMounted(async () => {
         </div>
 
         <!-- Profit Margin Display -->
-        <div v-if="formData.basePrice > 0 && formData.costPrice > 0" class="mt-4 p-4 bg-neutral-50 rounded-lg">
+        <div class="mt-4 p-4 bg-neutral-50 rounded-lg">
           <div class="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span class="text-neutral-600">Margen de ganancia:</span>
@@ -460,12 +460,8 @@ onMounted(async () => {
             </div>
             <div>
               <span class="text-neutral-600">Porcentaje de ganancia:</span>
-              <span class="ml-2 font-medium" :class="{
-                'text-success': ((formData.basePrice - formData.costPrice) / formData.costPrice * 100) >= 30,
-                'text-warning': ((formData.basePrice - formData.costPrice) / formData.costPrice * 100) >= 15 && ((formData.basePrice - formData.costPrice) / formData.costPrice * 100) < 30,
-                'text-danger': ((formData.basePrice - formData.costPrice) / formData.costPrice * 100) < 15
-              }">
-                {{ ((formData.basePrice - formData.costPrice) / formData.costPrice * 100).toFixed(1) }}%
+              <span class="ml-2 font-medium">
+                {{ isNaN(parseInt((formData.basePrice - formData.costPrice) / formData.costPrice * 100)) ? 0 : ((formData.basePrice - formData.costPrice) / formData.costPrice * 100).toFixed(1) }}%
               </span>
             </div>
           </div>

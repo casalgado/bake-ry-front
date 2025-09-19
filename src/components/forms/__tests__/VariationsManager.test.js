@@ -436,6 +436,288 @@ describe('VariationsManager', () => {
     });
   });
 
+  describe('Price Preservation with Smart Matching', () => {
+    beforeEach(async () => {
+      wrapper = createWrapper();
+      // Add QUANTITY dimension with specific options (x6, x10)
+      const quantityCheckbox = wrapper.find('input[value="QUANTITY"]');
+      await quantityCheckbox.setChecked(true);
+
+      // Override default options with our test data
+      const dimension = wrapper.vm.variationGroup.dimensions[0];
+      dimension.options = [
+        { name: 'x6', value: 6, displayOrder: 0, isWholeGrain: false },
+        { name: 'x10', value: 10, displayOrder: 1, isWholeGrain: false }
+      ];
+
+      await wrapper.vm.regenerateCombinations();
+    });
+
+    it('preserves prices when adding new option to existing dimension', async () => {
+      // Setup: Create initial combinations with prices
+      wrapper.vm.variationGroup.combinations = [
+        {
+          id: 'combo1',
+          selection: ['x6', 'A'],
+          name: 'x6 + A',
+          basePrice: 9400,
+          costPrice: 500,
+          isActive: true,
+          isWholeGrain: false,
+        },
+        {
+          id: 'combo2',
+          selection: ['x10', 'A'],
+          name: 'x10 + A',
+          basePrice: 12700,
+          costPrice: 700,
+          isActive: true,
+          isWholeGrain: false,
+        }
+      ];
+
+      // Add a custom dimension with option "B"
+      wrapper.vm.selectedDimensionTypes.push('CUSTOM_FLAVOR_TEST');
+      const flavorDimensionId = wrapper.vm.variationGroup.addDimension(
+        'CUSTOM_FLAVOR_TEST',
+        'Flavor',
+        [
+          { name: 'A', value: '', displayOrder: 0 },
+          { name: 'B', value: '', displayOrder: 1 }  // Adding B option
+        ],
+        '',
+        1
+      );
+
+      // Regenerate combinations - should create x6+A, x6+B, x10+A, x10+B
+      await wrapper.vm.regenerateCombinations();
+
+      // Verify price preservation
+      const x6A = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x6 + A');
+      const x6B = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x6 + B');
+      const x10A = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x10 + A');
+      const x10B = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x10 + B');
+
+      // Exact matches should preserve exact prices
+      expect(x6A.basePrice).toBe(9400);
+      expect(x6A.costPrice).toBe(500);
+      expect(x10A.basePrice).toBe(12700);
+      expect(x10A.costPrice).toBe(700);
+
+      // Partial matches should inherit from primary dimension matches
+      expect(x6B.basePrice).toBe(9400); // Inherits from x6 + A
+      expect(x6B.costPrice).toBe(500);
+      expect(x10B.basePrice).toBe(12700); // Inherits from x10 + A
+      expect(x10B.costPrice).toBe(700);
+    });
+
+    it('preserves prices when adding new dimension', async () => {
+      // Setup: Start with single dimension combinations
+      wrapper.vm.variationGroup.combinations = [
+        {
+          id: 'combo1',
+          selection: ['x6'],
+          name: 'x6',
+          basePrice: 9400,
+          costPrice: 500,
+          isActive: true,
+          isWholeGrain: false,
+        },
+        {
+          id: 'combo2',
+          selection: ['x10'],
+          name: 'x10',
+          basePrice: 12700,
+          costPrice: 700,
+          isActive: true,
+          isWholeGrain: false,
+        }
+      ];
+
+      // Add a new dimension with option "A"
+      const flavorDimensionId = wrapper.vm.variationGroup.addDimension(
+        'CUSTOM_FLAVOR_TEST',
+        'Flavor',
+        [{ name: 'A', value: '', displayOrder: 0 }],
+        '',
+        1
+      );
+
+      // Regenerate combinations
+      await wrapper.vm.regenerateCombinations();
+
+      // Should create x6 + A and x10 + A with inherited prices
+      const x6A = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x6 + A');
+      const x10A = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x10 + A');
+
+      expect(x6A).toBeDefined();
+      expect(x10A).toBeDefined();
+      expect(x6A.basePrice).toBe(9400); // Inherited from x6
+      expect(x6A.costPrice).toBe(500);
+      expect(x10A.basePrice).toBe(12700); // Inherited from x10
+      expect(x10A.costPrice).toBe(700);
+    });
+
+    it('prioritizes primary dimension matching over secondary dimensions', async () => {
+      // Setup complex scenario with multiple dimensions
+      wrapper.vm.variationGroup.combinations = [
+        {
+          id: 'combo1',
+          selection: ['x6', 'Chocolate'],
+          name: 'x6 + Chocolate',
+          basePrice: 9400,
+          costPrice: 500,
+          isActive: true,
+          isWholeGrain: false,
+        },
+        {
+          id: 'combo2',
+          selection: ['x10', 'Vanilla'],
+          name: 'x10 + Vanilla',
+          basePrice: 12700,
+          costPrice: 700,
+          isActive: true,
+          isWholeGrain: false,
+        }
+      ];
+
+      // Add flavor dimension and temperature dimension
+      const flavorDimensionId = wrapper.vm.variationGroup.addDimension(
+        'CUSTOM_FLAVOR_TEST',
+        'Flavor',
+        [
+          { name: 'Chocolate', value: '', displayOrder: 0 },
+          { name: 'Vanilla', value: '', displayOrder: 1 },
+          { name: 'Strawberry', value: '', displayOrder: 2 }
+        ],
+        '',
+        1
+      );
+
+      // Add temperature dimension (non-primary)
+      const tempDimensionId = wrapper.vm.variationGroup.addDimension(
+        'CUSTOM_TEMP_TEST',
+        'Temperature',
+        [{ name: 'Hot', value: '', displayOrder: 0 }],
+        '',
+        2
+      );
+
+      await wrapper.vm.regenerateCombinations();
+
+      // Test that x6 + Strawberry + Hot inherits from x6 + Chocolate (primary dimension match)
+      // not from x10 + Vanilla (even though it might have more in common)
+      const x6StrawberryHot = wrapper.vm.variationGroup.combinations.find(c =>
+        c.selection.includes('x6') && c.selection.includes('Strawberry') && c.selection.includes('Hot')
+      );
+
+      expect(x6StrawberryHot).toBeDefined();
+      expect(x6StrawberryHot.basePrice).toBe(9400); // Should inherit from x6 + Chocolate due to x6 (QUANTITY) match
+    });
+
+    it('assigns zero price when no partial match exists', async () => {
+      // Setup: combinations that won't match new ones
+      wrapper.vm.variationGroup.combinations = [
+        {
+          id: 'combo1',
+          selection: ['x6'],
+          name: 'x6',
+          basePrice: 9400,
+          costPrice: 500,
+          isActive: true,
+          isWholeGrain: false,
+        }
+      ];
+
+      // Add dimension with completely different options
+      const sizeDimensionId = wrapper.vm.variationGroup.addDimension(
+        'SIZE',
+        'Size',
+        [{ name: 'Large', value: '', displayOrder: 0 }],
+        '',
+        1
+      );
+
+      // Now regenerate - x6 + Large should find x6 match
+      await wrapper.vm.regenerateCombinations();
+
+      const x6Large = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x6 + Large');
+      expect(x6Large).toBeDefined();
+      expect(x6Large.basePrice).toBe(9400); // Should inherit from x6
+
+      // But if we have a completely unrelated combination, it should get 0
+      wrapper.vm.variationGroup.combinations = [
+        {
+          id: 'combo1',
+          selection: ['CompletelyDifferent'],
+          name: 'CompletelyDifferent',
+          basePrice: 9400,
+          costPrice: 500,
+          isActive: true,
+          isWholeGrain: false,
+        }
+      ];
+
+      // Replace dimension options with unrelated ones
+      wrapper.vm.variationGroup.dimensions[0].options = [
+        { name: 'Unrelated1', value: '', displayOrder: 0 },
+        { name: 'Unrelated2', value: '', displayOrder: 1 }
+      ];
+
+      await wrapper.vm.regenerateCombinations();
+
+      // New combinations should have 0 price since no match
+      const newCombos = wrapper.vm.variationGroup.combinations.filter(c =>
+        !c.selection.includes('CompletelyDifferent')
+      );
+      newCombos.forEach(combo => {
+        expect(combo.basePrice).toBe(0);
+        expect(combo.costPrice).toBe(0);
+      });
+    });
+
+    it('exact name matching takes precedence over partial matching', async () => {
+      // Setup: combination that could match multiple ways
+      wrapper.vm.variationGroup.combinations = [
+        {
+          id: 'combo1',
+          selection: ['x6'],
+          name: 'x6',
+          basePrice: 9400,
+          costPrice: 500,
+          isActive: true,
+          isWholeGrain: false,
+        },
+        {
+          id: 'combo2',
+          selection: ['x6', 'A'],
+          name: 'x6 + A',
+          basePrice: 10000,  // Different price
+          costPrice: 600,
+          isActive: true,
+          isWholeGrain: false,
+        }
+      ];
+
+      // Add dimension to create combinations
+      const flavorDimensionId = wrapper.vm.variationGroup.addDimension(
+        'CUSTOM_FLAVOR_TEST',
+        'Flavor',
+        [{ name: 'A', value: '', displayOrder: 0 }],
+        '',
+        1
+      );
+
+      await wrapper.vm.regenerateCombinations();
+
+      // x6 + A should keep its exact price (10000), not inherit from x6 (9400)
+      const x6A = wrapper.vm.variationGroup.combinations.find(c => c.name === 'x6 + A');
+      expect(x6A).toBeDefined();
+      expect(x6A.basePrice).toBe(10000); // Exact match takes precedence
+      expect(x6A.costPrice).toBe(600);
+    });
+  });
+
   describe('Combination Management', () => {
     beforeEach(async () => {
       wrapper = createWrapper();
