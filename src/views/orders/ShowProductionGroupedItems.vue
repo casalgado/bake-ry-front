@@ -57,7 +57,8 @@ const uniqueCollections = computed(() => {
 // Then modify the groupedOrderItems to include the sorting value and make sorting case-insensitive
 const groupedOrderItems = computed(() => {
   const groups = flattenedOrderItems.value.reduce((acc, item) => {
-    const variationId = item.variation?.id || 'no-variation';
+    // Use combination for grouping if available, fallback to variation
+    const variationId = item.combination?.id || item.variation?.id || 'no-variation';
     const key = `${item.productId}-${variationId}`;
 
     if (!acc[key]) {
@@ -69,6 +70,7 @@ const groupedOrderItems = computed(() => {
         collectionOrder:
           categoryOrder[item.collectionName?.toLowerCase()] || 999,
         variation: item.variation || { name: '' },
+        combination: item.combination || null,
         totalQuantity: 0,
         originalItems: [],
         producedCount: 0,
@@ -122,6 +124,7 @@ const columns = [
     getProps: (row) => ({
       productName: row.productName,
       variation: row.variation,
+      combination: row.combination,
       totalQuantity: row.totalQuantity,
     }),
   },

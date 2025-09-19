@@ -50,12 +50,22 @@ const flattenedOrderItems = computed(() => {
       if (productCompare !== 0) {
         return productCompare;
       }
-      // Finally by variation name if present
-      if (a.variationName && b.variationName) {
-        return a.variationName.localeCompare(b.variationName);
+      // Finally by variation/combination name if present
+      const getVariationName = (item) => {
+        if (item.combination && typeof item.combination.getDisplayName === 'function') {
+          return item.combination.getDisplayName();
+        }
+        return item.variation?.name || '';
+      };
+
+      const aVariationName = getVariationName(a);
+      const bVariationName = getVariationName(b);
+
+      if (aVariationName && bVariationName) {
+        return aVariationName.localeCompare(bVariationName);
       }
       // If only one has variation, sort it after the non-variation item
-      return (a.variationName ? 1 : 0) - (b.variationName ? 1 : 0);
+      return (aVariationName ? 1 : 0) - (bVariationName ? 1 : 0);
     });
 });
 // Computed property to get unique collection names
@@ -94,6 +104,7 @@ const columns = [
     getProps: (row) => ({
       productName: row.productName,
       variation: row.variation,
+      combination: row.combination,
       totalQuantity: row.quantity,
     }),
   },
