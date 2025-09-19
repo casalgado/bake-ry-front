@@ -1,10 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
-import { PhMoney, PhDeviceMobile, PhCreditCard, PhGift, PhClock, PhCurrencyDollar } from '@phosphor-icons/vue';
+import { PhMoney, PhDeviceMobile, PhCreditCard, PhGift, PhClock, PhCurrencyDollar, PhCalendarBlank } from '@phosphor-icons/vue';
 import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
 import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
 import FeatureCard from '@/components/forms/FeatureCard.vue';
-import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
+import RadioFeatureCard from '@/components/forms/RadioFeatureCard.vue';
 
 const props = defineProps({
   initialData: {
@@ -32,7 +32,7 @@ const props = defineProps({
           order: {
             activePaymentMethods: ['cash', 'transfer', 'complimentary'],
             allowPartialPayment: false,
-            defaultDate: 'production',
+            defaultDate: 'delivery',
             timeOfDay: false,
           },
         },
@@ -70,8 +70,9 @@ const paymentIconMap = {
 };
 
 const defaultDateOptions = [
-  { value: 'production', label: 'Fecha de Producción' },
-  { value: 'delivery', label: 'Fecha de Entrega' },
+  { value: 'delivery', label: 'Entrega' },
+  { value: 'production', label: 'Producción' },
+
 ];
 
 // Payment method helpers
@@ -410,7 +411,7 @@ onMounted(() => {
             Configuraciones adicionales para el manejo de pedidos
           </p>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FeatureCard
               v-model="formData.settings.features.order.allowPartialPayment"
               :icon="PhCurrencyDollar"
@@ -426,15 +427,15 @@ onMounted(() => {
               description="Mostrar campo para seleccionar hora específica de entrega"
               :disabled="loading"
             />
-          </div>
 
-          <!-- Default Date Type -->
-          <div class="mt-6 hidden">
-            <RadioButtonGroup
+            <RadioFeatureCard
               v-model="formData.settings.features.order.defaultDate"
+              :icon="PhCalendarBlank"
+              title="Tipo de Fecha por Defecto"
+              description="En tu flujo de trabajo, ¿te organizas mejor por cuándo produces o cuándo entregas?"
               :options="defaultDateOptions"
               name="default-date"
-              label="Tipo de Fecha por Defecto"
+              :disabled="loading"
             />
           </div>
         </div>
