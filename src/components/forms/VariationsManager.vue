@@ -198,7 +198,7 @@ const addCustomDimension = () => {
   regenerateCombinations();
 };
 
-const addOptionToDimension = (dimensionId) => {
+const addOptionToDimension = async (dimensionId) => {
   const dimension = variationGroup.value.getDimensionById(dimensionId);
   if (!dimension) return;
 
@@ -211,6 +211,15 @@ const addOptionToDimension = (dimensionId) => {
   variationGroup.value.addOptionToDimension(dimensionId, newOption);
   variationGroup.value.normalizeOptionDisplayOrders(dimensionId);
   regenerateCombinations();
+
+  // Focus on the new input field after DOM update
+  await nextTick();
+  const newOptionIndex = dimension.options.length - 1;
+  const inputSelector = `input[data-option-index="${dimensionId}-${newOptionIndex}"]`;
+  const newInput = document.querySelector(inputSelector);
+  if (newInput) {
+    newInput.focus();
+  }
 };
 
 const removeOptionFromDimension = (dimensionId, optionIndex) => {
@@ -437,9 +446,14 @@ const moveOptionToPosition = (dimensionId, optionName, newPosition) => {
   optionPositionDropdowns.value.set(key, false);
 };
 
-const togglePositionDropdown = (dimensionId, optionName) => {
+const togglePositionDropdown = (dimensionId, optionName, event) => {
   const key = `${dimensionId}-${optionName}`;
   const currentState = optionPositionDropdowns.value.get(key) || false;
+
+  // Prevent the click from bubbling and triggering handleClickOutside
+  if (event) {
+    event.stopPropagation();
+  }
 
   // Close all other dropdowns
   optionPositionDropdowns.value.forEach((value, k) => {
@@ -450,6 +464,9 @@ const togglePositionDropdown = (dimensionId, optionName) => {
 
   // Toggle current dropdown
   optionPositionDropdowns.value.set(key, !currentState);
+
+  // Force reactivity update
+  optionPositionDropdowns.value = new Map(optionPositionDropdowns.value);
 };
 
 const isPositionDropdownOpen = (dimensionId, optionName) => {
@@ -522,11 +539,14 @@ const handleClickOutside = (event) => {
 watch(optionPositionDropdowns, (newMap) => {
   const hasOpenDropdown = Array.from(newMap.values()).some(v => v);
   if (hasOpenDropdown) {
-    document.addEventListener('click', handleClickOutside);
+    // Use nextTick to avoid adding listener during the same click event
+    nextTick(() => {
+      document.addEventListener('click', handleClickOutside);
+    });
   } else {
     document.removeEventListener('click', handleClickOutside);
   }
-});
+}, { deep: true });
 
 // Watch for changes and emit updates
 watch(
@@ -769,7 +789,7 @@ watch(
               <div class="relative position-dropdown-container">
                 <button
                   type="button"
-                  @click="togglePositionDropdown(dimension.id, option.name)"
+                  @click="togglePositionDropdown(dimension.id, option.name, $event)"
                   class="inline-flex items-center justify-center w-7 h-7 sm:w-6 sm:h-6 text-xs font-semibold text-neutral-600 bg-neutral-200 rounded hover:bg-neutral-300 transition-colors touch-manipulation"
                   title="Cambiar posición"
                 >
@@ -808,6 +828,7 @@ watch(
                   :disabled="optionIndex === 0"
                   class="p-1 sm:p-0 text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100 rounded disabled:opacity-30 leading-none touch-manipulation transition-colors"
                   title="Mover arriba"
+                  tabindex="-1"
                 >
                   <PhCaretUp class="w-4 h-4 sm:w-3 sm:h-3" weight="bold" />
                 </button>
@@ -817,6 +838,7 @@ watch(
                   :disabled="optionIndex === getSortedOptions(dimension.id).length - 1"
                   class="p-1 sm:p-0 text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100 rounded disabled:opacity-30 leading-none touch-manipulation transition-colors"
                   title="Mover abajo"
+                  tabindex="-1"
                 >
                   <PhCaretDown class="w-4 h-4 sm:w-3 sm:h-3" weight="bold"/>
                 </button>
@@ -829,6 +851,7 @@ watch(
               @click="removeOptionFromDimension(dimension.id, getSortedOptions(dimension.id).findIndex(o => o.name === option.name))"
               class="text-danger hover:text-danger-dark p-1 sm:p-0 touch-manipulation flex-shrink-0 sm:order-last"
               title="Eliminar opción"
+              tabindex="-1"
             >
               <PhX class="w-4 h-4" />
             </button>
@@ -842,6 +865,8 @@ watch(
                 v-model="option.name"
                 placeholder="Nombre de la opción"
                 class="w-full px-2 sm:px-3 py-1 border border-neutral-300 rounded-md text-sm"
+                :data-option-index="`${dimension.id}-${optionIndex}`"
+                @keydown.enter.prevent="addOptionToDimension(dimension.id)"
               />
             </div>
 
@@ -854,6 +879,7 @@ watch(
                   class="w-full px-2 sm:px-3 py-1 border border-neutral-300 rounded-md text-sm"
                   min="0"
                   step="1"
+                  @keydown.enter.prevent="addOptionToDimension(dimension.id)"
                 />
               </div>
             </div>

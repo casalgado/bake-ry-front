@@ -12,6 +12,7 @@ import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 
 // Components
 import ProductForm from '@/components/forms/ProductForm.vue';
+import ToastNotification from '@/components/ToastNotification.vue';
 
 // Stores
 import { useProductStore } from '@/stores/productStore';
@@ -29,6 +30,7 @@ const searchQuery = ref('');
 const selectedCollection = ref('');
 const actionLoading = ref({});
 const dataTable = ref(null);
+const toastRef = ref(null);
 
 onMounted(async () => {
   await productStore.fetchAll();
@@ -168,11 +170,16 @@ const handleSubmit = async (formData) => {
   try {
     if (selectedProduct.value) {
       await productStore.update(selectedProduct.value.id, formData);
+
+      // Show success toast
+      toastRef.value?.showSuccess('Producto actualizado correctamente');
     }
     isFormOpen.value = false;
     selectedProduct.value = null;
   } catch (error) {
     console.error('Failed to update product:', error);
+    // Show error toast
+    toastRef.value?.showError('Error al actualizar producto', error.message || 'Intenta nuevamente');
   }
 };
 
@@ -249,6 +256,9 @@ const navigateToCreate = () => {
         class="bg-white shadow-lg rounded-lg"
       />
     </div>
+
+    <!-- Toast Notification -->
+    <ToastNotification ref="toastRef" />
   </div>
 </template>
 
