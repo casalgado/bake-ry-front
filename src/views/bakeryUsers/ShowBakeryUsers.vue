@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
+import { useRouter } from 'vue-router';
 import DataTable from '@/components/DataTable/index.vue';
 import { useDataTable } from '@/components/DataTable/composables/useDataTable.js';
 import BakeryUserForm from '@/components/forms/BakeryUserForm.vue';
@@ -9,6 +10,7 @@ import { PhPen, PhTrash } from '@phosphor-icons/vue'; // 👈 Importar ícono de
 import UserCell from '@/components/DataTable/renderers/UserCell.vue';
 import EmailCell from '@/components/DataTable/renderers/EmailCell.vue';
 
+const router = useRouter();
 const bakeryUserStore = useBakeryUserStore();
 const isFormOpen = ref(false);
 
@@ -154,12 +156,23 @@ const closeForm = () => {
   isFormOpen.value = false;
   clearSelection();
 };
+
+const navigateToCreate = () => {
+  router.push('/dashboard/users/create-client');
+};
 </script>
 
 <template>
   <div class="container p-4 px-0 lg:px-4">
-    <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-neutral-800">Clientes</h2>
+    <div class="flex justify-between items-center mb-1">
+      <h2 class="text-2xl font-bold mb-0">Clientes</h2>
+      <button
+        label="Crear Cliente"
+        class="action-btn"
+        @click="navigateToCreate"
+      >
+        Crear Cliente
+      </button>
     </div>
 
     <!-- Error State -->
