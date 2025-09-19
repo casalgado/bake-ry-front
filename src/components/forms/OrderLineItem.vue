@@ -27,9 +27,7 @@ const emit = defineEmits([
 ]);
 
 const isPriceModified = computed(() => {
-  console.log(props.item);
-  console.log('current price', props.item.currentPrice);
-  console.log('base price', props.item.basePrice);
+
   return props.item.currentPrice !== props.item.basePrice;
 });
 
