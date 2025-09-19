@@ -1,5 +1,8 @@
 <!-- components/DataTable/renderers/ItemsCell.vue -->
 <script setup>
+import Combination from '@/models/Combination.js';
+import { capitalize } from '@/utils/helpers.js';
+
 const props = defineProps({
   productName: {
     type: String,
@@ -19,14 +22,23 @@ const props = defineProps({
 
 // Helper function to get the variation display text
 const getVariationDisplay = () => {
-  // Prioritize combination over variation
-  if (props.combination && typeof props.combination.getDisplayName === 'function') {
-    const displayName = props.combination.getDisplayName();
+  // Prioritize combination over variation (new system)
+  if (props.combination) {
+    // Ensure we have a Combination instance with the getDisplayName method
+    const combination = props.combination instanceof Combination
+      ? props.combination
+      : new Combination(props.combination);
+
+    const displayName = combination.getDisplayName();
     return displayName || '';
   }
 
-  // Fallback to legacy variation
+  // Fallback to legacy variation (should be removed after migration is complete and stable)
   if (props.variation && props.variation.name) {
+    console.warn('Legacy variation found, consider re-running migration for order item:', {
+      variation: props.variation,
+      productName: props.productName,
+    });
     return props.variation.name;
   }
 
@@ -35,5 +47,5 @@ const getVariationDisplay = () => {
 </script>
 
 <template>
-  <span>{{ totalQuantity }} {{ productName }}{{ getVariationDisplay() ? ' ' + getVariationDisplay() : ' ' }}</span>
+  <span>{{ totalQuantity }} {{ capitalize(productName) }}{{ getVariationDisplay() ? ' ' + getVariationDisplay() : ' ' }}</span>
 </template>

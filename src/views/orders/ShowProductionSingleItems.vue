@@ -52,9 +52,11 @@ const flattenedOrderItems = computed(() => {
       }
       // Finally by variation/combination name if present
       const getVariationName = (item) => {
+        // Prioritize combination (new system)
         if (item.combination && typeof item.combination.getDisplayName === 'function') {
           return item.combination.getDisplayName();
         }
+
         return item.variation?.name || '';
       };
 

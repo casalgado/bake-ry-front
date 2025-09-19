@@ -128,7 +128,7 @@ onMounted(() => {
                 type="number"
                 @input="handleDiscountChange"
                 :value="discount"
-                class="w-14 px-1 py-0.5 text-right border rounded text-xs max-w-14 min-w-14"
+                class="w-14 px-1 py-0.5 text-right border rounded text-xs max-w-14 min-w-14 text-neutral-500"
                 :disabled="item.isComplimentary"
                 max="100"
               />
