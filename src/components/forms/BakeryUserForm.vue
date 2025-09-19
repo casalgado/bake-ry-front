@@ -2,14 +2,6 @@
 import { ref, defineProps, defineEmits, computed } from 'vue';
 import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
 import { parseSpanishName } from '@/utils/helpers';
-import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
-
-const bakerySettingsStore = useBakerySettingsStore();
-
-const features = computed(() => {
-  if (!bakerySettingsStore.items.length) return {};
-  return bakerySettingsStore.items[0]?.features || {};
-});
 
 const props = defineProps({
   title: {
@@ -236,7 +228,7 @@ const handleSubmit = () => {
       </div>
 
       <div
-        v-if="features?.users?.collectLegalName && formUserType === 'client'"
+        v-if="formUserType === 'client'"
         :class="{
           'text-neutral-400': selectedUserType !== 'company',
         }"

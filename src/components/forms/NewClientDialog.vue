@@ -21,6 +21,9 @@ const formData = ref({
   phone: '',
   address: '',
   nationalId: '',
+  legalName: '',
+  birthday: '',
+  comment: '',
   category: 'B2C', // Default to B2C
 });
 
@@ -67,6 +70,9 @@ const resetForm = () => {
     phone: '',
     address: '',
     nationalId: '',
+    legalName: '',
+    birthday: '',
+    comment: '',
     category: 'B2C',
   };
   selectedClientType.value = 'B2C';
@@ -137,9 +143,22 @@ onUnmounted(() => {
               />
             </div>
 
+            <!-- Legal Name field for B2B clients -->
+            <div v-if="selectedClientType === 'B2B'">
+              <label class="">
+                Razón Social
+              </label>
+              <input
+                type="text"
+                v-model="formData.legalName"
+                class=""
+                placeholder="Razón social de la empresa"
+              />
+            </div>
+
             <div>
               <label class="">
-                Email
+                Correo Electrónico
               </label>
               <input
                 type="email"
@@ -179,6 +198,29 @@ onUnmounted(() => {
                 v-model="formData.nationalId"
                 class=""
               />
+            </div>
+
+            <div>
+              <label class="">
+                Fecha de Nacimiento
+              </label>
+              <input
+                type="date"
+                v-model="formData.birthday"
+                class=""
+              />
+            </div>
+
+            <div>
+              <label class="">
+                Comentarios
+              </label>
+              <textarea
+                v-model="formData.comment"
+                rows="3"
+                class=""
+                placeholder="Comentarios adicionales sobre el cliente"
+              ></textarea>
             </div>
 
             <div class="flex justify-end gap-2 mt-4">

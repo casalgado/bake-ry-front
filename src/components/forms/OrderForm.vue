@@ -127,6 +127,7 @@ const getInitialFormState = () => ({
   userEmail: '',
   userPhone: '',
   userNationalId: '',
+  userLegalName: '',
   orderItems: [],
   preparationDate: tomorrowString,
   dueDate: tomorrowString,
@@ -550,6 +551,7 @@ const clearUser = () => {
   formData.value.userEmail = '';
   formData.value.userPhone = '';
   formData.value.userNationalId = ''; // Added userNationalId reset
+  formData.value.userLegalName = ''; // Added userLegalName reset
   formData.value.deliveryAddress = '';
   userHistory.value = [];
   currentHistoryIndex.value = 0;
