@@ -103,12 +103,12 @@ onUnmounted(() => {
   <Dialog
     :open="isOpen"
     @close="closeDialog"
-    class="relative z-50 form-container"
+    class="relative z-50 form-container "
   >
     <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
 
-    <div class="fixed inset-0 flex items-center justify-center p-4">
-      <DialogPanel class="w-full max-w-md rounded-lg bg-white">
+    <div class="fixed inset-0 flex items-center justify-center p-4 ">
+      <DialogPanel class="w-full max-w-md rounded-lg bg-white max-h-[90vh] max-h-[90dvh] overflow-y-auto">
         <div class="flex items-center justify-between p-4 border-b border-neutral-200">
           <DialogTitle class="text-lg font-semibold text-neutral-900">
             Nuevo Cliente

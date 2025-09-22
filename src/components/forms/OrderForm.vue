@@ -341,7 +341,6 @@ const scrollToError = async () => {
     }
   }
 };
-
 const validate = () => {
   errors.value = {};
 
@@ -368,9 +367,7 @@ const validate = () => {
       'Monto de pago parcial es requerido si se ingresa una fecha';
   }
   if (
-    formData.value.partialPaymentAmount >
-    formData.value.partialPaymentAmount >
-    total.value
+    formData.value.partialPaymentAmount >= total.value
   ) {
     errors.value.partialPaymentAmount =
       'El monto parcial no puede ser mayor o igual al total';
@@ -379,8 +376,8 @@ const validate = () => {
     formData.value.paymentDate &&
     formData.value.partialPaymentDate > formData.value.paymentDate
   ) {
-    errors.value.partialPaymentAmount =
-      'La fecha de pago parcial no puede ser posterior a la fecha de pago';
+    errors.value.partialPaymentDate =
+    'La fecha de pago parcial no puede ser posterior a la fecha de pago';
   }
   if (formData.value.dueDate < formData.value.preparationDate) {
     errors.value.dueDate =
@@ -723,8 +720,8 @@ const clearPartialPayment = () => {
             </button>
           </div>
 
-          <span v-if="errors.payemntDate" class="text-danger text-sm">{{
-            errors.payemntDate
+          <span v-if="errors.paymentDate" class="text-danger text-sm">{{
+            errors.paymentDate
           }}</span>
         </div>
 
