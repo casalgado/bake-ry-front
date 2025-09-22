@@ -259,7 +259,13 @@ const findMatchingCombination = (product, selections) => {
 
   return product.variations.combinations.find(combo => {
     if (!combo.selection || combo.selection.length !== selections.length) return false;
-    return selections.every(sel => combo.selection.includes(sel));
+
+    // Normalize both selections and combination for case-insensitive comparison
+    const normalizeString = (str) => str.toLowerCase().trim();
+    const normalizedSelections = selections.map(normalizeString);
+    const normalizedComboSelection = combo.selection.map(normalizeString);
+
+    return normalizedSelections.every(sel => normalizedComboSelection.includes(sel));
   });
 };
 
