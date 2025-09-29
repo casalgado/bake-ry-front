@@ -10,6 +10,7 @@ import api from '@/services/api';
 import { auth } from '@/config/firebase';
 import CreditCardForm from '@/components/forms/CreditCardForm.vue';
 import BakeryFeaturesForm from '@/components/forms/BakeryFeaturesForm.vue';
+import BakeryBrandingForm from '@/components/forms/BakeryBrandingForm.vue';
 import ToastNotification from '@/components/ToastNotification.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
@@ -32,6 +33,19 @@ const featuresFormData = ref({
 
 });
 const isFeaturesSaving = ref(false);
+
+// Branding form state
+const brandingFormData = ref({
+  logos: {
+    original: '',
+    '200x200': '',
+    '400x400': '',
+    '800x800': '',
+  },
+  primaryColor: '',
+  secondaryColor: '',
+});
+const isBrandingSaving = ref(false);
 
 // Initialize PayU service
 const payuService = new PayUService(authStore.getBakeryId);
@@ -80,6 +94,9 @@ onMounted(async () => {
 
   // Initialize features form
   initializeFeaturesForm();
+
+  // Initialize branding form
+  initializeBrandingForm();
 
   // Load stored payment methods
   await loadPaymentMethods();
@@ -447,6 +464,11 @@ const currentProductsFeatures = computed(() => {
   return settingsStore.items[0].features?.products || {};
 });
 
+const currentBranding = computed(() => {
+  if (!settingsStore.items.length) return {};
+  return settingsStore.items[0].branding || {};
+});
+
 // Filter available payment methods to exclude complimentary (always enabled by default)
 const configurablePaymentMethods = computed(() => {
   const allMethods = systemSettingsStore.availablePaymentMethods || [];
@@ -499,12 +521,31 @@ const initializeFeaturesForm = () => {
   featuresFormData.value = newFormData;
 };
 
-// Watch for settings changes and reinitialize form
+// Branding form initialization
+const initializeBrandingForm = () => {
+  const branding = currentBranding.value;
+
+  if (branding && Object.keys(branding).length > 0) {
+    brandingFormData.value = {
+      logos: branding.logos || {
+        original: '',
+        '200x200': '',
+        '400x400': '',
+        '800x800': '',
+      },
+      primaryColor: branding.primaryColor || '',
+      secondaryColor: branding.secondaryColor || '',
+    };
+  }
+};
+
+// Watch for settings changes and reinitialize forms
 watch(
   () => settingsStore.items,
   () => {
     if (settingsStore.items.length > 0) {
       initializeFeaturesForm();
+      initializeBrandingForm();
     }
   },
   { immediate: true },
@@ -555,9 +596,49 @@ const handleFeaturesSubmit = async (formData) => {
     isFeaturesSaving.value = false;
   }
 };
+
+const handleBrandingSubmit = async (formData) => {
+  isBrandingSaving.value = true;
+  try {
+    // Preserve existing settings and merge with new branding data
+    const currentSettings = settingsStore.items[0] || {};
+
+    await settingsStore.patch('default', {
+      branding: {
+        logos: formData.logos,
+        primaryColor: formData.primaryColor,
+        secondaryColor: formData.secondaryColor,
+      },
+    });
+
+    // Update local form data after successful save
+    brandingFormData.value = { ...formData };
+
+    toastRef.value?.showSuccess(
+      'Branding Guardado',
+      'La configuración de marca ha sido actualizada exitosamente',
+    );
+  } catch (error) {
+    console.error('Error saving branding:', error);
+    toastRef.value?.showError(
+      'Error al Guardar',
+      'No se pudo guardar la configuración de marca. Intenta nuevamente.',
+    );
+  } finally {
+    isBrandingSaving.value = false;
+  }
+};
 </script>
 
 <template>
+  <!-- Bakery Branding Form -->
+  <BakeryBrandingForm
+    title="Identidad del Negocio"
+    :initial-data="brandingFormData"
+    :loading="isBrandingSaving"
+    @submit="handleBrandingSubmit"
+  />
+
   <!-- Bakery Features Form -->
   <BakeryFeaturesForm
     title="Configuración de Características"

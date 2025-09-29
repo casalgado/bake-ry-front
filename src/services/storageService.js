@@ -39,12 +39,9 @@ class StorageService {
             // Get the original image URL
             const originalUrl = await getDownloadURL(uploadTask.snapshot.ref);
 
-            // Wait a bit for resizer extension to process
-            // Comment out if extension is not installed yet
-            // await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Get resized versions (will be empty if extension not installed)
-            const resizedUrls = {}; // await this.getResizedImageUrls(path, fileName);
+            // Get resized versions (wait a bit for processing, then fetch)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const resizedUrls = await this.getResizedImageUrls(path, fileName);
 
             resolve({
               originalUrl,
