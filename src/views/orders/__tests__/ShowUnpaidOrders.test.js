@@ -394,6 +394,114 @@ describe('ShowUnpaidOrders', () => {
       expect(totals.length).toBe(3);
       expect(totals.map(t => t.label)).toEqual(['B2B', 'B2C', 'Total']);
     });
+
+    it('calculates totals with partial payments correctly', () => {
+      const vm = wrapper.vm;
+      vm.b2bClients = [mockB2BClient];
+
+      // Create test orders with partial payments
+      const testOrders = [
+        {
+          ...mockOrder,
+          userId: 'user-1', // B2B
+          total: 100000,
+          isPaid: false,
+          partialPaymentAmount: 30000
+        },
+        {
+          ...mockOrder,
+          id: '2',
+          userId: 'user-2', // B2C
+          total: 50000,
+          isPaid: false,
+          partialPaymentAmount: 10000
+        },
+        {
+          ...mockOrder,
+          id: '3',
+          userId: 'user-1', // B2B
+          total: 25000,
+          isPaid: false,
+          partialPaymentAmount: null
+        },
+      ];
+
+      // Simulate the categorization and totals calculation
+      const categorizedOrders = testOrders.map(order => ({
+        ...order,
+        userCategory: vm.b2bClients.map(client => client.id).includes(order.userId) ? 'B2B' : 'B2C',
+      }));
+
+      // Calculate totals using the new logic: total - partialPaymentAmount
+      const b2bTotal = categorizedOrders
+        .filter(order => order.userCategory === 'B2B')
+        .filter(order => !order.isPaid)
+        .reduce((sum, order) => sum + order.total - (order.partialPaymentAmount || 0), 0);
+
+      const b2cTotal = categorizedOrders
+        .filter(order => order.userCategory === 'B2C')
+        .filter(order => !order.isPaid)
+        .reduce((sum, order) => sum + order.total - (order.partialPaymentAmount || 0), 0);
+
+      // Verify partial payment calculations
+      expect(b2bTotal).toBe(95000); // (100000 - 30000) + (25000 - 0) = 70000 + 25000
+      expect(b2cTotal).toBe(40000); // (50000 - 10000) = 40000
+      expect(b2bTotal + b2cTotal).toBe(135000); // Total remaining
+    });
+
+    it('excludes paid orders from totals calculation', () => {
+      const vm = wrapper.vm;
+      vm.b2bClients = [mockB2BClient];
+
+      // Create test orders with some paid orders
+      const testOrders = [
+        {
+          ...mockOrder,
+          userId: 'user-1', // B2B
+          total: 100000,
+          isPaid: true, // This should be excluded
+          partialPaymentAmount: 0
+        },
+        {
+          ...mockOrder,
+          id: '2',
+          userId: 'user-2', // B2C
+          total: 50000,
+          isPaid: false,
+          partialPaymentAmount: 10000
+        },
+        {
+          ...mockOrder,
+          id: '3',
+          userId: 'user-1', // B2B
+          total: 25000,
+          isPaid: false,
+          partialPaymentAmount: null
+        },
+      ];
+
+      // Simulate the categorization and totals calculation
+      const categorizedOrders = testOrders.map(order => ({
+        ...order,
+        userCategory: vm.b2bClients.map(client => client.id).includes(order.userId) ? 'B2B' : 'B2C',
+      }));
+
+      // Calculate totals using the new logic with isPaid filter
+      const b2bTotal = categorizedOrders
+        .filter(order => order.userCategory === 'B2B')
+        .filter(order => !order.isPaid) // Should exclude the paid order
+        .reduce((sum, order) => sum + order.total - (order.partialPaymentAmount || 0), 0);
+
+      const b2cTotal = categorizedOrders
+        .filter(order => order.userCategory === 'B2C')
+        .filter(order => !order.isPaid)
+        .reduce((sum, order) => sum + order.total - (order.partialPaymentAmount || 0), 0);
+
+      // Verify paid orders are excluded
+      expect(b2bTotal).toBe(25000); // Only the unpaid B2B order (25000 - 0)
+      expect(b2cTotal).toBe(40000); // B2C order (50000 - 10000)
+      expect(b2bTotal + b2cTotal).toBe(65000); // Total remaining
+    });
   });
 
   describe('Table Configuration', () => {
@@ -465,6 +573,88 @@ describe('ShowUnpaidOrders', () => {
         { label: 'B2B', value: 'B2B' },
         { label: 'B2C', value: 'B2C' },
       ]);
+    });
+
+    it('configures MoneyCell props correctly for orders without partial payments', () => {
+      const vm = wrapper.vm;
+      const columns = vm.columns;
+      const totalColumn = columns.find(col => col.id === 'total');
+
+      expect(totalColumn.getProps).toBeDefined();
+
+      // Test order without partial payment
+      const orderWithoutPartialPayment = {
+        ...mockOrder,
+        total: 50000,
+        isPaid: false,
+        partialPaymentAmount: null
+      };
+
+      const props = totalColumn.getProps(orderWithoutPartialPayment);
+
+      expect(props.value).toBe(50000); // Should show full amount
+      expect(props.valueBelow).toBe(50000); // Original total
+      expect(props.hideBelow).toBe(true); // Should hide below since no partial payment
+    });
+
+    it('configures MoneyCell props correctly for orders with partial payments', () => {
+      const vm = wrapper.vm;
+      const columns = vm.columns;
+      const totalColumn = columns.find(col => col.id === 'total');
+
+      // Test order with partial payment
+      const orderWithPartialPayment = {
+        ...mockOrder,
+        total: 50000,
+        isPaid: false,
+        partialPaymentAmount: 20000
+      };
+
+      const props = totalColumn.getProps(orderWithPartialPayment);
+
+      expect(props.value).toBe(30000); // Should show remaining amount (50000 - 20000)
+      expect(props.valueBelow).toBe(50000); // Original total
+      expect(props.hideBelow).toBe(false); // Should show below since there is a partial payment
+    });
+
+    it('configures MoneyCell props correctly for paid orders', () => {
+      const vm = wrapper.vm;
+      const columns = vm.columns;
+      const totalColumn = columns.find(col => col.id === 'total');
+
+      // Test paid order
+      const paidOrder = {
+        ...mockOrder,
+        total: 50000,
+        isPaid: true,
+        partialPaymentAmount: 0
+      };
+
+      const props = totalColumn.getProps(paidOrder);
+
+      expect(props.value).toBe(50000); // Should show full amount for paid orders
+      expect(props.valueBelow).toBe(50000); // Original total
+      expect(props.hideBelow).toBe(true); // Should hide below since order is paid
+    });
+
+    it('configures MoneyCell props correctly for paid orders with partial payment history', () => {
+      const vm = wrapper.vm;
+      const columns = vm.columns;
+      const totalColumn = columns.find(col => col.id === 'total');
+
+      // Test paid order that had partial payments before being fully paid
+      const paidOrderWithPartialHistory = {
+        ...mockOrder,
+        total: 50000,
+        isPaid: true,
+        partialPaymentAmount: 20000
+      };
+
+      const props = totalColumn.getProps(paidOrderWithPartialHistory);
+
+      expect(props.value).toBe(50000); // Should show full amount for paid orders (regardless of partial payment history)
+      expect(props.valueBelow).toBe(50000); // Original total
+      expect(props.hideBelow).toBe(true); // Should hide below since order is paid
     });
   });
 

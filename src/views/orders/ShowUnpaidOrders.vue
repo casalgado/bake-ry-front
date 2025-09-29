@@ -140,8 +140,6 @@ const totals = computed(() => {
     }))
     : tableData.value;
 
-  console.log('oTC', ordersToCalculate);
-
   const b2bTotal = ordersToCalculate
     .filter(order => order.userCategory === 'B2B')
     .filter(order => !order.isPaid)
