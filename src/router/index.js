@@ -17,6 +17,12 @@ const router = createRouter({
       component: () => import('../views/PrivacyPolicy.vue'),
     },
     {
+      path: '/test-image-upload',
+      name: 'test-image-upload',
+      component: () => import('../views/TestImageUpload.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('../views/auth/LoginView.vue'),
