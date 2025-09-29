@@ -236,7 +236,7 @@ const columns = computed(() => [
         value: method.value,
         displayText: method.displayText,
         icon: paymentIconMap[method.value] || PhMoney,
-        skipWhenToggled: method.value === 'complimentary' || !activePaymentMethods.includes(method.value),
+        skipWhenToggled: method.value === 'complimentary' || method.value === 'quote' || !activePaymentMethods.includes(method.value),
       }));
     },
   },
@@ -260,8 +260,7 @@ const columns = computed(() => [
     options: [{ value: true, displayText: '✓' }, { value: false, displayText: '-' }],
     component: IsPaidCell,
     getProps: (row) => ({
-      isPaid: row.isPaid,
-      isComplimentary: row.isComplimentary,
+      order: row,
     }),
   },
   {

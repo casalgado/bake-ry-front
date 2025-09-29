@@ -239,12 +239,7 @@ const columns = computed(() => [
     ],
     component: IsPaidCell,
     getProps: (row) => ({
-      isPaid: row.isPaid,
-      isComplimentary: row.isComplimentary,
-      orderStatus: row.status,
-      paymentDate: row.paymentDate,
-      partialPaymentAmount: row.partialPaymentAmount,
-      partialPaymentDate: row.partialPaymentDate,
+      order: row,
     }),
   },
   {
@@ -263,7 +258,7 @@ const columns = computed(() => [
         displayText: method.displayText,
         icon: paymentIconMap[method.value] || PhMoney,
         skipWhenToggled:
-          method.value === 'complimentary' ||
+          method.value === 'complimentary' || method.value === 'quote' ||
           !activePaymentMethods.includes(method.value),
       }));
     },
