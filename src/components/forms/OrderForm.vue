@@ -367,6 +367,7 @@ const validate = () => {
       'Monto de pago parcial es requerido si se ingresa una fecha';
   }
   if (
+    formData.value.partialPayment > 0 &&
     formData.value.partialPaymentAmount >= total.value
   ) {
     errors.value.partialPaymentAmount =
