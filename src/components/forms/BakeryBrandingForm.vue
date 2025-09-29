@@ -157,7 +157,7 @@ watch(() => props.initialData, (newData) => {
           <ImageUpload
             v-model="formData.logos.original"
             :upload-path="getLogoUploadPath"
-            label="Subir Imagen"
+            label=""
             help-text="Arrastra tu logo aquí o haz clic para seleccionar"
             :disabled="loading"
             @upload-success="handleLogoUploadSuccess"
@@ -166,7 +166,7 @@ watch(() => props.initialData, (newData) => {
         </div>
 
         <!-- Logo Preview Sizes -->
-        <div v-if="formData.logos.original" class="mt-6">
+        <div v-if="formData.logos.original" class="mt-6 hidden">
           <h4 class="text-sm font-medium text-neutral-700 mb-3">Versiones Disponibles</h4>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div class="text-center">

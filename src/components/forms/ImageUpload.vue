@@ -211,15 +211,7 @@ const triggerFileInput = () => {
       <div v-if="hasImage && !isUploading" class="image-preview">
         <img :src="previewUrl" :alt="label" class="preview-image" />
         <div class="overlay">
-          <button
-            v-if="!disabled"
-            @click.stop="deleteImage"
-            class="delete-button"
-            type="button"
-            title="Eliminar imagen"
-          >
-            <PhTrash :size="20" />
-          </button>
+
         </div>
       </div>
 
