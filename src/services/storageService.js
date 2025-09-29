@@ -70,23 +70,29 @@ class StorageService {
    */
   async getResizedImageUrls(path, fileName) {
     const resizedUrls = {};
-    const sizes = ['200x200', '400x400', '800x800'];
+    // Map semantic names to actual pixel sizes
+    const sizeMap = {
+      small: '200x200',
+      medium: '400x400',
+      large: '800x800',
+    };
 
     // Get filename without extension and the extension separately
     const lastDotIndex = fileName.lastIndexOf('.');
     const nameWithoutExt = fileName.substring(0, lastDotIndex);
     const extension = fileName.substring(lastDotIndex);
 
-    for (const size of sizes) {
+    for (const [semanticName, pixelSize] of Object.entries(sizeMap)) {
       try {
         // Firebase extension pattern: originalname_widthxheight.extension
-        const resizedFileName = `${nameWithoutExt}_${size}${extension}`;
+        const resizedFileName = `${nameWithoutExt}_${pixelSize}${extension}`;
         const resizedRef = ref(storage, `${path}${resizedFileName}`);
         const url = await getDownloadURL(resizedRef);
-        resizedUrls[size] = url;
+        resizedUrls[semanticName] = url;
+        console.log(`Found resized image ${semanticName} (${pixelSize}):`, url);
       } catch (error) {
         // Resized version might not exist yet
-        console.log(`Resized version ${size} not available yet`);
+        console.log(`Resized version ${semanticName} (${pixelSize}) not available yet`);
       }
     }
 
@@ -106,21 +112,25 @@ class StorageService {
       // Try to delete resized versions
       const fileName = path.split('/').pop();
       const basePath = path.substring(0, path.lastIndexOf('/') + 1);
-      const sizes = ['200x200', '400x400', '800x800'];
+      const sizeMap = {
+        small: '200x200',
+        medium: '400x400',
+        large: '800x800',
+      };
 
       // Get filename without extension and the extension separately
       const lastDotIndex = fileName.lastIndexOf('.');
       const nameWithoutExt = fileName.substring(0, lastDotIndex);
       const extension = fileName.substring(lastDotIndex);
 
-      for (const size of sizes) {
+      for (const [semanticName, pixelSize] of Object.entries(sizeMap)) {
         try {
-          const resizedFileName = `${nameWithoutExt}_${size}${extension}`;
+          const resizedFileName = `${nameWithoutExt}_${pixelSize}${extension}`;
           const resizedRef = ref(storage, `${basePath}${resizedFileName}`);
           await deleteObject(resizedRef);
         } catch (error) {
           // Resized version might not exist
-          console.log(`Could not delete resized version ${size}`);
+          console.log(`Could not delete resized version ${semanticName} (${pixelSize})`);
         }
       }
     } catch (error) {

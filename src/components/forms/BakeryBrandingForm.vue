@@ -16,9 +16,9 @@ const props = defineProps({
     default: () => ({
       logos: {
         original: '',
-        '200x200': '',
-        '400x400': '',
-        '800x800': '',
+        small: '',
+        medium: '',
+        large: '',
       },
       // Future expansion for other branding elements
       primaryColor: '',
@@ -33,22 +33,37 @@ const props = defineProps({
 
 const emit = defineEmits(['submit']);
 
-// Form state
-const formData = ref({ ...props.initialData });
+// Form state - deep clone to avoid mutation
+const formData = ref(JSON.parse(JSON.stringify(props.initialData)));
 
 // Computed properties
 const hasChanges = computed(() => {
   const initial = props.initialData;
   const current = formData.value;
 
-  // Compare logos object
-  const logoChanged = JSON.stringify(initial.logos || {}) !== JSON.stringify(current.logos || {});
+  // Compare logos object - normalize empty values for comparison
+  const normalizeLogos = (logos) => ({
+    original: logos?.original || '',
+    small: logos?.small || '',
+    medium: logos?.medium || '',
+    large: logos?.large || '',
+  });
+
+  const initialLogos = normalizeLogos(initial.logos);
+  const currentLogos = normalizeLogos(current.logos);
+  const logoChanged = JSON.stringify(initialLogos) !== JSON.stringify(currentLogos);
 
   // Future: Compare other branding elements
   const primaryColorChanged = (initial.primaryColor || '') !== (current.primaryColor || '');
   const secondaryColorChanged = (initial.secondaryColor || '') !== (current.secondaryColor || '');
 
-  return logoChanged || primaryColorChanged || secondaryColorChanged;
+  const changed = logoChanged || primaryColorChanged || secondaryColorChanged;
+
+  if (changed) {
+    console.log('hasChanges detected:', { logoChanged, primaryColorChanged, secondaryColorChanged });
+  }
+
+  return changed;
 });
 
 const submitButtonText = computed(() => {
@@ -70,9 +85,9 @@ const handleCancel = () => {
   formData.value = {
     logos: props.initialData.logos || {
       original: '',
-      '200x200': '',
-      '400x400': '',
-      '800x800': '',
+      small: '',
+      medium: '',
+      large: '',
     },
     primaryColor: props.initialData.primaryColor || '',
     secondaryColor: props.initialData.secondaryColor || '',
@@ -82,12 +97,15 @@ const handleCancel = () => {
 const handleLogoUploadSuccess = (result) => {
   console.log('Logo uploaded successfully:', result);
 
-  // Update the logos object with all available URLs
-  formData.value.logos = {
-    original: result.originalUrl,
-    '200x200': result.resizedUrls['200x200'] || '',
-    '400x400': result.resizedUrls['400x400'] || '',
-    '800x800': result.resizedUrls['800x800'] || '',
+  // Update the logos object with all available URLs - use spread to ensure reactivity
+  formData.value = {
+    ...formData.value,
+    logos: {
+      original: result.originalUrl,
+      small: result.resizedUrls.small || '',
+      medium: result.resizedUrls.medium || '',
+      large: result.resizedUrls.large || '',
+    },
   };
 
   console.log('Updated logos object:', formData.value.logos);
@@ -106,16 +124,16 @@ const getLogoUploadPath = computed(() => {
 // Watch for initialData changes and update form
 watch(() => props.initialData, (newData) => {
   if (newData) {
-    formData.value = {
+    formData.value = JSON.parse(JSON.stringify({
       logos: newData.logos || {
         original: '',
-        '200x200': '',
-        '400x400': '',
-        '800x800': '',
+        small: '',
+        medium: '',
+        large: '',
       },
       primaryColor: newData.primaryColor || '',
       secondaryColor: newData.secondaryColor || '',
-    };
+    }));
   }
 }, { deep: true, immediate: true });
 </script>
@@ -128,18 +146,18 @@ watch(() => props.initialData, (newData) => {
       <!-- Logo Section -->
       <div class="mb-8">
         <h3 class="text-lg font-semibold text-neutral-900 mb-2 flex items-center gap-2">
-          <PhStorefront :size="20" />
-          Logo del Negocio
+
+          Logo
         </h3>
         <p class="text-sm text-neutral-600 mb-4">
-          Sube el logo de tu negocio. Se mostrará en tus documentos y página web.
+          Sube el logo de tu negocio.
         </p>
 
         <div class="max-w-md">
           <ImageUpload
             v-model="formData.logos.original"
             :upload-path="getLogoUploadPath"
-            label="Logo"
+            label="Subir Imagen"
             help-text="Arrastra tu logo aquí o haz clic para seleccionar"
             :disabled="loading"
             @upload-success="handleLogoUploadSuccess"
@@ -166,56 +184,48 @@ watch(() => props.initialData, (newData) => {
             <div class="text-center">
               <div class="border border-neutral-200 rounded-lg p-2 bg-white">
                 <img
-                  v-if="formData.logos['800x800']"
-                  :src="formData.logos['800x800']"
-                  alt="800x800"
+                  v-if="formData.logos.large"
+                  :src="formData.logos.large"
+                  alt="Large logo"
                   class="w-16 h-16 object-contain mx-auto"
                 />
                 <div v-else class="w-16 h-16 bg-neutral-100 rounded mx-auto flex items-center justify-center">
-                  <span class="text-xs text-neutral-400">800px</span>
+                  <span class="text-xs text-neutral-400">Grande</span>
                 </div>
               </div>
-              <p class="text-xs text-neutral-600 mt-1">Grande</p>
+              <p class="text-xs text-neutral-600 mt-1">Grande (800px)</p>
             </div>
             <div class="text-center">
               <div class="border border-neutral-200 rounded-lg p-2 bg-white">
                 <img
-                  v-if="formData.logos['400x400']"
-                  :src="formData.logos['400x400']"
-                  alt="400x400"
+                  v-if="formData.logos.medium"
+                  :src="formData.logos.medium"
+                  alt="Medium logo"
                   class="w-16 h-16 object-contain mx-auto"
                 />
                 <div v-else class="w-16 h-16 bg-neutral-100 rounded mx-auto flex items-center justify-center">
-                  <span class="text-xs text-neutral-400">400px</span>
+                  <span class="text-xs text-neutral-400">Mediano</span>
                 </div>
               </div>
-              <p class="text-xs text-neutral-600 mt-1">Mediano</p>
+              <p class="text-xs text-neutral-600 mt-1">Mediano (400px)</p>
             </div>
             <div class="text-center">
               <div class="border border-neutral-200 rounded-lg p-2 bg-white">
                 <img
-                  v-if="formData.logos['200x200']"
-                  :src="formData.logos['200x200']"
-                  alt="200x200"
+                  v-if="formData.logos.small"
+                  :src="formData.logos.small"
+                  alt="Small logo"
                   class="w-16 h-16 object-contain mx-auto"
                 />
                 <div v-else class="w-16 h-16 bg-neutral-100 rounded mx-auto flex items-center justify-center">
-                  <span class="text-xs text-neutral-400">200px</span>
+                  <span class="text-xs text-neutral-400">Pequeño</span>
                 </div>
               </div>
-              <p class="text-xs text-neutral-600 mt-1">Pequeño</p>
+              <p class="text-xs text-neutral-600 mt-1">Pequeño (200px)</p>
             </div>
           </div>
         </div>
 
-        <div class="mt-4 p-3 bg-blue-50 rounded-lg">
-          <p class="text-xs text-blue-700">
-            <strong>Recomendaciones:</strong>
-            • Usa una imagen cuadrada o con fondo transparente
-            • Resolución mínima recomendada: 512x512 píxeles
-            • El logo se redimensionará automáticamente para diferentes usos
-          </p>
-        </div>
       </div>
 
       <!-- Future: Color Scheme Section -->
@@ -236,13 +246,13 @@ watch(() => props.initialData, (newData) => {
               <input
                 id="primary-color"
                 type="color"
-                v-model="formData.primaryColor"
+                :value="formData.primaryColor || '#000000'"
                 :disabled="true"
                 class="h-10 w-20"
               />
               <input
                 type="text"
-                v-model="formData.primaryColor"
+                :value="formData.primaryColor || ''"
                 :disabled="true"
                 placeholder="#000000"
                 class="flex-1"
@@ -258,13 +268,13 @@ watch(() => props.initialData, (newData) => {
               <input
                 id="secondary-color"
                 type="color"
-                v-model="formData.secondaryColor"
+                :value="formData.secondaryColor || '#FFFFFF'"
                 :disabled="true"
                 class="h-10 w-20"
               />
               <input
                 type="text"
-                v-model="formData.secondaryColor"
+                :value="formData.secondaryColor || ''"
                 :disabled="true"
                 placeholder="#FFFFFF"
                 class="flex-1"

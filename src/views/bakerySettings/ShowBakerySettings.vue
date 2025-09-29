@@ -38,9 +38,9 @@ const isFeaturesSaving = ref(false);
 const brandingFormData = ref({
   logos: {
     original: '',
-    '200x200': '',
-    '400x400': '',
-    '800x800': '',
+    small: '',
+    medium: '',
+    large: '',
   },
   primaryColor: '',
   secondaryColor: '',
@@ -529,9 +529,9 @@ const initializeBrandingForm = () => {
     brandingFormData.value = {
       logos: branding.logos || {
         original: '',
-        '200x200': '',
-        '400x400': '',
-        '800x800': '',
+        small: '',
+        medium: '',
+        large: '',
       },
       primaryColor: branding.primaryColor || '',
       secondaryColor: branding.secondaryColor || '',
@@ -615,7 +615,7 @@ const handleBrandingSubmit = async (formData) => {
     brandingFormData.value = { ...formData };
 
     toastRef.value?.showSuccess(
-      'Branding Guardado',
+      'Guardado',
       'La configuración de marca ha sido actualizada exitosamente',
     );
   } catch (error) {
@@ -633,7 +633,7 @@ const handleBrandingSubmit = async (formData) => {
 <template>
   <!-- Bakery Branding Form -->
   <BakeryBrandingForm
-    title="Identidad del Negocio"
+    title="Identidad"
     :initial-data="brandingFormData"
     :loading="isBrandingSaving"
     @submit="handleBrandingSubmit"
