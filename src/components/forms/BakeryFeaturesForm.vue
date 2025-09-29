@@ -14,6 +14,8 @@ import {
   PhChartBar,
   PhUser,
   PhPackage,
+  PhFile,
+  PhCircleHalf,
 } from '@phosphor-icons/vue';
 import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
 import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
@@ -66,6 +68,7 @@ const paymentIconMap = {
   bancolombia: BancolombiaIcon,
   davivienda: DaviviendaIcon,
   complimentary: PhGift,
+  quote: PhFile,
 };
 
 // Use the passed available payment methods prop
@@ -210,7 +213,7 @@ watch(() => props.initialData, (newData, oldData) => {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FeatureCard
             v-model="formData.allowPartialPayment"
-            :icon="PhCurrencyDollar"
+            :icon="PhCircleHalf"
             title="Pagos Parciales"
             description="Permite a los clientes realizar pagos parciales."
             :disabled="loading"

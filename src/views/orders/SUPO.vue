@@ -37,6 +37,7 @@ import {
   PhClockCounterClockwise,
   PhStorefront,
   PhMopedFront,
+  PhFile,
 } from '@phosphor-icons/vue';
 import BancolombiaIcon from '@/assets/icons/bancolombia.svg'; // Ensure this path is correct
 import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg'; // Ensure this path is correct
@@ -168,6 +169,7 @@ const paymentIconMap = {
   bancolombia: BancolombiaIcon,
   davivienda: DaviviendaIcon,
   complimentary: PhGift,
+  quote: PhFile,
 };
 
 // Get payment method options from system settings

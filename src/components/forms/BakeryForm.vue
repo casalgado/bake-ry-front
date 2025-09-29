@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
-import { PhMoney, PhDeviceMobile, PhCreditCard, PhGift, PhClock, PhCurrencyDollar, PhCalendarBlank } from '@phosphor-icons/vue';
+import { PhMoney, PhDeviceMobile, PhCreditCard, PhGift, PhClock, PhCurrencyDollar, PhCalendarBlank, PhCircle, PhCircleHalf, PhFile } from '@phosphor-icons/vue';
 import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
 import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
 import FeatureCard from '@/components/forms/FeatureCard.vue';
@@ -67,6 +67,7 @@ const paymentIconMap = {
   bancolombia: BancolombiaIcon,
   davivienda: DaviviendaIcon,
   complimentary: PhGift,
+  quote: PhFile,
 };
 
 const defaultDateOptions = [
@@ -414,7 +415,7 @@ onMounted(() => {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FeatureCard
               v-model="formData.settings.features.order.allowPartialPayment"
-              :icon="PhCurrencyDollar"
+              :icon="PhCircleHalf"
               title="Pagos Parciales"
               description="Permite a los clientes realizar pagos parciales."
               :disabled="loading"

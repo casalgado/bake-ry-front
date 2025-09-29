@@ -46,6 +46,7 @@ const selectedValue = computed({
 
 const cardClasses = computed(() => [
   'relative p-4 border-2 rounded-lg transition-all duration-200',
+  'hover:shadow-md',
   {
     'border-neutral-200 bg-white': !props.disabled,
     'border-neutral-100 bg-neutral-50 cursor-not-allowed opacity-60': props.disabled,
