@@ -140,27 +140,23 @@ const totals = computed(() => {
     }))
     : tableData.value;
 
-  console.log(ordersToCalculate);
+  console.log('oTC', ordersToCalculate);
 
   const b2bTotal = ordersToCalculate
     .filter(order => order.userCategory === 'B2B')
-    .reduce((sum, order) => sum + order.total, 0);
+    .filter(order => !order.isPaid)
+    .reduce((sum, order) => sum + order.total - order.partialPaymentAmount, 0);
 
   const b2cTotal = ordersToCalculate
     .filter(order => order.userCategory === 'B2C')
-    .reduce((sum, order) => sum + order.total, 0);
+    .filter(order => !order.isPaid)
+    .reduce((sum, order) => sum + order.total - order.partialPaymentAmount, 0);
 
   return [
     { label: 'B2B', value: b2bTotal },
     { label: 'B2C', value: b2cTotal },
     { label: 'Total', value: b2bTotal + b2cTotal },
   ];
-});
-
-// get Bakery Features from settings
-const features = computed(() => {
-  if (!settingsStore.items.length) return {};
-  return settingsStore.items[0].features;
 });
 
 // Payment method icon mapping
@@ -270,7 +266,9 @@ const columns = computed(() => [
     sortable: true,
     component: MoneyCell,
     getProps: (row) => ({
-      value: row.total,
+      value: row.isPaid ? row.total : row.total - (row.partialPaymentAmount || 0),
+      valueBelow: row.total,
+      hideBelow: row.isPaid || row.partialPaymentAmount == null || row.partialPaymentAmount === 0,
     }),
   },
 ]);

@@ -231,7 +231,7 @@ class Order extends BaseModel {
   }
 
   calculatePricing() {
-    if (this.isComplimentary) {
+    if (this.isComplimentary && !this.isQuote) {
       this.taxableSubtotal = 0;
       this.nonTaxableSubtotal = 0;
       this.subtotal = 0;
