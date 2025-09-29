@@ -628,6 +628,28 @@ const handleBrandingSubmit = async (formData) => {
     isBrandingSaving.value = false;
   }
 };
+
+const handleBrandingValidationError = (error) => {
+  console.error('Branding validation error:', error);
+
+  // Show toast notification based on error type
+  if (error.type === 'file-too-large') {
+    toastRef.value?.showError(
+      'Archivo muy grande',
+      `El archivo es muy grande (${error.fileSizeMB} MB). El tamaño máximo permitido es ${error.maxSizeMB} MB.`,
+    );
+  } else if (error.type === 'invalid-type') {
+    toastRef.value?.showError(
+      'Tipo de archivo no válido',
+      'Por favor selecciona un archivo de imagen válido (JPG, PNG, GIF, WebP).',
+    );
+  } else {
+    toastRef.value?.showError(
+      'Error de validación',
+      error.message || 'El archivo seleccionado no es válido.',
+    );
+  }
+};
 </script>
 
 <template>
@@ -637,6 +659,7 @@ const handleBrandingSubmit = async (formData) => {
     :initial-data="brandingFormData"
     :loading="isBrandingSaving"
     @submit="handleBrandingSubmit"
+    @validation-error="handleBrandingValidationError"
   />
 
   <!-- Bakery Features Form -->

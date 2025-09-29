@@ -34,11 +34,11 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:modelValue', 'upload-success', 'upload-error', 'delete-success', 'delete-error']);
+const emit = defineEmits(['update:modelValue', 'upload-success', 'upload-error', 'delete-success', 'delete-error', 'validation-error']);
 
 // State
 const selectedFile = ref(null);
-const previewUrl = ref('');
+const previewUrl = ref(props.modelValue || '');
 const uploadProgress = ref(0);
 const isUploading = ref(false);
 const isDragging = ref(false);
@@ -47,14 +47,16 @@ const fileInputRef = ref(null);
 
 // Initialize preview with current value
 watch(() => props.modelValue, (newVal) => {
-  if (newVal && !selectedFile.value) {
-    previewUrl.value = newVal;
+  if (newVal !== previewUrl.value && !selectedFile.value) {
+    previewUrl.value = newVal || '';
   }
 }, { immediate: true });
 
 // Computed
 const hasImage = computed(() => {
-  return previewUrl.value || props.modelValue;
+  const result = !!(previewUrl.value || props.modelValue);
+  console.log('ImageUpload hasImage:', result, { previewUrl: previewUrl.value, modelValue: props.modelValue });
+  return result;
 });
 
 const maxSizeInBytes = computed(() => {
@@ -95,13 +97,29 @@ const processFile = (file) => {
 
   // Validate file type
   if (!file.type.startsWith('image/')) {
-    error.value = 'Por favor selecciona un archivo de imagen válido';
+    const errorMsg = 'Por favor selecciona un archivo de imagen válido';
+    error.value = errorMsg;
+    emit('validation-error', {
+      type: 'invalid-type',
+      message: errorMsg,
+      fileType: file.type,
+    });
     return;
   }
 
   // Validate file size
   if (file.size > maxSizeInBytes.value) {
-    error.value = `El archivo debe ser menor a ${props.maxSizeInMB} MB`;
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+    const errorMsg = `El archivo es muy grande (${fileSizeMB} MB). El tamaño máximo permitido es ${props.maxSizeInMB} MB`;
+    error.value = errorMsg;
+    emit('validation-error', {
+      type: 'file-too-large',
+      message: errorMsg,
+      fileSize: file.size,
+      maxSize: maxSizeInBytes.value,
+      fileSizeMB: fileSizeMB,
+      maxSizeMB: props.maxSizeInMB,
+    });
     return;
   }
 
@@ -200,7 +218,8 @@ const triggerFileInput = () => {
       :class="{
         'dragging': isDragging,
         'disabled': disabled,
-        'has-error': error
+        'has-error': error,
+        'has-image': hasImage && !isUploading
       }"
       @drop="handleDrop"
       @dragover="handleDragOver"
@@ -259,7 +278,6 @@ const triggerFileInput = () => {
     cursor: pointer;
     transition: all 0.2s;
     background-color: #fafafa;
-    min-height: 200px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -284,16 +302,32 @@ const triggerFileInput = () => {
       border-color: #ef4444;
       background-color: #fef2f2;
     }
+
+    // Square aspect ratio when empty
+    &:not(.has-image) {
+      height: 200px;
+      min-height: 200px;
+    }
+
+    // Adaptive sizing when image is present
+    &.has-image {
+      min-height: auto;
+    }
   }
 
   .image-preview {
     position: relative;
     width: 100%;
     height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     .preview-image {
       max-width: 100%;
-      max-height: 300px;
+      max-height: 400px;
+      width: auto;
+      height: auto;
       object-fit: contain;
       border-radius: 0.375rem;
     }
@@ -355,6 +389,12 @@ const triggerFileInput = () => {
 
   .empty-state {
     padding: 2rem;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   .animate-spin {

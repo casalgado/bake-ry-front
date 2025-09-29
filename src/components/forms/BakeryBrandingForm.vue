@@ -31,7 +31,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['submit']);
+const emit = defineEmits(['submit', 'validation-error']);
 
 // Form state - deep clone to avoid mutation
 const formData = ref(JSON.parse(JSON.stringify(props.initialData)));
@@ -115,6 +115,12 @@ const handleLogoUploadError = (error) => {
   console.error('Logo upload failed:', error);
 };
 
+const handleLogoValidationError = (error) => {
+  console.error('Logo validation failed:', error);
+  // Emit the validation error to the parent component
+  emit('validation-error', error);
+};
+
 // Generate the upload path for the logo
 const getLogoUploadPath = computed(() => {
   const bakeryId = authStore.getBakeryId || 'default';
@@ -162,6 +168,7 @@ watch(() => props.initialData, (newData) => {
             :disabled="loading"
             @upload-success="handleLogoUploadSuccess"
             @upload-error="handleLogoUploadError"
+            @validation-error="handleLogoValidationError"
           />
         </div>
 
