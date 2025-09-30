@@ -28,8 +28,7 @@ onMounted(async () => {
 
 // Compute invoice title based on type and payment status
 const invoiceTitle = computed(() => {
-  const allPaid = props.orders.every(order => order.isPaid);
-  if (props.invoiceType === 'quote' || !allPaid) {
+  if (props.invoiceType === 'quote') {
     return 'COTIZACIÓN';
   }
   return 'FACTURA';
