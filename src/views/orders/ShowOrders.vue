@@ -18,6 +18,7 @@ import IsPaidCell from '@/components/DataTable/renderers/IsPaidCell.vue';
 import OrderForm from '@/components/forms/OrderForm.vue';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
+import OrderInvoice from '@/components/orders/OrderInvoice.vue';
 import TotalsSummary from '@/components/common/TotalsSummary.vue';
 
 // Stores
@@ -39,6 +40,7 @@ import {
   PhMopedFront,
   PhStorefront,
   PhFile,
+  PhPrinter,
 } from '@phosphor-icons/vue';
 import BancolombiaIcon from '@/assets/icons/bancolombia.svg'; // Ensure this path is correct
 import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg'; // Ensure this path is correct
@@ -56,6 +58,7 @@ const b2bClients = ref([]);
 // Dialog state
 const isFormOpen = ref(false);
 const isHistoryOpen = ref(false);
+const isPrintOpen = ref(false);
 const orderHistory = ref([]);
 
 // Process data function for the table
@@ -129,6 +132,16 @@ const {
       console.log('Selected items for export:', selectedItems);
       exportOrders(selectedItems);
       break;
+    case 'print': {
+      // Validate all orders are from the same client
+      const clientIds = [...new Set(selectedItems.map(order => order.userId))];
+      if (clientIds.length > 1) {
+        alert('Por favor selecciona pedidos del mismo cliente para imprimir una factura combinada.');
+        return;
+      }
+      isPrintOpen.value = true;
+      break;
+    }
     }
   },
 });
@@ -325,6 +338,13 @@ const tableActions = [
     minSelected: 1,
     variant: 'primary',
   },
+  {
+    id: 'print',
+    label: 'Imprimir',
+    icon: PhPrinter,
+    minSelected: 1,
+    variant: 'primary',
+  },
 ];
 
 const handleSubmit = async (formData) => {
@@ -341,6 +361,7 @@ const handleSubmit = async (formData) => {
 const closeDialog = () => {
   isFormOpen.value = false;
   isHistoryOpen.value = false;
+  isPrintOpen.value = false;
   clearSelection();
 };
 
@@ -430,6 +451,27 @@ watch(
             Historial de Cambios
           </h2>
           <ShowOrderHistory :history="orderHistory" />
+        </DialogPanel>
+      </div>
+    </Dialog>
+
+    <!-- Print Dialog -->
+    <Dialog
+      :open="isPrintOpen"
+      @close="closeDialog"
+      class="relative z-50 form-container"
+    >
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel
+          class="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto"
+        >
+          <OrderInvoice
+            v-if="selectedItems.length > 0"
+            :orders="selectedItems"
+            :invoice-type="selectedItems.every(o => o.paymentMethod === 'quote') ? 'quote' : 'invoice'"
+          />
         </DialogPanel>
       </div>
     </Dialog>
