@@ -57,13 +57,7 @@ const hasChanges = computed(() => {
   const primaryColorChanged = (initial.primaryColor || '') !== (current.primaryColor || '');
   const secondaryColorChanged = (initial.secondaryColor || '') !== (current.secondaryColor || '');
 
-  const changed = logoChanged || primaryColorChanged || secondaryColorChanged;
-
-  if (changed) {
-    console.log('hasChanges detected:', { logoChanged, primaryColorChanged, secondaryColorChanged });
-  }
-
-  return changed;
+  return logoChanged || primaryColorChanged || secondaryColorChanged;
 });
 
 const submitButtonText = computed(() => {
@@ -76,27 +70,15 @@ const loadingText = computed(() => {
 
 // Methods
 const handleSubmit = () => {
-  console.log('Submitting form with data:', formData.value);
   emit('submit', formData.value);
 };
 
 const handleCancel = () => {
-  // Reset form to initial state
-  formData.value = {
-    logos: props.initialData.logos || {
-      original: '',
-      small: '',
-      medium: '',
-      large: '',
-    },
-    primaryColor: props.initialData.primaryColor || '',
-    secondaryColor: props.initialData.secondaryColor || '',
-  };
+  // Reset form to initial state - deep clone to avoid reference issues
+  formData.value = JSON.parse(JSON.stringify(props.initialData));
 };
 
 const handleLogoUploadSuccess = (result) => {
-  console.log('Logo uploaded successfully:', result);
-
   // Update the logos object with all available URLs - use spread to ensure reactivity
   formData.value = {
     ...formData.value,
@@ -107,16 +89,14 @@ const handleLogoUploadSuccess = (result) => {
       large: result.resizedUrls.large || '',
     },
   };
-
-  console.log('Updated logos object:', formData.value.logos);
 };
 
 const handleLogoUploadError = (error) => {
-  console.error('Logo upload failed:', error);
+  console.error('Logo upload error:', error);
 };
 
 const handleLogoValidationError = (error) => {
-  console.error('Logo validation failed:', error);
+  console.error('Logo validation error:', error);
   // Emit the validation error to the parent component
   emit('validation-error', error);
 };
@@ -141,7 +121,7 @@ watch(() => props.initialData, (newData) => {
       secondaryColor: newData.secondaryColor || '',
     }));
   }
-}, { deep: true, immediate: true });
+}, { deep: true });
 </script>
 
 <template>
