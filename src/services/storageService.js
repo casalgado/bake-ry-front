@@ -40,7 +40,7 @@ class StorageService {
             const originalUrl = await getDownloadURL(uploadTask.snapshot.ref);
 
             // Get resized versions (wait a bit for processing, then fetch)
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, 2500));
             const resizedUrls = await this.getResizedImageUrls(path, fileName);
 
             resolve({

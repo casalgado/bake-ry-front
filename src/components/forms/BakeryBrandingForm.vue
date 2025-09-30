@@ -9,7 +9,7 @@ const authStore = useAuthenticationStore();
 const props = defineProps({
   title: {
     type: String,
-    default: 'Identidad del Negocio',
+    default: 'Identidad',
   },
   initialData: {
     type: Object,
@@ -146,7 +146,7 @@ watch(() => props.initialData, (newData) => {
 
 <template>
   <div class="form-container">
-    <h2>{{ title }}</h2>
+    <h2>{{ title }}{{ hasChanges }}</h2>
 
     <form @submit.prevent="handleSubmit" class="base-card">
       <!-- Logo Section -->
@@ -155,15 +155,12 @@ watch(() => props.initialData, (newData) => {
 
           Logo
         </h3>
-        <p class="text-sm text-neutral-600 mb-4">
-          Sube el logo de tu negocio.
-        </p>
 
-        <div class="max-w-md">
+        <div class="">
           <ImageUpload
             v-model="formData.logos.original"
             :upload-path="getLogoUploadPath"
-            label=""
+            label="Sube el logo de tu negocio."
             help-text="Arrastra tu logo aquí o haz clic para seleccionar"
             :disabled="loading"
             @upload-success="handleLogoUploadSuccess"

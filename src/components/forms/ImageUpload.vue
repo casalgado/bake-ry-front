@@ -325,7 +325,7 @@ const triggerFileInput = () => {
 
     .preview-image {
       max-width: 100%;
-      max-height: 400px;
+      max-height: 200px;
       width: auto;
       height: auto;
       object-fit: contain;

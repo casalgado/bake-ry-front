@@ -616,7 +616,7 @@ const handleBrandingSubmit = async (formData) => {
 
     toastRef.value?.showSuccess(
       'Guardado',
-      'La configuración de marca ha sido actualizada exitosamente',
+      'La configuración ha sido actualizada exitosamente',
     );
   } catch (error) {
     console.error('Error saving branding:', error);
