@@ -303,16 +303,8 @@ const triggerFileInput = () => {
       background-color: #fef2f2;
     }
 
-    // Square aspect ratio when empty
-    &:not(.has-image) {
-      height: 200px;
-      min-height: 200px;
-    }
-
-    // Adaptive sizing when image is present
-    &.has-image {
-      min-height: auto;
-    }
+    // Consistent minimum height to prevent collapse
+    min-height: 200px;
   }
 
   .image-preview {
@@ -330,36 +322,36 @@ const triggerFileInput = () => {
       height: auto;
       object-fit: contain;
       border-radius: 0.375rem;
-    }
+  }
 
     .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.2s;
-      border-radius: 0.375rem;
-    }
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    border-radius: 0.375rem;
+  }
 
     &:hover .overlay {
-      opacity: 1;
-    }
+    opacity: 1;
+  }
 
-    .delete-button {
-      background-color: #ef4444;
-      color: white;
-      padding: 0.5rem;
-      border-radius: 0.375rem;
-      transition: background-color 0.2s;
+  .delete-button {
+    background-color: #ef4444;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    transition: background-color 0.2s;
 
-      &:hover {
-        background-color: #dc2626;
+    &:hover {
+      background-color: #dc2626;
       }
     }
   }

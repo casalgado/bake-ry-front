@@ -126,7 +126,7 @@ watch(() => props.initialData, (newData) => {
 
 <template>
   <div class="form-container">
-    <h2>{{ title }}{{ hasChanges }}</h2>
+    <h2>{{ title }}</h2>
 
     <form @submit.prevent="handleSubmit" class="base-card">
       <!-- Logo Section -->
