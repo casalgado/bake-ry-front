@@ -103,15 +103,25 @@ const clientInfo = computed(() => {
   };
 });
 
-// Format date for display
+// Format date for display - short format dd/mm/yy for tables
 const formatDate = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
-  return date.toLocaleDateString('es-CO', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear().toString().slice(-2);
+  return `${day}/${month}/${year}`;
+};
+
+// Format date for header - long format 01 Oct 2025
+const formatDateLong = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const day = date.getDate().toString().padStart(2, '0');
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
 };
 
 // Format date with time
@@ -127,10 +137,16 @@ const formatDateTime = (dateString) => {
   });
 };
 
+// Format order ID to show first 5 characters
+const formatOrderId = (orderId) => {
+  if (!orderId) return '';
+  return orderId.toString().slice(0, 5);
+};
+
 // Get date range for multiple orders
 const dateRange = computed(() => {
   if (props.orders.length === 1) {
-    return formatDate(props.orders[0].preparationDate);
+    return formatDateLong(props.orders[0].preparationDate);
   }
 
   const dates = props.orders.map(o => new Date(o.preparationDate));
@@ -138,10 +154,10 @@ const dateRange = computed(() => {
   const maxDate = new Date(Math.max(...dates));
 
   if (minDate.toDateString() === maxDate.toDateString()) {
-    return formatDate(minDate);
+    return formatDateLong(minDate);
   }
 
-  return `${formatDate(minDate)} - ${formatDate(maxDate)}`;
+  return `${formatDateLong(minDate)} - ${formatDateLong(maxDate)}`;
 });
 
 // Trigger print
@@ -151,47 +167,47 @@ const handlePrint = () => {
 </script>
 
 <template>
-  <div class="invoice-container">
+  <div class="bg-white min-h-screen">
     <!-- Print button (hidden during print) -->
-    <div class="print-controls">
-      <button @click="handlePrint" class="print-btn">
+    <div class="print-controls p-4 text-center border-b border-gray-200 bg-gray-50">
+      <button @click="handlePrint" class="px-8 py-2 bg-blue-500 text-white rounded-md font-medium hover:bg-blue-600 transition-colors">
         Imprimir
       </button>
     </div>
 
     <!-- Invoice content -->
-    <div class="invoice-content">
+    <div class="max-w-4xl mx-auto p-8">
       <!-- Header with logo and business info -->
-      <div class="invoice-header">
-        <div class="logo-section">
+      <div class="flex justify-between items-start mb-8 pb-4 border-b-2 border-gray-800">
+        <div class="flex-1">
           <img
             v-if="bakerySettings?.branding?.logos?.medium"
             :src="bakerySettings.branding.logos.medium"
             :alt="bakerySettings?.name"
-            class="company-logo"
+            class="h-20 max-w-xs object-contain"
           />
-          <div v-else class="company-name">
+          <div v-else class="text-2xl font-bold text-gray-800">
             {{ bakerySettings?.name || 'Mi Panadería' }}
           </div>
         </div>
 
-        <div class="business-info">
-          <h1 class="invoice-title">{{ invoiceTitle }}</h1>
-          <p v-if="invoiceNumber" class="invoice-number">No. {{ invoiceNumber }}</p>
-          <p v-else-if="orders.length === 1" class="invoice-number">
-            Pedido #{{ orders[0].id }}
+        <div class="text-right">
+          <h1 class="text-2xl font-bold text-gray-800 mb-2">{{ invoiceTitle }}</h1>
+          <p v-if="invoiceNumber" class="text-gray-700">No. {{ invoiceNumber }}</p>
+          <p v-else-if="orders.length === 1" class="text-gray-700">
+            Pedido #{{ formatOrderId(orders[0].id) }}
           </p>
-          <p v-else class="invoice-number">
-            {{ orders.length }} pedidos combinados
+          <p v-else class="text-gray-700">
+            {{ orders.length }} pedidos
           </p>
-          <p class="invoice-date">{{ dateRange }}</p>
+          <p class="text-gray-700">{{ dateRange }}</p>
         </div>
       </div>
 
       <!-- Company details -->
-      <div class="company-details" v-if="bakerySettings">
+      <div class="mb-8 text-gray-700 leading-relaxed" v-if="bakerySettings">
         <div>
-          <strong>{{ bakerySettings.name }}</strong><br>
+          <strong class="text-gray-800">{{ bakerySettings.name }}</strong><br>
           <span v-if="bakerySettings.legalName">{{ bakerySettings.legalName }}<br></span>
           <span v-if="bakerySettings.nationalId">NIT: {{ bakerySettings.nationalId }}<br></span>
           <span v-if="bakerySettings.address">{{ bakerySettings.address }}<br></span>
@@ -201,114 +217,104 @@ const handlePrint = () => {
       </div>
 
       <!-- Client information -->
-      <div class="client-section">
-        <h2>Información del Cliente</h2>
-        <div class="client-info">
-          <div class="info-row">
-            <span class="label">Cliente:</span>
-            <span class="value">{{ clientInfo.name }}</span>
+      <div class="mb-8">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+          Información del Cliente
+        </h2>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="flex gap-2">
+            <span class="font-medium text-gray-700 min-w-[100px]">Cliente:</span>
+            <span class="text-gray-800">{{ clientInfo.name }}</span>
           </div>
-          <div v-if="clientInfo.legalName" class="info-row">
-            <span class="label">Razón Social:</span>
-            <span class="value">{{ clientInfo.legalName }}</span>
+          <div v-if="clientInfo.legalName" class="flex gap-2">
+            <span class="font-medium text-gray-700 min-w-[100px]">Razón Social:</span>
+            <span class="text-gray-800">{{ clientInfo.legalName }}</span>
           </div>
-          <div v-if="clientInfo.nationalId" class="info-row">
-            <span class="label">NIT/CC:</span>
-            <span class="value">{{ clientInfo.nationalId }}</span>
+          <div v-if="clientInfo.nationalId" class="flex gap-2">
+            <span class="font-medium text-gray-700 min-w-[100px]">NIT/CC:</span>
+            <span class="text-gray-800">{{ clientInfo.nationalId }}</span>
           </div>
-          <div v-if="clientInfo.address" class="info-row">
-            <span class="label">Dirección:</span>
-            <span class="value">{{ clientInfo.address }}</span>
+          <div v-if="clientInfo.address" class="flex gap-2">
+            <span class="font-medium text-gray-700 min-w-[100px]">Dirección:</span>
+            <span class="text-gray-800">{{ clientInfo.address }}</span>
           </div>
-          <div v-if="clientInfo.phone" class="info-row">
-            <span class="label">Teléfono:</span>
-            <span class="value">{{ clientInfo.phone }}</span>
+          <div v-if="clientInfo.phone" class="flex gap-2">
+            <span class="font-medium text-gray-700 min-w-[100px]">Teléfono:</span>
+            <span class="text-gray-800">{{ clientInfo.phone }}</span>
           </div>
-          <div v-if="clientInfo.email" class="info-row">
-            <span class="label">Email:</span>
-            <span class="value">{{ clientInfo.email }}</span>
+          <div v-if="clientInfo.email" class="flex gap-2">
+            <span class="font-medium text-gray-700 min-w-[100px]">Email:</span>
+            <span class="text-gray-800">{{ clientInfo.email }}</span>
           </div>
         </div>
       </div>
 
       <!-- Order items table -->
-      <div class="items-section">
-        <h2>Detalle</h2>
-        <table class="items-table">
+      <div class="mb-8">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+          Detalle
+        </h2>
+        <table class="w-full">
           <thead>
-            <tr>
-              <th class="text-left">Producto</th>
-              <th v-if="orders.length > 1" class="text-center">Pedido</th>
-              <th v-if="orders.length > 1" class="text-center">Fecha</th>
-              <th class="text-center">Cantidad</th>
-              <th class="text-right">Precio Unit.</th>
-              <th class="text-right">Subtotal</th>
+            <tr class="bg-gray-50 border-b-2 border-gray-200">
+              <th class="text-left py-3 px-2 font-semibold text-gray-800">Producto</th>
+              <th v-if="orders.length > 1" class="text-center py-3 px-2 font-semibold text-gray-800">Pedido</th>
+              <th v-if="orders.length > 1" class="text-center py-3 px-2 font-semibold text-gray-800 text-sm">Fecha</th>
+              <th class="text-center py-3 px-2 font-semibold text-gray-800">Cant.</th>
+              <th class="text-right py-3 px-2 font-semibold text-gray-800">P. Unit.</th>
+              <th class="text-right py-3 px-2 font-semibold text-gray-800">Subtotal</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, index) in combinedItems" :key="index">
-              <td class="text-left">
+            <tr v-for="(item, index) in combinedItems" :key="index" class="border-b border-gray-100">
+              <td class="text-left py-3 px-2 text-gray-800">
                 {{ item.productName }}
-                <span v-if="item.variation" class="item-variation">
+                <span v-if="item.variation" class="text-gray-600 text-sm ml-1">
                   ({{ item.variation }})
                 </span>
               </td>
-              <td v-if="orders.length > 1" class="text-center">
-                #{{ item.orderId }}
+              <td v-if="orders.length > 1" class="text-center py-3 px-2 text-gray-700">
+                #{{ formatOrderId(item.orderId) }}
               </td>
-              <td v-if="orders.length > 1" class="text-center">
+              <td v-if="orders.length > 1" class="text-center py-3 px-2 text-gray-600 text-sm">
                 {{ formatDate(item.preparationDate) }}
               </td>
-              <td class="text-center">{{ item.quantity }}</td>
-              <td class="text-right">{{ formatMoney(item.unitPrice) }}</td>
-              <td class="text-right">{{ formatMoney(item.subtotal) }}</td>
+              <td class="text-center py-3 px-2 text-gray-800">{{ item.quantity }}</td>
+              <td class="text-right py-3 px-2 text-gray-800">{{ formatMoney(item.unitPrice) }}</td>
+              <td class="text-right py-3 px-2 text-gray-800">{{ formatMoney(item.subtotal) }}</td>
             </tr>
           </tbody>
           <tfoot>
-            <tr class="totals-separator">
-              <td :colspan="orders.length > 1 ? 6 : 4"></td>
+            <tr>
+              <td :colspan="orders.length > 1 ? 6 : 4" class="py-2 border-b-2 border-gray-200"></td>
             </tr>
-            <tr class="subtotal-row">
-              <td :colspan="orders.length > 1 ? 5 : 3" class="text-right">
-                <strong>Subtotal:</strong>
+            <tr>
+              <td :colspan="orders.length > 1 ? 5 : 3" class="text-right py-2 px-2">
+                <strong class="text-gray-700">Subtotal:</strong>
               </td>
-              <td class="text-right">{{ formatMoney(totals.subtotal) }}</td>
+              <td class="text-right py-2 px-2 text-gray-800">{{ formatMoney(totals.subtotal) }}</td>
             </tr>
-            <tr v-if="totals.delivery > 0" class="delivery-row">
-              <td :colspan="orders.length > 1 ? 5 : 3" class="text-right">
-                <strong>Domicilios:</strong>
+            <tr v-if="totals.delivery > 0">
+              <td :colspan="orders.length > 1 ? 5 : 3" class="text-right py-2 px-2">
+                <strong class="text-gray-700">Domicilios:</strong>
               </td>
-              <td class="text-right">{{ formatMoney(totals.delivery) }}</td>
+              <td class="text-right py-2 px-2 text-gray-800">{{ formatMoney(totals.delivery) }}</td>
             </tr>
-            <tr class="total-row">
-              <td :colspan="orders.length > 1 ? 5 : 3" class="text-right">
-                <strong>TOTAL:</strong>
+            <tr class="border-t-2 border-b-2 border-gray-800">
+              <td :colspan="orders.length > 1 ? 5 : 3" class="text-right py-3 px-2">
+                <strong class="text-gray-800 text-lg">TOTAL:</strong>
               </td>
-              <td class="text-right total-amount">
-                <strong>{{ formatMoney(totals.total) }}</strong>
+              <td class="text-right py-3 px-2">
+                <strong class="text-gray-800 text-xl">{{ formatMoney(totals.total) }}</strong>
               </td>
             </tr>
           </tfoot>
         </table>
       </div>
 
-      <!-- Payment information -->
-      <div class="payment-section" v-if="orders.length === 1">
-        <div class="payment-info">
-          <span v-if="orders[0].isPaid" class="paid-badge">PAGADO</span>
-          <span v-else class="unpaid-badge">PENDIENTE DE PAGO</span>
-          <span v-if="orders[0].paymentMethod" class="payment-method">
-            - Método: {{ orders[0].paymentMethod }}
-          </span>
-        </div>
-      </div>
-
       <!-- Footer -->
-      <div class="invoice-footer">
-        <p class="footer-text">
-          Gracias por su preferencia
-        </p>
-        <p v-if="bakerySettings?.website" class="footer-website">
+      <div v-if="bakerySettings?.website" class="mt-12 pt-4 border-t border-gray-200 text-center">
+        <p class="text-blue-500 font-medium">
           {{ bakerySettings.website }}
         </p>
       </div>
@@ -317,296 +323,26 @@ const handlePrint = () => {
 </template>
 
 <style scoped>
-/* Regular styles */
-.invoice-container {
-  background: white;
-  min-height: 100vh;
-}
-
-.print-controls {
-  padding: 1rem;
-  text-align: center;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
-}
-
-.print-btn {
-  background: #3b82f6;
-  color: white;
-  padding: 0.5rem 2rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  transition: background 0.2s;
-}
-
-.print-btn:hover {
-  background: #2563eb;
-}
-
-.invoice-content {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-}
-
-.invoice-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #1f2937;
-}
-
-.logo-section {
-  flex: 1;
-}
-
-.company-logo {
-  max-height: 80px;
-  max-width: 200px;
-  object-fit: contain;
-}
-
-.company-name {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #1f2937;
-}
-
-.business-info {
-  text-align: right;
-}
-
-.invoice-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #1f2937;
-  margin: 0 0 0.5rem 0;
-}
-
-.invoice-number {
-  color: #6b7280;
-  margin: 0.25rem 0;
-}
-
-.invoice-date {
-  color: #6b7280;
-  margin: 0.25rem 0;
-}
-
-.company-details {
-  margin-bottom: 2rem;
-  color: #4b5563;
-  line-height: 1.5;
-}
-
-.client-section {
-  margin-bottom: 2rem;
-}
-
-.client-section h2 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.client-info {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
-}
-
-.info-row {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.info-row .label {
-  font-weight: 500;
-  color: #6b7280;
-  min-width: 100px;
-}
-
-.info-row .value {
-  color: #1f2937;
-}
-
-.items-section {
-  margin-bottom: 2rem;
-}
-
-.items-section h2 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.items-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.items-table th {
-  background: #f9fafb;
-  padding: 0.75rem 0.5rem;
-  font-weight: 600;
-  color: #1f2937;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.items-table td {
-  padding: 0.75rem 0.5rem;
-  border-bottom: 1px solid #f3f4f6;
-  color: #374151;
-}
-
-.item-variation {
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin-left: 0.25rem;
-}
-
-.text-left { text-align: left; }
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-
-.totals-separator td {
-  border-bottom: 2px solid #e5e7eb;
-  padding: 0.5rem 0;
-}
-
-.subtotal-row td,
-.delivery-row td {
-  padding: 0.5rem;
-  color: #4b5563;
-}
-
-.total-row td {
-  padding: 0.75rem 0.5rem;
-  font-size: 1.125rem;
-  color: #1f2937;
-  border-top: 2px solid #1f2937;
-  border-bottom: 2px solid #1f2937;
-}
-
-.total-amount {
-  color: #1f2937;
-  font-size: 1.25rem;
-}
-
-.payment-section {
-  margin: 2rem 0;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 0.375rem;
-}
-
-.payment-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.paid-badge {
-  background: #10b981;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.25rem;
-  font-weight: 500;
-}
-
-.unpaid-badge {
-  background: #ef4444;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.25rem;
-  font-weight: 500;
-}
-
-.payment-method {
-  color: #6b7280;
-}
-
-.invoice-footer {
-  margin-top: 3rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-  text-align: center;
-}
-
-.footer-text {
-  color: #6b7280;
-  margin: 0.5rem 0;
-}
-
-.footer-website {
-  color: #3b82f6;
-  font-weight: 500;
-}
-
-/* Print styles */
+/* Print-specific styles */
 @media print {
   .print-controls {
     display: none !important;
   }
 
-  .invoice-container {
-    background: white;
-  }
-
-  .invoice-content {
-    max-width: 100%;
-    padding: 0;
-    margin: 0;
-  }
-
-  .invoice-header {
-    page-break-inside: avoid;
-  }
-
-  .items-table {
+  /* Ensure proper page breaks */
+  table {
     page-break-inside: auto;
   }
 
-  .items-table tr {
-    page-break-inside: avoid;
-  }
-
-  .payment-section {
-    page-break-inside: avoid;
-  }
-
-  .invoice-footer {
+  tr {
     page-break-inside: avoid;
   }
 
   /* Ensure colors print properly */
-  .paid-badge,
-  .unpaid-badge {
+  * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-  }
-
-  /* Adjust font sizes for print */
-  body {
-    font-size: 12pt;
-  }
-
-  .invoice-title {
-    font-size: 18pt;
-  }
-
-  .total-amount {
-    font-size: 14pt;
+    color-adjust: exact;
   }
 }
 </style>
