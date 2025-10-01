@@ -94,56 +94,6 @@ const togglePaymentMethod = (methodValue, isActive) => {
   }
 };
 
-// Computed properties for button text
-const submitButtonText = computed(() => {
-  return 'Guardar Cambios';
-});
-
-const loadingText = computed(() => {
-  return 'Guardando...';
-});
-
-// Check if form has changes compared to initial data
-const hasChanges = computed(() => {
-  const initial = props.initialData;
-  const current = formData.value;
-
-  // Compare activePaymentMethods arrays
-  const paymentMethodsChanged = JSON.stringify(initial.activePaymentMethods || []) !==
-                                JSON.stringify(current.activePaymentMethods || []);
-
-  // Compare boolean values
-  const partialPaymentChanged = (initial.allowPartialPayment || false) !== current.allowPartialPayment;
-  const timeOfDayChanged = (initial.timeOfDay || false) !== current.timeOfDay;
-  const offlineModeChanged = (initial.offlineMode || false) !== current.offlineMode;
-
-  // Compare new features
-  const defaultReportFilterChanged = (initial.defaultReportFilter || 'dueDate') !== current.defaultReportFilter;
-  const showMultipleReportsChanged = (initial.showMultipleReports || false) !== current.showMultipleReports;
-  const useProductCostChanged = (initial.useProductCost || false) !== current.useProductCost;
-
-  return paymentMethodsChanged || partialPaymentChanged || timeOfDayChanged || offlineModeChanged ||
-         defaultReportFilterChanged || showMultipleReportsChanged || useProductCostChanged;
-});
-
-const handleSubmit = () => {
-  emit('submit', formData.value);
-};
-
-const handleCancel = () => {
-  // Reset form to initial state
-  formData.value = {
-    activePaymentMethods: [...(props.initialData.activePaymentMethods || [])],
-    allowPartialPayment: props.initialData.allowPartialPayment || false,
-    timeOfDay: props.initialData.timeOfDay || false,
-    offlineMode: props.initialData.offlineMode || false,
-    // Reset new features
-    defaultReportFilter: props.initialData.defaultReportFilter || 'dueDate',
-    showMultipleReports: props.initialData.showMultipleReports || false,
-    useProductCost: props.initialData.useProductCost || false,
-  };
-};
-
 // Watch for initialData changes and update form selectively
 watch(() => props.initialData, (newData, oldData) => {
   if (newData && newData !== oldData) {
@@ -178,13 +128,24 @@ watch(() => props.initialData, (newData, oldData) => {
     }
   }
 }, { deep: true, immediate: true });
+
+// Auto-save with debouncing
+let debounceTimer = null;
+watch(formData, (newValue) => {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+  debounceTimer = setTimeout(() => {
+    emit('submit', newValue);
+  }, 2000);
+}, { deep: true });
 </script>
 
 <template>
   <div class="form-container">
     <h2>{{ title }}</h2>
 
-    <form @submit.prevent="handleSubmit" class="base-card">
+    <div class="base-card">
       <!-- Payment Methods Section -->
       <div class="mb-8">
         <h3 class="text-lg font-semibold text-neutral-900 mb-2">Métodos de Pago</h3>
@@ -281,20 +242,6 @@ watch(() => props.initialData, (newData, oldData) => {
         </div>
       </div>
 
-      <!-- Form Buttons -->
-      <div class="flex gap-2 justify-end">
-        <button type="submit" :disabled="loading" class="action-btn">
-          {{ loading ? loadingText : submitButtonText }}
-        </button>
-        <button
-          type="button"
-          @click="handleCancel"
-          :disabled="loading || !hasChanges"
-          :class="hasChanges ? 'danger-btn' : 'disabled-btn'"
-        >
-          Cancelar
-        </button>
-      </div>
-    </form>
+    </div>
   </div>
 </template>
