@@ -86,7 +86,7 @@ const handleClose = () => {
     <!-- Print controls - hidden during actual printing -->
     <div class="print-controls">
       <div class="controls-header">
-        <h1 class="text-xl font-semibold">Vista previa de factura</h1>
+        <h1 class="text-xl font-semibold">Vista Previa</h1>
         <div class="buttons">
           <button
             @click="handlePrint"
@@ -119,7 +119,7 @@ const handleClose = () => {
       <OrderInvoice
         :orders="orders"
         :bakery-settings="bakerySettings"
-        :invoice-type="'invoice'"
+        :invoice-type="orders.every(order => order.paymentMethod === 'quote') ? 'quote' : 'invoice'"
       />
     </div>
   </div>
