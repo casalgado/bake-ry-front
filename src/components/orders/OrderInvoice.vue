@@ -1,11 +1,14 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { formatMoney } from '@/utils/helpers';
-import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 const props = defineProps({
   orders: {
     type: Array,
+    required: true,
+  },
+  bakerySettings: {
+    type: Object,
     required: true,
   },
   invoiceType: {
@@ -16,14 +19,6 @@ const props = defineProps({
     type: String,
     default: '',
   },
-});
-
-const settingsStore = useBakerySettingsStore();
-const bakerySettings = ref(null);
-
-onMounted(async () => {
-  await settingsStore.fetchById('default');
-  bakerySettings.value = settingsStore.items[0];
 });
 
 // Compute invoice title based on type and payment status
@@ -162,13 +157,13 @@ const handlePrint = () => {
       <div class="flex justify-between items-start mb-8 pb-4 border-b-2 border-gray-800">
         <div class="flex-1">
           <img
-            v-if="bakerySettings?.branding?.logos?.medium || bakerySettings?.branding?.logos?.original"
-            :src="bakerySettings.branding.logos.medium || bakerySettings.branding.logos.original"
-            :alt="bakerySettings?.name"
+            v-if="props.bakerySettings?.branding?.logos?.medium || props.bakerySettings?.branding?.logos?.original"
+            :src="props.bakerySettings.branding.logos.medium || props.bakerySettings.branding.logos.original"
+            :alt="props.bakerySettings?.name"
             class="h-20 max-w-xs object-contain"
           />
           <div v-else class="text-2xl font-bold text-gray-800">
-            {{ bakerySettings?.name || 'Mi Panadería' }}
+            {{ props.bakerySettings?.name || 'Mi Panadería' }}
           </div>
         </div>
 
@@ -186,14 +181,14 @@ const handlePrint = () => {
       </div>
 
       <!-- Company details -->
-      <div class="mb-8 text-gray-700 leading-relaxed" v-if="bakerySettings">
+      <div class="mb-8 text-gray-700 leading-relaxed">
         <div>
-          <strong class="text-gray-800">{{ bakerySettings.name }}</strong><br>
-          <span v-if="bakerySettings.legalName">{{ bakerySettings.legalName }}<br></span>
-          <span v-if="bakerySettings.nationalId">NIT: {{ bakerySettings.nationalId }}<br></span>
-          <span v-if="bakerySettings.address">{{ bakerySettings.address }}<br></span>
-          <span v-if="bakerySettings.phone">Tel: {{ bakerySettings.phone }}<br></span>
-          <span v-if="bakerySettings.email">{{ bakerySettings.email }}</span>
+          <strong class="text-gray-800">{{ props.bakerySettings.name }}</strong><br>
+          <span v-if="props.bakerySettings.legalName">{{ props.bakerySettings.legalName }}<br></span>
+          <span v-if="props.bakerySettings.nationalId">NIT: {{ props.bakerySettings.nationalId }}<br></span>
+          <span v-if="props.bakerySettings.address">{{ props.bakerySettings.address }}<br></span>
+          <span v-if="props.bakerySettings.phone">Tel: {{ props.bakerySettings.phone }}<br></span>
+          <span v-if="props.bakerySettings.email">{{ props.bakerySettings.email }}</span>
         </div>
       </div>
 
@@ -294,9 +289,9 @@ const handlePrint = () => {
       </div>
 
       <!-- Footer -->
-      <div v-if="bakerySettings?.website" class="mt-12 pt-4 border-t border-gray-200 text-center">
+      <div v-if="props.bakerySettings?.website" class="mt-12 pt-4 border-t border-gray-200 text-center">
         <p class="text-blue-500 font-medium">
-          {{ bakerySettings.website }}
+          {{ props.bakerySettings.website }}
         </p>
       </div>
     </div>

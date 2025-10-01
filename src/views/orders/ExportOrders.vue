@@ -3,12 +3,15 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import OrderInvoice from '@/components/orders/OrderInvoice.vue';
 import { useOrderStore } from '@/stores/orderStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 const route = useRoute();
 const router = useRouter();
 const orderStore = useOrderStore();
+const settingsStore = useBakerySettingsStore();
 
 const orders = ref([]);
+const bakerySettings = ref(null);
 const loading = ref(true);
 const error = ref(null);
 
@@ -29,18 +32,23 @@ onMounted(async () => {
     }
 
     console.log('Fetching orders for IDs:', orderIds.value);
-    // Fetch all orders individually (new tab = empty store)
-    const fetchPromises = orderIds.value.map(async (id) => {
-      try {
-        await orderStore.fetchById(id);
-        return orderStore.items.find(order => order.id === id);
-      } catch (err) {
-        console.error(`Error fetching order ${id}:`, err);
-        return null;
-      }
-    });
 
-    const fetchedOrders = await Promise.all(fetchPromises);
+    // Fetch orders and settings in parallel
+    const [fetchedOrders] = await Promise.all([
+      Promise.all(orderIds.value.map(async (id) => {
+        try {
+          await orderStore.fetchById(id);
+          return orderStore.items.find(order => order.id === id);
+        } catch (err) {
+          console.error(`Error fetching order ${id}:`, err);
+          return null;
+        }
+      })),
+      // Fetch bakery settings
+      settingsStore.fetchById('default').then(() => {
+        bakerySettings.value = settingsStore.items[0];
+      }),
+    ]);
 
     // Filter out any null values (failed fetches)
     orders.value = fetchedOrders.filter(Boolean);
@@ -53,12 +61,6 @@ onMounted(async () => {
 
     loading.value = false;
 
-    // Auto-trigger print dialog after a short delay
-    if (orders.value.length > 0) {
-      setTimeout(() => {
-        window.print();
-      }, 500);
-    }
   } catch (err) {
     console.error('Error fetching orders:', err);
     error.value = 'Error al cargar las órdenes: ' + err.message;
@@ -113,9 +115,10 @@ const handleClose = () => {
     </div>
 
     <!-- Invoice content -->
-    <div v-else-if="orders.length > 0" class="invoice-container">
+    <div v-else-if="orders.length > 0 && bakerySettings" class="invoice-container">
       <OrderInvoice
         :orders="orders"
+        :bakery-settings="bakerySettings"
         :invoice-type="'invoice'"
       />
     </div>
