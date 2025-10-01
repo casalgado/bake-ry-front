@@ -40,7 +40,6 @@ import {
   PhMopedFront,
   PhStorefront,
   PhFile,
-  PhPrinter,
 } from '@phosphor-icons/vue';
 import BancolombiaIcon from '@/assets/icons/bancolombia.svg'; // Ensure this path is correct
 import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg'; // Ensure this path is correct
@@ -131,30 +130,26 @@ const {
       orderHistory.value = await orderStore.getHistory(selectedOrder.id);
       isHistoryOpen.value = true;
       break;
-    case 'export':
-      console.log('Selected items for export:', selectedItems);
-      exportOrders(selectedItems);
-      break;
-    case 'print': {
+    case 'export': {
       // Validate all orders are from the same client
       const clientIds = [
         ...new Set(selectedItems.map((order) => order.userId)),
       ];
       if (clientIds.length > 1) {
         alert(
-          'Por favor selecciona pedidos del mismo cliente para imprimir una factura combinada.',
+          'Por favor selecciona pedidos del mismo cliente para exportar una factura combinada.',
         );
         return;
       }
 
-      // Open print view in new tab with selected order IDs
+      // Open export view in new tab with selected order IDs
       const orderIds = selectedItems.map(order => order.id).join(',');
-      const printUrl = router.resolve({
-        name: 'print-orders',
+      const exportUrl = router.resolve({
+        name: 'export-orders',
         query: { orderIds },
       }).href;
 
-      window.open(printUrl, '_blank');
+      window.open(exportUrl, '_blank');
       break;
     }
     }
@@ -351,13 +346,6 @@ const tableActions = [
     id: 'export',
     label: 'Exportar',
     icon: PhExport,
-    minSelected: 1,
-    variant: 'primary',
-  },
-  {
-    id: 'print',
-    label: 'Imprimir',
-    icon: PhPrinter,
     minSelected: 1,
     variant: 'primary',
   },
