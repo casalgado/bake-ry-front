@@ -152,7 +152,7 @@ const handlePrint = () => {
   <div class="bg-white min-h-screen">
 
     <!-- Invoice content -->
-    <div class="max-w-4xl mx-auto p-6">
+    <div class="max-w-4xl mx-auto p-6 pt-0">
       <!-- Header with logo and business info -->
       <div class="flex justify-between items-start mb-4 pb-3 border-b-2 border-gray-800">
         <div class="flex-1">
@@ -260,32 +260,23 @@ const handlePrint = () => {
               <td class="text-right py-2 px-2 text-gray-800">{{ formatMoney(item.subtotal) }}</td>
             </tr>
           </tbody>
-          <tfoot>
-            <tr>
-              <td :colspan="orders.length > 1 ? 6 : 4" class="py-2 border-b-2 border-gray-200"></td>
-            </tr>
-            <tr>
-              <td :colspan="orders.length > 1 ? 5 : 3" class="text-right py-2 px-2">
-                <strong class="text-gray-700">Subtotal:</strong>
-              </td>
-              <td class="text-right py-2 px-2 text-gray-800">{{ formatMoney(totals.subtotal) }}</td>
-            </tr>
-            <tr v-if="totals.delivery > 0">
-              <td :colspan="orders.length > 1 ? 5 : 3" class="text-right py-2 px-2">
-                <strong class="text-gray-700">Domicilios:</strong>
-              </td>
-              <td class="text-right py-2 px-2 text-gray-800">{{ formatMoney(totals.delivery) }}</td>
-            </tr>
-            <tr class="border-t-2 border-b-2 border-gray-800">
-              <td :colspan="orders.length > 1 ? 5 : 3" class="text-right py-3 px-2">
-                <strong class="text-gray-800 text-lg">TOTAL:</strong>
-              </td>
-              <td class="text-right py-3 px-2">
-                <strong class="text-gray-800 text-xl">{{ formatMoney(totals.total) }}</strong>
-              </td>
-            </tr>
-          </tfoot>
         </table>
+
+        <!-- Totals Section -->
+        <div class="mt-2 border-t-2 border-gray-200 pt-2">
+          <div class="flex justify-between py-2 px-2">
+            <strong class="text-gray-700">Subtotal:</strong>
+            <span class="text-gray-800">{{ formatMoney(totals.subtotal) }}</span>
+          </div>
+          <div v-if="totals.delivery > 0" class="flex justify-between py-2 px-2">
+            <strong class="text-gray-700">Domicilios:</strong>
+            <span class="text-gray-800">{{ formatMoney(totals.delivery) }}</span>
+          </div>
+          <div class="flex justify-between py-3 px-2 border-t-2 border-b-2 border-gray-800">
+            <strong class="text-gray-800 text-lg">TOTAL:</strong>
+            <strong class="text-gray-800 text-xl">{{ formatMoney(totals.total) }}</strong>
+          </div>
+        </div>
       </div>
 
       <!-- Footer -->
@@ -301,6 +292,13 @@ const handlePrint = () => {
 <style scoped>
 
 @media print {
+  /* Remove browser default headers/footers */
+  @page {
+    margin: 0;
+    padding-top: 1cm;
+    padding-bottom: 1cm;
+    size: auto;
+  }
 
   .print-controls {
     display: none !important;
