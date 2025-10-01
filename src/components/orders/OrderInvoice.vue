@@ -124,19 +124,6 @@ const formatDateLong = (dateString) => {
   return `${day} ${month} ${year}`;
 };
 
-// Format date with time
-const formatDateTime = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleString('es-CO', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
 // Format order ID to show first 5 characters
 const formatOrderId = (orderId) => {
   if (!orderId) return '';
@@ -168,12 +155,6 @@ const handlePrint = () => {
 
 <template>
   <div class="bg-white min-h-screen">
-    <!-- Print button (hidden during print) -->
-    <div class="print-controls p-4 text-center border-b border-gray-200 bg-gray-50">
-      <button @click="handlePrint" class="px-8 py-2 bg-blue-500 text-white rounded-md font-medium hover:bg-blue-600 transition-colors">
-        Imprimir
-      </button>
-    </div>
 
     <!-- Invoice content -->
     <div class="max-w-4xl mx-auto p-8">
@@ -181,8 +162,8 @@ const handlePrint = () => {
       <div class="flex justify-between items-start mb-8 pb-4 border-b-2 border-gray-800">
         <div class="flex-1">
           <img
-            v-if="bakerySettings?.branding?.logos?.medium"
-            :src="bakerySettings.branding.logos.medium"
+            v-if="bakerySettings?.branding?.logos?.medium || bakerySettings?.branding?.logos?.original"
+            :src="bakerySettings.branding.logos.medium || bakerySettings.branding.logos.original"
             :alt="bakerySettings?.name"
             class="h-20 max-w-xs object-contain"
           />
@@ -269,14 +250,14 @@ const handlePrint = () => {
             <tr v-for="(item, index) in combinedItems" :key="index" class="border-b border-gray-100">
               <td class="text-left py-3 px-2 text-gray-800">
                 {{ item.productName }}
-                <span v-if="item.variation" class="text-gray-600 text-sm ml-1">
+                <span v-if="item.variation" class="text-gray-700 text-sm ml-1">
                   ({{ item.variation }})
                 </span>
               </td>
               <td v-if="orders.length > 1" class="text-center py-3 px-2 text-gray-700">
                 #{{ formatOrderId(item.orderId) }}
               </td>
-              <td v-if="orders.length > 1" class="text-center py-3 px-2 text-gray-600 text-sm">
+              <td v-if="orders.length > 1" class="text-center py-3 px-2 text-gray-700 text-sm">
                 {{ formatDate(item.preparationDate) }}
               </td>
               <td class="text-center py-3 px-2 text-gray-800">{{ item.quantity }}</td>
@@ -323,8 +304,9 @@ const handlePrint = () => {
 </template>
 
 <style scoped>
-/* Print-specific styles */
+
 @media print {
+
   .print-controls {
     display: none !important;
   }

@@ -2,6 +2,7 @@
 // Vue and Headless UI
 import { ref, computed, watch } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
+import { useRouter } from 'vue-router';
 
 // DataTable Core
 import DataTable from '@/components/DataTable/index.vue';
@@ -18,7 +19,6 @@ import IsPaidCell from '@/components/DataTable/renderers/IsPaidCell.vue';
 import OrderForm from '@/components/forms/OrderForm.vue';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
-import OrderInvoice from '@/components/orders/OrderInvoice.vue';
 import TotalsSummary from '@/components/common/TotalsSummary.vue';
 
 // Stores
@@ -48,6 +48,9 @@ import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg'; // Ensure thi
 // Utils
 import { formatMoney } from '@/utils/helpers';
 import { exportOrders } from '@/utils/exportOrders';
+
+// Router
+const router = useRouter();
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -134,12 +137,24 @@ const {
       break;
     case 'print': {
       // Validate all orders are from the same client
-      const clientIds = [...new Set(selectedItems.map(order => order.userId))];
+      const clientIds = [
+        ...new Set(selectedItems.map((order) => order.userId)),
+      ];
       if (clientIds.length > 1) {
-        alert('Por favor selecciona pedidos del mismo cliente para imprimir una factura combinada.');
+        alert(
+          'Por favor selecciona pedidos del mismo cliente para imprimir una factura combinada.',
+        );
         return;
       }
-      isPrintOpen.value = true;
+
+      // Open print view in new tab with selected order IDs
+      const orderIds = selectedItems.map(order => order.id).join(',');
+      const printUrl = router.resolve({
+        name: 'print-orders',
+        query: { orderIds },
+      }).href;
+
+      window.open(printUrl, '_blank');
       break;
     }
     }
@@ -271,7 +286,8 @@ const columns = computed(() => [
         displayText: method.displayText,
         icon: paymentIconMap[method.value] || PhMoney,
         skipWhenToggled:
-          method.value === 'complimentary' || method.value === 'quote' ||
+          method.value === 'complimentary' ||
+          method.value === 'quote' ||
           !activePaymentMethods.includes(method.value),
       }));
     },
@@ -393,9 +409,9 @@ watch(
       class="flex flex-col lg:flex-row-reverse justify-between items-center mb-4 gap-2"
     >
       <div class="flex flex-col gap-2 items-center lg:items-stretch">
-        <PeriodSelector/>
+        <PeriodSelector />
         <TotalsSummary
-          class="relative lg:fixed lg:bottom-5 lg:left-[216px] z-[9] "
+          class="relative lg:fixed lg:bottom-5 lg:left-[216px] z-[9]"
           :categories="totals"
           :format-value="formatMoney"
         />
@@ -451,27 +467,6 @@ watch(
             Historial de Cambios
           </h2>
           <ShowOrderHistory :history="orderHistory" />
-        </DialogPanel>
-      </div>
-    </Dialog>
-
-    <!-- Print Dialog -->
-    <Dialog
-      :open="isPrintOpen"
-      @close="closeDialog"
-      class="relative z-50 form-container"
-    >
-      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
-
-      <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel
-          class="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto"
-        >
-          <OrderInvoice
-            v-if="selectedItems.length > 0"
-            :orders="selectedItems"
-            :invoice-type="selectedItems.every(o => o.paymentMethod === 'quote') ? 'quote' : 'invoice'"
-          />
         </DialogPanel>
       </div>
     </Dialog>

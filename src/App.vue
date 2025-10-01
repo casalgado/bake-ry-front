@@ -15,7 +15,7 @@ onMounted(() => {
 
 <template>
   <div class="app-container">
-    <TheHeader />
+    <TheHeader class="app-header" />
     <main :key="`main-${isLoading}`" class="main-content">
       <div v-if="isLoading" class="loading-overlay absolute inset-0 z-50">
         <div class="flex justify-center flex-col items-center h-full bg-neutral-50">
@@ -38,6 +38,12 @@ onMounted(() => {
 
 .main-content {
   overflow: auto;
+}
+
+@media print {
+.app-header {
+  display:none
+}
 }
 
 @keyframes pulse {

@@ -40,6 +40,14 @@ const router = createRouter({
       component: () => import('../views/bakeries/CreateBakery.vue'),
     },
     {
+      path: '/print-orders',
+      name: 'print-orders',
+      component: () => import('../views/orders/PrintInvoice.vue'),
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('../views/dashboard/AdminDashboard.vue'),
