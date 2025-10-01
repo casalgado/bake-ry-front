@@ -152,15 +152,15 @@ const handlePrint = () => {
   <div class="bg-white min-h-screen">
 
     <!-- Invoice content -->
-    <div class="max-w-4xl mx-auto p-8">
+    <div class="max-w-4xl mx-auto p-6">
       <!-- Header with logo and business info -->
-      <div class="flex justify-between items-start mb-8 pb-4 border-b-2 border-gray-800">
+      <div class="flex justify-between items-start mb-4 pb-3 border-b-2 border-gray-800">
         <div class="flex-1">
           <img
             v-if="props.bakerySettings?.branding?.logos?.medium || props.bakerySettings?.branding?.logos?.original"
             :src="props.bakerySettings.branding.logos.medium || props.bakerySettings.branding.logos.original"
             :alt="props.bakerySettings?.name"
-            class="h-20 max-w-xs object-contain"
+            class="h-16 max-w-xs object-contain"
           />
           <div v-else class="text-2xl font-bold text-gray-800">
             {{ props.bakerySettings?.name || 'Mi Panadería' }}
@@ -181,7 +181,7 @@ const handlePrint = () => {
       </div>
 
       <!-- Company details -->
-      <div class="mb-8 text-gray-700 leading-relaxed">
+      <div class="mb-4 text-gray-700 leading-relaxed">
         <div>
           <strong class="text-gray-800">{{ props.bakerySettings.name }}</strong><br>
           <span v-if="props.bakerySettings.legalName">{{ props.bakerySettings.legalName }}<br></span>
@@ -193,11 +193,11 @@ const handlePrint = () => {
       </div>
 
       <!-- Client information -->
-      <div class="mb-8">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-gray-800 mb-3 pb-1 border-b border-gray-200">
           Información del Cliente
         </h2>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-2 gap-1">
           <div class="flex gap-2">
             <span class="font-medium text-gray-700 min-w-[100px]">Cliente:</span>
             <span class="text-gray-800">{{ clientInfo.name }}</span>
@@ -218,7 +218,7 @@ const handlePrint = () => {
             <span class="font-medium text-gray-700 min-w-[100px]">Teléfono:</span>
             <span class="text-gray-800">{{ clientInfo.phone }}</span>
           </div>
-          <div v-if="clientInfo.email" class="flex gap-2">
+          <div v-if="clientInfo.email && !clientInfo.email.startsWith('pendiente@')" class="flex gap-2">
             <span class="font-medium text-gray-700 min-w-[100px]">Email:</span>
             <span class="text-gray-800">{{ clientInfo.email }}</span>
           </div>
@@ -226,38 +226,38 @@ const handlePrint = () => {
       </div>
 
       <!-- Order items table -->
-      <div class="mb-8">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+      <div class="mb-4">
+        <h2 class="text-lg font-semibold text-gray-800 mb-3 pb-1 border-b border-gray-200">
           Detalle
         </h2>
         <table class="w-full">
           <thead>
             <tr class="bg-gray-50 border-b-2 border-gray-200">
-              <th class="text-left py-3 px-2 font-semibold text-gray-800">Producto</th>
-              <th v-if="orders.length > 1" class="text-center py-3 px-2 font-semibold text-gray-800">Pedido</th>
-              <th v-if="orders.length > 1" class="text-center py-3 px-2 font-semibold text-gray-800 text-sm">Fecha</th>
-              <th class="text-center py-3 px-2 font-semibold text-gray-800">Cant.</th>
-              <th class="text-right py-3 px-2 font-semibold text-gray-800">P. Unit.</th>
-              <th class="text-right py-3 px-2 font-semibold text-gray-800">Subtotal</th>
+              <th class="text-left py-2 px-2 font-semibold text-gray-800">Producto</th>
+              <th v-if="orders.length > 1" class="text-center py-2 px-2 font-semibold text-gray-800">Pedido</th>
+              <th v-if="orders.length > 1" class="text-center py-2 px-2 font-semibold text-gray-800 text-sm">Fecha</th>
+              <th class="text-center py-2 px-2 font-semibold text-gray-800">Cant.</th>
+              <th class="text-right py-2 px-2 font-semibold text-gray-800">P. Unit.</th>
+              <th class="text-right py-2 px-2 font-semibold text-gray-800">Subtotal</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, index) in combinedItems" :key="index" class="border-b border-gray-100">
-              <td class="text-left py-3 px-2 text-gray-800">
+            <tr v-for="(item, index) in combinedItems" :key="index" class="border-b border-gray-200">
+              <td class="text-left py-2 px-2 text-gray-800">
                 {{ item.productName }}
                 <span v-if="item.variation" class="text-gray-700 text-sm ml-1">
                   ({{ item.variation }})
                 </span>
               </td>
-              <td v-if="orders.length > 1" class="text-center py-3 px-2 text-gray-700">
+              <td v-if="orders.length > 1" class="text-center py-2 px-2 text-gray-700">
                 #{{ formatOrderId(item.orderId) }}
               </td>
-              <td v-if="orders.length > 1" class="text-center py-3 px-2 text-gray-700 text-sm">
+              <td v-if="orders.length > 1" class="text-center py-2 px-2 text-gray-700 text-sm">
                 {{ formatDate(item.preparationDate) }}
               </td>
-              <td class="text-center py-3 px-2 text-gray-800">{{ item.quantity }}</td>
-              <td class="text-right py-3 px-2 text-gray-800">{{ formatMoney(item.unitPrice) }}</td>
-              <td class="text-right py-3 px-2 text-gray-800">{{ formatMoney(item.subtotal) }}</td>
+              <td class="text-center py-2 px-2 text-gray-800">{{ item.quantity }}</td>
+              <td class="text-right py-2 px-2 text-gray-800">{{ formatMoney(item.unitPrice) }}</td>
+              <td class="text-right py-2 px-2 text-gray-800">{{ formatMoney(item.subtotal) }}</td>
             </tr>
           </tbody>
           <tfoot>
@@ -289,7 +289,7 @@ const handlePrint = () => {
       </div>
 
       <!-- Footer -->
-      <div v-if="props.bakerySettings?.website" class="mt-12 pt-4 border-t border-gray-200 text-center">
+      <div v-if="props.bakerySettings?.website" class="mt-6 pt-4 border-t border-gray-200 text-center">
         <p class="text-blue-500 font-medium">
           {{ props.bakerySettings.website }}
         </p>

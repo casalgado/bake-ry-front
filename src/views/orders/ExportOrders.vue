@@ -82,40 +82,38 @@ const handleClose = () => {
 </script>
 
 <template>
-  <div class="print-view">
+  <div class="min-h-screen bg-gray-50">
     <!-- Print controls - hidden during actual printing -->
-    <div class="print-controls">
-      <div class="controls-header">
-        <h1 class="text-xl font-semibold">Vista Previa</h1>
-        <div class="buttons">
-          <button
-            @click="handlePrint"
-            class="print-button"
-            :disabled="loading || error"
-          >
-            Imprimir
-          </button>
-          <button
-            @click="handleClose"
-            class="close-button"
-          >
-            Cerrar
-          </button>
-        </div>
+    <div class="print-controls bg-white border-b sticky top-0 z-10 shadow-sm px-8 py-1 flex justify-between items-center">
+      <h1 class="text-lg font-semibold mb-0">Vista Previa</h1>
+      <div class="flex gap-2">
+        <button
+          @click="handlePrint"
+          class="action-btn"
+          :disabled="loading || error"
+        >
+          Imprimir
+        </button>
+        <button
+          @click="handleClose"
+          class="action-btn-inverse"
+        >
+          Cerrar
+        </button>
       </div>
-      <div v-if="error" class="error-message">
+      <div v-if="error" class="mt-2 px-3 py-2 bg-red-100 text-red-800 rounded text-sm">
         {{ error }}
       </div>
     </div>
 
     <!-- Loading state -->
-    <div v-if="loading" class="loading-container">
+    <div v-if="loading" class="flex flex-col items-center justify-center min-h-[50vh] text-gray-500">
       <div class="spinner"></div>
       <p>Cargando órdenes...</p>
     </div>
 
     <!-- Invoice content -->
-    <div v-else-if="orders.length > 0 && bakerySettings" class="invoice-container">
+    <div v-else-if="orders.length > 0 && bakerySettings" class="bg-white max-w-[210mm] mx-auto my-8 p-8 shadow-sm">
       <OrderInvoice
         :orders="orders"
         :bakery-settings="bakerySettings"
@@ -126,85 +124,6 @@ const handleClose = () => {
 </template>
 
 <style scoped>
-.print-view {
-  min-height: 100vh;
-  background-color: #f3f4f6;
-}
-
-.print-controls {
-  background-color: white;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 1rem 2rem;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.controls-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.print-button,
-.close-button {
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.2s;
-  cursor: pointer;
-}
-
-.print-button {
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-}
-
-.print-button:hover:not(:disabled) {
-  background-color: #2563eb;
-}
-
-.print-button:disabled {
-  background-color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.close-button {
-  background-color: white;
-  color: #374151;
-  border: 1px solid #d1d5db;
-}
-
-.close-button:hover {
-  background-color: #f9fafb;
-}
-
-.error-message {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
-  background-color: #fee2e2;
-  color: #991b1b;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 50vh;
-  color: #6b7280;
-}
-
 .spinner {
   width: 2.5rem;
   height: 2.5rem;
@@ -219,29 +138,9 @@ const handleClose = () => {
   100% { transform: rotate(360deg); }
 }
 
-.invoice-container {
-  background-color: white;
-  max-width: 210mm; /* A4 width */
-  margin: 2rem auto;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-/* Print-specific styles */
 @media print {
-  .print-view {
-    background-color: white;
-  }
-
   .print-controls {
     display: none !important;
-  }
-
-  .invoice-container {
-    margin: 0;
-    padding: 0;
-    box-shadow: none;
-    max-width: none;
   }
 }
 </style>
