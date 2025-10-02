@@ -313,11 +313,17 @@ const handlePrint = () => {
     page-break-inside: avoid;
   }
 
-  /* Ensure colors print properly */
+  /* Ensure colors and fonts print properly */
   * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     color-adjust: exact;
+  }
+
+  /* Fix bold 'l' rendering issue in PDFs */
+  body, * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 </style>
