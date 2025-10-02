@@ -23,6 +23,36 @@ const orderIds = computed(() => {
   return ids.split(',');
 });
 
+// Computed filename for the PDF
+const documentTitle = computed(() => {
+  if (orders.value.length === 0) return 'Factura';
+
+  const invoiceType = orders.value.every(order => order.paymentMethod === 'quote') ? 'Cotizacion' : 'Factura';
+  const clientName = orders.value[0]?.userName || 'Cliente';
+  const cleanClientName = clientName.replace(/[^a-zA-Z0-9]/g, '_');
+
+  const date = new Date(orders.value[0]?.preparationDate || new Date());
+  const dateStr = `${date.getDate().toString().padStart(2, '0')}_${(date.getMonth() + 1).toString().padStart(2, '0')}_${date.getFullYear()}`;
+
+  return `${invoiceType}_${cleanClientName}_${dateStr}`;
+});
+
+// Store original title for restoration
+const originalTitle = document.title;
+
+// Set up print event listeners for reliable PDF filename
+const setupPrintListeners = () => {
+  window.addEventListener('beforeprint', () => {
+    document.title = documentTitle.value;
+    console.log('beforeprint - Setting title to:', documentTitle.value);
+  });
+
+  window.addEventListener('afterprint', () => {
+    document.title = originalTitle;
+    console.log('afterprint - Restoring title to:', originalTitle);
+  });
+};
+
 onMounted(async () => {
   try {
     if (orderIds.value.length === 0) {
@@ -61,6 +91,13 @@ onMounted(async () => {
 
     loading.value = false;
 
+    // Set document title and setup print listeners
+    if (orders.value.length > 0) {
+      document.title = documentTitle.value;
+      setupPrintListeners();
+      console.log('Initial document title set to:', documentTitle.value);
+    }
+
   } catch (err) {
     console.error('Error fetching orders:', err);
     error.value = 'Error al cargar las órdenes: ' + err.message;
@@ -69,6 +106,9 @@ onMounted(async () => {
 });
 
 const handlePrint = () => {
+  // Ensure title is set right before printing
+  document.title = documentTitle.value;
+  console.log('Print - document.title:', document.title);
   window.print();
 };
 
@@ -113,7 +153,7 @@ const handleClose = () => {
     </div>
 
     <!-- Invoice content -->
-    <div v-else-if="orders.length > 0 && bakerySettings" class="bg-white max-w-[210mm] mx-auto my-8 p-8 shadow-sm">
+    <div v-else-if="orders.length > 0 && bakerySettings" class="bg-white max-w-[210mm] mx-auto my-8 p-8 shadow-sm print:my-0 print:p-0 print:shadow-none">
       <OrderInvoice
         :orders="orders"
         :bakery-settings="bakerySettings"

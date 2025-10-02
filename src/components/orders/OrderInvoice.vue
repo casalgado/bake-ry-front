@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { formatMoney } from '@/utils/helpers';
+import { formatMoney, capitalize } from '@/utils/helpers';
 
 const props = defineProps({
   orders: {
@@ -149,7 +149,7 @@ const handlePrint = () => {
 </script>
 
 <template>
-  <div class="bg-white min-h-screen">
+  <div class="bg-white">
 
     <!-- Invoice content -->
     <div class="max-w-4xl mx-auto p-6 pt-0">
@@ -163,7 +163,7 @@ const handlePrint = () => {
             class="h-16 max-w-xs object-contain"
           />
           <div v-else class="text-2xl font-bold text-gray-800">
-            {{ props.bakerySettings?.name || 'Mi Panadería' }}
+            {{ props.bakerySettings?.name || '' }}
           </div>
         </div>
 
@@ -244,9 +244,9 @@ const handlePrint = () => {
           <tbody>
             <tr v-for="(item, index) in combinedItems" :key="index" class="border-b border-gray-200">
               <td class="text-left py-2 px-2 text-gray-800">
-                {{ item.productName }}
+                {{ capitalize(item.productName) }}
                 <span v-if="item.variation" class="text-gray-700 text-sm ml-1">
-                  ({{ item.variation }})
+                  ({{ capitalize(item.variation) }})
                 </span>
               </td>
               <td v-if="orders.length > 1" class="text-center py-2 px-2 text-gray-700">

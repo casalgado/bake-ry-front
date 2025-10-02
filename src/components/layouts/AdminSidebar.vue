@@ -26,6 +26,7 @@ import {
   PhUserPlus,
   PhUserCirclePlus,
   PhWifiX,
+  PhGear,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -189,6 +190,17 @@ const navigationSections = computed(() => [
         icon: PhTag,
         text: 'Productos',
         path: '/dashboard/products',
+      },
+    ],
+  },
+  {
+    title: 'Mi Cuenta',
+    items: [
+      {
+        id: 'configuracion',
+        icon: PhGear,
+        text: 'Configuración',
+        path: '/dashboard/settings',
       },
     ],
   },
