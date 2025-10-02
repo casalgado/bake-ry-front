@@ -114,12 +114,12 @@ const loadPaymentMethods = async () => {
     const response = await payuService.getStoredCards();
     paymentMethods.value = response.data || [];
   } catch (error) {
-    console.error('Error loading payment methods:', error);
+    console.warn('Error loading payment methods:', error);
     paymentMethods.value = [];
-    toastRef.value?.showError(
-      'Error al Cargar Tarjetas',
-      'No se pudieron cargar las tarjetas guardadas',
-    );
+    // toastRef.value?.showError(
+    //   'Error al Cargar Tarjetas',
+    //   'No se pudieron cargar las tarjetas guardadas',
+    // );
   }
 };
 
