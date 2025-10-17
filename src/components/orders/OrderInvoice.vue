@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import { formatMoney, capitalize } from '@/utils/helpers';
 
 const props = defineProps({
@@ -21,6 +22,40 @@ const props = defineProps({
   },
 });
 
+const emit = defineEmits(['update']);
+
+// Editable state for Terms & Conditions
+const editableTerms = ref('');
+
+// Load terms from order or settings
+const termsSource = computed(() =>
+  props.orders[0]?.invoiceCustomizations?.termsAndConditions ||
+  props.bakerySettings?.features?.invoicing?.defaultTermsAndConditions ||
+  '',
+);
+
+// Initialize terms when source changes
+watch(termsSource, (value) => {
+  editableTerms.value = value;
+}, { immediate: true });
+
+// Debounced update handlers (1 second delay)
+const updateDescription = useDebounceFn((orderIndex, itemIndex, value) => {
+  emit('update', {
+    type: 'description',
+    orderIndex,
+    itemIndex,
+    value: value.trim(),
+  });
+}, 1000);
+
+const updateTerms = useDebounceFn((value) => {
+  emit('update', {
+    type: 'terms',
+    value: value.trim(),
+  });
+}, 1500);
+
 // Compute invoice title based on type and payment status
 const invoiceTitle = computed(() => {
   if (props.invoiceType === 'quote') {
@@ -33,17 +68,20 @@ const invoiceTitle = computed(() => {
 const combinedItems = computed(() => {
   const items = [];
 
-  props.orders.forEach(order => {
+  props.orders.forEach((order, orderIndex) => {
     if (order.orderItems && Array.isArray(order.orderItems)) {
-      order.orderItems.forEach(item => {
+      order.orderItems.forEach((item, itemIndex) => {
         items.push({
           orderId: order.id,
           preparationDate: order.preparationDate,
           productName: item.productName || 'Producto',
+          productDescription: item.productDescription || '',
           variation: item.variation?.name || '',
           quantity: item.quantity || 0,
           unitPrice: (item.subtotal / item.quantity) || 0,
           subtotal: item.subtotal || 0,
+          orderIndex,
+          itemIndex,
         });
       });
     }
@@ -244,10 +282,20 @@ const handlePrint = () => {
           <tbody>
             <tr v-for="(item, index) in combinedItems" :key="index" class="border-b border-gray-200">
               <td class="text-left py-2 px-2 text-gray-800">
-                {{ capitalize(item.productName) }}
-                <span v-if="item.variation" class="text-gray-700 text-sm ml-1">
-                  ({{ capitalize(item.variation) }})
-                </span>
+                <div>
+                  {{ capitalize(item.productName) }}
+                  <span v-if="item.variation" class="text-gray-700 text-sm ml-1">
+                    ({{ capitalize(item.variation) }})
+                  </span>
+                </div>
+                <!-- Editable description -->
+                <div
+                  v-if="item.orderIndex !== undefined"
+                  contenteditable="true"
+                  @input="e => updateDescription(item.orderIndex, item.itemIndex, e.target.textContent)"
+                  class="text-sm text-gray-600 mt-1 p-1 rounded hover:bg-gray-50 focus:bg-gray-50 focus:outline-none min-h-[20px]"
+                  :data-placeholder="'Agregar descripción...'"
+                >{{ item.productDescription }}</div>
               </td>
               <td v-if="orders.length > 1" class="text-center py-2 px-2 text-gray-700">
                 #{{ formatOrderId(item.orderId) }}
@@ -279,6 +327,20 @@ const handlePrint = () => {
         </div>
       </div>
 
+      <!-- Terms & Conditions -->
+      <div v-if="orders.length === 1" class="mt-4 pt-4 border-t border-gray-200">
+        <h3 class="text-sm font-semibold text-gray-800 mb-2">
+          Términos y Condiciones
+        </h3>
+        <div
+          contenteditable="true"
+          @input="e => updateTerms(e.target.textContent)"
+          v-text="editableTerms"
+          class="text-xs text-gray-600 p-2 rounded border border-transparent hover:border-gray-200 focus:border-gray-300 focus:outline-none min-h-[40px] whitespace-pre-wrap"
+          :data-placeholder="'Agregar términos y condiciones...'"
+        />
+      </div>
+
       <!-- Footer -->
       <div v-if="props.bakerySettings?.website" class="mt-6 pt-4 border-t border-gray-200 text-center">
         <p class="text-blue-500 font-medium">
@@ -290,6 +352,15 @@ const handlePrint = () => {
 </template>
 
 <style scoped>
+/* Editable field styles */
+[contenteditable]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+}
+
+[contenteditable]:focus {
+  background-color: #f9fafb;
+}
 
 @media print {
   /* Remove browser default headers/footers */
@@ -302,6 +373,12 @@ const handlePrint = () => {
 
   .print-controls {
     display: none !important;
+  }
+
+  /* Hide edit UI when printing */
+  [contenteditable] {
+    border: none !important;
+    background: transparent !important;
   }
 
   /* Ensure proper page breaks */

@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import OrderInvoice from '@/components/orders/OrderInvoice.vue';
+import ToastNotification from '@/components/ToastNotification.vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
@@ -14,6 +15,7 @@ const orders = ref([]);
 const bakerySettings = ref(null);
 const loading = ref(true);
 const error = ref(null);
+const toastRef = ref(null);
 
 // Parse order IDs from query params
 const orderIds = computed(() => {
@@ -105,6 +107,37 @@ onMounted(async () => {
   }
 });
 
+// Handle invoice updates with auto-save
+const handleInvoiceUpdate = async ({ type, orderIndex, itemIndex, value }) => {
+  if (!orders.value.length) return;
+
+  try {
+    const order = orders.value[orderIndex || 0];
+
+    if (type === 'description' && order.orderItems?.[itemIndex]) {
+      // Update description
+      order.orderItems[itemIndex].productDescription = value;
+      await orderStore.patch(order.id, {
+        orderItems: order.orderItems,
+      });
+    } else if (type === 'terms') {
+      // Update terms & conditions
+      await orderStore.patch(order.id, {
+        invoiceCustomizations: {
+          ...order.invoiceCustomizations,
+          termsAndConditions: value,
+        },
+      });
+    }
+
+    // Show success toast
+    toastRef.value?.showSuccess('Cambios guardados exitosamente');
+  } catch (error) {
+    console.error('Error saving invoice changes:', error);
+    toastRef.value?.showError('Error al guardar', 'No se pudieron guardar los cambios');
+  }
+};
+
 const handlePrint = () => {
   // Ensure title is set right before printing
   document.title = documentTitle.value;
@@ -158,8 +191,12 @@ const handleClose = () => {
         :orders="orders"
         :bakery-settings="bakerySettings"
         :invoice-type="orders.every(order => order.paymentMethod === 'quote') ? 'quote' : 'invoice'"
+        @update="handleInvoiceUpdate"
       />
     </div>
+
+    <!-- Toast Notifications -->
+    <ToastNotification ref="toastRef" />
   </div>
 </template>
 
