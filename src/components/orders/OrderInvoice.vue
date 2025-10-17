@@ -27,6 +27,13 @@ const emit = defineEmits(['update']);
 // Editable state for Terms & Conditions
 const editableTerms = ref('');
 
+// Track which descriptions are being edited
+const editingDescriptions = ref(new Set());
+
+const startEditingDescription = (uniqueKey) => {
+  editingDescriptions.value.add(uniqueKey);
+};
+
 // Load terms from order or settings
 const termsSource = computed(() =>
   props.orders[0]?.invoiceCustomizations?.termsAndConditions ||
@@ -288,14 +295,23 @@ const handlePrint = () => {
                     ({{ capitalize(item.variation) }})
                   </span>
                 </div>
-                <!-- Editable description -->
+                <!-- Show description if it exists OR is being edited -->
                 <div
-                  v-if="item.orderIndex !== undefined"
+                  v-if="item.orderIndex !== undefined && (item.productDescription || editingDescriptions.has(`${item.orderIndex}-${item.itemIndex}`))"
                   contenteditable="true"
                   @input="e => updateDescription(item.orderIndex, item.itemIndex, e.target.textContent)"
-                  class="text-sm text-gray-600 mt-1 p-1 rounded hover:bg-gray-50 focus:bg-gray-50 focus:outline-none min-h-[20px]"
-                  :data-placeholder="'Agregar descripción...'"
+                  @focus="startEditingDescription(`${item.orderIndex}-${item.itemIndex}`)"
+                  class="text-sm text-gray-600 mt-1 p-1 rounded hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
+                  :data-placeholder="'Descripción del producto...'"
                 >{{ item.productDescription }}</div>
+                <!-- Show add button when empty and not editing -->
+                <button
+                  v-else-if="item.orderIndex !== undefined"
+                  @click="startEditingDescription(`${item.orderIndex}-${item.itemIndex}`)"
+                  class="text-xs text-blue-600 hover:text-blue-800 mt-1 print:hidden"
+                >
+                  + Agregar descripción
+                </button>
               </td>
               <td v-if="orders.length > 1" class="text-center py-2 px-2 text-gray-700">
                 #{{ formatOrderId(item.orderId) }}
@@ -352,8 +368,8 @@ const handlePrint = () => {
 </template>
 
 <style scoped>
-/* Editable field styles */
-[contenteditable]:empty:before {
+/* Editable field styles - placeholder only shows when empty AND focused */
+[contenteditable]:empty:focus:before {
   content: attr(data-placeholder);
   color: #9ca3af;
 }
@@ -372,6 +388,15 @@ const handlePrint = () => {
   }
 
   .print-controls {
+    display: none !important;
+  }
+
+  /* Hide all buttons and empty editable divs when printing */
+  button {
+    display: none !important;
+  }
+
+  [contenteditable]:empty {
     display: none !important;
   }
 
