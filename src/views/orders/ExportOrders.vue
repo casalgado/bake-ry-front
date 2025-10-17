@@ -122,7 +122,7 @@ const handleClose = () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 pb-6">
     <!-- Print controls - hidden during actual printing -->
     <div class="print-controls bg-white border-b sticky top-0 z-10 shadow-sm px-8 py-1 flex justify-between items-center">
       <h1 class="text-lg font-semibold mb-0">Vista Previa</h1>

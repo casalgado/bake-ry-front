@@ -37,6 +37,8 @@ const props = defineProps({
       showMultipleReports: false,
       // Products features
       useProductCost: false,
+      // Invoicing features
+      defaultTermsAndConditions: '',
     }),
   },
   availablePaymentMethods: {
@@ -125,6 +127,10 @@ watch(() => props.initialData, (newData, oldData) => {
 
     if (Object.prototype.hasOwnProperty.call(newData, 'useProductCost') && newData.useProductCost !== formData.value.useProductCost) {
       formData.value.useProductCost = newData.useProductCost;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(newData, 'defaultTermsAndConditions') && newData.defaultTermsAndConditions !== formData.value.defaultTermsAndConditions) {
+      formData.value.defaultTermsAndConditions = newData.defaultTermsAndConditions;
     }
   }
 }, { deep: true, immediate: true });
@@ -239,6 +245,30 @@ watch(formData, (newValue) => {
             description="Habilita el seguimiento y cálculo de costos de producción"
             :disabled="loading"
           />
+        </div>
+      </div>
+
+      <!-- Invoice Features Section -->
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-neutral-900 mb-2">
+          Configuración de Facturas / Cotizaciones
+        </h3>
+        <p class="text-sm text-neutral-600 mb-4">
+          Personaliza la información que aparece en tus facturas
+        </p>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-neutral-700 mb-1">
+              Términos y Condiciones
+            </label>
+            <textarea
+              v-model="formData.defaultTermsAndConditions"
+              rows="4"
+              class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ingresa los términos y condiciones que aparecerán en todas las facturas..."
+              :disabled="loading"
+            />
+          </div>
         </div>
       </div>
 

@@ -30,6 +30,8 @@ const featuresFormData = ref({
   // Reports features
   defaultReportFilter: 'dueDate',
   showMultipleReports: false,
+  // Invoicing features
+  defaultTermsAndConditions: '',
 
 });
 const isFeaturesSaving = ref(false);
@@ -464,6 +466,11 @@ const currentProductsFeatures = computed(() => {
   return settingsStore.items[0].features?.products || {};
 });
 
+const currentInvoicingFeatures = computed(() => {
+  if (!settingsStore.items.length) return {};
+  return settingsStore.items[0].features?.invoicing || {};
+});
+
 const currentBranding = computed(() => {
   if (!settingsStore.items.length) return {};
   return settingsStore.items[0].branding || {};
@@ -481,6 +488,7 @@ const initializeFeaturesForm = () => {
   const reportsFeatures = currentReportsFeatures.value;
   const usersFeatures = currentUsersFeatures.value;
   const productsFeatures = currentProductsFeatures.value;
+  const invoicingFeatures = currentInvoicingFeatures.value;
 
   // Only update if we have valid data and avoid overriding existing values
   const newFormData = { ...featuresFormData.value };
@@ -515,6 +523,13 @@ const initializeFeaturesForm = () => {
   if (productsFeatures && Object.keys(productsFeatures).length > 0) {
     if (Object.prototype.hasOwnProperty.call(productsFeatures, 'useProductCost')) {
       newFormData.useProductCost = productsFeatures.useProductCost;
+    }
+  }
+
+  // Invoicing features
+  if (invoicingFeatures && Object.keys(invoicingFeatures).length > 0) {
+    if (Object.prototype.hasOwnProperty.call(invoicingFeatures, 'defaultTermsAndConditions')) {
+      newFormData.defaultTermsAndConditions = invoicingFeatures.defaultTermsAndConditions;
     }
   }
 
@@ -575,6 +590,12 @@ const handleFeaturesSubmit = async (formData) => {
         products: {
           ...(currentFeatures.products || {}),
           useProductCost: formData.useProductCost,
+        },
+        invoicing: {
+          ...(currentFeatures.invoicing || {}),
+          defaultTermsAndConditions: formData.defaultTermsAndConditions || '',
+          showProductDescriptions: true,
+          showTermsAndConditions: true,
         },
       },
     });

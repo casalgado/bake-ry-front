@@ -29,6 +29,7 @@ const handleWizardSelect = (selection) => {
     const newItem = {
       productId: product.id,
       productName: product.name,
+      productDescription: product.description || '',
       collectionId: product.collectionId,
       collectionName: product.collectionName,
       taxPercentage: product.taxPercentage,
@@ -70,6 +71,7 @@ const handleWizardSelect = (selection) => {
   const newItem = {
     productId: product.id,
     productName: product.name,
+    productDescription: product.description || '',
     collectionId: product.collectionId,
     collectionName: product.collectionName,
     taxPercentage: product.taxPercentage,
