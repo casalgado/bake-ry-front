@@ -85,7 +85,7 @@ export class BakeryService {
   }
 
   /**
-   * Update a bakery
+   * Update a bakery (full replacement)
    * @param {string} bakeryId - The bakery ID
    * @param {Object} bakeryData - The updated bakery data
    * @returns {Promise<Object>} The updated bakery
@@ -97,6 +97,22 @@ export class BakeryService {
       return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to update bakery');
+    }
+  }
+
+  /**
+   * Partially update a bakery (patch)
+   * @param {string} bakeryId - The bakery ID
+   * @param {Object} bakeryData - The partial bakery data to update
+   * @returns {Promise<Object>} The updated bakery
+   * @throws {Error} If patch fails
+   */
+  static async patchBakery(bakeryId, bakeryData) {
+    try {
+      const response = await api.patch(`/bakeries/${bakeryId}`, bakeryData);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error, 'Failed to patch bakery');
     }
   }
 

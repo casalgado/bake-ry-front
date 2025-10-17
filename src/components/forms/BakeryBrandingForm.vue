@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import ImageUpload from './ImageUpload.vue';
-import { PhStorefront, PhImage } from '@phosphor-icons/vue';
+import ColorPickerCard from './ColorPickerCard.vue';
+import { PhStorefront, PhImage, PhNumberCircleOne, PhNumberCircleTwo } from '@phosphor-icons/vue';
 import { useAuthenticationStore } from '@/stores/authentication';
 
 const authStore = useAuthenticationStore();
@@ -14,13 +15,19 @@ const props = defineProps({
   initialData: {
     type: Object,
     default: () => ({
+      // Bakery entity fields
+      email: '',
+      address: '',
+      phone: '',
+      legalName: '',
+      nationalId: '',
+      // Branding fields
       logos: {
         original: '',
         small: '',
         medium: '',
         large: '',
       },
-      // Future expansion for other branding elements
       primaryColor: '',
       secondaryColor: '',
     }),
@@ -41,6 +48,13 @@ const hasChanges = computed(() => {
   const initial = props.initialData;
   const current = formData.value;
 
+  // Compare bakery entity fields
+  const emailChanged = (initial.email || '') !== (current.email || '');
+  const addressChanged = (initial.address || '') !== (current.address || '');
+  const phoneChanged = (initial.phone || '') !== (current.phone || '');
+  const legalNameChanged = (initial.legalName || '') !== (current.legalName || '');
+  const nationalIdChanged = (initial.nationalId || '') !== (current.nationalId || '');
+
   // Compare logos object - normalize empty values for comparison
   const normalizeLogos = (logos) => ({
     original: logos?.original || '',
@@ -53,11 +67,12 @@ const hasChanges = computed(() => {
   const currentLogos = normalizeLogos(current.logos);
   const logoChanged = JSON.stringify(initialLogos) !== JSON.stringify(currentLogos);
 
-  // Future: Compare other branding elements
+  // Compare branding elements
   const primaryColorChanged = (initial.primaryColor || '') !== (current.primaryColor || '');
   const secondaryColorChanged = (initial.secondaryColor || '') !== (current.secondaryColor || '');
 
-  return logoChanged || primaryColorChanged || secondaryColorChanged;
+  return emailChanged || addressChanged || phoneChanged || legalNameChanged || nationalIdChanged ||
+         logoChanged || primaryColorChanged || secondaryColorChanged;
 });
 
 const submitButtonText = computed(() => {
@@ -111,6 +126,11 @@ const getLogoUploadPath = computed(() => {
 watch(() => props.initialData, (newData) => {
   if (newData) {
     formData.value = JSON.parse(JSON.stringify({
+      email: newData.email || '',
+      address: newData.address || '',
+      phone: newData.phone || '',
+      legalName: newData.legalName || '',
+      nationalId: newData.nationalId || '',
       logos: newData.logos || {
         original: '',
         small: '',
@@ -212,58 +232,106 @@ watch(() => props.initialData, (newData) => {
 
       </div>
 
-      <!-- Future: Color Scheme Section -->
-      <div class="mb-8 hidden">
-        <h3 class="text-lg font-semibold text-neutral-900 mb-2">
+      <!-- Color Scheme Section -->
+      <div class="mb-8">
+        <h3 class="text-lg font-semibold text-neutral-900 mb-4">
           Esquema de Colores
         </h3>
-        <p class="text-sm text-neutral-600 mb-4">
-          Personaliza los colores de tu marca (próximamente)
-        </p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ColorPickerCard
+            v-model="formData.primaryColor"
+            :icon="PhNumberCircleOne"
+            title="Color Principal"
+            description="Color primario de tu marca"
+            :disabled="loading"
+          />
+
+          <ColorPickerCard
+            v-model="formData.secondaryColor"
+            :icon="PhNumberCircleTwo"
+            title="Color Secundario"
+            description="Color secundario de tu marca"
+            :disabled="loading"
+          />
+        </div>
+      </div>
+
+      <!-- Contact Information Section -->
+      <div class="mb-8">
+        <h3 class="text-lg font-semibold text-neutral-900 mb-4">Información de Contacto</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label for="primary-color" class="block text-sm font-medium text-neutral-700 mb-2">
-              Color Principal
+            <label for="bakery-email" class="block text-sm font-medium text-neutral-700 mb-2">
+              Email
             </label>
-            <div class="flex items-center gap-2">
-              <input
-                id="primary-color"
-                type="color"
-                :value="formData.primaryColor || '#000000'"
-                :disabled="true"
-                class="h-10 w-20"
-              />
-              <input
-                type="text"
-                :value="formData.primaryColor || ''"
-                :disabled="true"
-                placeholder="#000000"
-                class="flex-1"
-              />
-            </div>
+            <input
+              id="bakery-email"
+              type="email"
+              v-model="formData.email"
+              :disabled="loading"
+              class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
 
           <div>
-            <label for="secondary-color" class="block text-sm font-medium text-neutral-700 mb-2">
-              Color Secundario
+            <label for="bakery-phone" class="block text-sm font-medium text-neutral-700 mb-2">
+              Teléfono
             </label>
-            <div class="flex items-center gap-2">
-              <input
-                id="secondary-color"
-                type="color"
-                :value="formData.secondaryColor || '#FFFFFF'"
-                :disabled="true"
-                class="h-10 w-20"
-              />
-              <input
-                type="text"
-                :value="formData.secondaryColor || ''"
-                :disabled="true"
-                placeholder="#FFFFFF"
-                class="flex-1"
-              />
-            </div>
+            <input
+              id="bakery-phone"
+              type="tel"
+              v-model="formData.phone"
+              :disabled="loading"
+              class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div class="md:col-span-2">
+            <label for="bakery-address" class="block text-sm font-medium text-neutral-700 mb-2">
+              Dirección
+            </label>
+            <input
+              id="bakery-address"
+              type="text"
+              v-model="formData.address"
+              :disabled="loading"
+              class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Legal Information Section -->
+      <div class="mb-8">
+        <h3 class="text-lg font-semibold text-neutral-900 mb-4">Información Legal</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="bakery-legal-name" class="block text-sm font-medium text-neutral-700 mb-2">
+              Razón Social
+            </label>
+            <input
+              id="bakery-legal-name"
+              type="text"
+              v-model="formData.legalName"
+              :disabled="loading"
+              class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label for="bakery-national-id" class="block text-sm font-medium text-neutral-700 mb-2">
+              NIT
+            </label>
+            <input
+              id="bakery-national-id"
+              type="text"
+              v-model="formData.nationalId"
+              :disabled="loading"
+              class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
         </div>
       </div>

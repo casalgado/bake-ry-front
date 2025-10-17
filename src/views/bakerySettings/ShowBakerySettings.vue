@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { useBakeryStore } from '@/stores/bakeryStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import { PayUService } from '@/services/payuService';
@@ -15,6 +16,7 @@ import ToastNotification from '@/components/ToastNotification.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
 const settingsStore = useBakerySettingsStore();
+const bakeryStore = useBakeryStore();
 const bakeryUserStore = useBakeryUserStore();
 const authStore = useAuthenticationStore();
 const systemSettingsStore = useSystemSettingsStore();
@@ -90,6 +92,9 @@ onMounted(async () => {
   await settingsStore.fetchById('default');
   staffData.value = await settingsStore.staff;
   b2bClientsData.value = await settingsStore.b2b_clients;
+
+  // Load bakery data
+  await bakeryStore.fetchBakeryById(authStore.getBakeryId);
 
   // Load system settings
   await systemSettingsStore.fetchSettings();
@@ -536,12 +541,20 @@ const initializeFeaturesForm = () => {
   featuresFormData.value = newFormData;
 };
 
-// Branding form initialization
+// Branding form initialization - merges bakery entity data with branding data
 const initializeBrandingForm = () => {
   const branding = currentBranding.value;
+  const bakery = bakeryStore.currentBakery;
 
   if (branding && Object.keys(branding).length > 0) {
     brandingFormData.value = {
+      // Bakery entity fields
+      email: bakery?.email || '',
+      address: bakery?.address || '',
+      phone: bakery?.phone || '',
+      legalName: bakery?.legalName || '',
+      nationalId: bakery?.nationalId || '',
+      // Branding fields
       logos: branding.logos || {
         original: '',
         small: '',
@@ -551,19 +564,36 @@ const initializeBrandingForm = () => {
       primaryColor: branding.primaryColor || '',
       secondaryColor: branding.secondaryColor || '',
     };
+  } else if (bakery) {
+    // Initialize with bakery data even if branding is not set
+    brandingFormData.value = {
+      email: bakery.email || '',
+      address: bakery.address || '',
+      phone: bakery.phone || '',
+      legalName: bakery.legalName || '',
+      nationalId: bakery.nationalId || '',
+      logos: {
+        original: '',
+        small: '',
+        medium: '',
+        large: '',
+      },
+      primaryColor: '',
+      secondaryColor: '',
+    };
   }
 };
 
-// Watch for settings changes and reinitialize forms
+// Watch for settings and bakery changes and reinitialize forms
 watch(
-  () => settingsStore.items,
+  () => [settingsStore.items, bakeryStore.currentBakery],
   () => {
-    if (settingsStore.items.length > 0) {
+    if (settingsStore.items.length > 0 || bakeryStore.currentBakery) {
       initializeFeaturesForm();
       initializeBrandingForm();
     }
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 );
 
 const handleFeaturesSubmit = async (formData) => {
@@ -620,30 +650,65 @@ const handleFeaturesSubmit = async (formData) => {
 
 const handleBrandingSubmit = async (formData) => {
   isBrandingSaving.value = true;
-  try {
-    // Preserve existing settings and merge with new branding data
-    const currentSettings = settingsStore.items[0] || {};
+  let bakeryUpdateSuccess = false;
+  let brandingUpdateSuccess = false;
 
-    await settingsStore.patch('default', {
-      branding: {
-        logos: formData.logos,
-        primaryColor: formData.primaryColor,
-        secondaryColor: formData.secondaryColor,
-      },
-    });
+  try {
+    // Prepare partial update data (only the fields we're changing)
+    const bakeryPatchData = {
+      email: formData.email,
+      address: formData.address,
+      phone: formData.phone,
+      legalName: formData.legalName,
+      nationalId: formData.nationalId,
+    };
+
+    const brandingData = {
+      logos: formData.logos,
+      primaryColor: formData.primaryColor,
+      secondaryColor: formData.secondaryColor,
+    };
+
+    // First, patch the bakery entity (partial update)
+    try {
+      await bakeryStore.patchBakery(authStore.getBakeryId, bakeryPatchData);
+      bakeryUpdateSuccess = true;
+    } catch (bakeryError) {
+      console.error('Error saving bakery data:', bakeryError);
+      throw new Error('No se pudo actualizar la información de contacto y legal');
+    }
+
+    // Then, update the branding settings
+    try {
+      await settingsStore.patch('default', {
+        branding: brandingData,
+      });
+      brandingUpdateSuccess = true;
+    } catch (brandingError) {
+      console.error('Error saving branding data:', brandingError);
+      throw new Error('No se pudo actualizar la marca (logos y colores)');
+    }
 
     // Update local form data after successful save
     brandingFormData.value = { ...formData };
 
     toastRef.value?.showSuccess(
       'Guardado',
-      'La configuración ha sido actualizada exitosamente',
+      'Toda la información de identidad ha sido actualizada exitosamente',
     );
   } catch (error) {
-    console.error('Error saving branding:', error);
+    console.error('Error saving identity data:', error);
+
+    // Provide specific error message
+    let errorMessage = error.message || 'No se pudo guardar la información. Intenta nuevamente.';
+
+    if (bakeryUpdateSuccess && !brandingUpdateSuccess) {
+      errorMessage = 'La información de contacto se guardó, pero hubo un error con la marca (logos y colores).';
+    }
+
     toastRef.value?.showError(
       'Error al Guardar',
-      'No se pudo guardar la configuración de marca. Intenta nuevamente.',
+      errorMessage,
     );
   } finally {
     isBrandingSaving.value = false;

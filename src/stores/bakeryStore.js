@@ -176,6 +176,37 @@ export const useBakeryStore = defineStore('bakery', {
     },
 
     /**
+     * Partially update a bakery (patch)
+     * @param {string} id - Bakery ID
+     * @param {Object} bakeryData - Partial bakery data to update
+     */
+    async patchBakery(id, bakeryData) {
+      this.setLoading(true);
+      this.clearError();
+      console.log('store patchBakery', id, bakeryData);
+
+      try {
+        const updatedBakery = await BakeryService.patchBakery(id, bakeryData);
+        const index = this.bakeries.findIndex((b) => b.id === id);
+
+        if (index !== -1) {
+          this.bakeries[index] = updatedBakery;
+        }
+
+        if (this.currentBakery?.id === id) {
+          this.currentBakery = updatedBakery;
+        }
+
+        return updatedBakery;
+      } catch (error) {
+        this.setError(error);
+        throw error;
+      } finally {
+        this.setLoading(false);
+      }
+    },
+
+    /**
      * Delete a bakery
      * @param {string} id - Bakery ID
      */
