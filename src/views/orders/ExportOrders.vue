@@ -5,11 +5,15 @@ import OrderInvoice from '@/components/orders/OrderInvoice.vue';
 import ToastNotification from '@/components/ToastNotification.vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { useBakeryStore } from '@/stores/bakeryStore';
+import { useAuthenticationStore } from '@/stores/authentication';
 
 const route = useRoute();
 const router = useRouter();
 const orderStore = useOrderStore();
 const settingsStore = useBakerySettingsStore();
+const bakeryStore = useBakeryStore();
+const authStore = useAuthenticationStore();
 
 const orders = ref([]);
 const bakerySettings = ref(null);
@@ -65,8 +69,8 @@ onMounted(async () => {
 
     console.log('Fetching orders for IDs:', orderIds.value);
 
-    // Fetch orders and settings in parallel
-    const [fetchedOrders] = await Promise.all([
+    // Fetch orders, bakery, and settings in parallel
+    const [fetchedOrders, bakeryData] = await Promise.all([
       Promise.all(orderIds.value.map(async (id) => {
         try {
           await orderStore.fetchById(id);
@@ -76,11 +80,32 @@ onMounted(async () => {
           return null;
         }
       })),
-      // Fetch bakery settings
-      settingsStore.fetchById('default').then(() => {
-        bakerySettings.value = settingsStore.items[0];
-      }),
+      // Fetch bakery entity and settings
+      (async () => {
+        const bakeryId = authStore.getBakeryId;
+        await Promise.all([
+          bakeryStore.fetchBakeryById(bakeryId),
+          settingsStore.fetchById('default'),
+        ]);
+
+        // Merge bakery entity data with settings
+        const bakery = bakeryStore.currentBakery;
+        const settings = settingsStore.items[0];
+
+        return {
+          ...settings,
+          // Add bakery entity fields
+          name: bakery?.name || settings?.name,
+          address: bakery?.address || '',
+          phone: bakery?.phone || '',
+          email: bakery?.email || '',
+          legalName: bakery?.legalName || '',
+          nationalId: bakery?.nationalId || '',
+        };
+      })(),
     ]);
+
+    bakerySettings.value = bakeryData;
 
     // Filter out any null values (failed fetches)
     orders.value = fetchedOrders.filter(Boolean);

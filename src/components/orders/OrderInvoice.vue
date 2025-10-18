@@ -187,6 +187,11 @@ const dateRange = computed(() => {
   return `${formatDateLong(minDate)} - ${formatDateLong(maxDate)}`;
 });
 
+// Get primary color from bakery settings with fallback
+const primaryColor = computed(() => {
+  return props.bakerySettings?.branding?.primaryColor || '#6b9e3e';
+});
+
 // Trigger print
 const handlePrint = () => {
   window.print();
@@ -194,196 +199,420 @@ const handlePrint = () => {
 </script>
 
 <template>
-  <div class="bg-white">
-
-    <!-- Invoice content -->
-    <div class="max-w-4xl mx-auto p-6 pt-0">
-      <!-- Header with logo and business info -->
-      <div class="flex justify-between items-start mb-4 pb-3 border-b-2 border-gray-800">
-        <div class="flex-1">
-          <img
-            v-if="props.bakerySettings?.branding?.logos?.medium || props.bakerySettings?.branding?.logos?.original"
-            :src="props.bakerySettings.branding.logos.medium || props.bakerySettings.branding.logos.original"
-            :alt="props.bakerySettings?.name"
-            class="h-16 max-w-xs object-contain"
-          />
-          <div v-else class="text-2xl font-bold text-gray-800">
-            {{ props.bakerySettings?.name || '' }}
-          </div>
-        </div>
-
-        <div class="text-right">
-          <h1 class="text-2xl font-bold text-gray-800 mb-2">{{ invoiceTitle }}</h1>
-          <p v-if="invoiceNumber" class="text-gray-700">No. {{ invoiceNumber }}</p>
-          <p v-else-if="orders.length === 1" class="text-gray-700">
-            Pedido #{{ formatOrderId(orders[0].id) }}
-          </p>
-          <p v-else class="text-gray-700">
-            {{ orders.length }} pedidos
-          </p>
-          <p class="text-gray-700">{{ dateRange }}</p>
-        </div>
-      </div>
-
-      <!-- Company details -->
-      <div class="mb-4 text-gray-700 leading-relaxed">
-        <div>
-          <strong class="text-gray-800">{{ props.bakerySettings.name }}</strong><br>
-          <span v-if="props.bakerySettings.legalName">{{ props.bakerySettings.legalName }}<br></span>
-          <span v-if="props.bakerySettings.nationalId">NIT: {{ props.bakerySettings.nationalId }}<br></span>
-          <span v-if="props.bakerySettings.address">{{ props.bakerySettings.address }}<br></span>
-          <span v-if="props.bakerySettings.phone">Tel: {{ props.bakerySettings.phone }}<br></span>
-          <span v-if="props.bakerySettings.email">{{ props.bakerySettings.email }}</span>
-        </div>
-      </div>
-
-      <!-- Client information -->
-      <div class="mb-4">
-        <h2 class="text-lg font-semibold text-gray-800 mb-3 pb-1 border-b border-gray-200">
-          Información del Cliente
-        </h2>
-        <div class="grid grid-cols-2 gap-1">
-          <div class="flex gap-2">
-            <span class="font-medium text-gray-700 min-w-[100px]">Cliente:</span>
-            <span class="text-gray-800">{{ clientInfo.name }}</span>
-          </div>
-          <div v-if="clientInfo.legalName" class="flex gap-2">
-            <span class="font-medium text-gray-700 min-w-[100px]">Razón Social:</span>
-            <span class="text-gray-800">{{ clientInfo.legalName }}</span>
-          </div>
-          <div v-if="clientInfo.nationalId" class="flex gap-2">
-            <span class="font-medium text-gray-700 min-w-[100px]">NIT/CC:</span>
-            <span class="text-gray-800">{{ clientInfo.nationalId }}</span>
-          </div>
-          <div v-if="clientInfo.address" class="flex gap-2">
-            <span class="font-medium text-gray-700 min-w-[100px]">Dirección:</span>
-            <span class="text-gray-800">{{ clientInfo.address }}</span>
-          </div>
-          <div v-if="clientInfo.phone" class="flex gap-2">
-            <span class="font-medium text-gray-700 min-w-[100px]">Teléfono:</span>
-            <span class="text-gray-800">{{ clientInfo.phone }}</span>
-          </div>
-          <div v-if="clientInfo.email && !clientInfo.email.startsWith('pendiente@')" class="flex gap-2">
-            <span class="font-medium text-gray-700 min-w-[100px]">Email:</span>
-            <span class="text-gray-800">{{ clientInfo.email }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Order items table -->
-      <div class="mb-4">
-        <h2 class="text-lg font-semibold text-gray-800 mb-3 pb-1 border-b border-gray-200">
-          Detalle
-        </h2>
-        <table class="w-full">
-          <thead>
-            <tr class="bg-gray-50 border-b-2 border-gray-200">
-              <th class="text-left py-2 px-2 font-semibold text-gray-800">Producto</th>
-              <th v-if="orders.length > 1" class="text-center py-2 px-2 font-semibold text-gray-800">Pedido</th>
-              <th v-if="orders.length > 1" class="text-center py-2 px-2 font-semibold text-gray-800 text-sm">Fecha</th>
-              <th class="text-center py-2 px-2 font-semibold text-gray-800">Cant.</th>
-              <th class="text-right py-2 px-2 font-semibold text-gray-800">P. Unit.</th>
-              <th class="text-right py-2 px-2 font-semibold text-gray-800">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, index) in combinedItems" :key="index" class="border-b border-gray-200">
-              <td class="text-left py-2 px-2 text-gray-800">
-                <div>
-                  {{ capitalize(item.productName) }}
-                  <span v-if="item.variation" class="text-gray-700 text-sm ml-1">
-                    ({{ capitalize(item.variation) }})
-                  </span>
-                </div>
-                <!-- Show description if it exists OR is being edited -->
-                <div
-                  v-if="item.orderIndex !== undefined && (item.productDescription || editingDescriptions.has(`${item.orderIndex}-${item.itemIndex}`))"
-                  contenteditable="true"
-                  @input="e => updateDescription(item.orderIndex, item.itemIndex, e.target.textContent)"
-                  @focus="startEditingDescription(`${item.orderIndex}-${item.itemIndex}`)"
-                  class="text-sm text-gray-600 mt-1 p-1 rounded hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
-                  :data-placeholder="'Descripción del producto...'"
-                >{{ item.productDescription }}</div>
-                <!-- Show add button when empty and not editing -->
-                <button
-                  v-else-if="item.orderIndex !== undefined"
-                  @click="startEditingDescription(`${item.orderIndex}-${item.itemIndex}`)"
-                  class="text-xs text-blue-600 hover:text-blue-800 mt-1 print:hidden"
-                >
-                  + Agregar descripción
-                </button>
-              </td>
-              <td v-if="orders.length > 1" class="text-center py-2 px-2 text-gray-700">
-                #{{ formatOrderId(item.orderId) }}
-              </td>
-              <td v-if="orders.length > 1" class="text-center py-2 px-2 text-gray-700 text-sm">
-                {{ formatDate(item.preparationDate) }}
-              </td>
-              <td class="text-center py-2 px-2 text-gray-800">{{ item.quantity }}</td>
-              <td class="text-right py-2 px-2 text-gray-800">{{ formatMoney(item.unitPrice) }}</td>
-              <td class="text-right py-2 px-2 text-gray-800">{{ formatMoney(item.subtotal) }}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- Totals Section -->
-        <div class="mt-2 border-t-2 border-gray-200 pt-2">
-          <div class="flex justify-between py-2 px-2">
-            <strong class="text-gray-700">Subtotal:</strong>
-            <span class="text-gray-800">{{ formatMoney(totals.subtotal) }}</span>
-          </div>
-          <div v-if="totals.delivery > 0" class="flex justify-between py-2 px-2">
-            <strong class="text-gray-700">Domicilios:</strong>
-            <span class="text-gray-800">{{ formatMoney(totals.delivery) }}</span>
-          </div>
-          <div class="flex justify-between py-3 px-2 border-t-2 border-b-2 border-gray-800">
-            <strong class="text-gray-800 text-lg">TOTAL:</strong>
-            <strong class="text-gray-800 text-xl">{{ formatMoney(totals.total) }}</strong>
-          </div>
-        </div>
-      </div>
-
-      <!-- Terms & Conditions -->
-      <div v-if="orders.length === 1" class="mt-4 pt-4 border-t border-gray-200">
-        <h3 class="text-sm font-semibold text-gray-800 mb-2">
-          Términos y Condiciones
-        </h3>
-        <div
-          contenteditable="true"
-          @input="e => updateTerms(e.target.textContent)"
-          v-text="editableTerms"
-          class="text-xs text-gray-600 p-2 rounded border border-transparent hover:border-gray-200 focus:border-gray-300 focus:outline-none min-h-[40px] whitespace-pre-wrap"
-          :data-placeholder="'Agregar términos y condiciones...'"
+  <div class="invoice-container">
+    <!-- Header -->
+    <div class="invoice-header">
+      <div class="logo-section">
+        <img
+          v-if="props.bakerySettings?.branding?.logos?.medium || props.bakerySettings?.branding?.logos?.original"
+          :src="props.bakerySettings.branding.logos.medium || props.bakerySettings.branding.logos.original"
+          :alt="props.bakerySettings?.name"
+          class="logo-img"
         />
+        <div v-else class="logo-text">
+          {{ props.bakerySettings?.name || '' }}
+        </div>
       </div>
 
-      <!-- Footer -->
-      <div v-if="props.bakerySettings?.website" class="mt-6 pt-4 border-t border-gray-200 text-center">
-        <p class="text-blue-500 font-medium">
-          {{ props.bakerySettings.website }}
-        </p>
+      <div class="header-right">
+        <div class="invoice-title">{{ invoiceTitle }}</div>
+        <div class="company-info">
+          <strong>{{ props.bakerySettings.name }}</strong><br>
+          <span v-if="props.bakerySettings.legalName">{{ props.bakerySettings.legalName }}<br></span>
+          <span v-if="props.bakerySettings.address">{{ props.bakerySettings.address }}<br></span>
+          <span v-if="props.bakerySettings.email">{{ props.bakerySettings.email }}<br></span>
+          <span v-if="props.bakerySettings.phone">{{ props.bakerySettings.phone }}</span>
+        </div>
       </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="info-section">
+      <div class="bill-to">
+        <h3>FACTURAR A</h3>
+        <p>{{ clientInfo.name }}</p>
+        <div v-if="clientInfo.legalName" class="client-detail">{{ clientInfo.legalName }}</div>
+        <div v-if="clientInfo.nationalId" class="client-detail">NIT/CC: {{ clientInfo.nationalId }}</div>
+        <div v-if="clientInfo.address" class="client-detail">{{ clientInfo.address }}</div>
+        <div v-if="clientInfo.phone" class="client-detail">Tel: {{ clientInfo.phone }}</div>
+        <div v-if="clientInfo.email && !clientInfo.email.startsWith('pendiente@')" class="client-detail">{{ clientInfo.email }}</div>
+      </div>
+
+      <div class="invoice-details">
+        <table>
+          <tr v-if="invoiceNumber">
+            <td>Número de {{ invoiceType === 'quote' ? 'Cotización' : 'Factura' }}:</td>
+            <td>{{ invoiceNumber }}</td>
+          </tr>
+          <tr v-else-if="orders.length === 1">
+            <td>Número de Pedido:</td>
+            <td>#{{ formatOrderId(orders[0].id) }}</td>
+          </tr>
+          <tr v-else>
+            <td>Número de Pedidos:</td>
+            <td>{{ orders.length }}</td>
+          </tr>
+          <tr>
+            <td>Fecha:</td>
+            <td>{{ dateRange }}</td>
+          </tr>
+          <tr class="total-highlight">
+            <td>Total (COP):</td>
+            <td>{{ formatMoney(totals.total) }}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <table class="items-table">
+      <thead :style="{ backgroundColor: primaryColor }">
+        <tr>
+          <th>Productos</th>
+          <th v-if="orders.length > 1">Pedido</th>
+          <th v-if="orders.length > 1">Fecha</th>
+          <th>Cantidad</th>
+          <th>Precio</th>
+          <th>Monto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(item, index) in combinedItems" :key="index">
+          <td>
+            <div class="item-title">
+              {{ capitalize(item.productName) }}
+              <span v-if="item.variation" class="item-variation">
+                ({{ capitalize(item.variation) }})
+              </span>
+            </div>
+            <!-- Show description if it exists OR is being edited -->
+            <div
+              v-if="item.orderIndex !== undefined && (item.productDescription || editingDescriptions.has(`${item.orderIndex}-${item.itemIndex}`))"
+              contenteditable="true"
+              @input="e => updateDescription(item.orderIndex, item.itemIndex, e.target.textContent)"
+              @focus="startEditingDescription(`${item.orderIndex}-${item.itemIndex}`)"
+              class="item-description editable"
+              :data-placeholder="'Descripción del producto...'"
+            >{{ item.productDescription }}</div>
+            <!-- Show add button when empty and not editing -->
+            <button
+              v-else-if="item.orderIndex !== undefined"
+              @click="startEditingDescription(`${item.orderIndex}-${item.itemIndex}`)"
+              class="add-description-btn print:hidden"
+            >
+              + Agregar descripción
+            </button>
+          </td>
+          <td v-if="orders.length > 1" class="text-center">
+            #{{ formatOrderId(item.orderId) }}
+          </td>
+          <td v-if="orders.length > 1" class="text-center">
+            {{ formatDate(item.preparationDate) }}
+          </td>
+          <td class="text-center">{{ item.quantity }}</td>
+          <td class="text-right">{{ formatMoney(item.unitPrice) }}</td>
+          <td class="text-right">{{ formatMoney(item.subtotal) }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Grand Total Section -->
+    <div class="grand-total">
+      <span class="grand-total-label">Total (COP):</span>
+      <span class="grand-total-amount">{{ formatMoney(totals.total) }}</span>
+    </div>
+
+    <!-- Terms & Conditions -->
+    <div v-if="orders.length === 1" class="notes-section">
+      <h3>Notas / Términos</h3>
+      <div
+        contenteditable="true"
+        @input="e => updateTerms(e.target.textContent)"
+        v-text="editableTerms"
+        class="notes-content editable"
+        :data-placeholder="'Agregar términos y condiciones...'"
+      />
+    </div>
+
+    <!-- Footer -->
+    <div v-if="props.bakerySettings?.website" class="invoice-footer">
+      <p>{{ props.bakerySettings.website }}</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Editable field styles - placeholder only shows when empty AND focused */
-[contenteditable]:empty:focus:before {
+/* Container */
+.invoice-container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: white;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+}
+
+/* Header */
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 30px 40px 20px;
+  border-bottom: 3px solid #e0e0e0;
+}
+
+.logo-section {
+  flex: 1;
+}
+
+.logo-img {
+  height: 60px;
+  max-width: 300px;
+  object-fit: contain;
+}
+
+.logo-text {
+  font-size: 48px;
+  font-weight: 300;
+  color: #333;
+}
+
+.header-right {
+  text-align: right;
+}
+
+.invoice-title {
+  font-size: 32px;
+  font-weight: 300;
+  margin-bottom: 15px;
+  letter-spacing: 2px;
+}
+
+.company-info {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #333;
+}
+
+/* Info Section */
+.info-section {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 40px;
+  background: #fafafa;
+}
+
+.bill-to h3 {
+  font-size: 12px;
+  color: #999;
+  font-weight: 400;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.bill-to p {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.client-detail {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+}
+
+.invoice-details {
+  text-align: right;
+}
+
+.invoice-details table {
+  border-collapse: collapse;
+  margin-left: auto;
+}
+
+.invoice-details td {
+  padding: 4px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.invoice-details td:first-child {
+  text-align: right;
+  padding-right: 15px;
+  font-weight: 500;
+}
+
+.invoice-details td:last-child {
+  text-align: right;
+}
+
+.total-highlight {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* Items Table */
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.items-table thead {
+  color: white;
+}
+
+.items-table th {
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.items-table th:last-child,
+.items-table td:last-child {
+  text-align: right;
+}
+
+.items-table tbody td {
+  padding: 15px;
+  vertical-align: top;
+  border-bottom: 1px solid #e0e0e0;
+  color: #333;
+}
+
+.item-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.item-variation {
+  font-weight: 400;
+  font-size: 14px;
+  color: #555;
+}
+
+.item-description {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.8;
+  margin-top: 10px;
+  white-space: pre-wrap;
+}
+
+.item-description.editable {
+  padding: 8px;
+  border-radius: 4px;
+  min-height: 40px;
+}
+
+.item-description.editable:hover {
+  background: #f9fafb;
+}
+
+.item-description.editable:focus {
+  background: #f9fafb;
+  outline: 1px solid #e0e0e0;
+}
+
+.add-description-btn {
+  font-size: 12px;
+  color: #3b82f6;
+  margin-top: 8px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.add-description-btn:hover {
+  color: #2563eb;
+}
+
+/* Grand Total */
+.grand-total {
+  text-align: right;
+  padding: 20px 40px;
+  background: #fafafa;
+}
+
+.grand-total-label {
+  font-size: 16px;
+  font-weight: 600;
+  display: inline-block;
+  margin-right: 30px;
+  color: #333;
+}
+
+.grand-total-amount {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+}
+
+/* Notes Section */
+.notes-section {
+  padding: 20px 40px;
+}
+
+.notes-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.notes-content {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #555;
+  white-space: pre-wrap;
+  min-height: 60px;
+}
+
+.notes-content.editable {
+  padding: 12px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.notes-content.editable:hover {
+  border-color: #e0e0e0;
+}
+
+.notes-content.editable:focus {
+  outline: none;
+  border-color: #d0d0d0;
+  background: #f9fafb;
+}
+
+/* Footer */
+.invoice-footer {
+  text-align: center;
+  padding: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.invoice-footer p {
+  color: #3b82f6;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* Editable placeholder */
+.editable:empty:focus:before {
   content: attr(data-placeholder);
   color: #9ca3af;
 }
 
-[contenteditable]:focus {
-  background-color: #f9fafb;
-}
-
+/* Print Styles */
 @media print {
-  /* Remove browser default headers/footers */
   @page {
     margin: 0;
-    padding-top: 1cm;
-    padding-bottom: 1cm;
+    padding: 1cm;
     size: auto;
   }
 
@@ -391,22 +620,20 @@ const handlePrint = () => {
     display: none !important;
   }
 
-  /* Hide all buttons and empty editable divs when printing */
   button {
     display: none !important;
   }
 
-  [contenteditable]:empty {
+  .editable:empty {
     display: none !important;
   }
 
-  /* Hide edit UI when printing */
-  [contenteditable] {
+  .editable {
     border: none !important;
     background: transparent !important;
+    padding: 0 !important;
   }
 
-  /* Ensure proper page breaks */
   table {
     page-break-inside: auto;
   }
@@ -415,14 +642,12 @@ const handlePrint = () => {
     page-break-inside: avoid;
   }
 
-  /* Ensure colors and fonts print properly */
   * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     color-adjust: exact;
   }
 
-  /* Fix bold 'l' rendering issue in PDFs */
   body, * {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
