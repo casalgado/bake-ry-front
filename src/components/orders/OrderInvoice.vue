@@ -56,12 +56,21 @@ const updateDescription = useDebounceFn((orderIndex, itemIndex, value) => {
   });
 }, 1000);
 
+// Convert newlines to <br> for contenteditable display
+const formatDescriptionForDisplay = (text) => {
+  if (!text) return '';
+  return text.replace(/\n/g, '<br>');
+};
+
 const updateTerms = useDebounceFn((value) => {
   emit('update', {
     type: 'terms',
     value: value.trim(),
   });
 }, 1500);
+
+// Convert newlines to <br> for terms display
+const formattedTerms = computed(() => formatDescriptionForDisplay(editableTerms.value));
 
 // Compute invoice title based on type and payment status
 const invoiceTitle = computed(() => {
@@ -146,8 +155,12 @@ const clientInfo = computed(() => {
 // Parse date string as local date to avoid timezone issues
 const parseLocalDate = (dateString) => {
   if (!dateString) return null;
+  // Extract just the date part (YYYY-MM-DD) if it includes time
+  const datePart = dateString.split('T')[0];
   // Parse YYYY-MM-DD as local date (not UTC)
-  const [year, month, day] = dateString.split('-').map(Number);
+  const [year, month, day] = datePart.split('-').map(Number);
+  // Validate the parsed values
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
   return new Date(year, month - 1, day);
 };
 
@@ -233,8 +246,7 @@ const handlePrint = () => {
       <div class="header-right">
         <div class="invoice-title">{{ invoiceTitle }}</div>
         <div class="company-info">
-          <strong>{{ props.bakerySettings.name }}</strong><br>
-          <span v-if="props.bakerySettings.legalName">{{ props.bakerySettings.legalName }}<br></span>
+          <strong>{{ props.bakerySettings.legalName ? props.bakerySettings.legalName : props.bakerySettings.name }}</strong><br>
           <span v-if="props.bakerySettings.address">{{ props.bakerySettings.address }}<br></span>
           <span v-if="props.bakerySettings.email">{{ props.bakerySettings.email }}<br></span>
           <span v-if="props.bakerySettings.phone">{{ props.bakerySettings.phone }}</span>
@@ -251,7 +263,7 @@ const handlePrint = () => {
         <div v-if="clientInfo.nationalId" class="client-detail">NIT/CC: {{ clientInfo.nationalId }}</div>
         <div v-if="clientInfo.address" class="client-detail">{{ clientInfo.address }}</div>
         <div v-if="clientInfo.phone" class="client-detail">Tel: {{ clientInfo.phone }}</div>
-        <div v-if="clientInfo.email && !clientInfo.email.startsWith('pendiente@')" class="client-detail">{{ clientInfo.email }}</div>
+        <div v-if="clientInfo.email && !clientInfo.email.startsWith('pendiente@') && !clientInfo.email.endsWith('pendiente.com')" class="client-detail">{{ clientInfo.email }}</div>
       </div>
 
       <div class="invoice-details">
@@ -305,11 +317,12 @@ const handlePrint = () => {
             <div
               v-if="item.orderIndex !== undefined && (item.productDescription || editingDescriptions.has(`${item.orderIndex}-${item.itemIndex}`))"
               contenteditable="true"
-              @input="e => updateDescription(item.orderIndex, item.itemIndex, e.target.textContent)"
+              @input="e => updateDescription(item.orderIndex, item.itemIndex, e.target.innerText)"
               @focus="startEditingDescription(`${item.orderIndex}-${item.itemIndex}`)"
               class="item-description editable"
               :data-placeholder="'Descripción del producto...'"
-            >{{ item.productDescription }}</div>
+              v-html="formatDescriptionForDisplay(item.productDescription)"
+            />
             <!-- Show add button when empty and not editing -->
             <button
               v-else-if="item.orderIndex !== undefined"
@@ -343,8 +356,8 @@ const handlePrint = () => {
       <h3>Notas / Términos</h3>
       <div
         contenteditable="true"
-        @input="e => updateTerms(e.target.textContent)"
-        v-text="editableTerms"
+        @input="e => updateTerms(e.target.innerText)"
+        v-html="formattedTerms"
         class="notes-content editable"
         :data-placeholder="'Agregar términos y condiciones...'"
       />
@@ -388,7 +401,7 @@ const handlePrint = () => {
 }
 
 .logo-text {
-  font-size: 48px;
+  font-size: 32px;
   font-weight: 300;
   color: #333;
 }
