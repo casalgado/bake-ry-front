@@ -613,4 +613,351 @@ describe('BakeryBrandingForm', () => {
       expect(vm.formData.logos).toBeDefined();
     });
   });
+
+  describe('Contact Information Fields', () => {
+    it('renders email input field', () => {
+      wrapper = mount(BakeryBrandingForm, {
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const emailInput = wrapper.find('#bakery-email');
+      expect(emailInput.exists()).toBe(true);
+    });
+
+    it('renders phone input field', () => {
+      wrapper = mount(BakeryBrandingForm, {
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const phoneInput = wrapper.find('#bakery-phone');
+      expect(phoneInput.exists()).toBe(true);
+    });
+
+    it('renders address input field', () => {
+      wrapper = mount(BakeryBrandingForm, {
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const addressInput = wrapper.find('#bakery-address');
+      expect(addressInput.exists()).toBe(true);
+    });
+
+    it('populates contact fields with initial data', () => {
+      const dataWithContact = {
+        logos: {},
+        email: 'test@bakery.com',
+        phone: '+57 123 456',
+        address: '123 Main Street',
+      };
+
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData: dataWithContact,
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      expect(vm.formData.email).toBe('test@bakery.com');
+      expect(vm.formData.phone).toBe('+57 123 456');
+      expect(vm.formData.address).toBe('123 Main Street');
+    });
+
+    it('detects changes in email field', async () => {
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData: { logos: {}, email: 'old@bakery.com' },
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      expect(vm.hasChanges).toBe(false);
+
+      vm.formData.email = 'new@bakery.com';
+      await wrapper.vm.$nextTick();
+
+      expect(vm.hasChanges).toBe(true);
+    });
+
+    it('detects changes in phone field', async () => {
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData: { logos: {}, phone: '+57 111' },
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      vm.formData.phone = '+57 222';
+      await wrapper.vm.$nextTick();
+
+      expect(vm.hasChanges).toBe(true);
+    });
+
+    it('detects changes in address field', async () => {
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData: { logos: {}, address: 'Old Address' },
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      vm.formData.address = 'New Address';
+      await wrapper.vm.$nextTick();
+
+      expect(vm.hasChanges).toBe(true);
+    });
+  });
+
+  describe('Legal Information Fields', () => {
+    it('renders legal name input field', () => {
+      wrapper = mount(BakeryBrandingForm, {
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const legalNameInput = wrapper.find('#bakery-legal-name');
+      expect(legalNameInput.exists()).toBe(true);
+    });
+
+    it('renders national ID input field', () => {
+      wrapper = mount(BakeryBrandingForm, {
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const nationalIdInput = wrapper.find('#bakery-national-id');
+      expect(nationalIdInput.exists()).toBe(true);
+    });
+
+    it('populates legal fields with initial data', () => {
+      const dataWithLegal = {
+        logos: {},
+        legalName: 'Bakery LLC',
+        nationalId: '123456789',
+      };
+
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData: dataWithLegal,
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      expect(vm.formData.legalName).toBe('Bakery LLC');
+      expect(vm.formData.nationalId).toBe('123456789');
+    });
+
+    it('detects changes in legal name field', async () => {
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData: { logos: {}, legalName: 'Old LLC' },
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      vm.formData.legalName = 'New LLC';
+      await wrapper.vm.$nextTick();
+
+      expect(vm.hasChanges).toBe(true);
+    });
+
+    it('detects changes in national ID field', async () => {
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData: { logos: {}, nationalId: '111111' },
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      vm.formData.nationalId = '222222';
+      await wrapper.vm.$nextTick();
+
+      expect(vm.hasChanges).toBe(true);
+    });
+  });
+
+  describe('Color Scheme Integration', () => {
+    it('renders ColorPickerCard components', () => {
+      wrapper = mount(BakeryBrandingForm, {
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      // Import ColorPickerCard for component matching
+      const colorPickers = wrapper.findAllComponents({ name: 'ColorPickerCard' });
+      expect(colorPickers.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('populates color fields with initial data', () => {
+      const dataWithColors = {
+        logos: {},
+        primaryColor: '#FF0000',
+        secondaryColor: '#00FF00',
+      };
+
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData: dataWithColors,
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      expect(vm.formData.primaryColor).toBe('#FF0000');
+      expect(vm.formData.secondaryColor).toBe('#00FF00');
+    });
+
+    it('detects changes in primary color', async () => {
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData: { logos: {}, primaryColor: '#000000' },
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      vm.formData.primaryColor = '#FFFFFF';
+      await wrapper.vm.$nextTick();
+
+      expect(vm.hasChanges).toBe(true);
+    });
+
+    it('detects changes in secondary color', async () => {
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData: { logos: {}, secondaryColor: '#000000' },
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      vm.formData.secondaryColor = '#FFFFFF';
+      await wrapper.vm.$nextTick();
+
+      expect(vm.hasChanges).toBe(true);
+    });
+  });
+
+  describe('Form Submission with New Fields', () => {
+    it('emits all contact fields on submit', async () => {
+      const initialData = {
+        logos: {},
+        email: 'test@bakery.com',
+        phone: '+57 123',
+        address: '123 Main',
+      };
+
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData,
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      vm.formData.email = 'changed@bakery.com';
+      await wrapper.vm.$nextTick();
+
+      const form = wrapper.find('form');
+      await form.trigger('submit.prevent');
+
+      expect(wrapper.emitted('submit')).toBeTruthy();
+      expect(wrapper.emitted('submit')[0][0]).toHaveProperty('email', 'changed@bakery.com');
+      expect(wrapper.emitted('submit')[0][0]).toHaveProperty('phone', '+57 123');
+      expect(wrapper.emitted('submit')[0][0]).toHaveProperty('address', '123 Main');
+    });
+
+    it('emits all legal fields on submit', async () => {
+      const initialData = {
+        logos: {},
+        legalName: 'Test LLC',
+        nationalId: '123456',
+      };
+
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData,
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      vm.formData.legalName = 'Changed LLC';
+      await wrapper.vm.$nextTick();
+
+      const form = wrapper.find('form');
+      await form.trigger('submit.prevent');
+
+      expect(wrapper.emitted('submit')).toBeTruthy();
+      expect(wrapper.emitted('submit')[0][0]).toHaveProperty('legalName', 'Changed LLC');
+      expect(wrapper.emitted('submit')[0][0]).toHaveProperty('nationalId', '123456');
+    });
+
+    it('emits color fields on submit', async () => {
+      const initialData = {
+        logos: {},
+        primaryColor: '#000000',
+        secondaryColor: '#FFFFFF',
+      };
+
+      wrapper = mount(BakeryBrandingForm, {
+        props: {
+          initialData,
+        },
+        global: {
+          plugins: [createPinia()],
+        },
+      });
+
+      const vm = wrapper.vm;
+      vm.formData.primaryColor = '#FF0000';
+      await wrapper.vm.$nextTick();
+
+      const form = wrapper.find('form');
+      await form.trigger('submit.prevent');
+
+      expect(wrapper.emitted('submit')).toBeTruthy();
+      expect(wrapper.emitted('submit')[0][0]).toHaveProperty('primaryColor', '#FF0000');
+      expect(wrapper.emitted('submit')[0][0]).toHaveProperty('secondaryColor', '#FFFFFF');
+    });
+  });
 });

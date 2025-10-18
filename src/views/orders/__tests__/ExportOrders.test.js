@@ -5,6 +5,7 @@ import ExportOrders from '../ExportOrders.vue';
 import OrderInvoice from '@/components/orders/OrderInvoice.vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { useBakeryStore } from '@/stores/bakeryStore';
 
 // Mock window.print and window.close
 const mockPrint = vi.fn();
@@ -605,6 +606,225 @@ describe('ExportOrders', () => {
       );
 
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Invoice Update Handler', () => {
+    beforeEach(async () => {
+      // Mock patch method
+      orderStore.patch = vi.fn(() => Promise.resolve());
+
+      wrapper = mount(ExportOrders, {
+        global: {
+          plugins: [createPinia()],
+          mocks: {
+            $route: mockRoute,
+            $router: mockRouter,
+          },
+        },
+      });
+
+      await flushPromises();
+    });
+
+    it('calls orderStore.patch when description is updated', async () => {
+      const updatePayload = {
+        type: 'description',
+        orderIndex: 0,
+        itemIndex: 0,
+        value: 'New description',
+      };
+
+      const invoiceComponent = wrapper.findComponent(OrderInvoice);
+      await invoiceComponent.vm.$emit('update', updatePayload);
+
+      expect(orderStore.patch).toHaveBeenCalled();
+    });
+
+    it('updates order item description in patch call', async () => {
+      const updatePayload = {
+        type: 'description',
+        orderIndex: 0,
+        itemIndex: 0,
+        value: 'Updated product description',
+      };
+
+      const invoiceComponent = wrapper.findComponent(OrderInvoice);
+      await invoiceComponent.vm.$emit('update', updatePayload);
+      await flushPromises();
+
+      expect(orderStore.patch).toHaveBeenCalledWith(
+        'order-123',
+        expect.objectContaining({
+          orderItems: expect.arrayContaining([
+            expect.objectContaining({
+              productDescription: 'Updated product description',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    it('calls orderStore.patch when terms are updated', async () => {
+      const updatePayload = {
+        type: 'terms',
+        value: 'New terms and conditions',
+      };
+
+      const invoiceComponent = wrapper.findComponent(OrderInvoice);
+      await invoiceComponent.vm.$emit('update', updatePayload);
+
+      expect(orderStore.patch).toHaveBeenCalled();
+    });
+
+    it('updates invoice customizations in patch call for terms', async () => {
+      const updatePayload = {
+        type: 'terms',
+        value: 'Updated terms and conditions',
+      };
+
+      const invoiceComponent = wrapper.findComponent(OrderInvoice);
+      await invoiceComponent.vm.$emit('update', updatePayload);
+      await flushPromises();
+
+      expect(orderStore.patch).toHaveBeenCalledWith(
+        'order-123',
+        expect.objectContaining({
+          invoiceCustomizations: expect.objectContaining({
+            termsAndConditions: 'Updated terms and conditions',
+          }),
+        }),
+      );
+    });
+
+    it('uses first order when orderIndex is not provided', async () => {
+      const updatePayload = {
+        type: 'terms',
+        value: 'Terms without orderIndex',
+      };
+
+      const invoiceComponent = wrapper.findComponent(OrderInvoice);
+      await invoiceComponent.vm.$emit('update', updatePayload);
+      await flushPromises();
+
+      expect(orderStore.patch).toHaveBeenCalledWith(
+        'order-123',
+        expect.any(Object),
+      );
+    });
+
+    it('handles patch errors gracefully', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      orderStore.patch = vi.fn(() => Promise.reject(new Error('Network error')));
+
+      const updatePayload = {
+        type: 'description',
+        orderIndex: 0,
+        itemIndex: 0,
+        value: 'Test',
+      };
+
+      const invoiceComponent = wrapper.findComponent(OrderInvoice);
+      await invoiceComponent.vm.$emit('update', updatePayload);
+      await flushPromises();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error saving invoice changes:',
+        expect.any(Error),
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('does not patch when orders array is empty', async () => {
+      // Mount with no orders
+      const emptyRoute = {
+        query: {},
+      };
+
+      wrapper = mount(ExportOrders, {
+        global: {
+          plugins: [createPinia()],
+          mocks: {
+            $route: emptyRoute,
+            $router: mockRouter,
+          },
+        },
+      });
+
+      await flushPromises();
+
+      const updatePayload = {
+        type: 'description',
+        orderIndex: 0,
+        itemIndex: 0,
+        value: 'Test',
+      };
+
+      const vm = wrapper.vm;
+      await vm.handleInvoiceUpdate(updatePayload);
+
+      expect(orderStore.patch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Bakery Data Integration', () => {
+    it('fetches bakery entity data on mount', async () => {
+      const bakeryStore = useBakeryStore();
+      bakeryStore.fetchBakeryById = vi.fn(() => Promise.resolve({
+        name: 'Test Bakery',
+        address: '123 Main St',
+        phone: '+57 123 456',
+        email: 'test@bakery.com',
+        legalName: 'Test Bakery LLC',
+        nationalId: '123456789',
+      }));
+
+      wrapper = mount(ExportOrders, {
+        global: {
+          plugins: [createPinia()],
+          mocks: {
+            $route: mockRoute,
+            $router: mockRouter,
+          },
+        },
+      });
+
+      await flushPromises();
+
+      expect(bakeryStore.fetchBakeryById).toHaveBeenCalled();
+    });
+
+    it('merges bakery entity data with settings', async () => {
+      const bakeryStore = useBakeryStore();
+      bakeryStore.currentBakery = {
+        name: 'Merged Bakery',
+        address: 'Merged Address',
+        phone: '+57 999 999',
+        email: 'merged@bakery.com',
+        legalName: 'Merged LLC',
+        nationalId: '999999999',
+      };
+
+      wrapper = mount(ExportOrders, {
+        global: {
+          plugins: [createPinia()],
+          mocks: {
+            $route: mockRoute,
+            $router: mockRouter,
+          },
+        },
+      });
+
+      await flushPromises();
+
+      const invoiceComponent = wrapper.findComponent(OrderInvoice);
+      const bakerySettings = invoiceComponent.props('bakerySettings');
+
+      expect(bakerySettings.name).toBe('Merged Bakery');
+      expect(bakerySettings.address).toBe('Merged Address');
+      expect(bakerySettings.legalName).toBe('Merged LLC');
+      expect(bakerySettings.nationalId).toBe('999999999');
     });
   });
 });

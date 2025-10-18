@@ -572,4 +572,331 @@ describe('OrderInvoice', () => {
       expect(style).toContain('@media print');
     });
   });
+
+  describe('Editable Product Descriptions', () => {
+    it('displays existing product descriptions', () => {
+      const orderWithDescription = {
+        ...mockOrder,
+        orderItems: [
+          {
+            productName: 'Pan Francés',
+            productDescription: 'Delicioso pan artesanal',
+            quantity: 2,
+            subtotal: 10000,
+          },
+        ],
+      };
+
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [orderWithDescription],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      expect(wrapper.text()).toContain('Delicioso pan artesanal');
+    });
+
+    it('shows "+ Agregar descripción" button when no description exists', () => {
+      const orderWithoutDescription = {
+        ...mockOrder,
+        orderItems: [
+          {
+            productName: 'Pan Francés',
+            quantity: 2,
+            subtotal: 10000,
+          },
+        ],
+      };
+
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [orderWithoutDescription],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      expect(wrapper.text()).toContain('+ Agregar descripción');
+    });
+
+    it('makes description visible when add button is clicked', async () => {
+      const orderWithoutDescription = {
+        ...mockOrder,
+        orderItems: [
+          {
+            productName: 'Pan Francés',
+            quantity: 2,
+            subtotal: 10000,
+          },
+        ],
+      };
+
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [orderWithoutDescription],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      const addButton = wrapper.find('.add-description-btn');
+      await addButton.trigger('click');
+
+      const vm = wrapper.vm;
+      expect(vm.editingDescriptions.has('0-0')).toBe(true);
+    });
+
+    it('description field has contenteditable attribute', () => {
+      const orderWithDescription = {
+        ...mockOrder,
+        orderItems: [
+          {
+            productName: 'Pan Francés',
+            productDescription: 'Test description',
+            quantity: 2,
+            subtotal: 10000,
+          },
+        ],
+      };
+
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [orderWithDescription],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      const editableDesc = wrapper.find('.item-description.editable');
+      expect(editableDesc.attributes('contenteditable')).toBe('true');
+    });
+
+    it('emits update event when description is edited', async () => {
+      const orderWithDescription = {
+        ...mockOrder,
+        orderItems: [
+          {
+            productName: 'Pan Francés',
+            productDescription: 'Original description',
+            quantity: 2,
+            subtotal: 10000,
+          },
+        ],
+      };
+
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [orderWithDescription],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      const editableDesc = wrapper.find('.item-description.editable');
+
+      // Simulate input event
+      editableDesc.element.textContent = 'Updated description';
+      await editableDesc.trigger('input');
+
+      // Wait for debounce (we can't wait 1 second in tests, so just check if emit was queued)
+      expect(wrapper.emitted('update')).toBeTruthy();
+    });
+
+    it('emits update event with correct payload structure', async () => {
+      const orderWithDescription = {
+        ...mockOrder,
+        orderItems: [
+          {
+            productName: 'Pan Francés',
+            productDescription: 'Test',
+            quantity: 2,
+            subtotal: 10000,
+          },
+        ],
+      };
+
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [orderWithDescription],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      const editableDesc = wrapper.find('.item-description.editable');
+      editableDesc.element.textContent = 'New description';
+      await editableDesc.trigger('input');
+
+      const updateEvents = wrapper.emitted('update');
+      expect(updateEvents).toBeTruthy();
+      expect(updateEvents[0][0]).toHaveProperty('type', 'description');
+      expect(updateEvents[0][0]).toHaveProperty('orderIndex', 0);
+      expect(updateEvents[0][0]).toHaveProperty('itemIndex', 0);
+    });
+  });
+
+  describe('Editable Terms and Conditions', () => {
+    it('displays terms from order invoiceCustomizations', () => {
+      const orderWithTerms = {
+        ...mockOrder,
+        invoiceCustomizations: {
+          termsAndConditions: 'Custom terms for this order',
+        },
+      };
+
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [orderWithTerms],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      expect(wrapper.text()).toContain('Custom terms for this order');
+    });
+
+    it('displays default terms from bakery settings when no order terms', () => {
+      const settingsWithTerms = {
+        ...mockBakerySettings,
+        features: {
+          invoicing: {
+            defaultTermsAndConditions: 'Default bakery terms',
+          },
+        },
+      };
+
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [mockOrder],
+          bakerySettings: settingsWithTerms,
+        },
+      });
+
+      const vm = wrapper.vm;
+      expect(vm.editableTerms).toBe('Default bakery terms');
+    });
+
+    it('shows terms section only for single orders', () => {
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [mockOrder],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      expect(wrapper.find('.notes-section').exists()).toBe(true);
+    });
+
+    it('hides terms section for multiple orders', () => {
+      const order2 = { ...mockOrder, id: 'order-456' };
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [mockOrder, order2],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      expect(wrapper.find('.notes-section').exists()).toBe(false);
+    });
+
+    it('terms field has contenteditable attribute', () => {
+      const orderWithTerms = {
+        ...mockOrder,
+        invoiceCustomizations: {
+          termsAndConditions: 'Test terms',
+        },
+      };
+
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [orderWithTerms],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      const editableTerms = wrapper.find('.notes-content.editable');
+      expect(editableTerms.attributes('contenteditable')).toBe('true');
+    });
+
+    it('emits update event when terms are edited', async () => {
+      const orderWithTerms = {
+        ...mockOrder,
+        invoiceCustomizations: {
+          termsAndConditions: 'Original terms',
+        },
+      };
+
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [orderWithTerms],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      const editableTerms = wrapper.find('.notes-content.editable');
+      editableTerms.element.textContent = 'Updated terms';
+      await editableTerms.trigger('input');
+
+      expect(wrapper.emitted('update')).toBeTruthy();
+    });
+
+    it('emits update event with correct payload for terms', async () => {
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [mockOrder],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      const editableTerms = wrapper.find('.notes-content.editable');
+      editableTerms.element.textContent = 'New terms';
+      await editableTerms.trigger('input');
+
+      const updateEvents = wrapper.emitted('update');
+      expect(updateEvents).toBeTruthy();
+      expect(updateEvents[0][0]).toHaveProperty('type', 'terms');
+      expect(updateEvents[0][0]).toHaveProperty('value');
+    });
+  });
+
+  describe('Combined Items with Editable Features', () => {
+    it('includes orderIndex and itemIndex in combinedItems', () => {
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [mockOrder],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      const vm = wrapper.vm;
+      expect(vm.combinedItems[0]).toHaveProperty('orderIndex', 0);
+      expect(vm.combinedItems[0]).toHaveProperty('itemIndex', 0);
+      expect(vm.combinedItems[1]).toHaveProperty('orderIndex', 0);
+      expect(vm.combinedItems[1]).toHaveProperty('itemIndex', 1);
+    });
+
+    it('delivery fee items do not have orderIndex or itemIndex', () => {
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [mockOrder],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      const vm = wrapper.vm;
+      const deliveryItem = vm.combinedItems.find(item => item.productName === 'Servicio de Domicilio');
+      expect(deliveryItem).toBeDefined();
+      expect(deliveryItem.orderIndex).toBeUndefined();
+      expect(deliveryItem.itemIndex).toBeUndefined();
+    });
+
+    it('does not show add description button for delivery fee items', () => {
+      wrapper = mount(OrderInvoice, {
+        props: {
+          orders: [mockOrder],
+          bakerySettings: mockBakerySettings,
+        },
+      });
+
+      const tableRows = wrapper.findAll('tbody tr');
+      const deliveryRow = tableRows[tableRows.length - 1]; // Last row should be delivery
+      expect(deliveryRow.text()).toContain('Servicio de Domicilio');
+      expect(deliveryRow.find('.add-description-btn').exists()).toBe(false);
+    });
+  });
 });
