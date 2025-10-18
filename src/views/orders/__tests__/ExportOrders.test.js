@@ -1,11 +1,18 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+
+// Create and set active Pinia at module level
+const testPinia = createPinia();
+setActivePinia(testPinia);
+
+// Now import components and stores - with testPinia active, they can use it
 import ExportOrders from '../ExportOrders.vue';
 import OrderInvoice from '@/components/orders/OrderInvoice.vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useBakeryStore } from '@/stores/bakeryStore';
+import { useAuthenticationStore } from '@/stores/authentication';
 
 // Mock window.print and window.close
 const mockPrint = vi.fn();
@@ -28,6 +35,8 @@ describe('ExportOrders', () => {
   let wrapper;
   let orderStore;
   let settingsStore;
+  let bakeryStore;
+  let authStore;
 
   const mockOrder1 = {
     id: 'order-123',
@@ -80,15 +89,27 @@ describe('ExportOrders', () => {
     mockRouter.back.mockClear();
     Object.defineProperty(window, 'closed', { value: false, writable: true, configurable: true });
 
-    // Create fresh pinia instance
-    const pinia = createPinia();
-    setActivePinia(pinia);
+    // Reset test pinia state and reinitialize stores
+    testPinia.state.value = {};
+    setActivePinia(testPinia);
+
     orderStore = useOrderStore();
     settingsStore = useBakerySettingsStore();
+    bakeryStore = useBakeryStore();
+    authStore = useAuthenticationStore();
+
+    // Mock authStore bakeryId
+    vi.spyOn(authStore, 'getBakeryId', 'get').mockReturnValue('test-bakery-123');
 
     // Setup mock data in stores
     orderStore.items = [mockOrder1, mockOrder2];
     settingsStore.items = [mockBakerySettings];
+    bakeryStore.currentBakery = {
+      name: 'Test Bakery',
+      address: 'Calle 123',
+      phone: '+57 300 123 4567',
+      email: 'info@testbakery.com',
+    };
 
     // Mock fetchById methods
     orderStore.fetchById = vi.fn((id) => {
@@ -98,6 +119,7 @@ describe('ExportOrders', () => {
     });
 
     settingsStore.fetchById = vi.fn(() => Promise.resolve(mockBakerySettings));
+    bakeryStore.fetchBakeryById = vi.fn(() => Promise.resolve(bakeryStore.currentBakery));
 
     wrapper = null;
   });
@@ -106,7 +128,7 @@ describe('ExportOrders', () => {
     it('renders loading state initially', () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -121,7 +143,7 @@ describe('ExportOrders', () => {
     it('fetches orders on mount', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -139,7 +161,7 @@ describe('ExportOrders', () => {
     it('fetches bakery settings on mount', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -155,7 +177,7 @@ describe('ExportOrders', () => {
     it('parses multiple order IDs from query params', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -172,7 +194,7 @@ describe('ExportOrders', () => {
     it('renders OrderInvoice component after loading', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -195,7 +217,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: emptyRoute,
             $router: mockRouter,
@@ -214,7 +236,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -232,7 +254,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -251,7 +273,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -275,7 +297,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -297,7 +319,7 @@ describe('ExportOrders', () => {
     it('displays print controls bar', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -314,7 +336,7 @@ describe('ExportOrders', () => {
     it('shows print button when loaded', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -332,7 +354,7 @@ describe('ExportOrders', () => {
     it('shows close button', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -349,7 +371,7 @@ describe('ExportOrders', () => {
     it('calls window.print when print button clicked', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -368,7 +390,7 @@ describe('ExportOrders', () => {
     it('calls window.close when close button clicked', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -389,7 +411,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -410,7 +432,7 @@ describe('ExportOrders', () => {
     it('passes orders to OrderInvoice component', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -429,7 +451,7 @@ describe('ExportOrders', () => {
     it('passes bakery settings to OrderInvoice component', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -450,7 +472,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -471,7 +493,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -496,7 +518,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: singleRoute,
             $router: mockRouter,
@@ -516,7 +538,7 @@ describe('ExportOrders', () => {
     it('applies correct container classes', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -533,7 +555,7 @@ describe('ExportOrders', () => {
     it('applies print-friendly layout classes to invoice', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -550,7 +572,7 @@ describe('ExportOrders', () => {
     it('has sticky print controls bar', async () => {
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -572,7 +594,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -590,7 +612,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -616,7 +638,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -744,7 +766,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: emptyRoute,
             $router: mockRouter,
@@ -770,7 +792,6 @@ describe('ExportOrders', () => {
 
   describe('Bakery Data Integration', () => {
     it('fetches bakery entity data on mount', async () => {
-      const bakeryStore = useBakeryStore();
       bakeryStore.fetchBakeryById = vi.fn(() => Promise.resolve({
         name: 'Test Bakery',
         address: '123 Main St',
@@ -782,7 +803,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
@@ -796,7 +817,6 @@ describe('ExportOrders', () => {
     });
 
     it('merges bakery entity data with settings', async () => {
-      const bakeryStore = useBakeryStore();
       bakeryStore.currentBakery = {
         name: 'Merged Bakery',
         address: 'Merged Address',
@@ -808,7 +828,7 @@ describe('ExportOrders', () => {
 
       wrapper = mount(ExportOrders, {
         global: {
-          plugins: [createPinia()],
+          plugins: [testPinia],
           mocks: {
             $route: mockRoute,
             $router: mockRouter,
