@@ -143,10 +143,19 @@ const clientInfo = computed(() => {
   };
 });
 
+// Parse date string as local date to avoid timezone issues
+const parseLocalDate = (dateString) => {
+  if (!dateString) return null;
+  // Parse YYYY-MM-DD as local date (not UTC)
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
 // Format date for display - short format dd/mm/yy for tables
 const formatDate = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
+  if (!date) return '';
   const day = date.getDate().toString().padStart(2, '0');
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const year = date.getFullYear().toString().slice(-2);
@@ -156,7 +165,8 @@ const formatDate = (dateString) => {
 // Format date for header - long format 01 Oct 2025
 const formatDateLong = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
+  if (!date) return '';
   const day = date.getDate().toString().padStart(2, '0');
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const month = months[date.getMonth()];
@@ -176,15 +186,21 @@ const dateRange = computed(() => {
     return formatDateLong(props.orders[0].preparationDate);
   }
 
-  const dates = props.orders.map(o => new Date(o.preparationDate));
+  const dates = props.orders.map(o => parseLocalDate(o.preparationDate)).filter(Boolean);
+  if (dates.length === 0) return '';
+
   const minDate = new Date(Math.min(...dates));
   const maxDate = new Date(Math.max(...dates));
 
   if (minDate.toDateString() === maxDate.toDateString()) {
-    return formatDateLong(minDate);
+    return formatDateLong(props.orders[0].preparationDate);
   }
 
-  return `${formatDateLong(minDate)} - ${formatDateLong(maxDate)}`;
+  // Find the orders with min and max dates
+  const minOrder = props.orders.find(o => parseLocalDate(o.preparationDate)?.getTime() === minDate.getTime());
+  const maxOrder = props.orders.find(o => parseLocalDate(o.preparationDate)?.getTime() === maxDate.getTime());
+
+  return `${formatDateLong(minOrder?.preparationDate)} - ${formatDateLong(maxOrder?.preparationDate)}`;
 });
 
 // Get primary color from bakery settings with fallback
