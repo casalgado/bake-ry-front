@@ -1,6 +1,22 @@
 // composables/useTableFilter.js
 import { ref, computed } from 'vue';
 
+// Helper function to remove accents from vowels only (preserves ñ, ü, etc.)
+const removeAccents = (str) => {
+  const accentMap = {
+    'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+    'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
+    'à': 'a', 'è': 'e', 'ì': 'i', 'ò': 'o', 'ù': 'u',
+    'À': 'A', 'È': 'E', 'Ì': 'I', 'Ò': 'O', 'Ù': 'U',
+    'ä': 'a', 'ë': 'e', 'ï': 'i', 'ö': 'o', 'ü': 'u',
+    'Ä': 'A', 'Ë': 'E', 'Ï': 'I', 'Ö': 'O', 'Ü': 'U',
+    'â': 'a', 'ê': 'e', 'î': 'i', 'ô': 'o', 'û': 'u',
+    'Â': 'A', 'Ê': 'E', 'Î': 'I', 'Ô': 'O', 'Û': 'U'
+  };
+
+  return str.replace(/[áéíóúÁÉÍÓÚàèìòùÀÈÌÒÙäëïöüÄËÏÖÜâêîôûÂÊÎÔÛ]/g, match => accentMap[match]);
+};
+
 export const useTableFilter = (options = {}) => {
   const searchQuery = ref('');
   const activeFilters = ref(new Map()); // Map of field -> Set of active values
@@ -58,10 +74,11 @@ export const useTableFilter = (options = {}) => {
       // Then check if item matches search query
       if (!searchQuery.value) return true;
 
-      const query = searchQuery.value.toLowerCase();
-      return searchableColumns.some(column =>
-        String(item[column]).toLowerCase().includes(query),
-      );
+      const query = removeAccents(searchQuery.value.toLowerCase());
+      return searchableColumns.some(column => {
+        const value = removeAccents(String(item[column]).toLowerCase());
+        return value.includes(query);
+      });
     });
   };
 
