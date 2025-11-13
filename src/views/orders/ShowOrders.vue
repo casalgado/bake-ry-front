@@ -40,6 +40,7 @@ import {
   PhMopedFront,
   PhStorefront,
   PhFile,
+  PhPrinter,
 } from '@phosphor-icons/vue';
 import BancolombiaIcon from '@/assets/icons/bancolombia.svg'; // Ensure this path is correct
 import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg'; // Ensure this path is correct
@@ -130,7 +131,7 @@ const {
       orderHistory.value = await orderStore.getHistory(selectedOrder.id);
       isHistoryOpen.value = true;
       break;
-    case 'export': {
+    case 'print': {
       // Validate all orders are from the same client
       const clientIds = [
         ...new Set(selectedItems.map((order) => order.userId)),
@@ -150,6 +151,12 @@ const {
       }).href;
 
       window.open(exportUrl, '_blank');
+      break;
+    }
+    case 'export': {
+      // Export selected orders if any, otherwise export all visible orders
+      const ordersToExport = selectedItems.length > 0 ? selectedItems : tableData.value;
+      exportOrders(ordersToExport);
       break;
     }
     }
@@ -343,10 +350,17 @@ const tableActions = [
     variant: 'primary',
   },
   {
+    id: 'print',
+    label: 'Imprimir',
+    icon: PhPrinter,
+    minSelected: 1,
+    variant: 'primary',
+  },
+  {
     id: 'export',
     label: 'Exportar',
     icon: PhExport,
-    minSelected: 1,
+    minSelected: 0,
     variant: 'primary',
   },
 ];
