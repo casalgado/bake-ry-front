@@ -272,6 +272,49 @@ const worstProductsData = computed(() => {
   }));
 });
 
+// Check if both B2B and B2C segments have sales
+const hasBothSegments = computed(() => {
+  const totalB2B = safeGet(salesReport.value, 'summary.totalB2B', 0);
+  const totalB2C = safeGet(salesReport.value, 'summary.totalB2C', 0);
+  const hasBoth = totalB2B > 0 && totalB2C > 0;
+  console.log('🔍 hasBothSegments check:', { totalB2B, totalB2C, hasBoth });
+  return hasBoth;
+});
+
+// Best products B2B data
+const bestProductsB2BData = computed(() => {
+  const b2bData = safeGet(salesReport.value, 'productMetrics.bestSellers.b2b', []);
+  console.log('🔍 B2B products raw data:', b2bData);
+  const mapped = b2bData.map(product => ({
+    name: product?.name ?? 'N/A',
+    collection: product?.collection ?? 'N/A',
+    revenue: product?.revenue ?? 0,
+    revenuePercentage: product?.percentageOfSales ?? 0,
+    quantity: product?.quantity ?? 0,
+    quantityPercentage: product?.percentageOfQuantity ?? 0,
+    averagePrice: product?.averagePrice ?? 0,
+  }));
+  console.log('🔍 B2B products mapped:', mapped);
+  return mapped;
+});
+
+// Best products B2C data
+const bestProductsB2CData = computed(() => {
+  const b2cData = safeGet(salesReport.value, 'productMetrics.bestSellers.b2c', []);
+  console.log('🔍 B2C products raw data:', b2cData);
+  const mapped = b2cData.map(product => ({
+    name: product?.name ?? 'N/A',
+    collection: product?.collection ?? 'N/A',
+    revenue: product?.revenue ?? 0,
+    revenuePercentage: product?.percentageOfSales ?? 0,
+    quantity: product?.quantity ?? 0,
+    quantityPercentage: product?.percentageOfQuantity ?? 0,
+    averagePrice: product?.averagePrice ?? 0,
+  }));
+  console.log('🔍 B2C products mapped:', mapped);
+  return mapped;
+});
+
 const productsColumns = [
   { key: 'name', label: 'Producto', formatter: 'capitalize' },
   { key: 'collection', label: 'Categoría', formatter: 'capitalize' },
@@ -362,6 +405,8 @@ watch(
           },
         },
       });
+      console.log('🔍 Full salesReport structure:', salesReport.value);
+      console.log('🔍 productMetrics.bestSellers:', salesReport.value?.productMetrics?.bestSellers);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
       orderStore.error = 'Error al cargar el reporte de ventas';
@@ -394,6 +439,8 @@ watch(
           },
         },
       });
+      console.log('🔍 [Date Field Change] Full salesReport structure:', salesReport.value);
+      console.log('🔍 [Date Field Change] productMetrics.bestSellers:', salesReport.value?.productMetrics?.bestSellers);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
       orderStore.error = 'Error al cargar el reporte de ventas';
@@ -423,6 +470,8 @@ onMounted(async () => {
         },
       },
     });
+    console.log('🔍 [onMounted] Full salesReport structure:', salesReport.value);
+    console.log('🔍 [onMounted] productMetrics.bestSellers:', salesReport.value?.productMetrics?.bestSellers);
 
     unsubscribeRef.value = await orderStore.subscribeToChanges();
     console.log('🔄 Real-time updates enabled for sales report');
@@ -523,6 +572,30 @@ onUnmounted(() => {
         <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Productos Más Vendidos</h3>
         <SimpleTable
           :data="bestProductsData"
+          :columns="productsColumns"
+        />
+      </div>
+
+      <!-- Best Products B2B Table -->
+      <div
+        v-if="hasBothSegments && salesReport?.productMetrics?.bestSellers?.b2b?.length"
+        class="mb-4 sm:mb-8"
+      >
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Productos Más Vendidos (B2B)</h3>
+        <SimpleTable
+          :data="bestProductsB2BData"
+          :columns="productsColumns"
+        />
+      </div>
+
+      <!-- Best Products B2C Table -->
+      <div
+        v-if="hasBothSegments && salesReport?.productMetrics?.bestSellers?.b2c?.length"
+        class="mb-4 sm:mb-8"
+      >
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Productos Más Vendidos (B2C)</h3>
+        <SimpleTable
+          :data="bestProductsB2CData"
           :columns="productsColumns"
         />
       </div>
