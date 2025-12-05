@@ -15,9 +15,9 @@ const showEmail = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col max-w-48">
+  <div class="flex flex-col max-w-48 overflow-hidden">
     <span v-if="showEmail" class="flex items-center gap-2">
-      <span>{{ showEmail }}</span>
+      <span class="truncate" :title="showEmail">{{ showEmail }}</span>
     </span>
   </div>
 </template>

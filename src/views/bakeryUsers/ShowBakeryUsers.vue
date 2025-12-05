@@ -5,14 +5,17 @@ import { useRouter } from 'vue-router';
 import DataTable from '@/components/DataTable/index.vue';
 import { useDataTable } from '@/components/DataTable/composables/useDataTable.js';
 import BakeryUserForm from '@/components/forms/BakeryUserForm.vue';
+import ShowUserHistory from '@/components/bakeryUsers/ShowUserHistory.vue';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
-import { PhPen, PhTrash } from '@phosphor-icons/vue'; // 👈 Importar ícono de basura
+import { PhPen, PhTrash, PhClockCounterClockwise } from '@phosphor-icons/vue';
 import UserCell from '@/components/DataTable/renderers/UserCell.vue';
 import EmailCell from '@/components/DataTable/renderers/EmailCell.vue';
 
 const router = useRouter();
 const bakeryUserStore = useBakeryUserStore();
 const isFormOpen = ref(false);
+const isHistoryOpen = ref(false);
+const userHistory = ref([]);
 
 const {
   dataTable,
@@ -51,6 +54,11 @@ const {
       }
       break;
     }
+
+    case 'history':
+      userHistory.value = await bakeryUserStore.getHistory(selectedClient.id);
+      isHistoryOpen.value = true;
+      break;
     }
   },
 });
@@ -121,12 +129,20 @@ const tableActions = [
     variant: 'primary',
   },
   {
-    id: 'delete', // 👈 Nueva acción
+    id: 'delete',
     label: 'Eliminar',
     icon: PhTrash,
     minSelected: 1,
     maxSelected: 1,
-    variant: 'danger', // Asumiendo que el DataTable lo soporta
+    variant: 'danger',
+  },
+  {
+    id: 'history',
+    label: 'Historial',
+    icon: PhClockCounterClockwise,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'primary',
   },
 ];
 
@@ -154,6 +170,7 @@ const handleSubmit = async (formData) => {
 
 const closeForm = () => {
   isFormOpen.value = false;
+  isHistoryOpen.value = false;
   clearSelection();
 };
 
@@ -197,6 +214,21 @@ const navigateToCreate = () => {
             @submit="handleSubmit"
             @cancel="closeForm"
           />
+        </DialogPanel>
+      </div>
+    </Dialog>
+
+    <!-- History Dialog -->
+    <Dialog :open="isHistoryOpen" @close="closeForm" class="relative z-50">
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel
+          class="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+        >
+          <h2 class="text-2xl font-bold text-neutral-800 mb-4">
+            Historial de Pedidos
+          </h2>
+          <ShowUserHistory :orders="userHistory" />
         </DialogPanel>
       </div>
     </Dialog>
