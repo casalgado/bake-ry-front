@@ -1,5 +1,6 @@
 // api.js
 import axios from 'axios';
+import { getAuth } from 'firebase/auth';
 
 const baseURL =
   import.meta.env.VITE_USE_AUTH_EMULATOR === 'true'
@@ -11,9 +12,11 @@ const api = axios.create({
   timeout: 10000,
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('AuthToken');
-  if (token) {
+api.interceptors.request.use(async (config) => {
+  const auth = getAuth();
+  if (auth.currentUser) {
+    const token = await auth.currentUser.getIdToken();
+    localStorage.setItem('AuthToken', token);
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
