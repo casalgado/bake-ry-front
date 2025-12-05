@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { computed, onMounted } from 'vue';
 import {
   PhChartLineUp,
+  PhChartBar,
   PhOven,
   PhPersonArmsSpread,
   PhCashRegister,
@@ -74,16 +75,21 @@ const navigationSections = computed(() => [
         path: '/dashboard/orders/create-offline',
       }] : []),
       {
-        id: 'venta',
-        icon: PhChartLineUp,
-        text: 'Venta',
-        path: '/dashboard/salesReport',
-      },
-      {
         id: 'por_cobrar',
         icon: PhHandCoins,
         text: 'Por Cobrar',
         path: '/dashboard/orders/unpaid',
+      },
+    ],
+  },
+  {
+    title: 'Analisis',
+    items: [
+      {
+        id: 'venta',
+        icon: PhChartLineUp,
+        text: 'Venta',
+        path: '/dashboard/salesReport',
       },
       {
         id: 'fecha_de_pagos',
@@ -91,7 +97,12 @@ const navigationSections = computed(() => [
         text: 'Fechas de Pago',
         path: '/dashboard/paymentDates',
       },
-
+      {
+        id: 'reportes',
+        icon: PhChartBar,
+        text: 'Reportes',
+        path: '/dashboard/reports',
+      },
     ],
   },
   {

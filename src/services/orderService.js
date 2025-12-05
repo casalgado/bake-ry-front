@@ -34,4 +34,19 @@ export class OrderService extends BaseService {
       throw this.handleError(error);
     }
   }
+
+  async getProductReport(query = {}) {
+    try {
+      // Format query parameters using the base service method
+      const params = this.formatQueryParams(query);
+
+      const response = await this.api.get(
+        `${this.basePath}/orders/product_report`,
+        { params },
+      );
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
 }

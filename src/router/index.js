@@ -202,6 +202,11 @@ const router = createRouter({
           name: 'showConsole',
           component: () => import('../views/Console.vue'),
         },
+        {
+          path: 'reports',
+          name: 'admin-reports',
+          component: () => import('../views/reports/ReportsPage.vue'),
+        },
       ],
     },
     {
@@ -223,6 +228,11 @@ const router = createRouter({
           path: 'paymentDates',
           name: 'accountingPaymentDates',
           component: () => import('../views/orders/ShowPaymentDates.vue'),
+        },
+        {
+          path: 'reports',
+          name: 'accounting-reports',
+          component: () => import('../views/reports/ReportsPage.vue'),
         },
       ],
     },

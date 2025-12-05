@@ -634,4 +634,136 @@ const exportPaymentReport = (orders, options = {}) => {
   };
 };
 
-export { exportOrders, exportProducts, exportPaymentReport };
+// EXPORT PRODUCT REPORT (from API response)
+const exportProductReport = (reportData, options = {}) => {
+  const { products = [], metadata = {} } = reportData;
+  const format = options.format || 'xlsx';
+  const hasSegments = metadata.options?.segment === 'all';
+  const metrics = metadata.options?.metrics || 'both';
+  const showIngresos = metrics === 'both' || metrics === 'ingresos';
+  const showCantidad = metrics === 'both' || metrics === 'cantidad';
+
+  // Collect all period keys from products
+  const allPeriods = new Set();
+  products.forEach((product) => {
+    if (product.periods) {
+      Object.keys(product.periods).forEach((period) => allPeriods.add(period));
+    }
+  });
+  const sortedPeriods = Array.from(allPeriods).sort();
+
+  // Transform products into rows
+  const rows = products.map((product) => {
+    const row = {
+      categoria: product.categoryName || '',
+      producto: product.productName || '',
+      precio_promedio: product.avgPrice || 0,
+    };
+
+    // Add total columns based on metrics selection
+    if (showIngresos) {
+      row.total_ingresos = product.totalIngresos || 0;
+    }
+    if (showCantidad) {
+      row.total_cantidad = product.totalCantidad || 0;
+    }
+
+    // Add B2B/B2C columns if segment breakdown is present
+    if (hasSegments) {
+      if (showIngresos) {
+        row.b2b_ingresos = product.b2bIngresos || 0;
+        row.b2c_ingresos = product.b2cIngresos || 0;
+      }
+      if (showCantidad) {
+        row.b2b_cantidad = product.b2bCantidad || 0;
+        row.b2c_cantidad = product.b2cCantidad || 0;
+      }
+    }
+
+    // Add dynamic period columns
+    sortedPeriods.forEach((period) => {
+      const periodData = product.periods?.[period] || {};
+
+      if (showIngresos) {
+        row[`${period}_ingresos`] = periodData.ingresos || 0;
+      }
+      if (showCantidad) {
+        row[`${period}_cantidad`] = periodData.cantidad || 0;
+      }
+
+      if (hasSegments) {
+        if (showIngresos) {
+          row[`${period}_b2b_ingresos`] = periodData.b2bIngresos || 0;
+          row[`${period}_b2c_ingresos`] = periodData.b2cIngresos || 0;
+        }
+        if (showCantidad) {
+          row[`${period}_b2b_cantidad`] = periodData.b2bCantidad || 0;
+          row[`${period}_b2c_cantidad`] = periodData.b2cCantidad || 0;
+        }
+      }
+    });
+
+    return row;
+  });
+
+  // Create worksheet
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+
+  // Set base column widths
+  const baseCols = [
+    { width: 20 }, // categoria
+    { width: 25 }, // producto
+    { width: 15 }, // precio_promedio
+  ];
+
+  if (showIngresos) baseCols.push({ width: 15 }); // total_ingresos
+  if (showCantidad) baseCols.push({ width: 15 }); // total_cantidad
+
+  if (hasSegments) {
+    if (showIngresos) {
+      baseCols.push({ width: 12 }); // b2b_ingresos
+      baseCols.push({ width: 12 }); // b2c_ingresos
+    }
+    if (showCantidad) {
+      baseCols.push({ width: 12 }); // b2b_cantidad
+      baseCols.push({ width: 12 }); // b2c_cantidad
+    }
+  }
+
+  // Add period column widths
+  sortedPeriods.forEach(() => {
+    if (showIngresos) baseCols.push({ width: 12 });
+    if (showCantidad) baseCols.push({ width: 12 });
+    if (hasSegments) {
+      if (showIngresos) {
+        baseCols.push({ width: 12 }, { width: 12 }); // b2b/b2c ingresos
+      }
+      if (showCantidad) {
+        baseCols.push({ width: 12 }, { width: 12 }); // b2b/b2c cantidad
+      }
+    }
+  });
+
+  worksheet['!cols'] = baseCols;
+
+  // Create workbook
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Ventas por Producto');
+
+  // Generate filename
+  const dateRange = options.startDate && options.endDate
+    ? `${options.startDate}_${options.endDate}`
+    : new Date().toISOString().split('T')[0];
+  const filename = `ventas_producto_${dateRange}`;
+
+  // Write file
+  if (format === 'csv') {
+    XLSX.writeFile(workbook, `${filename}.csv`, { bookType: 'csv' });
+  } else {
+    XLSX.writeFile(workbook, `${filename}.xlsx`);
+  }
+
+  return { rows, periods: sortedPeriods };
+};
+
+export { exportOrders, exportProducts, exportPaymentReport, exportProductReport };

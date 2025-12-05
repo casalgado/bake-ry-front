@@ -3,6 +3,7 @@
 import { useRouter, useRoute } from 'vue-router';
 import {
   PhChartLineUp,
+  PhChartBar,
   PhOven,
   PhPersonArmsSpread,
   PhCashRegister,
@@ -29,25 +30,28 @@ const route = useRoute();
 
 const navigationSections = [
   {
-    title: 'Pedidos',
+    title: 'Analisis',
     items: [
-
       {
         id: 'venta',
         icon: PhChartLineUp,
         text: 'Venta',
         path: '/accounting/salesReport',
       },
-
       {
         id: 'fecha_de_pagos',
         icon: PhCalendarCheck,
         text: 'Fechas de Pago',
         path: '/accounting/paymentDates',
       },
+      {
+        id: 'reportes',
+        icon: PhChartBar,
+        text: 'Reportes',
+        path: '/accounting/reports',
+      },
     ],
   },
-
 ];
 
 const handleLinkClick = (link) => {
