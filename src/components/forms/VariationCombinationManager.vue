@@ -211,7 +211,7 @@ const formatPriceRange = (group) => {
                   @focus.stop
                   class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
                   min="0"
-                  step="50"
+                  step="1"
                 />
               </div>
             </div>
@@ -229,7 +229,7 @@ const formatPriceRange = (group) => {
                   @focus.stop
                   class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
                   min="0"
-                  step="50"
+                  step="1"
                 />
               </div>
             </div>
@@ -281,7 +281,7 @@ const formatPriceRange = (group) => {
                       placeholder="0"
                       class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
                       min="0"
-                      step="50"
+                      step="1"
                     />
                   </div>
                 </div>
@@ -305,7 +305,7 @@ const formatPriceRange = (group) => {
                       placeholder="0"
                       class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
                       min="0"
-                      step="50"
+                      step="1"
                     />
                   </div>
                 </div>

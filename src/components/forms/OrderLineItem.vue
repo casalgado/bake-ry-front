@@ -145,7 +145,7 @@ onMounted(() => {
                   'price-modified': isPriceModified,
                   'opacity-20': item.isComplimentary,
               }"
-              step="50"
+              step="1"
               :disabled="item.isComplimentary"
               />
             </div>
