@@ -39,12 +39,15 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
     // Handle combination-based items (new system)
     if (item.combination) {
       const combinationId = item.combination.id;
-      const basePrice = product.variations.combinations.find(
+      const matchingCombination = product.variations.combinations.find(
         (c) => c.id === combinationId,
-      )?.basePrice || 0;
+      );
+      const basePrice = matchingCombination?.basePrice || 0;
+      const costPrice = matchingCombination?.costPrice || item.combination.costPrice || 0;
       return {
         ...item,
         basePrice: basePrice,
+        costPrice: costPrice,
         currentPrice: preserveCurrentPrice ? item.currentPrice : item.currentPrice || basePrice,
         // Ensure combination object is a plain object with all necessary properties
         combination: {
@@ -52,6 +55,7 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
           selection: [...(item.combination.selection || [])],
           name: item.combination.name,
           basePrice: basePrice,
+          costPrice: costPrice,
           currentPrice: preserveCurrentPrice ? item.currentPrice : item.currentPrice || basePrice,
           isWholeGrain: item.combination.isWholeGrain || false,
           isActive: item.combination.isActive !== undefined ? item.combination.isActive : true,
@@ -70,6 +74,7 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
           return {
             ...item,
             basePrice: matchingVariation.basePrice,
+            costPrice: matchingVariation.costPrice || 0,
             currentPrice: preserveCurrentPrice ? item.currentPrice : matchingVariation.basePrice,
           };
         }
@@ -77,6 +82,7 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
       return {
         ...item,
         basePrice: product.variations[0].basePrice,
+        costPrice: product.variations[0].costPrice || 0,
         currentPrice: preserveCurrentPrice ? item.currentPrice : product.variations[0].basePrice,
       };
     }
@@ -85,6 +91,7 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
     return {
       ...item,
       basePrice: product.basePrice,
+      costPrice: product.costPrice || 0,
       currentPrice: preserveCurrentPrice ? item.currentPrice : product.basePrice,
     };
   });

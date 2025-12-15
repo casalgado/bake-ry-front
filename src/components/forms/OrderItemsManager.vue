@@ -35,6 +35,7 @@ const handleWizardSelect = (selection) => {
       taxPercentage: product.taxPercentage,
       quantity: selection.quantity,
       basePrice: basePrice,
+      costPrice: selection.combination.costPrice || 0,
       currentPrice: basePrice,
       // Convert combination to plain object to avoid reference issues
       combination: {
@@ -42,6 +43,7 @@ const handleWizardSelect = (selection) => {
         selection: [...(selection.combination.selection || [])],
         name: selection.combination.name,
         basePrice: basePrice,
+        costPrice: selection.combination.costPrice || 0,
         currentPrice: basePrice,
         isWholeGrain: selection.combination.isWholeGrain || false,
         isActive: selection.combination.isActive !== undefined ? selection.combination.isActive : true,
@@ -77,6 +79,7 @@ const handleWizardSelect = (selection) => {
     taxPercentage: product.taxPercentage,
     quantity: selection.quantity,
     basePrice: prices.basePrice,
+    costPrice: selection.variation?.costPrice || product.costPrice || 0,
     currentPrice: prices.basePrice,
     variation: selection.variation ? {
       id: selection.variation.id,
