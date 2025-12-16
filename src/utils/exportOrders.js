@@ -766,4 +766,130 @@ const exportProductReport = (reportData, options = {}) => {
   return { rows, periods: sortedPeriods };
 };
 
-export { exportOrders, exportProducts, exportPaymentReport, exportProductReport };
+// EXPORT INCOME STATEMENT
+const exportIncomeStatement = (reportData, options = {}) => {
+  const { format = 'xlsx', bakeryName = 'Mi Panaderia', startDate, endDate } = options;
+  const periods = reportData.periods || [];
+  const totals = reportData.totals || {};
+  const excludedProducts = reportData.excludedProducts || [];
+
+  // Create rows for main report
+  const rows = [];
+
+  // Add header info
+  rows.push({
+    concepto: 'Rentabilidad',
+    periodo: `${startDate} a ${endDate}`,
+  });
+  rows.push({
+    concepto: bakeryName,
+    periodo: '',
+  });
+  rows.push({ concepto: '', periodo: '' });
+
+  // Column headers
+  const headers = ['Concepto'];
+  periods.forEach((period) => {
+    headers.push(formatMonthLabel(period.month));
+  });
+  headers.push('TOTAL');
+
+  // Add blank row for structure
+  rows.push({ concepto: '', periodo: '' });
+
+  // Helper to add section rows
+  const addRow = (label, dataKey, suffix = '') => {
+    const row = { concepto: label };
+    periods.forEach((period) => {
+      const value = getNestedValue(period, dataKey);
+      row[`mes_${period.month}`] = format === 'csv' ? value : value;
+    });
+    const totalValue = getNestedValue(totals, dataKey);
+    row.total = format === 'csv' ? totalValue : totalValue;
+    rows.push(row);
+  };
+
+  // Helper to get nested value (for revenue.productSales, etc)
+  const getNestedValue = (obj, path) => {
+    const keys = path.split('.');
+    let value = obj;
+    for (const key of keys) {
+      value = value?.[key];
+    }
+    return value || 0;
+  };
+
+  // INGRESOS
+  rows.push({ concepto: 'INGRESOS', periodo: '' });
+  addRow('  Ventas de Productos', 'revenue.productSales');
+  addRow('  Domicilios Cobrados', 'revenue.deliveryFees');
+  addRow('  Impuestos Cobrados', 'revenue.taxesCollected');
+  addRow('Total Ingresos', 'revenue.totalRevenue');
+  rows.push({ concepto: '', periodo: '' });
+
+  // COSTOS
+  rows.push({ concepto: 'COSTOS', periodo: '' });
+  addRow('  Costo de Productos', 'costs.cogs');
+  addRow('  Costo de Domicilios', 'costs.deliveryCosts');
+  addRow('Total Costos', 'costs.totalCosts');
+  rows.push({ concepto: '', periodo: '' });
+
+  // Rentabilidad
+  rows.push({ concepto: 'Rentabilidad', periodo: '' });
+  addRow('  Utilidad Bruta', 'grossProfit.amount');
+  addRow('  Margen Bruto (%)', 'grossProfit.marginPercent');
+  rows.push({ concepto: '', periodo: '' });
+
+  // COBERTURA
+  rows.push({ concepto: 'COBERTURA DE COSTOS', periodo: '' });
+  const coverageRow = { concepto: '  Porcentaje Cubierto (%)' };
+  periods.forEach((period) => {
+    coverageRow[`mes_${period.month}`] = period.coverage.percentCovered.toFixed(1);
+  });
+  coverageRow.total = totals.coverage?.percentCovered?.toFixed(1) || '0';
+  rows.push(coverageRow);
+
+  // Add excluded products section
+  if (excludedProducts.length > 0) {
+    rows.push({ concepto: '', periodo: '' });
+    rows.push({ concepto: 'PRODUCTOS SIN COSTO DEFINIDO', periodo: '' });
+    excludedProducts.forEach((product) => {
+      rows.push({
+        concepto: `  ${product.name}`,
+        periodo: `${product.orderCount} pedidos, ${product.totalQuantity} unidades`,
+      });
+    });
+  }
+
+  // Create worksheet
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  worksheet['!cols'] = [
+    { width: 30 },
+    ...periods.map(() => ({ width: 18 })),
+    { width: 18 },
+  ];
+
+  // Create workbook
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Rentabilidad');
+
+  // Generate filename
+  const filename = `rentabilidad_bruta_${startDate}_${endDate}.${format === 'csv' ? 'csv' : 'xlsx'}`;
+
+  // Download
+  if (format === 'csv') {
+    XLSX.writeFile(workbook, filename, { bookType: 'csv' });
+  } else {
+    XLSX.writeFile(workbook, filename);
+  }
+};
+
+// Helper function to format month label (used in export)
+const formatMonthLabel = (monthStr) => {
+  const [year, month] = monthStr.split('-');
+  const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return `${months[parseInt(month) - 1]} ${year}`;
+};
+
+export { exportOrders, exportProducts, exportPaymentReport, exportProductReport, exportIncomeStatement };

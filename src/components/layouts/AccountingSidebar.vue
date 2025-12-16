@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import {
   PhChartLineUp,
   PhChartBar,
+  PhCalculator,
   PhOven,
   PhPersonArmsSpread,
   PhCashRegister,
@@ -17,7 +18,6 @@ import {
   PhTreeStructure,
   PhHandCoins,
   PhBread,
-  PhCalculator,
   PhCalendar,
   PhCalendarCheck,
 } from '@phosphor-icons/vue';
@@ -43,6 +43,12 @@ const navigationSections = [
         icon: PhCalendarCheck,
         text: 'Fechas de Pago',
         path: '/accounting/paymentDates',
+      },
+      {
+        id: 'income_statement',
+        icon: PhCalculator,
+        text: 'Rentabilidad',
+        path: '/accounting/income-statement',
       },
       {
         id: 'reportes',

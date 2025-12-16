@@ -207,6 +207,11 @@ const router = createRouter({
           name: 'admin-reports',
           component: () => import('../views/reports/ReportsPage.vue'),
         },
+        {
+          path: 'income-statement',
+          name: 'admin-income-statement',
+          component: () => import('../views/reports/IncomeStatement.vue'),
+        },
       ],
     },
     {
@@ -233,6 +238,11 @@ const router = createRouter({
           path: 'reports',
           name: 'accounting-reports',
           component: () => import('../views/reports/ReportsPage.vue'),
+        },
+        {
+          path: 'income-statement',
+          name: 'accounting-income-statement',
+          component: () => import('../views/reports/IncomeStatement.vue'),
         },
       ],
     },

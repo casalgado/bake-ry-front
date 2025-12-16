@@ -98,6 +98,12 @@ const navigationSections = computed(() => [
         path: '/dashboard/paymentDates',
       },
       {
+        id: 'income_statement',
+        icon: PhCalculator,
+        text: 'Rentabilidad',
+        path: '/dashboard/income-statement',
+      },
+      {
         id: 'reportes',
         icon: PhChartBar,
         text: 'Reportes',

@@ -87,6 +87,21 @@ store.getHistory = async (orderId) => {
   }
 };
 
+store.getIncomeStatement = async (query = {}) => {
+  store.setLoading(true);
+  store.clearError();
+
+  try {
+    const response = await service.getIncomeStatement(query);
+    return response.data;
+  } catch (err) {
+    store.setError(err);
+    throw err;
+  } finally {
+    store.setLoading(false);
+  }
+};
+
 // Helper function to deep merge objects while preserving arrays
 function deepMerge(target, source) {
   const result = { ...target };

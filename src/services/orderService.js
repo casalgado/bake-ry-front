@@ -49,4 +49,24 @@ export class OrderService extends BaseService {
       throw this.handleError(error);
     }
   }
+
+  async getIncomeStatement(query = {}) {
+    try {
+      // Use formatQueryParams to properly format the query
+      const params = this.formatQueryParams(query);
+
+      // Add income statement specific options
+      if (query.groupBy) {
+        params.groupBy = query.groupBy;
+      }
+
+      const response = await this.api.get(
+        `${this.basePath}/orders/income_statement`,
+        { params },
+      );
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
 }
