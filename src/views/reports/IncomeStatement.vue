@@ -524,8 +524,17 @@ const monthlyData = computed(() => {
   top: 0;
   bottom: 0;
   width: 1px;
-  background-color: #d1d5db;
+  background-color: #D4C8BC;
   pointer-events: none;
+}
+
+/* Month columns - add border between them */
+td:not(.sticky-col) {
+  border-right: 1px solid #D4C8BC;
+}
+
+th:not(.sticky-col) {
+  border-right: 1px solid #D4C8BC;
 }
 
 .animate-spin {
