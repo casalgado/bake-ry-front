@@ -2,11 +2,13 @@
 import { ref, computed, onMounted, reactive } from 'vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useAuthenticationStore } from '@/stores/authentication';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { exportIncomeStatement } from '@/utils/exportOrders';
 import { PhSpinner, PhDownloadSimple, PhCaretDown } from '@phosphor-icons/vue';
 
 const orderStore = useOrderStore();
 const authStore = useAuthenticationStore();
+const bakerySettingsStore = useBakerySettingsStore();
 
 const loading = ref(false);
 const reportData = ref(null);
@@ -18,21 +20,18 @@ const dateRange = reactive({
 });
 const expandedProducts = ref(false);
 
-const dateFilterOptions = [
-  { value: 'dueDate', label: 'Fecha de Entrega' },
-  { value: 'paymentDate', label: 'Fecha de Pago' },
-];
+onMounted(async () => {
+  // Load default report filter from bakery settings
+  await bakerySettingsStore.fetchById('default');
+  const settings = bakerySettingsStore.items[0];
+  if (!settings?.features?.reports?.defaultReportFilter) {
+    throw new Error('Default report filter not found in bakery settings');
+  }
+  console.log('🍞 Default Report Filter:', settings.features.reports.defaultReportFilter);
+  selectedDateFilterType.value = settings.features.reports.defaultReportFilter;
 
-// Initialize date range to current year
-const initializeDateRange = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  dateRange.startDate = `${year}-01-01`;
-  dateRange.endDate = `${year}-12-31`;
-};
-
-onMounted(() => {
-  initializeDateRange();
+  // Default to this year
+  setQuickFilter('thisYear');
 });
 
 // Quick filter options with helper to calculate dates
@@ -105,11 +104,6 @@ const isFilterActive = (type) => {
 
 // Generate report
 const generateReport = async () => {
-  if (!dateRange.startDate || !dateRange.endDate) {
-    error.value = 'Por favor, selecciona un rango de fechas';
-    return;
-  }
-
   loading.value = true;
   error.value = null;
 
@@ -207,64 +201,19 @@ const monthlyData = computed(() => {
 </script>
 
 <template>
-  <div class="container p-2 sm:p-4 px-2 lg:px-4">
+  <div class="w-full p-2 sm:p-4">
     <!-- Header -->
     <h2 class="text-lg sm:text-2xl font-bold text-neutral-850 mb-4 sm:mb-6">Rentabilidad</h2>
 
     <!-- Controls Section -->
-    <div class="base-card mb-4 sm:mb-6">
-      <!-- Date Filter Type Selector -->
-      <div class="mb-4">
-        <label class="block text-sm font-semibold text-neutral-850 mb-2">Filtrar por:</label>
-        <div class="flex gap-4">
-          <div v-for="option in dateFilterOptions" :key="option.value" class="flex items-center">
-            <input
-              :id="`filter-${option.value}`"
-              v-model="selectedDateFilterType"
-              type="radio"
-              :value="option.value"
-              class="form-container"
-            />
-            <label :for="`filter-${option.value}`" class="ml-2 text-sm text-neutral-850 cursor-pointer">
-              {{ option.label }}
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Date Range Picker -->
-      <div class="grid grid-cols-2 gap-2 mb-4 mt-4">
-        <div>
-          <label class="block text-sm font-semibold text-neutral-850 mb-1">Inicio:</label>
-          <input
-            v-model="dateRange.startDate"
-            type="date"
-            class="form-container input w-full"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-semibold text-neutral-850 mb-1">Fin:</label>
-          <input
-            v-model="dateRange.endDate"
-            type="date"
-            class="form-container input w-full"
-          />
-        </div>
-      </div>
-
-      <!-- Quick Filters -->
-      <div class="flex flex-wrap gap-2 mb-3">
+    <div class="base-card mb-4 sm:mb-6 p-3 py-1">
+      <!-- Quick Filters & Generate -->
+      <div class="flex flex-wrap gap-2 items-center">
         <button
-          @click="setQuickFilter('thisMonth')"
-          :class="isFilterActive('thisMonth') ? 'utility-btn-active' : 'utility-btn-inactive'"
+          @click="setQuickFilter('thisYear')"
+          :class="isFilterActive('thisYear') ? 'utility-btn-active' : 'utility-btn-inactive'"
         >
-          Este Mes
-        </button>
-        <button
-          @click="setQuickFilter('lastMonth')"
-          :class="isFilterActive('lastMonth') ? 'utility-btn-active' : 'utility-btn-inactive'"
-        >
-          Mes Anterior
+          Este Año
         </button>
         <button
           @click="setQuickFilter('last3Months')"
@@ -273,22 +222,26 @@ const monthlyData = computed(() => {
           Últimos 3 Meses
         </button>
         <button
-          @click="setQuickFilter('thisYear')"
-          :class="isFilterActive('thisYear') ? 'utility-btn-active' : 'utility-btn-inactive'"
+          @click="setQuickFilter('lastMonth')"
+          :class="isFilterActive('lastMonth') ? 'utility-btn-active' : 'utility-btn-inactive'"
         >
-          Este Año
+          Mes Anterior
+        </button>
+        <button
+          @click="setQuickFilter('thisMonth')"
+          :class="isFilterActive('thisMonth') ? 'utility-btn-active' : 'utility-btn-inactive'"
+        >
+          Este Mes
+        </button>
+        <button
+          @click="generateReport"
+          :disabled="loading"
+          class="action-btn flex items-center gap-2 disabled:opacity-50 ml-auto"
+        >
+          <PhSpinner v-if="loading" class="animate-spin" :size="16" />
+          {{ loading ? 'Generando...' : 'Generar Reporte' }}
         </button>
       </div>
-
-      <!-- Generate Button -->
-      <button
-        @click="generateReport"
-        :disabled="loading"
-        class="action-btn w-full flex items-center justify-center gap-2 disabled:opacity-50"
-      >
-        <PhSpinner v-if="loading" class="animate-spin" :size="16" />
-        {{ loading ? 'Generando...' : 'Generar Reporte' }}
-      </button>
     </div>
 
     <!-- Error Message -->
@@ -309,7 +262,7 @@ const monthlyData = computed(() => {
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-neutral-300">
-              <th class="px-3 py-2 text-left font-semibold text-neutral-850">Concepto</th>
+              <th class="sticky-col px-3 py-2 text-left font-semibold text-neutral-850">Concepto</th>
               <th
                 v-for="period in monthlyData"
                 :key="period.month"
@@ -325,12 +278,12 @@ const monthlyData = computed(() => {
           <tbody>
             <!-- INGRESOS Section -->
             <tr class="border-b border-neutral-300 font-semibold text-neutral-850">
-              <td class="px-3 py-2">INGRESOS</td>
+              <td class="sticky-col px-3 py-2">INGRESOS</td>
               <td v-for="period in monthlyData" :key="`revenue-${period.month}`" class="px-3 py-2 text-right"></td>
               <td class="px-3 py-2 text-right border-l border-neutral-400"></td>
             </tr>
             <tr class="border-b border-neutral-200">
-              <td class="px-3 py-2 text-neutral-700 pl-6">Ventas de Productos</td>
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Ventas de Productos</td>
               <td
                 v-for="period in monthlyData"
                 :key="`sales-${period.month}`"
@@ -343,7 +296,7 @@ const monthlyData = computed(() => {
               </td>
             </tr>
             <tr class="border-b border-neutral-200">
-              <td class="px-3 py-2 text-neutral-700 pl-6">Domicilios Cobrados</td>
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Domicilios Cobrados</td>
               <td
                 v-for="period in monthlyData"
                 :key="`delivery-${period.month}`"
@@ -356,7 +309,7 @@ const monthlyData = computed(() => {
               </td>
             </tr>
             <tr class="border-b border-neutral-200">
-              <td class="px-3 py-2 text-neutral-700 pl-6">Impuestos Cobrados</td>
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Impuestos Cobrados</td>
               <td
                 v-for="period in monthlyData"
                 :key="`taxes-${period.month}`"
@@ -369,7 +322,7 @@ const monthlyData = computed(() => {
               </td>
             </tr>
             <tr class="border-b border-neutral-300 font-semibold text-neutral-850">
-              <td class="px-3 py-2">Total Ingresos</td>
+              <td class="sticky-col px-3 py-2">Total Ingresos</td>
               <td
                 v-for="period in monthlyData"
                 :key="`total-revenue-${period.month}`"
@@ -384,12 +337,12 @@ const monthlyData = computed(() => {
 
             <!-- COSTOS Section -->
             <tr class="border-b border-neutral-300 font-semibold text-neutral-850">
-              <td class="px-3 py-2">COSTOS</td>
+              <td class="sticky-col px-3 py-2">COSTOS</td>
               <td v-for="period in monthlyData" :key="`costs-${period.month}`" class="px-3 py-2 text-right"></td>
               <td class="px-3 py-2 text-right border-l border-neutral-400"></td>
             </tr>
             <tr class="border-b border-neutral-200">
-              <td class="px-3 py-2 text-neutral-700 pl-6">Costo de Productos</td>
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Costo de Productos</td>
               <td
                 v-for="period in monthlyData"
                 :key="`cogs-${period.month}`"
@@ -402,7 +355,7 @@ const monthlyData = computed(() => {
               </td>
             </tr>
             <tr class="border-b border-neutral-200">
-              <td class="px-3 py-2 text-neutral-700 pl-6">Costo de Domicilios</td>
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Costo de Domicilios</td>
               <td
                 v-for="period in monthlyData"
                 :key="`delivery-costs-${period.month}`"
@@ -415,7 +368,7 @@ const monthlyData = computed(() => {
               </td>
             </tr>
             <tr class="border-b border-neutral-300 font-semibold text-neutral-850">
-              <td class="px-3 py-2">Total Costos</td>
+              <td class="sticky-col px-3 py-2">Total Costos</td>
               <td
                 v-for="period in monthlyData"
                 :key="`total-costs-${period.month}`"
@@ -430,12 +383,12 @@ const monthlyData = computed(() => {
 
             <!-- Rentabilidad Section -->
             <tr class="border-b border-neutral-300 font-semibold text-neutral-850">
-              <td class="px-3 py-2">Rentabilidad</td>
+              <td class="sticky-col px-3 py-2">Rentabilidad</td>
               <td v-for="period in monthlyData" :key="`profit-${period.month}`" class="px-3 py-2 text-right"></td>
               <td class="px-3 py-2 text-right border-l border-neutral-400"></td>
             </tr>
             <tr class="border-b border-neutral-200">
-              <td class="px-3 py-2 text-neutral-700 pl-6">Utilidad Bruta</td>
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Utilidad Bruta</td>
               <td
                 v-for="period in monthlyData"
                 :key="`gross-profit-${period.month}`"
@@ -448,7 +401,7 @@ const monthlyData = computed(() => {
               </td>
             </tr>
             <tr class="border-b border-neutral-300">
-              <td class="px-3 py-2 text-neutral-700 pl-6">Margen Bruto %</td>
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Margen Bruto %</td>
               <td
                 v-for="period in monthlyData"
                 :key="`margin-${period.month}`"
@@ -463,7 +416,7 @@ const monthlyData = computed(() => {
 
             <!-- Coverage Section -->
             <tr class="border-b border-neutral-200">
-              <td class="px-3 py-2 text-neutral-700 pl-6">Cobertura de Costos</td>
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Cobertura de Costos</td>
               <td
                 v-for="period in monthlyData"
                 :key="`coverage-${period.month}`"
@@ -480,7 +433,7 @@ const monthlyData = computed(() => {
               </td>
             </tr>
             <tr class="border-b border-neutral-200">
-              <td class="px-3 py-2 text-neutral-700 pl-6 text-xs">
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6 text-xs">
                 {{ `${totals.coverage?.itemsWithCost || 0} de ${totals.coverage?.totalItems || 0} items` }}
               </td>
               <td
@@ -555,6 +508,26 @@ const monthlyData = computed(() => {
 </template>
 
 <style scoped>
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background-color: white;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.sticky-col::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #d1d5db;
+  pointer-events: none;
+}
+
 .animate-spin {
   animation: spin 1s linear infinite;
 }
