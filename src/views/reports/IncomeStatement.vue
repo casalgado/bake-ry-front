@@ -388,29 +388,81 @@ const monthlyData = computed(() => {
               <td class="px-3 py-2 text-right border-l border-neutral-400"></td>
             </tr>
             <tr class="border-b border-neutral-200">
-              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Utilidad Bruta</td>
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Utilidad de Productos</td>
+              <td
+                v-for="period in monthlyData"
+                :key="`product-profit-${period.month}`"
+                class="px-3 py-2 text-right text-neutral-850"
+              >
+                {{ formatCurrency(period.grossProfit.products.amount) }}
+              </td>
+              <td class="px-3 py-2 text-right text-neutral-850 border-l border-neutral-400">
+                {{ formatCurrency(totals.grossProfit?.products?.amount || 0) }}
+              </td>
+            </tr>
+            <tr class="border-b border-neutral-200">
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Margen de Productos %</td>
+              <td
+                v-for="period in monthlyData"
+                :key="`product-margin-${period.month}`"
+                class="px-3 py-2 text-right text-neutral-600 text-xs"
+              >
+                {{ formatPercent(period.grossProfit.products.marginPercent) }}
+              </td>
+              <td class="px-3 py-2 text-right text-neutral-600 text-xs border-l border-neutral-400">
+                {{ formatPercent(totals.grossProfit?.products?.marginPercent || 0) }}
+              </td>
+            </tr>
+            <tr class="border-b border-neutral-200">
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Utilidad de Domicilios</td>
+              <td
+                v-for="period in monthlyData"
+                :key="`delivery-profit-${period.month}`"
+                class="px-3 py-2 text-right text-neutral-850"
+              >
+                {{ formatCurrency(period.grossProfit.delivery.amount) }}
+              </td>
+              <td class="px-3 py-2 text-right text-neutral-850 border-l border-neutral-400">
+                {{ formatCurrency(totals.grossProfit?.delivery?.amount || 0) }}
+              </td>
+            </tr>
+            <tr class="border-b border-neutral-200">
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Margen de Domicilios %</td>
+              <td
+                v-for="period in monthlyData"
+                :key="`delivery-margin-${period.month}`"
+                class="px-3 py-2 text-right text-neutral-600 text-xs"
+              >
+                {{ formatPercent(period.grossProfit.delivery.marginPercent) }}
+              </td>
+              <td class="px-3 py-2 text-right text-neutral-600 text-xs border-l border-neutral-400">
+                {{ formatPercent(totals.grossProfit?.delivery?.marginPercent || 0) }}
+              </td>
+            </tr>
+            <tr class="border-b border-neutral-200">
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6 font-semibold">Utilidad Total (Combinada)</td>
               <td
                 v-for="period in monthlyData"
                 :key="`gross-profit-${period.month}`"
                 class="px-3 py-2 text-right font-semibold text-neutral-850"
               >
-                {{ formatCurrency(period.grossProfit.amount) }}
+                {{ formatCurrency(period.grossProfit.total.amount) }}
               </td>
               <td class="px-3 py-2 text-right font-semibold text-neutral-850 border-l border-neutral-400">
-                {{ formatCurrency(totals.grossProfit?.amount || 0) }}
+                {{ formatCurrency(totals.grossProfit?.total?.amount || 0) }}
               </td>
             </tr>
             <tr class="border-b border-neutral-300">
-              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6">Margen Bruto %</td>
+              <td class="sticky-col px-3 py-2 text-neutral-700 pl-6 font-semibold">Margen Total %</td>
               <td
                 v-for="period in monthlyData"
                 :key="`margin-${period.month}`"
                 class="px-3 py-2 text-right font-semibold text-neutral-850"
               >
-                {{ formatPercent(period.grossProfit.marginPercent) }}
+                {{ formatPercent(period.grossProfit.total.marginPercent) }}
               </td>
               <td class="px-3 py-2 text-right font-semibold text-neutral-850 border-l border-neutral-400">
-                {{ formatPercent(totals.grossProfit?.marginPercent || 0) }}
+                {{ formatPercent(totals.grossProfit?.total?.marginPercent || 0) }}
               </td>
             </tr>
 
@@ -453,7 +505,7 @@ const monthlyData = computed(() => {
 
       <!-- Excluded Products Section -->
       <div v-if="excludedProducts.length > 0" class="mb-4 sm:mb-8">
-        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4 flex items-center gap-2 cursor-pointer hover:text-primary" @click="expandedProducts = !expandedProducts">
+        <h3 class="text-primary sm:text-lg font-semibold mb-2 sm:mb-4 flex items-center gap-2 cursor-pointer" @click="expandedProducts = !expandedProducts">
           <PhCaretDown :size="18" :class="{ 'rotate-180': expandedProducts }" class="transition" />
           Productos sin costo definido ({{ excludedProducts.length }})
         </h3>

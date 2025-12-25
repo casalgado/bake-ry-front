@@ -781,10 +781,6 @@ const exportIncomeStatement = (reportData, options = {}) => {
     concepto: 'Rentabilidad',
     periodo: `${startDate} a ${endDate}`,
   });
-  rows.push({
-    concepto: bakeryName,
-    periodo: '',
-  });
   rows.push({ concepto: '', periodo: '' });
 
   // Column headers
