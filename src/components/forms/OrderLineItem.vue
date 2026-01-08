@@ -3,9 +3,11 @@ import { ref, computed, onMounted } from 'vue';
 import {
   PhGift,
   PhTrash,
+  PhGearSix,
 } from '@phosphor-icons/vue';
 
 const discount = ref(null);
+const showAdvancedFields = ref(false);
 
 const props = defineProps({
   item: {
@@ -22,12 +24,20 @@ const emit = defineEmits([
   'update:quantity',
   'update:price',
   'update:discount',
+  'update:costPrice',
+  'update:taxPercentage',
   'toggle-complimentary',
   'remove',
 ]);
 
 const isPriceModified = computed(() => {
   return props.item.currentPrice !== props.item.basePrice;
+});
+
+const costValidationError = computed(() => {
+  if (props.item.costPrice < 0) return 'Costo debe ser >= 0';
+  if (props.item.costPrice > props.item.currentPrice) return 'Costo mayor que precio';
+  return null;
 });
 
 const handleQuantityChange = (delta) => {
@@ -64,6 +74,18 @@ const handleToggleComplimentary = () => {
 
 const handleRemove = () => {
   emit('remove', props.index);
+};
+
+const handleCostPriceChange = (event) => {
+  emit('update:costPrice', props.index, Number(event.target.value));
+};
+
+const handleTaxPercentageChange = (event) => {
+  emit('update:taxPercentage', props.index, Math.max(0, Math.min(100, Number(event.target.value))));
+};
+
+const toggleAdvancedFields = () => {
+  showAdvancedFields.value = !showAdvancedFields.value;
 };
 
 onMounted(() => {
@@ -127,6 +149,7 @@ onMounted(() => {
               <input
                 type="number"
                 @input="handleDiscountChange"
+                @focus="$event.target.select()"
                 :value="discount"
                 class="w-14 px-1 py-0.5 text-right border rounded text-xs max-w-14 min-w-14 text-neutral-500"
                 :disabled="item.isComplimentary"
@@ -154,6 +177,15 @@ onMounted(() => {
 
         <button
           type="button"
+          @click="toggleAdvancedFields"
+          class="px-0 md:px-2 py-0.5 text-xs rounded"
+          :class="{ 'bg-blue-100': showAdvancedFields, 'bg-gray-100': !showAdvancedFields }"
+          title="Ajustes avanzados"
+        >
+          <PhGearSix class="w-4 h-4" :weight="showAdvancedFields ? 'fill' : 'light'" />
+        </button>
+        <button
+          type="button"
           @click="handleToggleComplimentary"
           class="px-0 md:px-2 py-0.5 text-xs rounded"
           :class="{
@@ -171,6 +203,45 @@ onMounted(() => {
         >
           <PhTrash class="w-4 h-4" />
         </button>
+      </div>
+
+      <!-- Advanced fields row (Cost & Tax) -->
+      <div v-if="showAdvancedFields" class="flex items-center gap-3 mt-1 pb-2 border-b border-neutral-200">
+        <div class="flex items-center gap-1">
+          <span class="text-xs text-neutral-500">Costo:</span>
+          <div class="input-with-unit compact" data-unit="$">
+            <input
+              type="number"
+              :value="item.costPrice || 0"
+              @input="handleCostPriceChange"
+              @focus="$event.target.select()"
+              class="w-16 px-1 py-0.5 text-right border rounded text-xs"
+              :class="{ 'border-amber-300 bg-amber-50': costValidationError }"
+              :disabled="item.isComplimentary"
+              min="0"
+              step="1"
+            />
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
+          <span class="text-xs text-neutral-500">IVA:</span>
+          <div class="input-with-unit compact" data-unit="%">
+            <input
+              type="number"
+              :value="item.taxPercentage || 0"
+              @input="handleTaxPercentageChange"
+              @focus="$event.target.select()"
+              class="w-14 px-1 py-0.5 text-right border rounded text-xs"
+              :disabled="item.isComplimentary"
+              min="0"
+              max="100"
+              step="0.5"
+            />
+          </div>
+        </div>
+        <span v-if="costValidationError" class="text-xs text-amber-600 italic">
+          {{ costValidationError }}
+        </span>
       </div>
     </div>
   </div>

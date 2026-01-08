@@ -123,6 +123,21 @@ const removeItem = (index) => {
   newItems.splice(index, 1);
   emit('update:modelValue', newItems);
 };
+
+const updateItemCostPrice = (index, newCostPrice) => {
+  const newItems = [...props.modelValue];
+  newItems[index].costPrice = newCostPrice;
+  if (newItems[index].combination) {
+    newItems[index].combination.costPrice = newCostPrice;
+  }
+  emit('update:modelValue', newItems);
+};
+
+const updateItemTaxPercentage = (index, newTaxPercentage) => {
+  const newItems = [...props.modelValue];
+  newItems[index].taxPercentage = newTaxPercentage;
+  emit('update:modelValue', newItems);
+};
 </script>
 
 <template>
@@ -148,6 +163,8 @@ const removeItem = (index) => {
             :index="index"
             @update:quantity="updateItemQuantity"
             @update:price="updateItemPrice"
+            @update:costPrice="updateItemCostPrice"
+            @update:taxPercentage="updateItemTaxPercentage"
             @toggle-complimentary="toggleItemComplimentary"
             @remove="removeItem"
           />
