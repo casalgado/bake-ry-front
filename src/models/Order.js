@@ -123,6 +123,7 @@ class OrderItem {
       taxPercentage: this.taxPercentage,
       quantity: this.quantity,
       currentPrice: this.currentPrice,
+      costPrice: this.costPrice,
       variation: this.variation,
       combination: this.combination ? this.combination.toFirestore() : null,
       taxAmount: this.taxAmount,

@@ -216,6 +216,14 @@ const formatChange = (change, field, currentEntry) => {
           itemChanges.push(`${capitalize(toItem.productName)}: Estado ${orderItemStatus[fromItem.status]} → ${orderItemStatus[toItem.status]}`);
         }
 
+        if (fromItem.costPrice !== toItem.costPrice) {
+          itemChanges.push(`${capitalize(toItem.productName)}: Costo ${formatCurrency(fromItem.costPrice || 0)} → ${formatCurrency(toItem.costPrice || 0)}`);
+        }
+
+        if (fromItem.taxPercentage !== toItem.taxPercentage) {
+          itemChanges.push(`${capitalize(toItem.productName)}: IVA ${fromItem.taxPercentage || 0}% → ${toItem.taxPercentage || 0}%`);
+        }
+
         return itemChanges;
       })
       .flat()
