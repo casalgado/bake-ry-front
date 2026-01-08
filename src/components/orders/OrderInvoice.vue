@@ -96,6 +96,7 @@ const combinedItems = computed(() => {
           quantity: item.quantity || 0,
           unitPrice: (item.subtotal / item.quantity) || 0,
           subtotal: item.subtotal || 0,
+          taxPercentage: item.taxPercentage || 0,
           orderIndex,
           itemIndex,
         });
@@ -112,6 +113,7 @@ const combinedItems = computed(() => {
         quantity: 1,
         unitPrice: order.deliveryFee,
         subtotal: order.deliveryFee,
+        taxPercentage: 0,
       });
     }
   });
@@ -122,16 +124,22 @@ const combinedItems = computed(() => {
 // Compute totals
 const totals = computed(() => {
   let subtotal = 0;
+  let preTaxTotal = 0;
+  let totalTaxAmount = 0;
   let deliveryTotal = 0;
 
   props.orders.forEach(order => {
     subtotal += order.subtotal || 0;
+    preTaxTotal += order.preTaxTotal || 0;
+    totalTaxAmount += order.totalTaxAmount || 0;
     if (order.fulfillmentType === 'delivery') {
       deliveryTotal += order.deliveryFee || 0;
     }
   });
 
   return {
+    preTaxTotal,
+    totalTaxAmount,
     subtotal,
     delivery: deliveryTotal,
     total: subtotal + deliveryTotal,
@@ -301,6 +309,7 @@ const handlePrint = () => {
           <th v-if="orders.length > 1">Fecha</th>
           <th>Cantidad</th>
           <th>Precio</th>
+          <th class="text-center">IVA</th>
           <th>Monto</th>
         </tr>
       </thead>
@@ -340,15 +349,32 @@ const handlePrint = () => {
           </td>
           <td class="text-center">{{ item.quantity }}</td>
           <td class="text-right">{{ formatMoney(item.unitPrice) }}</td>
+          <td class="text-center">{{ item.taxPercentage }}%</td>
           <td class="text-right">{{ formatMoney(item.subtotal) }}</td>
         </tr>
       </tbody>
     </table>
 
-    <!-- Grand Total Section -->
+    <!-- Grand Total Section with Tax Breakdown -->
     <div class="grand-total">
-      <span class="grand-total-label">Total (COP):</span>
-      <span class="grand-total-amount">{{ formatMoney(totals.total) }}</span>
+      <div class="totals-breakdown">
+        <div class="total-row">
+          <span class="total-label">Subtotal (sin IVA):</span>
+          <span class="total-amount">{{ formatMoney(totals.preTaxTotal) }}</span>
+        </div>
+        <div v-if="totals.totalTaxAmount > 0" class="total-row">
+          <span class="total-label">IVA:</span>
+          <span class="total-amount">{{ formatMoney(totals.totalTaxAmount) }}</span>
+        </div>
+        <div v-if="totals.delivery > 0" class="total-row">
+          <span class="total-label">Domicilio:</span>
+          <span class="total-amount">{{ formatMoney(totals.delivery) }}</span>
+        </div>
+        <div class="total-row total-final">
+          <span class="grand-total-label">Total (COP):</span>
+          <span class="grand-total-amount">{{ formatMoney(totals.total) }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Terms & Conditions -->
@@ -580,6 +606,37 @@ const handlePrint = () => {
   font-size: 20px;
   font-weight: 700;
   color: #333;
+}
+
+/* Totals Breakdown */
+.totals-breakdown {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.total-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 30px;
+  font-size: 14px;
+  color: #555;
+}
+
+.total-row .total-label {
+  text-align: right;
+}
+
+.total-row .total-amount {
+  min-width: 100px;
+  text-align: right;
+}
+
+.total-row.total-final {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e0e0e0;
 }
 
 /* Notes Section */
