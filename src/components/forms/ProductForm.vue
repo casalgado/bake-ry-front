@@ -47,6 +47,7 @@ const formData = ref(
         combinations: [],
       },
       customAttributes: {},
+      accountingCode: '',
     },
 );
 
@@ -219,6 +220,7 @@ const resetForm = () => {
       combinations: [],
     },
     customAttributes: {},
+    accountingCode: '',
   };
   errors.value = {};
 };
@@ -292,8 +294,8 @@ onMounted(async () => {
           />
         </div>
 
-        <!-- Category and Tax Percentage Row -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <!-- Category, Tax Percentage and Accounting Code Row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <!-- Category Selection -->
           <div>
             <label
@@ -346,6 +348,23 @@ onMounted(async () => {
                 step="0.01"
               />
             </div>
+          </div>
+
+          <!-- Accounting Code -->
+          <div>
+            <label
+              for="accountingCode"
+              class="block text-sm font-medium text-neutral-700 mb-1"
+            >
+              Código
+            </label>
+            <input
+              id="accountingCode"
+              type="text"
+              v-model="formData.accountingCode"
+              class="w-full px-3 py-2 border border-neutral-300 rounded-md"
+              placeholder=""
+            />
           </div>
         </div>
 

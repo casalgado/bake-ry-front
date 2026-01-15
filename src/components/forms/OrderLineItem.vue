@@ -163,6 +163,7 @@ onMounted(() => {
                 type="number"
                 :value="item.currentPrice"
                 @input="handlePriceChange"
+                @focus="$event.target.select()"
                 class="w-20 px-0 md:px-1 py-0.5 text-right border rounded text-sm min-w-16"
                 :class="{
                   'price-modified': isPriceModified,

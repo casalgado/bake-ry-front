@@ -1,35 +1,53 @@
 <script setup>
-import { computed } from 'vue';
-import { formatMoney, sortVariations, capitalize } from '@/utils/helpers';
+import { ref, computed } from 'vue';
+import { formatMoney, capitalize } from '@/utils/helpers';
 
 const props = defineProps({
   variations: {
     type: Object,
     required: true,
   },
+  previewCount: {
+    type: Number,
+    default: 3,
+  },
 });
 
+const isExpanded = ref(false);
+
+const combinations = computed(() => props.variations?.combinations || []);
+const totalCount = computed(() => combinations.value.length);
+const hasMore = computed(() => totalCount.value > props.previewCount);
+const remainingCount = computed(() => totalCount.value - props.previewCount);
+
+const visibleCombinations = computed(() => {
+  if (isExpanded.value) {
+    return combinations.value;
+  }
+  return combinations.value.slice(0, props.previewCount);
+});
+
+const toggleExpanded = () => {
+  isExpanded.value = !isExpanded.value;
+};
 </script>
 
 <template>
-  <div class="overflow-hidden">
-    <table class="min-w-full ">
-
-      <tbody class="">
-        <tr v-for="item in variations.combinations" :key="item.id" class="">
-          <td class="px-3 py-0 text-sm">
-              <span class="">{{ capitalize(item.name) }}</span>
-              <!-- <span v-if="item.isWholeGrain"
-                    class="bg-primary-100 text-primary-600 text-xs px-2 py-0.5 rounded-full">
-                WG
-              </span> -->
-          </td>
-
-          <td class="px-3 py-2 text-sm text-right font-medium">
-            {{ formatMoney(item.basePrice) }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="flex flex-col gap-0 leading-tight">
+    <template v-if="totalCount === 0">
+      <span class="text-neutral-400 text-xs">Sin variaciones</span>
+    </template>
+    <template v-else>
+      <span
+        v-for="item in visibleCombinations"
+        :key="item.id"
+        class="text-xs text-neutral-700"
+      >{{ capitalize(item.name) }} {{ formatMoney(item.basePrice) }}</span>
+      <button
+        v-if="hasMore"
+        @click.stop="toggleExpanded"
+        class="text-xs text-primary-600 hover:text-primary-800 font-medium text-left m-0 p-0"
+      >{{ isExpanded ? 'ver menos' : `+${remainingCount} más` }}</button>
+    </template>
   </div>
 </template>

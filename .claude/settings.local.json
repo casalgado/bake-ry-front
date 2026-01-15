@@ -11,7 +11,8 @@
       "Bash(curl:*)",
       "Bash(grep:*)",
       "Bash(chmod:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(dir \"C:\\\\Users\\\\casal\\\\documents\\\\web\\\\back\\\\bake-ry\\\\functions\\\\src\" /b)"
     ],
     "deny": [],
     "ask": []
