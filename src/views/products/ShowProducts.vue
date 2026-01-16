@@ -38,16 +38,18 @@ onMounted(async () => {
 });
 
 const tableData = computed(() => {
-  return productStore.items.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      product.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
+  return productStore.items
+    .filter((product) => {
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchQuery.value.toLowerCase());
 
-    const matchesCollection =
-      !selectedCollection.value || product.collectionId === selectedCollection.value;
+      const matchesCollection =
+        !selectedCollection.value || product.collectionId === selectedCollection.value;
 
-    return matchesSearch && matchesCollection;
-  });
+      return matchesSearch && matchesCollection;
+    })
+    .sort((a, b) => (a.collectionName || '').localeCompare(b.collectionName || ''));
 });
 
 const columns = [
