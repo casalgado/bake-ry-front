@@ -437,7 +437,7 @@ watch(
       <!-- Full-screen container for centering -->
       <div class="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel
-          class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
         >
           <OrderForm
             v-if="selectedItems[0]"
