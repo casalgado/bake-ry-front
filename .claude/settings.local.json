@@ -12,7 +12,8 @@
       "Bash(grep:*)",
       "Bash(chmod:*)",
       "Bash(bash:*)",
-      "Bash(dir \"C:\\\\Users\\\\casal\\\\documents\\\\web\\\\back\\\\bake-ry\\\\functions\\\\src\" /b)"
+      "Bash(dir \"C:\\\\Users\\\\casal\\\\documents\\\\web\\\\back\\\\bake-ry\\\\functions\\\\src\" /b)",
+      "Bash(dir \"C:\\\\Users\\\\casal\\\\.claude\" /b)"
     ],
     "deny": [],
     "ask": []

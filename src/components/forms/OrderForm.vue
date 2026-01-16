@@ -408,16 +408,71 @@ const handleSubmit = () => {
   formData.value.deliveryNotes = cleanString(formData.value.deliveryNotes);
   formData.value.internalNotes = cleanString(formData.value.internalNotes);
   formData.value.isPaid = !!formData.value.paymentDate;
+
+  // Get taxMode from bakery settings
+  const taxMode = bakerySettingsStore.items[0]?.features?.invoicing?.taxMode || 'inclusive';
+
   console.log('Form Data:', formData.value);
-  emit('submit', formData.value);
+  emit('submit', { ...formData.value, taxMode });
 };
 
+// Get taxMode from bakery settings for calculations
+const currentTaxMode = computed(() => {
+  return bakerySettingsStore.items[0]?.features?.invoicing?.taxMode || 'inclusive';
+});
+
+// Calculate tax amount for a single item based on taxMode
+const calculateItemTax = (item) => {
+  if (item.isComplimentary || !item.taxPercentage) return 0;
+  if (currentTaxMode.value === 'exclusive') {
+    return Math.round((item.currentPrice * item.taxPercentage) / 100);
+  }
+  return Math.round((item.currentPrice * item.taxPercentage) / (100 + item.taxPercentage));
+};
+
+// Calculate pre-tax price for a single item based on taxMode
+const calculateItemPreTaxPrice = (item) => {
+  if (item.isComplimentary) return 0;
+  if (currentTaxMode.value === 'exclusive') {
+    return item.currentPrice;
+  }
+  return item.currentPrice - calculateItemTax(item);
+};
+
+// Subtotal is the sum of all item totals (including tax)
 const subtotal = computed(() => {
   if (formData.value.paymentMethod === 'complimentary') {
     return 0;
   }
   return formData.value.orderItems.reduce((sum, item) => {
-    return sum + (item.isComplimentary ? 0 : item.quantity * item.currentPrice);
+    if (item.isComplimentary) return sum;
+    const taxAmount = calculateItemTax(item);
+    if (currentTaxMode.value === 'exclusive') {
+      return sum + (item.quantity * (item.currentPrice + taxAmount));
+    }
+    return sum + (item.quantity * item.currentPrice);
+  }, 0);
+});
+
+// Pre-tax subtotal (without IVA)
+const preTaxSubtotal = computed(() => {
+  if (formData.value.paymentMethod === 'complimentary') {
+    return 0;
+  }
+  return formData.value.orderItems.reduce((sum, item) => {
+    if (item.isComplimentary) return sum;
+    return sum + (item.quantity * calculateItemPreTaxPrice(item));
+  }, 0);
+});
+
+// Total tax amount
+const totalTaxAmount = computed(() => {
+  if (formData.value.paymentMethod === 'complimentary') {
+    return 0;
+  }
+  return formData.value.orderItems.reduce((sum, item) => {
+    if (item.isComplimentary) return sum;
+    return sum + (item.quantity * calculateItemTax(item));
   }, 0);
 });
 
@@ -930,11 +985,15 @@ const clearPartialPayment = () => {
 
       <div class="base-card">
         <div class="flex flex-col gap-1 mb-4">
-          <div class="flex justify-between">
-            <span>Subtotal:</span>
-            <span>{{ formatMoney(subtotal) }}</span>
+          <div class="flex justify-between text-neutral-600">
+            <span>Subtotal (sin IVA):</span>
+            <span>{{ formatMoney(preTaxSubtotal) }}</span>
           </div>
-          <div class="flex justify-between">
+          <div v-if="totalTaxAmount > 0" class="flex justify-between text-neutral-600">
+            <span>IVA:</span>
+            <span>{{ formatMoney(totalTaxAmount) }}</span>
+          </div>
+          <div class="flex justify-between text-neutral-600">
             <span>Envío:</span>
             <span>{{
               formData.fulfillmentType === "pickup"
@@ -942,7 +1001,7 @@ const clearPartialPayment = () => {
                 : formatMoney(formData.deliveryFee)
             }}</span>
           </div>
-          <div class="flex justify-between font-bold">
+          <div class="flex justify-between font-bold pt-1 border-t border-neutral-200">
             <span>Total:</span>
             <span>{{ formatMoney(total) }}</span>
           </div>

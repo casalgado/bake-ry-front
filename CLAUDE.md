@@ -2,7 +2,53 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-when producing vue components, the order of the sections will always be script, template, styles. 
+when producing vue components, the order of the sections will always be script, template, styles.
+
+## Backend Reference
+
+**Location:** `C:\Users\casal\documents\web\back\bake-ry\functions`
+**Permission:** You have full access to explore, read, and modify backend files when needed.
+
+When I reference "the backend", "backend", or "back-end", this is the project I mean.
+
+### Backend Architecture Overview
+
+**Stack:** Firebase Functions + Express.js + Firestore (Node.js 20)
+
+**File Structure:**
+```
+src/
+├── config/           # Firebase initialization
+├── controllers/      # Request handlers (Factory pattern)
+│   └── base/controllerFactory.js  # Generates CRUD endpoints
+├── services/         # Business logic & Firestore operations
+│   └── base/serviceFactory.js     # Generates base CRUD services
+├── models/           # Data models extending BaseModel
+│   └── base/BaseModel.js          # Auto date handling, Firestore serialization
+├── routes/           # Express route definitions
+├── middleware/       # Auth & access control
+│   ├── userAccess.js              # Token verification, role checks
+│   └── bakeryAccess.js            # Multi-tenant bakery scoping
+├── utils/            # Errors, query parser, helpers
+├── seeds/            # Development data seeding
+└── __tests__/        # Jest tests
+```
+
+**Key Patterns:**
+- **Multi-Tenant:** All resources scoped by bakeryId: `/bakeries/:bakeryId/[resource]`
+- **Factory Pattern:** Controllers and services generated from base factories
+- **Auto Change History:** Updates create `updateHistory` subcollection entries with editor info
+- **Role-Based Access:** `system_admin`, `bakery_admin`, `bakery_staff`, `delivery_assistant`, `production_assistant`, `accounting_assistant`
+- **Query System:** Supports pagination, sorting, date ranges, field filters via query params
+
+**Commands:**
+- `npm run dev` - Start with nodemon
+- `npm run serve` - Start Firebase emulators
+- `npm test` - Run Jest tests
+- `npm run deploy` - Deploy to Firebase
+
+---
+
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.

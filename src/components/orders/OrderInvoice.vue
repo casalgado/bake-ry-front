@@ -81,12 +81,15 @@ const invoiceTitle = computed(() => {
 });
 
 // Compute combined items from all orders
+// Uses pre-tax prices in the table; tax totals shown at bottom
 const combinedItems = computed(() => {
   const items = [];
 
   props.orders.forEach((order, orderIndex) => {
     if (order.orderItems && Array.isArray(order.orderItems)) {
       order.orderItems.forEach((item, itemIndex) => {
+        // Use preTaxPrice for unit price (price without tax)
+        const preTaxUnitPrice = item.preTaxPrice || item.currentPrice || 0;
         items.push({
           orderId: order.id,
           preparationDate: order.preparationDate,
@@ -94,8 +97,8 @@ const combinedItems = computed(() => {
           productDescription: item.productDescription || '',
           variation: item.variation?.name || '',
           quantity: item.quantity || 0,
-          unitPrice: (item.subtotal / item.quantity) || 0,
-          subtotal: item.subtotal || 0,
+          unitPrice: preTaxUnitPrice,
+          lineTotal: preTaxUnitPrice * (item.quantity || 0),
           taxPercentage: item.taxPercentage || 0,
           orderIndex,
           itemIndex,
@@ -103,7 +106,7 @@ const combinedItems = computed(() => {
       });
     }
 
-    // Add delivery fee as a line item if applicable
+    // Add delivery fee as a line item if applicable (no tax on delivery)
     if (order.fulfillmentType === 'delivery' && order.deliveryFee > 0) {
       items.push({
         orderId: order.id,
@@ -112,7 +115,7 @@ const combinedItems = computed(() => {
         variation: '',
         quantity: 1,
         unitPrice: order.deliveryFee,
-        subtotal: order.deliveryFee,
+        lineTotal: order.deliveryFee,
         taxPercentage: 0,
       });
     }
@@ -229,6 +232,16 @@ const primaryColor = computed(() => {
   return props.bakerySettings?.branding?.primaryColor || '#6b9e3e';
 });
 
+// Get taxMode from first order (defaults to inclusive for backwards compatibility)
+const taxMode = computed(() => {
+  return props.orders[0]?.taxMode || 'inclusive';
+});
+
+// Dynamic label for pre-tax total based on tax mode
+const preTaxLabel = computed(() => {
+  return taxMode.value === 'exclusive' ? 'Subtotal:' : 'Subtotal (sin IVA):';
+});
+
 // Trigger print
 const handlePrint = () => {
   window.print();
@@ -309,8 +322,7 @@ const handlePrint = () => {
           <th v-if="orders.length > 1">Fecha</th>
           <th>Cantidad</th>
           <th>Precio</th>
-          <th class="text-center">IVA</th>
-          <th>Monto</th>
+          <th>Total</th>
         </tr>
       </thead>
       <tbody>
@@ -349,8 +361,7 @@ const handlePrint = () => {
           </td>
           <td class="text-center">{{ item.quantity }}</td>
           <td class="text-right">{{ formatMoney(item.unitPrice) }}</td>
-          <td class="text-center">{{ item.taxPercentage }}%</td>
-          <td class="text-right">{{ formatMoney(item.subtotal) }}</td>
+          <td class="text-right">{{ formatMoney(item.lineTotal) }}</td>
         </tr>
       </tbody>
     </table>
@@ -359,7 +370,7 @@ const handlePrint = () => {
     <div class="grand-total">
       <div class="totals-breakdown">
         <div class="total-row">
-          <span class="total-label">Subtotal (sin IVA):</span>
+          <span class="total-label">{{ preTaxLabel }}</span>
           <span class="total-amount">{{ formatMoney(totals.preTaxTotal) }}</span>
         </div>
         <div v-if="totals.totalTaxAmount > 0" class="total-row">

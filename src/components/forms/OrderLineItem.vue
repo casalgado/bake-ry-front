@@ -3,7 +3,8 @@ import { ref, computed, onMounted } from 'vue';
 import {
   PhGift,
   PhTrash,
-  PhGearSix,
+  PhCaretDown,
+  PhCaretUp,
 } from '@phosphor-icons/vue';
 
 const discount = ref(null);
@@ -116,8 +117,9 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="flex items-center gap-2 mt-0.5">
-        <div class="flex items-center gap-1 max-w-24">
+      <!-- Controls row -->
+      <div class="grid grid-cols-[5fr_5fr_8fr_6fr] gap-2 mt-0.5 items-center">
+        <div class="flex items-center gap-1">
           <button
             type="button"
             @click="handleQuantityChange(-1)"
@@ -144,105 +146,113 @@ onMounted(() => {
         </div>
 
         <div class="flex items-center gap-1">
-          <div class="flex items-center">
-            <div class="input-with-unit compact" data-unit="%">
-              <input
-                type="number"
-                @input="handleDiscountChange"
-                @focus="$event.target.select()"
-                :value="discount"
-                class="w-14 px-1 py-0.5 text-right border rounded text-xs max-w-14 min-w-14 text-neutral-500"
-                :disabled="item.isComplimentary"
-                max="100"
-              />
-            </div>
-          </div>
-          <div class="flex items-center">
-            <div class="input-with-unit compact" data-unit="$">
-              <input
-                type="number"
-                :value="item.currentPrice"
-                @input="handlePriceChange"
-                @focus="$event.target.select()"
-                class="w-20 px-0 md:px-1 py-0.5 text-right border rounded text-sm min-w-16"
-                :class="{
-                  'price-modified': isPriceModified,
-                  'opacity-20': item.isComplimentary,
-              }"
-              step="1"
+          <div class="input-with-unit compact" data-unit="%">
+            <input
+              type="number"
+              @input="handleDiscountChange"
+              @focus="$event.target.select()"
+              :value="discount"
+              class="w-full px-1 py-0.5 text-right border rounded text-xs text-neutral-500"
               :disabled="item.isComplimentary"
-              />
-            </div>
+              max="100"
+            />
+                   <span class="absolute absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-700">Dcto</span>
           </div>
         </div>
 
-        <button
-          type="button"
-          @click="toggleAdvancedFields"
-          class="px-0 md:px-2 py-0.5 text-xs rounded"
-          :class="{ 'bg-blue-100': showAdvancedFields, 'bg-gray-100': !showAdvancedFields }"
-          title="Ajustes avanzados"
-        >
-          <PhGearSix class="w-4 h-4" :weight="showAdvancedFields ? 'fill' : 'light'" />
-        </button>
-        <button
-          type="button"
-          @click="handleToggleComplimentary"
-          class="px-0 md:px-2 py-0.5 text-xs rounded"
-          :class="{
-            'bg-gray-200': item.isComplimentary,
-            'bg-gray-100': !item.isComplimentary,
-          }"
-        >
-          <PhGift v-if="!item.isComplimentary" class="w-4 h-4" weight="light" />
-          <PhGift v-else class="w-4 h-4" weight="fill" />
-        </button>
-        <button
-          type="button"
-          @click="handleRemove"
-          class="px-0 md:px-2 py-0.5 text-xs text-red-700 hover:bg-red-50 rounded"
-        >
-          <PhTrash class="w-4 h-4" />
-        </button>
-      </div>
-
-      <!-- Advanced fields row (Cost & Tax) -->
-      <div v-if="showAdvancedFields" class="flex items-center gap-3 mt-1 pb-2 border-b border-neutral-200">
-        <div class="flex items-center gap-1">
-          <span class="text-xs text-neutral-500">Costo:</span>
+        <div>
           <div class="input-with-unit compact" data-unit="$">
             <input
               type="number"
-              :value="item.costPrice || 0"
-              @input="handleCostPriceChange"
+              :value="item.currentPrice"
+              @input="handlePriceChange"
               @focus="$event.target.select()"
-              class="w-16 px-1 py-0.5 text-right border rounded text-xs"
-              :class="{ 'border-amber-300 bg-amber-50': costValidationError }"
-              :disabled="item.isComplimentary"
-              min="0"
+              class="w-full px-1 py-0.5 text-right border rounded text-sm"
+              :class="{
+                'price-modified': isPriceModified,
+                'opacity-20': item.isComplimentary,
+              }"
               step="1"
+              :disabled="item.isComplimentary"
             />
+                   <span v-if="showAdvancedFields" class="absolute absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-700">Venta</span>
           </div>
         </div>
+
+        <div class="flex items-center gap-2 justify-end">
+          <button
+            type="button"
+            @click="toggleAdvancedFields"
+            class="px-0 md:px-2 py-0.5 text-xs rounded"
+            title="Más opciones"
+          >
+            <PhCaretUp v-if="showAdvancedFields" class="w-4 h-4" weight="bold" />
+            <PhCaretDown v-else class="w-4 h-4" weight="bold" />
+          </button>
+          <button
+            type="button"
+            @click="handleToggleComplimentary"
+            class="px-0 md:px-2 py-0.5 text-xs rounded"
+            :class="{
+              'bg-gray-200': item.isComplimentary,
+              'bg-gray-100': !item.isComplimentary,
+            }"
+          >
+            <PhGift v-if="!item.isComplimentary" class="w-4 h-4" weight="light" />
+            <PhGift v-else class="w-4 h-4" weight="fill" />
+          </button>
+          <button
+            type="button"
+            @click="handleRemove"
+            class="px-0 md:px-2 py-0.5 text-xs text-red-700 hover:bg-red-50 rounded"
+          >
+            <PhTrash class="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Advanced fields row (Cost & Tax) -->
+      <div v-if="showAdvancedFields" class="grid grid-cols-[5fr_5fr_8fr_6fr] gap-2 mt-1 pb-2 border-b border-neutral-200 items-center">
+        <div></div>
         <div class="flex items-center gap-1">
-          <span class="text-xs text-neutral-500">IVA:</span>
-          <div class="input-with-unit compact" data-unit="%">
+          <div class="input-with-unit compact flex-1" data-unit="%">
             <input
               type="number"
               :value="item.taxPercentage || 0"
               @input="handleTaxPercentageChange"
               @focus="$event.target.select()"
-              class="w-14 px-1 py-0.5 text-right border rounded text-xs"
+              class="w-full px-1 py-0.5 text-right border rounded text-xs"
               :disabled="item.isComplimentary"
               min="0"
               max="100"
               step="0.5"
             />
+                   <span class="absolute absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-700">IVA</span>
           </div>
         </div>
-        <span v-if="costValidationError" class="text-xs text-amber-600 italic">
-          {{ costValidationError }}
-        </span>
+        <div class="flex items-center gap-1">
+          <div class="input-with-unit compact flex-1" data-unit="$">
+            <input
+              type="number"
+              :value="item.costPrice || 0"
+              @input="handleCostPriceChange"
+              @focus="$event.target.select()"
+              class="w-full px-1 py-0.5 text-right border rounded text-xs"
+              :class="{ 'border-amber-300 bg-amber-50': costValidationError }"
+              :disabled="item.isComplimentary"
+              min="0"
+              step="1"
+            />
+           <span class="absolute absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-700">Costo</span>
+
+          </div>
+        </div>
+
+        <div>
+          <span v-if="costValidationError" class="text-xs text-amber-600 italic">
+            {{ costValidationError }}
+          </span>
+        </div>
       </div>
     </div>
   </div>

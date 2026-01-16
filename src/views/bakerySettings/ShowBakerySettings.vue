@@ -34,7 +34,7 @@ const featuresFormData = ref({
   showMultipleReports: false,
   // Invoicing features
   defaultTermsAndConditions: '',
-
+  taxMode: 'inclusive',
 });
 const isFeaturesSaving = ref(false);
 
@@ -536,6 +536,9 @@ const initializeFeaturesForm = () => {
     if (Object.prototype.hasOwnProperty.call(invoicingFeatures, 'defaultTermsAndConditions')) {
       newFormData.defaultTermsAndConditions = invoicingFeatures.defaultTermsAndConditions;
     }
+    if (Object.prototype.hasOwnProperty.call(invoicingFeatures, 'taxMode')) {
+      newFormData.taxMode = invoicingFeatures.taxMode;
+    }
   }
 
   featuresFormData.value = newFormData;
@@ -626,6 +629,7 @@ const handleFeaturesSubmit = async (formData) => {
           defaultTermsAndConditions: formData.defaultTermsAndConditions || '',
           showProductDescriptions: true,
           showTermsAndConditions: true,
+          taxMode: formData.taxMode || 'inclusive',
         },
       },
     });

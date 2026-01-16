@@ -39,6 +39,7 @@ const props = defineProps({
       useProductCost: false,
       // Invoicing features
       defaultTermsAndConditions: '',
+      taxMode: 'inclusive',
     }),
   },
   availablePaymentMethods: {
@@ -60,6 +61,12 @@ const formData = ref({ ...props.initialData });
 const reportFilterOptions = [
   { value: 'dueDate', label: 'Fecha de Pedido' },
   { value: 'paymentDate', label: 'Fecha de Pago' },
+];
+
+// Radio button options for tax mode
+const taxModeOptions = [
+  { value: 'inclusive', label: 'IVA Incluido' },
+  { value: 'exclusive', label: 'IVA Adicional' },
 ];
 
 // Payment method icon mapping
@@ -131,6 +138,10 @@ watch(() => props.initialData, (newData, oldData) => {
 
     if (Object.prototype.hasOwnProperty.call(newData, 'defaultTermsAndConditions') && newData.defaultTermsAndConditions !== formData.value.defaultTermsAndConditions) {
       formData.value.defaultTermsAndConditions = newData.defaultTermsAndConditions;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(newData, 'taxMode') && newData.taxMode !== formData.value.taxMode) {
+      formData.value.taxMode = newData.taxMode;
     }
   }
 }, { deep: true, immediate: true });
@@ -257,6 +268,15 @@ watch(formData, (newValue) => {
           Personaliza la información que aparece en tus facturas
         </p>
         <div class="space-y-4">
+          <RadioFeatureCard
+            v-model="formData.taxMode"
+            :icon="PhCurrencyDollar"
+            title="Modo de IVA"
+            description="Define cómo se calcula el IVA en los pedidos. 'IVA Incluido' significa que el precio ya incluye el impuesto. 'IVA Adicional' significa que el impuesto se suma al precio base."
+            :options="taxModeOptions"
+            name="tax-mode"
+            :disabled="loading"
+          />
           <div>
             <label class="block text-sm font-medium text-neutral-700 mb-1">
               Términos y Condiciones
