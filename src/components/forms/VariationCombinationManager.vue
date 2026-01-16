@@ -241,7 +241,7 @@ const formatPriceRange = (group) => {
               <input
                 type="text"
                 :value="getGroupPriceValue(group.key, 'accountingCode')"
-                placeholder=""
+                :placeholder="getGroupPriceDisplay(group.key, 'accountingCode')"
                 @input.stop="updateGroupPrice(group.key, 'accountingCode', $event.target.value)"
                 @click.stop
                 @focus.stop

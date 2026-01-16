@@ -233,13 +233,22 @@ export default class CombinationGroups {
   /**
    * Get price range for display in group inputs
    * @param {string} groupKey
-   * @param {string} field - 'basePrice' or 'costPrice'
+   * @param {string} field - 'basePrice', 'costPrice', or 'accountingCode'
    * @returns {string} Display value for input
    */
   getGroupPriceDisplay(groupKey, field) {
     const group = this.groups.get(groupKey);
     if (!group || group.variants.length === 0) return '';
 
+    // Handle text fields (like accountingCode)
+    if (field === 'accountingCode') {
+      const values = group.variants.map(v => v[field] || '');
+      const firstValue = values[0];
+      const allSame = values.every(v => v === firstValue);
+      return allSame ? firstValue : 'varios';
+    }
+
+    // Handle numeric fields (prices)
     const prices = group.variants.map(v => v[field] || 0);
     const min = Math.min(...prices);
     const max = Math.max(...prices);

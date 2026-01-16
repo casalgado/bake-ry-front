@@ -46,7 +46,7 @@ const optionPositionDropdowns = ref(new Map()); // Map of optionKey -> boolean f
 const availableDimensionTypes = [
   { value: 'WEIGHT', label: 'Peso / Volumen' },
   { value: 'QUANTITY', label: 'Cantidad' },
-  { value: 'SIZE', label: 'Tamaño' },
+  { value: 'SIZE', label: 'Forma / Tamaño' },
 ];
 
 // Confirm dialog state
@@ -332,7 +332,7 @@ const getDimensionConfig = (type) => {
       defaultUnit: 'uds',
     },
     SIZE: {
-      label: 'Tamaño',
+      label: 'Forma / Tamaño',
       templateKey: 'SIZE',
       defaultUnit: '',
     },
