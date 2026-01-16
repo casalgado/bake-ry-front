@@ -165,10 +165,11 @@ const formatPriceRange = (group) => {
     </div>
 
     <!-- Column Headers (Desktop only) -->
-    <div class="hidden sm:grid grid-cols-10 gap-3 mb-2 px-4 py-2 text-xs font-medium text-neutral-600 uppercase tracking-wide">
+    <div class="hidden sm:grid grid-cols-14 gap-3 mb-2 px-4 py-2 text-xs font-medium text-neutral-600 uppercase tracking-wide">
       <div class="col-span-6">Variante</div>
-      <div class="col-span-2">Precio Venta</div>
-      <div class="col-span-2">Precio Costo</div>
+      <div class="col-span-3">P. Venta</div>
+      <div class="col-span-3">P. Costo</div>
+      <div class="col-span-2">Código</div>
     </div>
 
     <!-- Groups List -->
@@ -177,7 +178,7 @@ const formatPriceRange = (group) => {
 
         <!-- Group Header -->
         <div
-          class="group-header flex flex-col sm:grid sm:grid-cols-10 gap-2 sm:gap-3 sm:items-center px-4 py-3 hover:bg-neutral-100 border-l-4 border-neutral-300"
+          class="group-header flex flex-col sm:grid sm:grid-cols-14 gap-2 sm:gap-3 sm:items-center px-4 py-3 hover:bg-neutral-100 border-l-4 border-neutral-300"
           :class="group.expanded ? 'border-blue-400 bg-neutral-50' : ''"
         >
           <!-- Mobile: Group Name row -->
@@ -199,8 +200,8 @@ const formatPriceRange = (group) => {
           <!-- Mobile: Price fields row / Desktop: Inline price fields -->
           <div class="flex gap-2 sm:contents">
             <!-- Base Price -->
-            <div class="flex-1 sm:col-span-2" @click.stop="console.log('🛑 Group base price div clicked')">
-              <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Precio Venta</label>
+            <div class="flex-1 sm:col-span-3" @click.stop="console.log('Group base price div clicked')">
+              <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">P. Venta</label>
               <div class="input-with-unit compact" data-unit="$">
                 <input
                   type="number"
@@ -217,8 +218,8 @@ const formatPriceRange = (group) => {
             </div>
 
             <!-- Cost Price -->
-            <div class="flex-1 sm:col-span-2" @click.stop>
-              <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Precio Costo</label>
+            <div class="flex-1 sm:col-span-3" @click.stop>
+              <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">P. Costo</label>
               <div class="input-with-unit compact" data-unit="$">
                 <input
                   type="number"
@@ -233,6 +234,20 @@ const formatPriceRange = (group) => {
                 />
               </div>
             </div>
+
+            <!-- Accounting Code -->
+            <div class="flex-1 sm:col-span-2" @click.stop>
+              <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Código</label>
+              <input
+                type="text"
+                :value="getGroupPriceValue(group.key, 'accountingCode')"
+                placeholder=""
+                @input.stop="updateGroupPrice(group.key, 'accountingCode', $event.target.value)"
+                @click.stop
+                @focus.stop
+                class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
+              />
+            </div>
           </div>
         </div>
 
@@ -242,14 +257,14 @@ const formatPriceRange = (group) => {
             <div
               v-for="variant in group.variants"
               :key="variant.id"
-              class="variant-row flex flex-col sm:grid sm:grid-cols-10 gap-2 sm:gap-3 sm:items-center px-4 py-3 pl-4 sm:pl-8 hover:bg-neutral-75 border-l-4 border-neutral-200"
+              class="variant-row flex flex-col sm:grid sm:grid-cols-14 gap-2 sm:gap-3 sm:items-center px-4 py-3 pl-4 sm:pl-8 hover:bg-neutral-75 border-l-4 border-neutral-200"
               :class="variant.isWholeGrain ? 'bg-amber-25' : ''"
             >
               <!-- Variant Name -->
               <div class="sm:col-span-6">
                 <div class="flex items-center">
                   <div>
-                    <div class="text-sm font-medium text-neutral-800">
+                    <div class="text-xs font-medium text-neutral-800">
                       {{ variant.variantName }}
                     </div>
                     <div class="text-xs text-neutral-500">
@@ -262,8 +277,8 @@ const formatPriceRange = (group) => {
               <!-- Mobile: Price fields row / Desktop: Inline price fields -->
               <div class="flex gap-2 sm:contents">
                 <!-- Base Price -->
-                <div class="flex-1 sm:col-span-2" @click.stop="console.log('🛑 Variant base price div clicked')">
-                  <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Precio Venta</label>
+                <div class="flex-1 sm:col-span-3" @click.stop="console.log('🛑 Variant base price div clicked')">
+                  <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">P. Venta</label>
                   <div class="input-with-unit compact" data-unit="$">
                     <input
                       type="number"
@@ -287,8 +302,8 @@ const formatPriceRange = (group) => {
                 </div>
 
                 <!-- Cost Price -->
-                <div class="flex-1 sm:col-span-2" @click.stop>
-                  <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Precio Costo</label>
+                <div class="flex-1 sm:col-span-3" @click.stop>
+                  <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">P. Costo</label>
                   <div class="input-with-unit compact" data-unit="$">
                     <input
                       type="number"
@@ -308,6 +323,26 @@ const formatPriceRange = (group) => {
                       step="1"
                     />
                   </div>
+                </div>
+
+                <!-- Accounting Code -->
+                <div class="flex-1 sm:col-span-2" @click.stop>
+                  <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Código</label>
+                  <input
+                    type="text"
+                    :value="variant.accountingCode"
+                    @input.stop="
+                      updateCombinationPrice(
+                        variant.id,
+                        'accountingCode',
+                        $event.target.value
+                      )
+                    "
+                    @click.stop
+                    @focus.stop
+                    placeholder=""
+                    class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
+                  />
                 </div>
               </div>
 
@@ -357,6 +392,17 @@ const formatPriceRange = (group) => {
 </template>
 
 <style scoped>
+/* Custom 14-column grid (Tailwind only goes up to 12) */
+.grid-cols-14 {
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .sm\:grid-cols-14 {
+    grid-template-columns: repeat(14, minmax(0, 1fr));
+  }
+}
+
 /* Group header styling */
 .group-header {
   @apply transition-all duration-200 ease-in-out;

@@ -256,6 +256,7 @@ const regenerateCombinations = () => {
       basePrice: combo.basePrice,
       costPrice: combo.costPrice,
       selection: combo.selection,
+      accountingCode: combo.accountingCode,
     };
   });
   console.log('Existing combinations map:', existingCombinations);
@@ -301,6 +302,7 @@ const regenerateCombinations = () => {
       ...combo,
       basePrice: matchedCombination?.basePrice || 0,
       costPrice: matchedCombination?.costPrice || 0,
+      accountingCode: matchedCombination?.accountingCode || '',
     };
   });
 
