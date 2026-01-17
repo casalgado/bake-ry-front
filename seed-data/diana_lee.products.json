@@ -1,0 +1,3126 @@
+{
+    "items": [
+        {
+            "id": "m2xdCqG0T0uJYOJQ3yws",
+            "createdAt": "2026-01-15T15:23:01.630Z",
+            "bakeryId": "diana_lee",
+            "name": "besito de frambuesa",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "description": "",
+            "accountingCode": "",
+            "variations": {
+                "dimensions": [],
+                "combinations": []
+            },
+            "hasVariations": false,
+            "basePrice": 273000,
+            "costPrice": 126000,
+            "currentPrice": 273000,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "MXIX140Jr0StV2FG1sTw",
+            "createdAt": "2025-12-15T13:49:25.176Z",
+            "bakeryId": "diana_lee",
+            "name": "avellana",
+            "collectionId": "FaFF7s595P7w5WtAdB2E",
+            "collectionName": "sugare free",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "dSWx5ArJkyyUNNsz",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Pequeño",
+                                "value": 2,
+                                "displayOrder": 1,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Mediano",
+                                "value": 4,
+                                "displayOrder": 1,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Grande",
+                                "value": 6,
+                                "displayOrder": 1,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1,
+                                "displayOrder": 999,
+                                "isWholeGrain": false
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "1x8cigKPeZB16i8i",
+                        "selection": [
+                            "Pequeño"
+                        ],
+                        "name": "Pequeño",
+                        "basePrice": 0,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "fSjYQiPUuVZ9L8DQ",
+                        "selection": [
+                            "Mediano"
+                        ],
+                        "name": "Mediano",
+                        "basePrice": 0,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "nkw4UuVe5kRN34Xo",
+                        "selection": [
+                            "Grande"
+                        ],
+                        "name": "Grande",
+                        "basePrice": 354000,
+                        "currentPrice": 0,
+                        "costPrice": 163600,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "hlRtGloX6UZosWow",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 0,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "KBFnIpLdBDSCEYi9NXFX",
+            "createdAt": "2025-12-06T13:30:46.237Z",
+            "updatedAt": "2026-01-15T15:30:01.075Z",
+            "bakeryId": "diana_lee",
+            "name": "mont blanc keto",
+            "collectionId": "FaFF7s595P7w5WtAdB2E",
+            "collectionName": "sugare free",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "wBe2ax8mUanM1L2u",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "displayOrder": 1,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Mediano",
+                                "value": 4,
+                                "displayOrder": 2,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Grande",
+                                "value": 6,
+                                "displayOrder": 3,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Slice",
+                                "value": 1,
+                                "displayOrder": 4,
+                                "isWholeGrain": false
+                            }
+                        ],
+                        "displayOrder": 1
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "tNycsznBgJfFfulZ",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 0,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "VHjUNFPAwDWhqbLO",
+                        "selection": [
+                            "Mediano"
+                        ],
+                        "name": "Mediano",
+                        "basePrice": 0,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "kvjaqMljGpGbKx7p",
+                        "selection": [
+                            "Grande"
+                        ],
+                        "name": "Grande",
+                        "basePrice": 342000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "vWI25cF2ofPi6Q12",
+                        "selection": [
+                            "Slice"
+                        ],
+                        "name": "Slice",
+                        "basePrice": 30000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "costPrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "AtHNvjhnfdHSFfQEK1L2",
+            "createdAt": "2025-12-06T13:30:09.988Z",
+            "updatedAt": "2026-01-15T15:26:31.413Z",
+            "bakeryId": "diana_lee",
+            "name": "pistachio keto",
+            "collectionId": "FaFF7s595P7w5WtAdB2E",
+            "collectionName": "sugare free",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "Sr3EhhgaiSrCHPDQ",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Pequeño",
+                                "value": 2,
+                                "displayOrder": 1,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Mediano",
+                                "value": 4,
+                                "displayOrder": 2,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Grande",
+                                "value": 6,
+                                "displayOrder": 3,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Slice",
+                                "value": 1,
+                                "displayOrder": 4,
+                                "isWholeGrain": false
+                            }
+                        ],
+                        "displayOrder": 1
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "v9Fx1U8cuGDvYpkg",
+                        "selection": [
+                            "Pequeño"
+                        ],
+                        "name": "Pequeño",
+                        "basePrice": 0,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "ccY9NKEQiZJzDlQa",
+                        "selection": [
+                            "Mediano"
+                        ],
+                        "name": "Mediano",
+                        "basePrice": 0,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "oXOglTaD0uswzZ2b",
+                        "selection": [
+                            "Grande"
+                        ],
+                        "name": "Grande",
+                        "basePrice": 379000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "APX6rAGywog0qWdO",
+                        "selection": [
+                            "Slice"
+                        ],
+                        "name": "Slice",
+                        "basePrice": 30000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "costPrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "sVODoQ5abf6mUN1ewhZU",
+            "createdAt": "2025-12-06T13:29:22.172Z",
+            "updatedAt": "2026-01-16T13:24:25.244Z",
+            "bakeryId": "diana_lee",
+            "name": "cheesecake sugar free caramelo salado",
+            "collectionId": "FaFF7s595P7w5WtAdB2E",
+            "collectionName": "sugare free",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "yTCqzq7ljpqi8XV3",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "displayOrder": 1,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Mediano",
+                                "value": 4,
+                                "displayOrder": 2,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Grande",
+                                "value": 6,
+                                "displayOrder": 3,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Slice",
+                                "value": 1,
+                                "displayOrder": 4,
+                                "isWholeGrain": false
+                            }
+                        ],
+                        "displayOrder": 1
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "yJpiwRxyScY9mRp3",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 0,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "8cJaw88HjyzfYvE7",
+                        "selection": [
+                            "Mediano"
+                        ],
+                        "name": "Mediano",
+                        "basePrice": 170000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "WNv9BahO3tbC4L2U",
+                        "selection": [
+                            "Grande"
+                        ],
+                        "name": "Grande",
+                        "basePrice": 269000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "0kbVutlbYUBS5Keq",
+                        "selection": [
+                            "Slice"
+                        ],
+                        "name": "Slice",
+                        "basePrice": 30000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "costPrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "KoKSU9NPE3siRz5H1v8T",
+            "createdAt": "2025-11-01T16:08:59.119Z",
+            "bakeryId": "diana_lee",
+            "name": "lemon bars",
+            "collectionId": "B9pOoSjnUKf4871pQ1Du",
+            "collectionName": "nudos y otros",
+            "description": "",
+            "variations": {
+                "dimensions": [],
+                "combinations": []
+            },
+            "hasVariations": false,
+            "basePrice": 12000,
+            "currentPrice": 12000,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "LROO7KuA0GMiQARjvYj9",
+            "createdAt": "2025-10-29T21:44:28.262Z",
+            "bakeryId": "diana_lee",
+            "name": "spooky cupcakes",
+            "collectionId": "B9pOoSjnUKf4871pQ1Du",
+            "collectionName": "nudos y otros",
+            "description": "",
+            "variations": {
+                "dimensions": [],
+                "combinations": []
+            },
+            "hasVariations": false,
+            "basePrice": 9000,
+            "currentPrice": 9000,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "bhI3jI5vW9eZUokZgFAO",
+            "createdAt": "2025-10-22T13:00:58.153Z",
+            "updatedAt": "2025-11-20T21:19:51.239Z",
+            "bakeryId": "diana_lee",
+            "name": "miel de panela",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "cCtd5G68dezCo7EF",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Grande",
+                                "value": 4,
+                                "displayOrder": 1,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Tiny+",
+                                "value": 6,
+                                "displayOrder": 2,
+                                "isWholeGrain": false
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "5TQg0lj4usKDMudO",
+                        "selection": [
+                            "Grande"
+                        ],
+                        "name": "Grande",
+                        "basePrice": 130000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "AUyh77k6Be0iPJTI",
+                        "selection": [
+                            "Tiny+"
+                        ],
+                        "name": "Tiny+",
+                        "basePrice": 65000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 65000,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "waIUPh85jRDWPXBdxtgm",
+            "createdAt": "2025-08-22T18:34:44.219Z",
+            "updatedAt": "2025-09-19T15:02:53.465Z",
+            "bakeryId": "diana_lee",
+            "name": "choco guava",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "MeT0iJ9osEBJ2aa4",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Tiny",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Slice",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 2
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 1,
+                                "displayOrder": 3,
+                                "isWholeGrain": false
+                            },
+                            {
+                                "name": "Completo",
+                                "value": 1,
+                                "displayOrder": 4,
+                                "isWholeGrain": false
+                            }
+                        ],
+                        "displayOrder": 1
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "XjHFtmMAFC4amGqz",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 37000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "pQe2EvYVXgADAMqT",
+                        "selection": [
+                            "Slice"
+                        ],
+                        "name": "Slice",
+                        "basePrice": 25000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "liOnMqKv0kXf0L4w",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 154000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "RYqvdHpr7hxqken1",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 246000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "VkJ06fSy5B79zg1bzQz4",
+            "createdAt": "2025-08-21T00:31:13.558Z",
+            "bakeryId": "diana_lee",
+            "name": "muffin golden carrot cake",
+            "collectionId": "B9pOoSjnUKf4871pQ1Du",
+            "collectionName": "nudos y otros",
+            "variations": {
+                "dimensions": [],
+                "combinations": []
+            },
+            "basePrice": 18000,
+            "currentPrice": 18000,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "Eu1WMqwwxRgTL77KqfBA",
+            "createdAt": "2025-08-21T00:30:56.608Z",
+            "bakeryId": "diana_lee",
+            "name": "muffin orchard apple cake",
+            "collectionId": "B9pOoSjnUKf4871pQ1Du",
+            "collectionName": "nudos y otros",
+            "variations": {
+                "dimensions": [],
+                "combinations": []
+            },
+            "basePrice": 18000,
+            "currentPrice": 18000,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "JKoNvwksZ6iJICYFbQyb",
+            "createdAt": "2025-08-21T00:18:48.002Z",
+            "bakeryId": "diana_lee",
+            "name": "key lime cookies",
+            "collectionId": "B9pOoSjnUKf4871pQ1Du",
+            "collectionName": "nudos y otros",
+            "variations": {
+                "dimensions": [],
+                "combinations": []
+            },
+            "basePrice": 9000,
+            "currentPrice": 9000,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "TDZ2xqmQczjq5LfTJih5",
+            "createdAt": "2025-08-11T12:45:40.382Z",
+            "updatedAt": "2025-10-21T16:41:38.065Z",
+            "bakeryId": "diana_lee",
+            "name": "dubai brownies",
+            "collectionId": "B9pOoSjnUKf4871pQ1Du",
+            "collectionName": "nudos y otros",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "plaZiVQ5Kbybcc9C",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Nutella",
+                                "value": 2,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Pistachio",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 2
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 1,
+                                "displayOrder": 3,
+                                "isWholeGrain": false
+                            }
+                        ],
+                        "displayOrder": 1
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "RsgC26o3yEDZUdUS",
+                        "selection": [
+                            "Nutella"
+                        ],
+                        "name": "Nutella",
+                        "basePrice": 15000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "FwJtQBYQZywT2VhK",
+                        "selection": [
+                            "Pistachio"
+                        ],
+                        "name": "Pistachio",
+                        "basePrice": 20000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "wSCyFKtwyakkRdWR",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 6500,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 17000,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "4rsyRp8wSktWPdjpOv1V",
+            "createdAt": "2025-07-18T11:46:00.101Z",
+            "bakeryId": "diana_lee",
+            "name": "zanahoria",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "variations": {
+                "dimensions": [],
+                "combinations": []
+            },
+            "basePrice": 180000,
+            "currentPrice": 180000,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "rsXxA6EHq8LbKuKNcAFs",
+            "createdAt": "2025-06-15T13:38:58.024Z",
+            "updatedAt": "2025-06-15T13:40:53.644Z",
+            "bakeryId": "diana_lee",
+            "name": "midnight dubai",
+            "collectionId": "sm1DlsLOrOwFHrW71UF3",
+            "collectionName": "cheesecakes",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "kmD4ebGPqDWVZ270",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Midnight Dubai Full",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Midnight Dubai",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "fJvufYUCPHuwcww5",
+                        "selection": [
+                            "Midnight Dubai Full"
+                        ],
+                        "name": "Midnight Dubai Full",
+                        "basePrice": 300000,
+                        "currentPrice": 300000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "VyJdkrqLk82ZdZ6u",
+                        "selection": [
+                            "Midnight Dubai"
+                        ],
+                        "name": "Midnight Dubai",
+                        "basePrice": 195000,
+                        "currentPrice": 195000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "V8Xu7t8IYG0vprcc",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "n4LaIXy8RJXLRdA2MJpJ",
+            "createdAt": "2025-06-08T03:24:19.519Z",
+            "updatedAt": "2025-06-09T21:01:21.253Z",
+            "bakeryId": "diana_lee",
+            "name": "papa hugo",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "T1poYP8IBk8vAqva",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": " Medio",
+                                "value": 0,
+                                "isWholeGrain": true,
+                                "displayOrder": 2
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "eTPtysPRTldCipao",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 208000,
+                        "currentPrice": 208000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "tKR0KvdZKjvqoQic",
+                        "selection": [
+                            " Medio"
+                        ],
+                        "name": " Medio",
+                        "basePrice": 140000,
+                        "currentPrice": 140000,
+                        "costPrice": 0,
+                        "isWholeGrain": true,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "gRVpoOTEajsqrVCk",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 192000,
+            "currentPrice": 192000,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "ryFvTLU1cqkHMPv6RD2i",
+            "createdAt": "2025-06-03T13:08:11.466Z",
+            "updatedAt": "2025-09-16T14:47:30.497Z",
+            "bakeryId": "diana_lee",
+            "name": "cake de almendra",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "V7bjBSpxYPmpxSGJ",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "p6XFtbVQf3wb4sXE",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 175000,
+                        "currentPrice": 175000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "ej5aJRFuXkpHFiNclXqY",
+            "createdAt": "2025-06-03T13:08:11.163Z",
+            "updatedAt": "2025-08-22T20:05:18.744Z",
+            "bakeryId": "diana_lee",
+            "name": "grandma june vanilla cake",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "uvAsIfURDiX1gnuj",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Slice",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "DZ2hpMQtFKUuHOQ5",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 132000,
+                        "currentPrice": 132000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "05vB9P22Ti7kZDs5",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 84000,
+                        "currentPrice": 84000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "9hxjvCHEp2tVZs1u",
+                        "selection": [
+                            "Slice"
+                        ],
+                        "name": "Slice",
+                        "basePrice": 15000,
+                        "currentPrice": 15000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "49wosrcdNkaXUpyj",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "6HbABauAu25kw6K8f4WK",
+            "createdAt": "2025-06-03T13:08:10.749Z",
+            "updatedAt": "2025-08-24T18:03:56.537Z",
+            "bakeryId": "diana_lee",
+            "name": "grandma june chocolate cake",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "sYoA3mlaha6Shsiw",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Slice",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": " Integral",
+                                "value": 0,
+                                "isWholeGrain": true,
+                                "displayOrder": 2
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "GmV9BMfMIrWg6z5O",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 144000,
+                        "currentPrice": 144000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "XusHHWiYDtYJ2sut",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 92000,
+                        "currentPrice": 92000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "unFfblzHy3DKrllK",
+                        "selection": [
+                            "Slice"
+                        ],
+                        "name": "Slice",
+                        "basePrice": 20000,
+                        "currentPrice": 20000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "jqZ1EpsbePMzhkXu",
+                        "selection": [
+                            " Integral"
+                        ],
+                        "name": " Integral",
+                        "basePrice": 0,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": true,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "YnEZrDT9MMoRZELC",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "UDTYDuBCdY5hSZPPeCTJ",
+            "createdAt": "2025-06-03T13:08:10.544Z",
+            "updatedAt": "2025-09-16T14:48:47.042Z",
+            "bakeryId": "diana_lee",
+            "name": "biscoff creamy cake",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "757i8kyvJXj1RxOz",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Slice",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 999
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "V2IZa99pEWFEiCBU",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 350000,
+                        "currentPrice": 350000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "nhKse7GKT0TAcKcJ",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 220000,
+                        "currentPrice": 220000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "f8LqV7VxRWEVThop",
+                        "selection": [
+                            "Slice"
+                        ],
+                        "name": "Slice",
+                        "basePrice": 30000,
+                        "currentPrice": 30000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "J9XabYrNdXGD6pbV",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 55000,
+                        "currentPrice": 55000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "xnLV74zWVHhcGthuXJYK",
+            "createdAt": "2025-06-03T13:08:10.134Z",
+            "updatedAt": "2025-09-16T14:46:29.790Z",
+            "bakeryId": "diana_lee",
+            "name": "dubai chocolate tart",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "0t0wpgfBWSVAaxab",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 999
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "QQh8RBkSRCbZpCs8",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 280000,
+                        "currentPrice": 280000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "GbckIM8aqDj88ZhO",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 180000,
+                        "currentPrice": 180000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "k8LRHUVrH1zZZCuy1idz",
+            "createdAt": "2025-06-03T13:08:09.933Z",
+            "updatedAt": "2025-06-04T18:29:55.999Z",
+            "bakeryId": "diana_lee",
+            "name": "orange blossom labneh dream",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "yFBuZjrRUQbgPn1d",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "beHgj5iwRAzcW913",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 144000,
+                        "currentPrice": 144000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "Gd7CZbYSBnffOwMz",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "C4aAStiWS2sq5JkmGYG4",
+            "createdAt": "2025-06-03T13:08:09.521Z",
+            "updatedAt": "2025-06-04T18:29:30.163Z",
+            "bakeryId": "diana_lee",
+            "name": "orchard cake",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "KadVAeQQ3aBNGDTA",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "6U7k2TuTAOtgLgCI",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 145000,
+                        "currentPrice": 145000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "gC8lrIDDD1MHaT97",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "E9RbVJMDQ5ojHrJxsf05",
+            "createdAt": "2025-06-03T13:08:09.315Z",
+            "updatedAt": "2025-12-06T20:51:43.572Z",
+            "bakeryId": "diana_lee",
+            "name": "molten lava pistachio crumble",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "WmOJYqqnIQV6bHOu",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 2
+                            },
+                            {
+                                "name": "slice",
+                                "value": 1,
+                                "displayOrder": 3,
+                                "isWholeGrain": false
+                            }
+                        ],
+                        "displayOrder": 1
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "oF7NN8hiJYJrom9N",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 290000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "cIQ6aaYtuskgjDnj",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 180000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "xYqnWEbEo9lOnaJd",
+                        "selection": [
+                            "Slice"
+                        ],
+                        "name": "Slice",
+                        "basePrice": 35000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "P53BlrUuEauDM0anXeYF",
+            "createdAt": "2025-06-03T13:08:08.942Z",
+            "updatedAt": "2025-06-18T13:46:02.245Z",
+            "bakeryId": "diana_lee",
+            "name": "sticky walnut caramel cake",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "PwIaoV8BoLkMNzrj",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 14,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "gu17Znqv8eGPNyJS",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 190000,
+                        "currentPrice": 190000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "PqWfQhGQxgmmv6m3",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 100000,
+                        "currentPrice": 100000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "E1abEJg74f7gfVrX",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "WmWS2jH16ff0RlzymZwc",
+            "createdAt": "2025-06-03T13:08:08.701Z",
+            "updatedAt": "2025-08-24T18:04:22.733Z",
+            "bakeryId": "diana_lee",
+            "name": "velvet coconut cream cake",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "zYBkbzwMsQOS7sVa",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Slice",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "oaICK7mb3nYm0IrB",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 246000,
+                        "currentPrice": 246000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "4sV5RNCtiCyxCjlR",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 154000,
+                        "currentPrice": 154000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "PplJVokK0Yovm9do",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 37000,
+                        "currentPrice": 37000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "ZOZBXvN5sBtRmXQo",
+                        "selection": [
+                            "Slice"
+                        ],
+                        "name": "Slice",
+                        "basePrice": 30000,
+                        "currentPrice": 30000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "Yxb3UeLP0pI79BMX",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "srmg94JyH1ue5tkXgB4S",
+            "createdAt": "2025-06-03T13:08:08.396Z",
+            "updatedAt": "2025-09-16T14:44:10.638Z",
+            "bakeryId": "diana_lee",
+            "name": "royal lava cake",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "0GB9OavFGjqNZGNr",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Xl",
+                                "value": 15,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "KnP7pZxkglX7V8Oj",
+                        "selection": [
+                            "Xl"
+                        ],
+                        "name": "Xl",
+                        "basePrice": 246000,
+                        "currentPrice": 246000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "kGAUiXVWQnE0S6K6",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 154000,
+                        "currentPrice": 154000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "Ovbz0rxs2QNgK1CG",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 35000,
+                        "currentPrice": 35000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "xz5IewLJuXMXEirlEt1O",
+            "createdAt": "2025-06-03T13:08:08.087Z",
+            "updatedAt": "2025-10-21T02:37:34.956Z",
+            "bakeryId": "diana_lee",
+            "name": "7 layer vanilla pound cake with flaky salt",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "ih97PDaj0EK1LrBs",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 2
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "isWholeGrain": false,
+                                "displayOrder": 3
+                            },
+                            {
+                                "name": "Slice",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 4
+                            }
+                        ],
+                        "displayOrder": 1
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "t5Jsohynyy2KTDFs",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 232000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "qjK5dxUq68NhF2PF",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 145000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "WJELkQxi8IWkSh8x",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 35000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "FUYbZsz2nobYZ8im",
+                        "selection": [
+                            "Slice"
+                        ],
+                        "name": "Slice",
+                        "basePrice": 25000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "nnudiFCnJAfDnpHtajrI",
+            "createdAt": "2025-06-03T13:08:07.779Z",
+            "updatedAt": "2025-06-04T18:28:41.736Z",
+            "bakeryId": "diana_lee",
+            "name": "apple crumble pie",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "MgUPNe7Hxbb87k3T",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "CFdB0xu5frp4wkmq",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 145000,
+                        "currentPrice": 145000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "u5mjb95SaHperwje",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 28000,
+                        "currentPrice": 28000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "3Kj2e13NIfN9Eev0",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "eAHQ2L2n25NtR6SkaiYW",
+            "createdAt": "2025-06-03T13:08:07.473Z",
+            "updatedAt": "2025-09-16T14:44:43.141Z",
+            "bakeryId": "diana_lee",
+            "name": "pistachio paradise cake",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "4gefUr3yG9s5z8VT",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "pXm59erzyvzZkm88",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 235000,
+                        "currentPrice": 235000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "FdpgW7080Uwte77P",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 145000,
+                        "currentPrice": 145000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "xegCrfEBFVoRzObr",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 35000,
+                        "currentPrice": 35000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "6ouiQxoLMfhpYCHEbtgV",
+            "createdAt": "2025-06-03T13:08:07.165Z",
+            "updatedAt": "2025-09-16T14:49:20.793Z",
+            "bakeryId": "diana_lee",
+            "name": "orange cake with chocolate pecan streusel",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "qMfqdMBtFIHoQyvj",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "fv851U2aR6Sz7mkW",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 220000,
+                        "currentPrice": 220000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "oNGKmzgLl6nc9KIKTyPn",
+            "createdAt": "2025-06-03T13:08:06.858Z",
+            "updatedAt": "2025-08-21T00:24:24.604Z",
+            "bakeryId": "diana_lee",
+            "name": "blackout chocolate cake",
+            "collectionId": "TjKIsYdvRHGhxrkWzzOP",
+            "collectionName": "cakes",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "trErJqSDZfK0biPp",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Mini",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Slice",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "QE1DiUT6P69rDOjD",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 195000,
+                        "currentPrice": 195000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "z6Xh429cw1iwTRUE",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 135000,
+                        "currentPrice": 135000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "KBR09BAKZc3SvOnQ",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 30000,
+                        "currentPrice": 30000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "8zcogo8X5RwbnopT",
+                        "selection": [
+                            "Mini"
+                        ],
+                        "name": "Mini",
+                        "basePrice": 15000,
+                        "currentPrice": 15000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "WDcrdMaVLDsUtEg5",
+                        "selection": [
+                            "Slice"
+                        ],
+                        "name": "Slice",
+                        "basePrice": 25000,
+                        "currentPrice": 25000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "soH1gdWZPZSWYpX6",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "JMeON0qKYpYsWzCwMa1R",
+            "createdAt": "2025-06-03T13:08:06.548Z",
+            "updatedAt": "2025-06-09T17:05:53.817Z",
+            "bakeryId": "diana_lee",
+            "name": "pistachio con helado",
+            "collectionId": "B9pOoSjnUKf4871pQ1Du",
+            "collectionName": "nudos y otros",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "D1cfVykdr4jwU3Bh",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Litro",
+                                "value": "32 oz",
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "ueP31Pf0wQstpsyL",
+                        "selection": [
+                            "Litro"
+                        ],
+                        "name": "Litro",
+                        "basePrice": 99000,
+                        "currentPrice": 99000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "A4ccLnE3y359T35J",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "KqdvgkHOTCvQvRPk1ubm",
+            "createdAt": "2025-06-03T13:08:06.247Z",
+            "updatedAt": "2025-06-04T18:27:13.212Z",
+            "bakeryId": "diana_lee",
+            "name": "pistachio knots",
+            "collectionId": "B9pOoSjnUKf4871pQ1Du",
+            "collectionName": "nudos y otros",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "MRoC2t6BMzAj3Qvo",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "X 8",
+                                "value": 8,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "z9YA4gMgoXBxM1dq",
+                        "selection": [
+                            "X 8"
+                        ],
+                        "name": "X 8",
+                        "basePrice": 136000,
+                        "currentPrice": 136000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "xCAFBvTrraiuFBng",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "6CdqhmN3m2MYoU6HpmpN",
+            "createdAt": "2025-06-03T13:08:05.937Z",
+            "updatedAt": "2025-11-23T14:43:01.928Z",
+            "bakeryId": "diana_lee",
+            "name": "key lime fantasy",
+            "collectionId": "sm1DlsLOrOwFHrW71UF3",
+            "collectionName": "cheesecakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "0Q9Eav3M6QkIA8YE",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 2
+                            }
+                        ],
+                        "displayOrder": 1
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "wMli6sP78AEsN9K1",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 166000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "r04g3MEPNVDtyfiR",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 112000,
+                        "currentPrice": 0,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "KqXZzkIWBuZz9vNDV5sW",
+            "createdAt": "2025-06-03T13:08:05.630Z",
+            "updatedAt": "2025-09-16T14:43:05.077Z",
+            "bakeryId": "diana_lee",
+            "name": "biscoff",
+            "collectionId": "sm1DlsLOrOwFHrW71UF3",
+            "collectionName": "cheesecakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "R0aJCDskXZkapZmb",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "oWu32AiFeHFUrGHy",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 350000,
+                        "currentPrice": 350000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "TIbnsnFyy4ytzU2O",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 220000,
+                        "currentPrice": 220000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "xuShnefNF3zocfgl",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 55000,
+                        "currentPrice": 55000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "oZ5GH3nFO1uAHE4PI2DV",
+            "createdAt": "2025-06-03T13:08:05.323Z",
+            "updatedAt": "2025-06-04T18:26:45.256Z",
+            "bakeryId": "diana_lee",
+            "name": "plain",
+            "collectionId": "sm1DlsLOrOwFHrW71UF3",
+            "collectionName": "cheesecakes",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "HP6LrQ1KjUQGzSQD",
+                        "type": "SIZE",
+                        "label": "Tamaño",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Otra",
+                                "value": 1000,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "VvFwAgAgJg4NX3XG",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 184000,
+                        "currentPrice": 184000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "YNLwpwmXlXlJMUf8",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 115000,
+                        "currentPrice": 115000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "SkLMFF0m8oQeWo7o",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 28000,
+                        "currentPrice": 28000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "KiwGBqPlcDSU2f58",
+                        "selection": [
+                            "Otra"
+                        ],
+                        "name": "Otra",
+                        "basePrice": 10000,
+                        "currentPrice": 10000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "sT1bkj1nrCPUkYiFCpV6",
+            "createdAt": "2025-06-03T13:08:05.038Z",
+            "updatedAt": "2025-09-16T14:45:00.956Z",
+            "bakeryId": "diana_lee",
+            "name": "naranja",
+            "collectionId": "sm1DlsLOrOwFHrW71UF3",
+            "collectionName": "cheesecakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "FQbhi099jiW5D3eF",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "eOMR2FauTzXKL7qF",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 246000,
+                        "currentPrice": 246000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "1m0ZQRYSLIikH2pJ",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 155000,
+                        "currentPrice": 155000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "WfCUh3wwb33Cf0kk6TLN",
+            "createdAt": "2025-06-03T13:08:04.605Z",
+            "updatedAt": "2025-09-16T14:45:35.294Z",
+            "bakeryId": "diana_lee",
+            "name": "pistachio",
+            "collectionId": "sm1DlsLOrOwFHrW71UF3",
+            "collectionName": "cheesecakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "Lky0QU3sOkS37gM9",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            }
+                        ],
+                        "displayOrder": 0
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "YQobxl8CfsJyQhjL",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 235000,
+                        "currentPrice": 235000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "wZGhMQ40bJaKT2tY",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 145000,
+                        "currentPrice": 145000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    },
+                    {
+                        "id": "RTTToano6NfgyTz3",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 35000,
+                        "currentPrice": 35000,
+                        "costPrice": 0,
+                        "isWholeGrain": false,
+                        "isActive": true,
+                        "accountingCode": ""
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        },
+        {
+            "id": "Dy6AjX4HiJ1Fzw6NFkey",
+            "createdAt": "2025-06-03T13:08:04.385Z",
+            "updatedAt": "2025-12-12T16:42:57.924Z",
+            "bakeryId": "diana_lee",
+            "name": "guayaba",
+            "collectionId": "sm1DlsLOrOwFHrW71UF3",
+            "collectionName": "cheesecakes",
+            "description": "",
+            "variations": {
+                "dimensions": [
+                    {
+                        "id": "nXRAaPu8nB8X84ne",
+                        "type": "SIZE",
+                        "label": "SIZE",
+                        "unit": "",
+                        "options": [
+                            {
+                                "name": "Completo",
+                                "value": 12,
+                                "isWholeGrain": false,
+                                "displayOrder": 1
+                            },
+                            {
+                                "name": "Medio",
+                                "value": 6,
+                                "isWholeGrain": false,
+                                "displayOrder": 2
+                            },
+                            {
+                                "name": "Tiny",
+                                "value": 2,
+                                "isWholeGrain": false,
+                                "displayOrder": 3
+                            },
+                            {
+                                "name": "Porcion",
+                                "value": 0,
+                                "isWholeGrain": false,
+                                "displayOrder": 4
+                            }
+                        ],
+                        "displayOrder": 1
+                    }
+                ],
+                "combinations": [
+                    {
+                        "id": "3upNBxuNWgnsYEsp",
+                        "selection": [
+                            "Completo"
+                        ],
+                        "name": "Completo",
+                        "basePrice": 232000,
+                        "currentPrice": 0,
+                        "costPrice": 107000,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "EvUn3fyoII3ltYnj",
+                        "selection": [
+                            "Medio"
+                        ],
+                        "name": "Medio",
+                        "basePrice": 145000,
+                        "currentPrice": 0,
+                        "costPrice": 55500,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "DUfdUhbZLazgVoGI",
+                        "selection": [
+                            "Tiny"
+                        ],
+                        "name": "Tiny",
+                        "basePrice": 35000,
+                        "currentPrice": 0,
+                        "costPrice": 16400,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    },
+                    {
+                        "id": "mDR5HaVYYETV6Dll",
+                        "selection": [
+                            "Porcion"
+                        ],
+                        "name": "Porcion",
+                        "basePrice": 30000,
+                        "currentPrice": 0,
+                        "costPrice": 10700,
+                        "isWholeGrain": false,
+                        "isActive": true
+                    }
+                ]
+            },
+            "hasVariations": true,
+            "basePrice": 0,
+            "currentPrice": 0,
+            "taxPercentage": 8,
+            "isActive": true,
+            "isDeleted": false,
+            "customAttributes": {}
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "perPage": 5000,
+        "total": 40
+    }
+}
