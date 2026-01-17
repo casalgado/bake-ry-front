@@ -14,12 +14,16 @@ import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import ProductForm from '@/components/forms/ProductForm.vue';
 import ToastNotification from '@/components/ToastNotification.vue';
 
+// Utils
+import { formatMoney } from '@/utils/helpers';
+
 // Stores
 import { useProductStore } from '@/stores/productStore';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
 
 // Icons
 import { PhPen, PhTrash } from '@phosphor-icons/vue';
+import { format } from 'date-fns';
 
 const router = useRouter();
 const productStore = useProductStore();
@@ -31,6 +35,7 @@ const selectedCollection = ref('');
 const actionLoading = ref({});
 const dataTable = ref(null);
 const toastRef = ref(null);
+const expandedRows = ref(new Set());
 
 onMounted(async () => {
   await productStore.fetchAll();
@@ -73,22 +78,48 @@ const columns = [
     component: VariationsCell,
     getProps: (row) => ({
       variations: row.variations,
+      expanded: expandedRows.value.has(row.id),
+      onToggle: () => toggleRowExpanded(row.id),
     }),
   },
+
   {
-    id: 'basePrice',
-    label: 'Precio Base',
+    id: 'prices',
+    label: 'Costo / Venta',
     field: 'basePrice',
     sortable: true,
-    component: MoneyCell,
+    component: VariationsCell,
+    getProps: (row) => {
+      const calcMargin = (cost, price) => {
+        if (!price) return '-';
+        return `${Math.round((price - (cost || 0)) / price * 100)}%`;
+      };
+      return {
+        variations: row.variations,
+        formatter: (item) => `${formatMoney(item.costPrice || 0)} / ${formatMoney(item.basePrice)}  | ${calcMargin(item.costPrice, item.basePrice)}`,
+        fallbackValue: `${formatMoney(row.costPrice || 0)} / ${formatMoney(row.basePrice)}  | ${calcMargin(row.costPrice, row.basePrice)}`,
+        expanded: expandedRows.value.has(row.id),
+        onToggle: () => toggleRowExpanded(row.id),
+      };
+    },
+  },
+  {
+    id: 'accountingCode',
+    label: 'Código',
+    field: 'accountingCode',
+    sortable: true,
+    component: VariationsCell,
     getProps: (row) => ({
-      value: row.basePrice,
-      hide: row.variations.length > 0,
+      variations: row.variations,
+      formatter: (item) => item.accountingCode || '-',
+      fallbackValue: row.accountingCode || '-',
+      expanded: expandedRows.value.has(row.id),
+      onToggle: () => toggleRowExpanded(row.id),
     }),
   },
   {
     id: 'taxPercentage',
-    label: 'Impuesto (%)',
+    label: 'IVA (%)',
     field: 'taxPercentage',
     sortable: true,
     // Format the tax percentage with one decimal place and add % symbol
@@ -192,6 +223,15 @@ const handleCancel = () => {
 
 const navigateToCreate = () => {
   router.push('/dashboard/products/create');
+};
+
+const toggleRowExpanded = (rowId) => {
+  if (expandedRows.value.has(rowId)) {
+    expandedRows.value.delete(rowId);
+  } else {
+    expandedRows.value.add(rowId);
+  }
+  expandedRows.value = new Set(expandedRows.value);
 };
 </script>
 
