@@ -47,6 +47,7 @@ const handleWizardSelect = (selection) => {
         currentPrice: basePrice,
         isWholeGrain: selection.combination.isWholeGrain || false,
         isActive: selection.combination.isActive !== undefined ? selection.combination.isActive : true,
+        accountingCode: selection.combination.accountingCode || '',
         getDisplayName: () => selection.combination.name || selection.combination.selection?.join(' + '),
       },
       // Keep variation for backward compatibility if it exists

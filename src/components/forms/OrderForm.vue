@@ -44,6 +44,7 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
       );
       const basePrice = matchingCombination?.basePrice || 0;
       const costPrice = matchingCombination?.costPrice || item.combination.costPrice || 0;
+      const accountingCode = matchingCombination?.accountingCode || item.combination.accountingCode || '';
       return {
         ...item,
         basePrice: basePrice,
@@ -59,6 +60,7 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
           currentPrice: preserveCurrentPrice ? item.currentPrice : item.currentPrice || basePrice,
           isWholeGrain: item.combination.isWholeGrain || false,
           isActive: item.combination.isActive !== undefined ? item.combination.isActive : true,
+          accountingCode: accountingCode,
           getDisplayName: item.combination.getDisplayName || (() => item.combination.name || item.combination.selection?.join(' + ')),
         },
       };
