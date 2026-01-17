@@ -28,6 +28,7 @@ import {
   PhUserCirclePlus,
   PhWifiX,
   PhGear,
+  PhArrowsLeftRight,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -207,6 +208,12 @@ const navigationSections = computed(() => [
         icon: PhTag,
         text: 'Productos',
         path: '/dashboard/products',
+      },
+      {
+        id: 'import-export',
+        icon: PhArrowsLeftRight,
+        text: 'Importar/Exportar',
+        path: '/dashboard/products/import-export',
       },
     ],
   },

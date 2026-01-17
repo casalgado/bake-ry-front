@@ -193,6 +193,11 @@ const router = createRouter({
           component: () => import('../views/products/CreateProductCollection.vue'),
         },
         {
+          path: 'products/import-export',
+          name: 'product-import-export',
+          component: () => import('../views/products/ProductImportExport.vue'),
+        },
+        {
           path: 'orders/unpaid',
           name: 'unpaidOrders',
           component: () => import('../views/orders/ShowUnpaidOrders.vue'),
