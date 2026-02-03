@@ -249,6 +249,21 @@ const router = createRouter({
           name: 'accounting-income-statement',
           component: () => import('../views/reports/IncomeStatement.vue'),
         },
+        {
+          path: 'product-collections',
+          name: 'accounting-product-collections',
+          component: () => import('../views/products/ShowProductCollections.vue'),
+        },
+        {
+          path: 'products',
+          name: 'accounting-products',
+          component: () => import('../views/products/ShowProducts.vue'),
+        },
+        {
+          path: 'products/import-export',
+          name: 'accounting-product-import-export',
+          component: () => import('../views/products/ProductImportExport.vue'),
+        },
       ],
     },
     {

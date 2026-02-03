@@ -161,23 +161,23 @@ function formatValue(value, field) {
 </script>
 
 <template>
-  <div class="container p-4 px-0 lg:px-4">
-    <h2 class="text-2xl font-bold mb-6">Importar / Exportar Productos</h2>
+  <div class="container p-2 sm:p-4 px-2 lg:px-4">
+    <h2 class="text-lg sm:text-2xl font-bold text-neutral-800 mb-4">Importar / Exportar Productos</h2>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       <!-- Export Section -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+      <div class="base-card">
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4 flex items-center gap-2">
           <PhDownload class="w-5 h-5" />
           Exportar Productos
         </h3>
 
-        <p class="text-gray-600 mb-4">
+        <p class="text-neutral-600 mb-4">
           Descarga todos los productos en formato Excel o CSV para editar precios y códigos contables.
         </p>
 
         <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-neutral-700 mb-2">
             Formato
           </label>
           <div class="flex gap-4">
@@ -203,27 +203,27 @@ function formatValue(value, field) {
         </div>
 
         <button
-          class="action-btn w-full flex items-center justify-center gap-2"
+          class="action-btn w-full flex items-center justify-center gap-2 py-2 disabled:opacity-50"
           :disabled="isExporting || productStore.loading"
           @click="handleExport"
         >
-          <PhDownload class="w-5 h-5" />
+          <PhDownload class="w-4 h-4" />
           {{ isExporting ? 'Exportando...' : 'Exportar' }}
         </button>
 
-        <p class="text-sm text-gray-500 mt-3">
+        <p class="text-sm text-neutral-500 mt-3">
           {{ productStore.items.length }} productos disponibles
         </p>
       </div>
 
       <!-- Import Section -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+      <div class="base-card">
+        <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4 flex items-center gap-2">
           <PhUpload class="w-5 h-5" />
           Importar Productos
         </h3>
 
-        <p class="text-gray-600 mb-4">
+        <p class="text-neutral-600 mb-4">
           Sube un archivo Excel o CSV para actualizar precios y códigos contables.
           Solo se actualizarán las celdas con valores.
         </p>
@@ -233,7 +233,7 @@ function formatValue(value, field) {
           class="border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer"
           :class="{
             'border-blue-500 bg-blue-50': isDragOver,
-            'border-gray-300 hover:border-gray-400': !isDragOver && !selectedFile,
+            'border-neutral-300 hover:border-neutral-400': !isDragOver && !selectedFile,
             'border-green-500 bg-green-50': selectedFile && !isParsingFile,
           }"
           @dragover="handleDragOver"
@@ -249,7 +249,7 @@ function formatValue(value, field) {
             @change="handleFileSelect"
           >
 
-          <div v-if="isParsingFile" class="text-gray-600">
+          <div v-if="isParsingFile" class="text-neutral-600">
             <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-2" />
             Procesando archivo...
           </div>
@@ -258,14 +258,14 @@ function formatValue(value, field) {
             <PhCheck class="w-8 h-8 mx-auto mb-2" />
             {{ selectedFile.name }}
             <button
-              class="block mx-auto mt-2 text-sm text-gray-500 hover:text-gray-700"
+              class="block mx-auto mt-2 text-sm text-neutral-500 hover:text-neutral-700"
               @click.stop="clearImportState"
             >
               Cambiar archivo
             </button>
           </div>
 
-          <div v-else class="text-gray-500">
+          <div v-else class="text-neutral-500">
             <PhUpload class="w-8 h-8 mx-auto mb-2" />
             <p>Arrastra un archivo aquí o haz clic para seleccionar</p>
             <p class="text-sm mt-1">Formatos: Excel (.xlsx, .xls) o CSV</p>
@@ -275,12 +275,12 @@ function formatValue(value, field) {
     </div>
 
     <!-- Changes Preview -->
-    <div v-if="changePreview" class="mt-6 bg-white rounded-lg shadow p-6">
-      <h3 class="text-lg font-semibold mb-4">Vista Previa de Cambios</h3>
+    <div v-if="changePreview" class="mt-4 sm:mt-6 base-card">
+      <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Vista Previa de Cambios</h3>
 
       <!-- Summary -->
-      <div class="flex gap-4 mb-4 text-sm">
-        <span class="px-3 py-1 rounded bg-gray-100">
+      <div class="flex flex-wrap gap-2 sm:gap-4 mb-2 sm:mb-4 text-sm">
+        <span class="px-3 py-1 rounded bg-neutral-100">
           {{ changePreview.summary.totalRows }} filas procesadas
         </span>
         <span
@@ -298,7 +298,7 @@ function formatValue(value, field) {
       </div>
 
       <!-- Errors -->
-      <div v-if="hasErrors" class="mb-4 p-4 bg-red-50 rounded-lg">
+      <div v-if="hasErrors" class="mb-2 sm:mb-4 p-4 bg-red-50 rounded-lg">
         <h4 class="font-medium text-red-800 flex items-center gap-2 mb-2">
           <PhWarning class="w-5 h-5" />
           Errores encontrados
@@ -314,7 +314,7 @@ function formatValue(value, field) {
       <div v-if="hasChanges" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b bg-gray-50">
+            <tr class="border-b bg-neutral-50">
               <th class="text-left p-3">Producto</th>
               <th class="text-left p-3">Variación</th>
               <th class="text-left p-3">Campo</th>
@@ -326,7 +326,7 @@ function formatValue(value, field) {
             <tr
               v-for="(change, index) in changePreview.changes"
               :key="index"
-              class="border-b hover:bg-gray-50"
+              class="border-b hover:bg-neutral-50"
             >
               <td class="p-3">{{ change.productName }}</td>
               <td class="p-3">{{ change.combinationName || '-' }}</td>
@@ -345,27 +345,27 @@ function formatValue(value, field) {
       <!-- No Changes Message -->
       <div
         v-else-if="!hasErrors"
-        class="text-center text-gray-500 py-8"
+        class="text-center text-neutral-500 py-8"
       >
         <PhCheck class="w-12 h-12 mx-auto mb-2 text-green-500" />
         No se detectaron cambios en el archivo importado.
       </div>
 
       <!-- Apply Button -->
-      <div v-if="hasChanges" class="mt-6 flex justify-end gap-4">
+      <div v-if="hasChanges" class="mt-4 sm:mt-6 flex justify-end gap-4">
         <button
-          class="px-4 py-2 text-gray-600 hover:text-gray-800"
+          class="px-4 py-2 text-neutral-600 hover:text-neutral-800"
           :disabled="isApplyingChanges"
           @click="clearImportState"
         >
           Cancelar
         </button>
         <button
-          class="action-btn flex items-center gap-2"
+          class="action-btn flex items-center gap-2 disabled:opacity-50"
           :disabled="isApplyingChanges"
           @click="handleApplyChanges"
         >
-          <PhCheck class="w-5 h-5" />
+          <PhCheck class="w-4 h-4" />
           {{ isApplyingChanges ? 'Aplicando...' : 'Confirmar Importación' }}
         </button>
       </div>
@@ -375,9 +375,3 @@ function formatValue(value, field) {
     <ToastNotification ref="toastRef" />
   </div>
 </template>
-
-<style scoped>
-.action-btn {
-  @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
-}
-</style>
