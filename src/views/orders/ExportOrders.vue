@@ -1,8 +1,12 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { Dialog, DialogPanel } from '@headlessui/vue';
 import OrderInvoice from '@/components/orders/OrderInvoice.vue';
+import OrderForm from '@/components/forms/OrderForm.vue';
 import ToastNotification from '@/components/ToastNotification.vue';
+import { Order } from '@/models/Order.js';
+import { PhPen, PhPrinter, PhX } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useBakeryStore } from '@/stores/bakeryStore';
@@ -20,6 +24,12 @@ const bakerySettings = ref(null);
 const loading = ref(true);
 const error = ref(null);
 const toastRef = ref(null);
+
+// Edit form dialog state
+const isFormOpen = ref(false);
+
+// Check if single order (editing only for single orders)
+const isSingleOrder = computed(() => orders.value.length === 1);
 
 // Parse order IDs from query params
 const orderIds = computed(() => {
@@ -133,25 +143,68 @@ onMounted(async () => {
 });
 
 // Handle invoice updates with auto-save
-const handleInvoiceUpdate = async ({ type, orderIndex, itemIndex, value }) => {
+const handleInvoiceUpdate = async ({ type, orderIndex, itemIndex, itemId, direction, value, discountType, discountValue }) => {
   if (!orders.value.length) return;
 
   try {
-    const order = orders.value[orderIndex || 0];
+    const orderData = orders.value[orderIndex || 0];
 
-    if (type === 'description' && order.orderItems?.[itemIndex]) {
-      // Update description
-      order.orderItems[itemIndex].productDescription = value;
-      await orderStore.patch(order.id, {
-        orderItems: order.orderItems,
-      });
+    if (type === 'description' && itemId) {
+      // Find item by id and update description
+      const item = orderData.orderItems?.find(i => i.id === itemId);
+      if (item) {
+        item.productDescription = value;
+        await orderStore.patch(orderData.id, {
+          orderItems: orderData.orderItems,
+        });
+      }
+    } else if (type === 'title' && itemId) {
+      // Find item by id and update invoice title
+      const item = orderData.orderItems?.find(i => i.id === itemId);
+      if (item) {
+        item.invoiceTitle = value;
+        await orderStore.patch(orderData.id, {
+          orderItems: orderData.orderItems,
+        });
+      }
     } else if (type === 'terms') {
       // Update terms & conditions
-      await orderStore.patch(order.id, {
+      await orderStore.patch(orderData.id, {
         invoiceCustomizations: {
-          ...order.invoiceCustomizations,
+          ...orderData.invoiceCustomizations,
           termsAndConditions: value,
         },
+      });
+    } else if (type === 'reorder' && itemId && direction) {
+      // Instantiate Order model to use reorderItem method
+      const order = new Order(orderData);
+      const success = order.reorderItem(itemId, direction);
+
+      if (success) {
+        // Update local state and save
+        orderData.orderItems = order.orderItems.map(item => item.toPlainObject());
+        await orderStore.patch(orderData.id, {
+          orderItems: orderData.orderItems,
+        });
+      }
+    } else if (type === 'discount') {
+      // Update order discount
+      const order = new Order(orderData);
+      order.orderDiscountType = discountType;
+      order.orderDiscountValue = discountValue;
+      order.calculatePricing();
+
+      // Update local state with recalculated values
+      orders.value[orderIndex] = order.toPlainObject();
+
+      await orderStore.patch(orderData.id, {
+        orderDiscountType: discountType,
+        orderDiscountValue: discountValue,
+        orderDiscountAmount: order.orderDiscountAmount,
+        subtotal: order.subtotal,
+        preTaxTotal: order.preTaxTotal,
+        totalTaxAmount: order.totalTaxAmount,
+        total: order.total,
       });
     }
 
@@ -170,6 +223,25 @@ const handlePrint = () => {
   window.print();
 };
 
+// Handle order form submit
+const handleFormSubmit = async (formData) => {
+  try {
+    await orderStore.update(orders.value[0].id, formData);
+    // Refresh order data
+    await orderStore.fetchById(orders.value[0].id);
+    orders.value[0] = orderStore.items.find(order => order.id === orders.value[0].id);
+    isFormOpen.value = false;
+    toastRef.value?.showSuccess('Pedido actualizado');
+  } catch (err) {
+    console.error('Failed to update order:', err);
+    toastRef.value?.showError('Error al actualizar', err.message);
+  }
+};
+
+const closeDialog = () => {
+  isFormOpen.value = false;
+};
+
 const handleClose = () => {
   window.close();
   // If window.close() doesn't work (e.g., not opened by script), navigate back
@@ -182,27 +254,63 @@ const handleClose = () => {
 <template>
   <div class="min-h-screen bg-gray-50 pb-6">
     <!-- Print controls - hidden during actual printing -->
-    <div class="print-controls bg-white border-b sticky top-0 z-10 shadow-sm px-8 py-1 flex justify-between items-center">
-      <h1 class="text-lg font-semibold mb-0">Vista Previa</h1>
-      <div class="flex gap-2">
-        <button
-          @click="handlePrint"
-          class="action-btn"
-          :disabled="loading || error"
-        >
-          Imprimir
-        </button>
-        <button
-          @click="handleClose"
-          class="action-btn-inverse"
-        >
-          Cerrar
-        </button>
+    <div class="print-controls bg-white border-b sticky top-0 z-10 shadow-sm px-8 py-2">
+      <div class="flex justify-between items-center">
+        <h1 class="text-lg font-semibold mb-0">Vista Previa</h1>
+        <div class="flex gap-2">
+          <button
+            v-if="isSingleOrder && !loading"
+            @click="isFormOpen = true"
+            class="action-btn flex items-center gap-2"
+          >
+            <PhPen class="h-4 w-4" />
+            Editar
+          </button>
+          <button
+            @click="handlePrint"
+            class="action-btn flex items-center gap-2"
+            :disabled="loading || error"
+          >
+            <PhPrinter class="h-4 w-4" />
+            Imprimir
+          </button>
+          <button
+            @click="handleClose"
+            class="action-btn-inverse flex items-center gap-1"
+          >
+            <PhX class="h-4 w-4" />
+            Cerrar
+          </button>
+        </div>
       </div>
+
       <div v-if="error" class="mt-2 px-3 py-2 bg-red-100 text-red-800 rounded text-sm">
         {{ error }}
       </div>
     </div>
+
+    <!-- Edit Form Dialog -->
+    <Dialog
+      :open="isFormOpen"
+      @close="closeDialog"
+      class="relative z-50"
+    >
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <OrderForm
+            v-if="orders[0]"
+            title="Editar Pedido"
+            :key="orders[0].id"
+            :initial-data="orders[0]"
+            :loading="orderStore.loading"
+            class="w-full"
+            @submit="handleFormSubmit"
+            @cancel="closeDialog"
+          />
+        </DialogPanel>
+      </div>
+    </Dialog>
 
     <!-- Loading state -->
     <div v-if="loading" class="flex flex-col items-center justify-center min-h-[50vh] text-gray-500">

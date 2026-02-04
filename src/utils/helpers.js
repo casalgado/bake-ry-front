@@ -169,6 +169,10 @@ const capitalize = (str) => {
       if (['de', 'del', 'la', 'las', 'los', 'y', 'e', 'sin', 'el'].includes(word)) {
         return word;
       }
+      // Uppercase business suffixes (Colombian company types)
+      if (['sas', 'S.a.s', 's.a.s', 's.a.s.', 'ltda', 's.a', 's.a.'].includes(word)) {
+        return word.toUpperCase();
+      }
       // Don't capitalize words that start with 'x' followed by a number
       if (/^x\d/.test(word.toLowerCase())) {
         return word.toLowerCase();

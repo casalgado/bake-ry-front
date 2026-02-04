@@ -27,12 +27,26 @@ const emit = defineEmits([
   'update:discount',
   'update:costPrice',
   'update:taxPercentage',
+  'update:referencePrice',
   'toggle-complimentary',
   'remove',
 ]);
 
 const isPriceModified = computed(() => {
-  return props.item.currentPrice !== props.item.basePrice;
+  return props.item.basePrice > 0 && props.item.currentPrice !== props.item.basePrice;
+});
+
+// Determine if this is a variable price product (basePrice = 0)
+const isVariablePrice = computed(() => {
+  return props.item.basePrice === 0;
+});
+
+// Get the reference price for discount calculations
+const effectiveReferencePrice = computed(() => {
+  if (isVariablePrice.value) {
+    return props.item.referencePrice || props.item.currentPrice;
+  }
+  return props.item.basePrice;
 });
 
 const costValidationError = computed(() => {
@@ -57,16 +71,28 @@ const handleQuantityInput = (event) => {
 
 const handlePriceChange = (event) => {
   const newPrice = Number(event.target.value);
-  discount.value = Math.round(
-    ((props.item.basePrice - newPrice) / props.item.basePrice) * 100,
-  );
+
+  if (isVariablePrice.value) {
+    // Variable price product: direct price change updates referencePrice and clears discount
+    emit('update:referencePrice', props.index, newPrice);
+    emit('update:discount', props.index, { type: null, value: 0 });
+    discount.value = 0;
+  } else {
+    // Normal product: recalculate discount percentage from basePrice
+    discount.value = Math.round(
+      ((props.item.basePrice - newPrice) / props.item.basePrice) * 100,
+    );
+    emit('update:discount', props.index, { type: 'percentage', value: discount.value });
+  }
   emit('update:price', props.index, newPrice);
 };
 
 const handleDiscountChange = (event) => {
   discount.value = Math.min(100, Math.max(0, Number(event.target.value)));
-  const newPrice = props.item.basePrice * (1 - discount.value / 100);
+  const refPrice = effectiveReferencePrice.value;
+  const newPrice = refPrice * (1 - discount.value / 100);
   emit('update:price', props.index, Math.round(newPrice));
+  emit('update:discount', props.index, { type: 'percentage', value: discount.value });
 };
 
 const handleToggleComplimentary = () => {
@@ -90,10 +116,19 @@ const toggleAdvancedFields = () => {
 };
 
 onMounted(() => {
-  discount.value = Math.round(
-    ((props.item.basePrice - props.item.currentPrice) / props.item.basePrice) * 100,
-  );
-  console.log('mounted discount', discount.value);
+  // Initialize discount from stored values or calculate from prices
+  if (props.item.discountType === 'percentage' && props.item.discountValue > 0) {
+    discount.value = props.item.discountValue;
+  } else {
+    const refPrice = effectiveReferencePrice.value;
+    if (refPrice > 0) {
+      discount.value = Math.round(
+        ((refPrice - props.item.currentPrice) / refPrice) * 100,
+      );
+    } else {
+      discount.value = 0;
+    }
+  }
 });
 </script>
 

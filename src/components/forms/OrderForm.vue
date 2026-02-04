@@ -45,11 +45,16 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
       const basePrice = matchingCombination?.basePrice || 0;
       const costPrice = matchingCombination?.costPrice || item.combination.costPrice || 0;
       const accountingCode = matchingCombination?.accountingCode || item.combination.accountingCode || '';
+      const currentPrice = preserveCurrentPrice ? item.currentPrice : item.currentPrice || basePrice;
       return {
         ...item,
         basePrice: basePrice,
         costPrice: costPrice,
-        currentPrice: preserveCurrentPrice ? item.currentPrice : item.currentPrice || basePrice,
+        currentPrice: currentPrice,
+        // Discount tracking fields - preserve if exists, or initialize
+        referencePrice: item.referencePrice ?? (basePrice > 0 ? basePrice : currentPrice),
+        discountType: item.discountType ?? null,
+        discountValue: item.discountValue ?? 0,
         // Ensure combination object is a plain object with all necessary properties
         combination: {
           id: item.combination.id,
@@ -57,7 +62,7 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
           name: item.combination.name,
           basePrice: basePrice,
           costPrice: costPrice,
-          currentPrice: preserveCurrentPrice ? item.currentPrice : item.currentPrice || basePrice,
+          currentPrice: currentPrice,
           isWholeGrain: item.combination.isWholeGrain || false,
           isActive: item.combination.isActive !== undefined ? item.combination.isActive : true,
           accountingCode: accountingCode,
@@ -73,28 +78,46 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
           (v) => v.id === item.variation.id,
         );
         if (matchingVariation) {
+          const basePrice = matchingVariation.basePrice;
+          const currentPrice = preserveCurrentPrice ? item.currentPrice : basePrice;
           return {
             ...item,
-            basePrice: matchingVariation.basePrice,
+            basePrice: basePrice,
             costPrice: matchingVariation.costPrice || 0,
-            currentPrice: preserveCurrentPrice ? item.currentPrice : matchingVariation.basePrice,
+            currentPrice: currentPrice,
+            // Discount tracking fields
+            referencePrice: item.referencePrice ?? (basePrice > 0 ? basePrice : currentPrice),
+            discountType: item.discountType ?? null,
+            discountValue: item.discountValue ?? 0,
           };
         }
       }
+      const basePrice = product.variations[0].basePrice;
+      const currentPrice = preserveCurrentPrice ? item.currentPrice : basePrice;
       return {
         ...item,
-        basePrice: product.variations[0].basePrice,
+        basePrice: basePrice,
         costPrice: product.variations[0].costPrice || 0,
-        currentPrice: preserveCurrentPrice ? item.currentPrice : product.variations[0].basePrice,
+        currentPrice: currentPrice,
+        // Discount tracking fields
+        referencePrice: item.referencePrice ?? (basePrice > 0 ? basePrice : currentPrice),
+        discountType: item.discountType ?? null,
+        discountValue: item.discountValue ?? 0,
       };
     }
 
     // if item has no variation or combination, use product base price
+    const basePrice = product.basePrice;
+    const currentPrice = preserveCurrentPrice ? item.currentPrice : basePrice;
     return {
       ...item,
-      basePrice: product.basePrice,
+      basePrice: basePrice,
       costPrice: product.costPrice || 0,
-      currentPrice: preserveCurrentPrice ? item.currentPrice : product.basePrice,
+      currentPrice: currentPrice,
+      // Discount tracking fields
+      referencePrice: item.referencePrice ?? (basePrice > 0 ? basePrice : currentPrice),
+      discountType: item.discountType ?? null,
+      discountValue: item.discountValue ?? 0,
     };
   });
 };
@@ -155,6 +178,8 @@ const getInitialFormState = () => ({
   internalNotes: '',
   deliveryNotes: '',
   shouldUpdateClientAddress: false,
+  orderDiscountType: 'percentage',
+  orderDiscountValue: 0,
 });
 
 // Form state
@@ -298,6 +323,8 @@ const handleUserChange = async (user) => {
         formData.value.fulfillmentType = historicalOrder.fulfillmentType;
         formData.value.deliveryFee = historicalOrder.deliveryFee;
         formData.value.paymentMethod = historicalOrder.paymentMethod;
+        formData.value.orderDiscountType = historicalOrder.orderDiscountType || 'percentage';
+        formData.value.orderDiscountValue = historicalOrder.orderDiscountValue || 0;
 
         // Update selectedFeeType based on the historical delivery fee
         const matchingOption = deliveryFeeOptions.find(
@@ -478,14 +505,30 @@ const totalTaxAmount = computed(() => {
   }, 0);
 });
 
+// Order-level discount amount (applies to subtotal, not delivery)
+const orderDiscountAmount = computed(() => {
+  if (!formData.value.orderDiscountType || !formData.value.orderDiscountValue) {
+    return 0;
+  }
+
+  if (formData.value.orderDiscountType === 'percentage') {
+    return Math.round((subtotal.value * formData.value.orderDiscountValue) / 100);
+  } else if (formData.value.orderDiscountType === 'fixed') {
+    return Math.min(formData.value.orderDiscountValue, subtotal.value);
+  }
+
+  return 0;
+});
+
 const total = computed(() => {
   if (formData.value.paymentMethod === 'complimentary') {
     return 0;
   }
+  const discountedSubtotal = subtotal.value - orderDiscountAmount.value;
   if (formData.value.fulfillmentType === 'pickup') {
-    return subtotal.value;
+    return discountedSubtotal;
   }
-  return subtotal.value + formData.value.deliveryFee;
+  return discountedSubtotal + formData.value.deliveryFee;
 });
 
 const paymentMethodOptions = computed(() => {
@@ -504,6 +547,11 @@ const paymentMethodOptions = computed(() => {
 const fulfillmentTypes = [
   { value: 'pickup', label: 'Recoger' },
   { value: 'delivery', label: 'Domicilio' },
+];
+
+const discountTypeOptions = [
+  { value: 'percentage', label: 'Porcentaje (%)' },
+  { value: 'fixed', label: 'Fijo ($)' },
 ];
 
 const deliveryFeeOptions = [
@@ -556,6 +604,8 @@ const handlePrevOrder = () => {
       historicalOrder.orderItems,
       productStore.items,
     );
+    formData.value.orderDiscountType = historicalOrder.orderDiscountType || 'percentage';
+    formData.value.orderDiscountValue = historicalOrder.orderDiscountValue || 0;
   }
 };
 
@@ -567,6 +617,8 @@ const handleNextOrder = () => {
       historicalOrder.orderItems,
       productStore.items,
     );
+    formData.value.orderDiscountType = historicalOrder.orderDiscountType || 'percentage';
+    formData.value.orderDiscountValue = historicalOrder.orderDiscountValue || 0;
   }
 };
 
@@ -986,6 +1038,44 @@ const clearPartialPayment = () => {
       </div>
 
       <div class="base-card">
+        <div class="flex items-end gap-4">
+          <RadioButtonGroup
+            v-model="formData.orderDiscountType"
+            :options="discountTypeOptions"
+            name="order-discount-type"
+            label="Descuento del Pedido"
+            class="flex-1"
+          />
+          <div class="flex items-center gap-2">
+            <div
+              class="input-with-unit compact w-24"
+              :data-unit="formData.orderDiscountType === 'percentage' ? '%' : '$'"
+            >
+              <input
+                type="number"
+                v-model.number="formData.orderDiscountValue"
+                min="0"
+                :max="formData.orderDiscountType === 'percentage' ? 100 : undefined"
+                step="1"
+                placeholder="0"
+                @focus="$event.target.select()"
+              />
+            </div>
+
+            <button
+              type="button"
+              class="utility-btn m-0 self-stretch"
+              :class="{ 'utility-btn-inactive': !formData.orderDiscountValue }"
+              @click="formData.orderDiscountValue = 0"
+              :disabled="!formData.orderDiscountValue"
+            >
+              <PhX class="" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="base-card">
         <div class="flex flex-col gap-1 mb-4">
           <div class="flex justify-between text-neutral-600">
             <span>Subtotal (sin IVA):</span>
@@ -994,6 +1084,10 @@ const clearPartialPayment = () => {
           <div v-if="totalTaxAmount > 0" class="flex justify-between text-neutral-600">
             <span>IVA:</span>
             <span>{{ formatMoney(totalTaxAmount) }}</span>
+          </div>
+          <div v-if="orderDiscountAmount > 0" class="flex justify-between text-green-600">
+            <span>Descuento ({{ formData.orderDiscountType === 'percentage' ? formData.orderDiscountValue + '%' : 'fijo' }}):</span>
+            <span>-{{ formatMoney(orderDiscountAmount) }}</span>
           </div>
           <div class="flex justify-between text-neutral-600">
             <span>Envío:</span>

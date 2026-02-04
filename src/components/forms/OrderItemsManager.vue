@@ -37,6 +37,10 @@ const handleWizardSelect = (selection) => {
       basePrice: basePrice,
       costPrice: selection.combination.costPrice || 0,
       currentPrice: basePrice,
+      // Discount tracking fields
+      referencePrice: basePrice > 0 ? basePrice : basePrice,
+      discountType: null,
+      discountValue: 0,
       // Convert combination to plain object to avoid reference issues
       combination: {
         id: selection.combination.id,
@@ -82,6 +86,10 @@ const handleWizardSelect = (selection) => {
     basePrice: prices.basePrice,
     costPrice: selection.variation?.costPrice || product.costPrice || 0,
     currentPrice: prices.basePrice,
+    // Discount tracking fields
+    referencePrice: prices.basePrice > 0 ? prices.basePrice : prices.basePrice,
+    discountType: null,
+    discountValue: 0,
     variation: selection.variation ? {
       id: selection.variation.id,
       name: selection.variation.name,
@@ -139,6 +147,19 @@ const updateItemTaxPercentage = (index, newTaxPercentage) => {
   newItems[index].taxPercentage = newTaxPercentage;
   emit('update:modelValue', newItems);
 };
+
+const updateItemReferencePrice = (index, newReferencePrice) => {
+  const newItems = [...props.modelValue];
+  newItems[index].referencePrice = newReferencePrice;
+  emit('update:modelValue', newItems);
+};
+
+const updateItemDiscount = (index, discount) => {
+  const newItems = [...props.modelValue];
+  newItems[index].discountType = discount.type;
+  newItems[index].discountValue = discount.value;
+  emit('update:modelValue', newItems);
+};
 </script>
 
 <template>
@@ -166,6 +187,8 @@ const updateItemTaxPercentage = (index, newTaxPercentage) => {
             @update:price="updateItemPrice"
             @update:costPrice="updateItemCostPrice"
             @update:taxPercentage="updateItemTaxPercentage"
+            @update:referencePrice="updateItemReferencePrice"
+            @update:discount="updateItemDiscount"
             @toggle-complimentary="toggleItemComplimentary"
             @remove="removeItem"
           />

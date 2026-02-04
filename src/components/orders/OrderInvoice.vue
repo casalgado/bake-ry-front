@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
+import { PhCaretUp, PhCaretDown } from '@phosphor-icons/vue';
 import { formatMoney, capitalize } from '@/utils/helpers';
 
 const props = defineProps({
@@ -47,11 +48,20 @@ watch(termsSource, (value) => {
 }, { immediate: true });
 
 // Debounced update handlers (1 second delay)
-const updateDescription = useDebounceFn((orderIndex, itemIndex, value) => {
+const updateDescription = useDebounceFn((orderIndex, itemId, value) => {
   emit('update', {
     type: 'description',
     orderIndex,
-    itemIndex,
+    itemId,
+    value: value.trim(),
+  });
+}, 1000);
+
+const updateTitle = useDebounceFn((orderIndex, itemId, value) => {
+  emit('update', {
+    type: 'title',
+    orderIndex,
+    itemId,
     value: value.trim(),
   });
 }, 1000);
@@ -68,6 +78,32 @@ const updateTerms = useDebounceFn((value) => {
     value: value.trim(),
   });
 }, 1500);
+
+// Reorder item within an order
+const reorderItem = (orderIndex, itemId, direction) => {
+  emit('update', {
+    type: 'reorder',
+    orderIndex,
+    itemId,
+    direction,
+  });
+};
+
+// Check if item is first in its order (sorted by displayOrder)
+const isFirstItemInOrder = (item) => {
+  if (item.orderIndex === undefined) return true;
+  const orderItems = props.orders[item.orderIndex]?.orderItems || [];
+  const sorted = [...orderItems].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  return sorted[0]?.id === item.id;
+};
+
+// Check if item is last in its order (sorted by displayOrder)
+const isLastItemInOrder = (item) => {
+  if (item.orderIndex === undefined) return true;
+  const orderItems = props.orders[item.orderIndex]?.orderItems || [];
+  const sorted = [...orderItems].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  return sorted[sorted.length - 1]?.id === item.id;
+};
 
 // Convert newlines to <br> for terms display
 const formattedTerms = computed(() => formatDescriptionForDisplay(editableTerms.value));
@@ -87,15 +123,23 @@ const combinedItems = computed(() => {
 
   props.orders.forEach((order, orderIndex) => {
     if (order.orderItems && Array.isArray(order.orderItems)) {
-      order.orderItems.forEach((item, itemIndex) => {
+      // Sort items by displayOrder before processing
+      const sortedItems = order.orderItems
+        .slice()
+        .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+
+      sortedItems.forEach((item, itemIndex) => {
         // Use preTaxPrice for unit price (price without tax)
         const preTaxUnitPrice = item.preTaxPrice || item.currentPrice || 0;
         items.push({
+          id: item.id,
           orderId: order.id,
           preparationDate: order.preparationDate,
           productName: item.productName || 'Producto',
           productDescription: item.productDescription || '',
-          variation: item.variation?.name || '',
+          invoiceTitle: item.invoiceTitle || '',
+          variation: item.variation || null,
+          combination: item.combination || null,
           quantity: item.quantity || 0,
           unitPrice: preTaxUnitPrice,
           lineTotal: preTaxUnitPrice * (item.quantity || 0),
@@ -130,11 +174,13 @@ const totals = computed(() => {
   let preTaxTotal = 0;
   let totalTaxAmount = 0;
   let deliveryTotal = 0;
+  let orderDiscountAmount = 0;
 
   props.orders.forEach(order => {
     subtotal += order.subtotal || 0;
     preTaxTotal += order.preTaxTotal || 0;
     totalTaxAmount += order.totalTaxAmount || 0;
+    orderDiscountAmount += order.orderDiscountAmount || 0;
     if (order.fulfillmentType === 'delivery') {
       deliveryTotal += order.deliveryFee || 0;
     }
@@ -145,7 +191,8 @@ const totals = computed(() => {
     totalTaxAmount,
     subtotal,
     delivery: deliveryTotal,
-    total: subtotal + deliveryTotal,
+    orderDiscountAmount,
+    total: subtotal - orderDiscountAmount + deliveryTotal,
   };
 });
 
@@ -279,7 +326,7 @@ const handlePrint = () => {
     <div class="info-section">
       <div class="bill-to">
         <h3>FACTURAR A</h3>
-        <p>{{ clientInfo.name }}</p>
+        <p>{{ capitalize(clientInfo.name) }}</p>
         <div v-if="clientInfo.legalName" class="client-detail">{{ clientInfo.legalName }}</div>
         <div v-if="clientInfo.nationalId" class="client-detail">NIT/CC: {{ clientInfo.nationalId }}</div>
         <div v-if="clientInfo.address" class="client-detail">{{ clientInfo.address }}</div>
@@ -327,19 +374,47 @@ const handlePrint = () => {
       </thead>
       <tbody>
         <tr v-for="(item, index) in combinedItems" :key="index">
-          <td>
-            <div class="item-title">
-              {{ capitalize(item.productName) }}
-              <span v-if="item.variation" class="item-variation">
-                ({{ capitalize(item.variation) }})
-              </span>
+          <td class="relative">
+            <!-- Reorder arrows (absolutely positioned, hidden on print) -->
+            <div
+              v-if="item.orderIndex !== undefined"
+              class="reorder-arrows print:hidden"
+            >
+              <button
+                type="button"
+                @click="reorderItem(item.orderIndex, item.id, 'up')"
+                :disabled="isFirstItemInOrder(item)"
+                class="reorder-btn"
+              >
+                <PhCaretUp class="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                @click="reorderItem(item.orderIndex, item.id, 'down')"
+                :disabled="isLastItemInOrder(item)"
+                class="reorder-btn"
+              >
+                <PhCaretDown class="w-3 h-3" />
+              </button>
+            </div>
+
+            <!-- Editable item title for order items -->
+            <div
+              v-if="item.orderIndex !== undefined"
+              contenteditable="true"
+              @input="e => updateTitle(item.orderIndex, item.id, e.target.innerText)"
+              class="item-title editable-title"
+            >{{ item.invoiceTitle }}</div>
+            <!-- Non-editable title for delivery fee -->
+            <div v-else class="item-title">
+              {{ item.productName }}
             </div>
             <!-- Show description if it exists OR is being edited -->
             <div
-              v-if="item.orderIndex !== undefined && (item.productDescription || editingDescriptions.has(`${item.orderIndex}-${item.itemIndex}`))"
+              v-if="item.orderIndex !== undefined && (item.productDescription || editingDescriptions.has(`${item.orderIndex}-${item.id}`))"
               contenteditable="true"
-              @input="e => updateDescription(item.orderIndex, item.itemIndex, e.target.innerText)"
-              @focus="startEditingDescription(`${item.orderIndex}-${item.itemIndex}`)"
+              @input="e => updateDescription(item.orderIndex, item.id, e.target.innerText)"
+              @focus="startEditingDescription(`${item.orderIndex}-${item.id}`)"
               class="item-description editable"
               :data-placeholder="'Descripción del producto...'"
               v-html="formatDescriptionForDisplay(item.productDescription)"
@@ -347,7 +422,7 @@ const handlePrint = () => {
             <!-- Show add button when empty and not editing -->
             <button
               v-else-if="item.orderIndex !== undefined"
-              @click="startEditingDescription(`${item.orderIndex}-${item.itemIndex}`)"
+              @click="startEditingDescription(`${item.orderIndex}-${item.id}`)"
               class="add-description-btn print:hidden"
             >
               + Agregar descripción
@@ -376,6 +451,10 @@ const handlePrint = () => {
         <div v-if="totals.totalTaxAmount > 0" class="total-row">
           <span class="total-label">IVA:</span>
           <span class="total-amount">{{ formatMoney(totals.totalTaxAmount) }}</span>
+        </div>
+        <div v-if="totals.orderDiscountAmount > 0" class="total-row discount-row">
+          <span class="total-label">Descuento:</span>
+          <span class="total-amount">-{{ formatMoney(totals.orderDiscountAmount) }}</span>
         </div>
         <div v-if="totals.delivery > 0" class="total-row">
           <span class="total-label">Domicilio:</span>
@@ -523,6 +602,8 @@ const handlePrint = () => {
 .items-table {
   width: 100%;
   border-collapse: collapse;
+  margin-left: 24px;
+  width: calc(100% - 24px);
 }
 
 .items-table thead {
@@ -553,6 +634,22 @@ const handlePrint = () => {
   font-size: 15px;
   margin-bottom: 8px;
   color: #333;
+}
+
+.item-title.editable-title {
+  padding: 4px 8px;
+  margin: -4px -8px 8px -8px;
+  border-radius: 4px;
+  outline: none;
+}
+
+.item-title.editable-title:hover {
+  background: #f9fafb;
+}
+
+.item-title.editable-title:focus {
+  background: #f9fafb;
+  outline: 1px solid #e0e0e0;
 }
 
 .item-variation {
@@ -596,6 +693,37 @@ const handlePrint = () => {
 
 .add-description-btn:hover {
   color: #2563eb;
+}
+
+/* Reorder arrows */
+.reorder-arrows {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) translateX(-100%);
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.reorder-btn {
+  padding: 2px;
+  color: #9ca3af;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reorder-btn:hover:not(:disabled) {
+  color: #4b5563;
+}
+
+.reorder-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 /* Grand Total */
@@ -717,6 +845,15 @@ const handlePrint = () => {
     display: none !important;
   }
 
+  .reorder-arrows {
+    display: none !important;
+  }
+
+  .items-table {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
   button {
     display: none !important;
   }
@@ -725,10 +862,12 @@ const handlePrint = () => {
     display: none !important;
   }
 
-  .editable {
+  .editable,
+  .editable-title {
     border: none !important;
     background: transparent !important;
     padding: 0 !important;
+    margin: 0 0 8px 0 !important;
   }
 
   table {
