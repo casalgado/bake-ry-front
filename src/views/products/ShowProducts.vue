@@ -119,7 +119,7 @@ const columns = [
   },
   {
     id: 'taxPercentage',
-    label: 'IVA (%)',
+    label: 'IMP (%)',
     field: 'taxPercentage',
     sortable: true,
     // Format the tax percentage with one decimal place and add % symbol

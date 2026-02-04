@@ -204,7 +204,7 @@ onMounted(() => {
               @focus="$event.target.select()"
               class="w-full px-1 py-0.5 text-right border rounded text-sm"
               :class="{
-                'price-modified': isPriceModified,
+                'price-modified-UNUSED': isPriceModified,
                 'opacity-20': item.isComplimentary,
               }"
               step="1"

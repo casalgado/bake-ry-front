@@ -286,7 +286,7 @@ const taxMode = computed(() => {
 
 // Dynamic label for pre-tax total based on tax mode
 const preTaxLabel = computed(() => {
-  return taxMode.value === 'exclusive' ? 'Subtotal:' : 'Subtotal (sin IVA):';
+  return taxMode.value === 'exclusive' ? 'Subtotal:' : 'Subtotal:';
 });
 
 // Trigger print
