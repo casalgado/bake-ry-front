@@ -12,6 +12,7 @@ class SalesReport {
     // Pre-calculate common metrics
     this.totalRevenue = this.orders.reduce((sum, order) => sum + order.total, 0);
     this.totalSales = this.orders.reduce((sum, order) => sum + order.subtotal, 0);
+    this.totalDiscounts = this.orders.reduce((sum, order) => sum + (order.orderDiscountAmount || 0), 0);
     this.totalDelivery = this.orders.reduce((sum, order) =>
       sum + (order.fulfillmentType === 'delivery' ? (order.deliveryFee || 0) : 0), 0);
 
@@ -26,6 +27,7 @@ class SalesReport {
 
     // Pre-calculate product aggregations
     this.aggregatedProducts = this.aggregateProductData();
+    this.segmentedProducts = this.aggregateProductDataBySegment();
   }
 
   generateReport() {
@@ -55,6 +57,7 @@ class SalesReport {
       totalPaidOrders: this.orders.length,
       totalRevenue: this.totalRevenue,
       totalSales: this.totalSales,
+      totalDiscounts: this.totalDiscounts,
       totalDelivery: this.totalDelivery,
       totalB2B: this.totalB2BSales,
       totalB2C: this.totalB2CSales,
@@ -84,6 +87,7 @@ class SalesReport {
       const dayTotal = dayOrders.reduce((sum, order) => sum + order.total, 0);
       const dayB2B = dayB2BOrders.reduce((sum, order) => sum + order.subtotal, 0);
       const dayB2C = dayB2COrders.reduce((sum, order) => sum + order.subtotal, 0);
+      const dayDiscounts = dayOrders.reduce((sum, order) => sum + (order.orderDiscountAmount || 0), 0);
       const dayDelivery = dayOrders.reduce((sum, order) =>
         sum + (order.fulfillmentType === 'delivery' ? (order.deliveryFee || 0) : 0), 0);
       const daySales = dayB2B + dayB2C;
@@ -91,6 +95,7 @@ class SalesReport {
       dailyTotals[date] = {
         total: dayTotal,
         sales: daySales,
+        discounts: dayDiscounts,
         delivery: dayDelivery,
         b2b: {
           amount: dayB2B,
@@ -134,6 +139,7 @@ class SalesReport {
         periodTotals[periodKey] = {
           total: 0,
           sales: 0,
+          discounts: 0,
           delivery: 0,
           b2b: {
             amount: 0,
@@ -152,17 +158,16 @@ class SalesReport {
       periodTotals[periodKey].days += 1;
       periodTotals[periodKey].total += dayTotals.total;
       periodTotals[periodKey].sales += dayTotals.sales;
+      periodTotals[periodKey].discounts += dayTotals.discounts;
       periodTotals[periodKey].delivery += dayTotals.delivery;
       periodTotals[periodKey].b2b.amount += dayTotals.b2b.amount;
       periodTotals[periodKey].b2c.amount += dayTotals.b2c.amount;
     });
 
-    // Calculate final totals and percentages for each period
+    // Calculate percentages for each period
     Object.keys(periodTotals).forEach(periodKey => {
       const period = periodTotals[periodKey];
-      period.total = period.sales + period.delivery;
 
-      // Recalculate percentages based on period totals
       if (period.sales > 0) {
         period.b2b.percentage = (period.b2b.amount / period.sales) * 100;
         period.b2c.percentage = (period.b2c.amount / period.sales) * 100;
@@ -212,6 +217,8 @@ class SalesReport {
       bestSellers: {
         byQuantity: this.calculateBestSellersByQuantity(),
         bySales: this.calculateBestSellersBySales(),
+        b2b: this.calculateBestSellersB2B(),
+        b2c: this.calculateBestSellersB2C(),
       },
       lowestSellers: {
         byQuantity: this.calculateLowestSellersByQuantity(),
@@ -229,25 +236,20 @@ class SalesReport {
   }
 
   generateTaxMetrics() {
-    const taxMetrics = {
-      taxableItems: 0,
-      preTaxSubtotal: 0,
-      totalTax: 0,
-      total: 0,
-    };
+    const byRate = {};
 
     this.orders.forEach(order => {
-      order.orderItems.filter(item => !item.isComplimentary).forEach(item => {
-        if (item.taxPercentage > 0) {
-          taxMetrics.taxableItems += item.quantity;
-          taxMetrics.preTaxSubtotal += item.preTaxPrice * item.quantity;
-          taxMetrics.totalTax += item.taxAmount * item.quantity;
-          taxMetrics.total += item.subtotal;
+      (order.taxBreakdown || []).forEach(group => {
+        if (!byRate[group.taxPercentage]) {
+          byRate[group.taxPercentage] = { taxPercentage: group.taxPercentage, quantity: 0, baseAmount: 0, taxAmount: 0 };
         }
+        byRate[group.taxPercentage].quantity += group.quantity;
+        byRate[group.taxPercentage].baseAmount += group.baseAmount;
+        byRate[group.taxPercentage].taxAmount += group.taxAmount;
       });
     });
 
-    return taxMetrics;
+    return Object.values(byRate).sort((a, b) => b.taxPercentage - a.taxPercentage);
   }
 
   calculateSalesByPaymentMethod() {
@@ -370,6 +372,66 @@ class SalesReport {
     }));
   }
 
+  aggregateProductDataBySegment() {
+    const b2bProducts = {};
+    const b2cProducts = {};
+    let totalB2BQuantity = 0;
+    let totalB2CQuantity = 0;
+
+    // Aggregate B2B products
+    this.b2bOrders.forEach(order => {
+      order.orderItems.filter(item => !item.isComplimentary).forEach(item => {
+        if (!b2bProducts[item.productId]) {
+          b2bProducts[item.productId] = {
+            productId: item.productId,
+            name: item.productName,
+            collection: item.collectionName,
+            quantity: 0,
+            revenue: 0,
+          };
+        }
+        b2bProducts[item.productId].quantity += item.quantity;
+        b2bProducts[item.productId].revenue += item.subtotal;
+        totalB2BQuantity += item.quantity;
+      });
+    });
+
+    // Aggregate B2C products
+    this.b2cOrders.forEach(order => {
+      order.orderItems.filter(item => !item.isComplimentary).forEach(item => {
+        if (!b2cProducts[item.productId]) {
+          b2cProducts[item.productId] = {
+            productId: item.productId,
+            name: item.productName,
+            collection: item.collectionName,
+            quantity: 0,
+            revenue: 0,
+          };
+        }
+        b2cProducts[item.productId].quantity += item.quantity;
+        b2cProducts[item.productId].revenue += item.subtotal;
+        totalB2CQuantity += item.quantity;
+      });
+    });
+
+    return {
+      b2b: Object.values(b2bProducts).map(product => ({
+        ...product,
+        name: this.all_products.find(p => p.id === product.productId)?.name || product.name,
+        averagePrice: product.revenue / product.quantity,
+        percentageOfSales: Number(((product.revenue / this.totalB2BSales) * 100).toFixed(1)),
+        percentageOfQuantity: Number(((product.quantity / totalB2BQuantity) * 100).toFixed(1)),
+      })),
+      b2c: Object.values(b2cProducts).map(product => ({
+        ...product,
+        name: this.all_products.find(p => p.id === product.productId)?.name || product.name,
+        averagePrice: product.revenue / product.quantity,
+        percentageOfSales: Number(((product.revenue / this.totalB2CSales) * 100).toFixed(1)),
+        percentageOfQuantity: Number(((product.quantity / totalB2CQuantity) * 100).toFixed(1)),
+      })),
+    };
+  }
+
   calculateBestSellersByQuantity() {
     return [...this.aggregatedProducts]
       .sort((a, b) => b.quantity - a.quantity)
@@ -391,6 +453,18 @@ class SalesReport {
   calculateLowestSellersBySales() {
     return [...this.aggregatedProducts]
       .sort((a, b) => a.revenue - b.revenue)
+      .slice(0, 10);
+  }
+
+  calculateBestSellersB2B() {
+    return [...this.segmentedProducts.b2b]
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+  }
+
+  calculateBestSellersB2C() {
+    return [...this.segmentedProducts.b2c]
+      .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 10);
   }
 

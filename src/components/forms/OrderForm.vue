@@ -1046,7 +1046,7 @@ const clearPartialPayment = () => {
               <span>-{{ formatMoney(orderDiscountAmount) }}</span>
             </div>
             <div v-if="orderDiscountAmount > 0" class="flex justify-between text-neutral-600">
-              <span>Total con Descuento:</span>
+              <span>Subtotal con Descuento:</span>
               <span>{{ formatMoney(preTaxTotal) }}</span>
             </div>
             <div v-if="totalTaxAmount > 0" class="flex justify-between text-neutral-600">

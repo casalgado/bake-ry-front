@@ -93,6 +93,9 @@ const summaryData = computed(() => {
       format: 'money_percentage',
     },
     { label: 'Venta Total', value: safeGet(salesReport.value, 'summary.totalSales', 0), format: 'money' },
+    ...(safeGet(salesReport.value, 'summary.totalDiscounts', 0) > 0
+      ? [{ label: 'Descuentos', value: safeGet(salesReport.value, 'summary.totalDiscounts', 0), format: 'money' }]
+      : []),
     { label: 'Ingresos Totales', value: safeGet(salesReport.value, 'summary.totalRevenue', 0), format: 'money' },
   ];
 });
@@ -276,16 +279,12 @@ const worstProductsData = computed(() => {
 const hasBothSegments = computed(() => {
   const totalB2B = safeGet(salesReport.value, 'summary.totalB2B', 0);
   const totalB2C = safeGet(salesReport.value, 'summary.totalB2C', 0);
-  const hasBoth = totalB2B > 0 && totalB2C > 0;
-  console.log('🔍 hasBothSegments check:', { totalB2B, totalB2C, hasBoth });
-  return hasBoth;
+  return totalB2B > 0 && totalB2C > 0;
 });
 
 // Best products B2B data
 const bestProductsB2BData = computed(() => {
-  const b2bData = safeGet(salesReport.value, 'productMetrics.bestSellers.b2b', []);
-  console.log('🔍 B2B products raw data:', b2bData);
-  const mapped = b2bData.map(product => ({
+  return safeGet(salesReport.value, 'productMetrics.bestSellers.b2b', []).map(product => ({
     name: product?.name ?? 'N/A',
     collection: product?.collection ?? 'N/A',
     revenue: product?.revenue ?? 0,
@@ -294,15 +293,11 @@ const bestProductsB2BData = computed(() => {
     quantityPercentage: product?.percentageOfQuantity ?? 0,
     averagePrice: product?.averagePrice ?? 0,
   }));
-  console.log('🔍 B2B products mapped:', mapped);
-  return mapped;
 });
 
 // Best products B2C data
 const bestProductsB2CData = computed(() => {
-  const b2cData = safeGet(salesReport.value, 'productMetrics.bestSellers.b2c', []);
-  console.log('🔍 B2C products raw data:', b2cData);
-  const mapped = b2cData.map(product => ({
+  return safeGet(salesReport.value, 'productMetrics.bestSellers.b2c', []).map(product => ({
     name: product?.name ?? 'N/A',
     collection: product?.collection ?? 'N/A',
     revenue: product?.revenue ?? 0,
@@ -311,8 +306,6 @@ const bestProductsB2CData = computed(() => {
     quantityPercentage: product?.percentageOfQuantity ?? 0,
     averagePrice: product?.averagePrice ?? 0,
   }));
-  console.log('🔍 B2C products mapped:', mapped);
-  return mapped;
 });
 
 const productsColumns = [
@@ -348,16 +341,23 @@ const deliveryMetricsData = computed(() => {
 
 // Tax metrics data
 const taxMetricsData = computed(() => {
-  const metrics = safeGet(salesReport.value, 'taxMetrics');
-  if (!metrics) return [];
+  const metrics = salesReport.value?.taxMetrics;
+  if (!Array.isArray(metrics) || metrics.length === 0) return [];
 
-  return [
-    { label: 'Items Gravables', value: metrics.taxableItems ?? 0 },
-    { label: 'Subtotal', value: metrics.preTaxSubtotal ?? 0, format: 'money' },
-    { label: 'IVA', value: metrics.totalTax ?? 0, format: 'money' },
-    { label: 'Total', value: metrics.total ?? 0, format: 'money' },
-  ];
+  return metrics.map(group => ({
+    taxPercentage: group.taxPercentage ?? 0,
+    quantity: group.quantity ?? 0,
+    baseAmount: group.baseAmount ?? 0,
+    taxAmount: group.taxAmount ?? 0,
+  }));
 });
+
+const taxMetricsColumns = [
+  { key: 'taxPercentage', label: 'Tasa', formatter: (value) => `${value}%` },
+  { key: 'quantity', label: 'Items' },
+  { key: 'baseAmount', label: 'Base Gravable', formatter: 'money' },
+  { key: 'taxAmount', label: 'Valor', formatter: 'money' },
+];
 
 const keyValueColumns = [
   { key: 'label', label: 'Concepto' },
@@ -381,7 +381,6 @@ const toggleDateField = () => {
   const currentIndex = dateFieldOptions.indexOf(current);
   const nextIndex = (currentIndex + 1) % dateFieldOptions.length;
   selectedDateField.value = dateFieldOptions[nextIndex];
-  console.log(`Date field changed to: ${selectedDateField.value}`);
 };
 
 watch(
@@ -405,8 +404,6 @@ watch(
           },
         },
       });
-      console.log('🔍 Full salesReport structure:', salesReport.value);
-      console.log('🔍 productMetrics.bestSellers:', salesReport.value?.productMetrics?.bestSellers);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
       orderStore.error = 'Error al cargar el reporte de ventas';
@@ -439,8 +436,6 @@ watch(
           },
         },
       });
-      console.log('🔍 [Date Field Change] Full salesReport structure:', salesReport.value);
-      console.log('🔍 [Date Field Change] productMetrics.bestSellers:', salesReport.value?.productMetrics?.bestSellers);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
       orderStore.error = 'Error al cargar el reporte de ventas';
@@ -470,11 +465,8 @@ onMounted(async () => {
         },
       },
     });
-    console.log('🔍 [onMounted] Full salesReport structure:', salesReport.value);
-    console.log('🔍 [onMounted] productMetrics.bestSellers:', salesReport.value?.productMetrics?.bestSellers);
 
     unsubscribeRef.value = await orderStore.subscribeToChanges();
-    console.log('🔄 Real-time updates enabled for sales report');
   } catch (error) {
     console.error('Failed to initialize sales report:', error);
     orderStore.error = 'Error al cargar el reporte de ventas';
@@ -623,12 +615,11 @@ onUnmounted(() => {
       </div>
 
       <!-- Tax Metrics Table -->
-      <div v-if="salesReport?.taxMetrics" class="mb-4 sm:mb-8">
+      <div v-if="taxMetricsData.length" class="mb-4 sm:mb-8">
         <h3 class="text-base sm:text-lg font-semibold mb-2 sm:mb-4">Métricas de Impuestos</h3>
         <SimpleTable
           :data="taxMetricsData"
-          :columns="keyValueColumns"
-          :hasHeaders="false"
+          :columns="taxMetricsColumns"
         />
       </div>
     </template>
