@@ -8,9 +8,9 @@ import UserCombox from '@/components/forms/UserCombox.vue';
 import OrderItemsManager from './OrderItemsManager.vue';
 import NewClientDialog from './NewClientDialog.vue';
 import RadioButtonGroup from './RadioButtonGroup.vue';
-import { formatMoney } from '@/utils/helpers';
+import { formatMoney, cleanString } from '@/utils/helpers';
 import { PhCaretLeft, PhCaretRight, PhX } from '@phosphor-icons/vue';
-import { cleanString } from '@/utils/helpers';
+import { Order } from '@/models/Order.js';
 
 const props = defineProps({
   title: {
@@ -450,86 +450,24 @@ const currentTaxMode = computed(() => {
   return bakerySettingsStore.items[0]?.features?.invoicing?.taxMode || 'inclusive';
 });
 
-// Calculate tax amount for a single item based on taxMode
-const calculateItemTax = (item) => {
-  if (item.isComplimentary || !item.taxPercentage) return 0;
-  if (currentTaxMode.value === 'exclusive') {
-    return Math.round((item.currentPrice * item.taxPercentage) / 100);
-  }
-  return Math.round((item.currentPrice * item.taxPercentage) / (100 + item.taxPercentage));
-};
-
-// Calculate pre-tax price for a single item based on taxMode
-const calculateItemPreTaxPrice = (item) => {
-  if (item.isComplimentary) return 0;
-  if (currentTaxMode.value === 'exclusive') {
-    return item.currentPrice;
-  }
-  return item.currentPrice - calculateItemTax(item);
-};
-
-// Subtotal is the sum of all item totals (including tax)
-const subtotal = computed(() => {
-  if (formData.value.paymentMethod === 'complimentary') {
-    return 0;
-  }
-  return formData.value.orderItems.reduce((sum, item) => {
-    if (item.isComplimentary) return sum;
-    const taxAmount = calculateItemTax(item);
-    if (currentTaxMode.value === 'exclusive') {
-      return sum + (item.quantity * (item.currentPrice + taxAmount));
-    }
-    return sum + (item.quantity * item.currentPrice);
-  }, 0);
+// Create Order instance for pricing calculations (source of truth)
+const orderForPricing = computed(() => {
+  return new Order({
+    ...formData.value,
+    taxMode: currentTaxMode.value,
+  });
 });
 
-// Pre-tax subtotal (without IVA)
-const preTaxSubtotal = computed(() => {
-  if (formData.value.paymentMethod === 'complimentary') {
-    return 0;
-  }
-  return formData.value.orderItems.reduce((sum, item) => {
-    if (item.isComplimentary) return sum;
-    return sum + (item.quantity * calculateItemPreTaxPrice(item));
-  }, 0);
-});
+// Pricing computed properties delegated to Order model
+const subtotal = computed(() => orderForPricing.value.subtotal);
+const preTaxSubtotal = computed(() => orderForPricing.value.preTaxSubtotal);
+const preTaxTotal = computed(() => orderForPricing.value.preTaxTotal);
+const totalTaxAmount = computed(() => orderForPricing.value.totalTaxAmount);
+const orderDiscountAmount = computed(() => orderForPricing.value.orderDiscountAmount);
+const total = computed(() => orderForPricing.value.total);
 
-// Total tax amount
-const totalTaxAmount = computed(() => {
-  if (formData.value.paymentMethod === 'complimentary') {
-    return 0;
-  }
-  return formData.value.orderItems.reduce((sum, item) => {
-    if (item.isComplimentary) return sum;
-    return sum + (item.quantity * calculateItemTax(item));
-  }, 0);
-});
-
-// Order-level discount amount (applies to subtotal, not delivery)
-const orderDiscountAmount = computed(() => {
-  if (!formData.value.orderDiscountType || !formData.value.orderDiscountValue) {
-    return 0;
-  }
-
-  if (formData.value.orderDiscountType === 'percentage') {
-    return Math.round((subtotal.value * formData.value.orderDiscountValue) / 100);
-  } else if (formData.value.orderDiscountType === 'fixed') {
-    return Math.min(formData.value.orderDiscountValue, subtotal.value);
-  }
-
-  return 0;
-});
-
-const total = computed(() => {
-  if (formData.value.paymentMethod === 'complimentary') {
-    return 0;
-  }
-  const discountedSubtotal = subtotal.value - orderDiscountAmount.value;
-  if (formData.value.fulfillmentType === 'pickup') {
-    return discountedSubtotal;
-  }
-  return discountedSubtotal + formData.value.deliveryFee;
-});
+// Original tax before discount (for inclusive display)
+const originalTaxAmount = computed(() => subtotal.value - preTaxSubtotal.value);
 
 const paymentMethodOptions = computed(() => {
   if (!bakerySettingsStore.items.length) return [];
@@ -1077,18 +1015,50 @@ const clearPartialPayment = () => {
 
       <div class="base-card">
         <div class="flex flex-col gap-1 mb-4">
-          <div class="flex justify-between text-neutral-600">
-            <span>Subtotal (sin IVA):</span>
-            <span>{{ formatMoney(preTaxSubtotal) }}</span>
-          </div>
-          <div v-if="totalTaxAmount > 0" class="flex justify-between text-neutral-600">
-            <span>IVA:</span>
-            <span>{{ formatMoney(totalTaxAmount) }}</span>
-          </div>
-          <div v-if="orderDiscountAmount > 0" class="flex justify-between text-green-600">
-            <span>Descuento ({{ formData.orderDiscountType === 'percentage' ? formData.orderDiscountValue + '%' : 'fijo' }}):</span>
-            <span>-{{ formatMoney(orderDiscountAmount) }}</span>
-          </div>
+          <!-- Inclusive tax mode display -->
+          <template v-if="currentTaxMode === 'inclusive'">
+            <div v-if="originalTaxAmount > 0" class="flex justify-between text-neutral-600">
+              <span>Antes de Impuesto:</span>
+              <span>{{ formatMoney(preTaxSubtotal) }}</span>
+            </div>
+            <div v-if="originalTaxAmount > 0" class="flex justify-between text-neutral-600">
+              <span>Impuesto:</span>
+              <span>{{ formatMoney(originalTaxAmount) }}</span>
+            </div>
+            <div class="flex justify-between text-neutral-600">
+              <span>Subtotal:</span>
+              <span>{{ formatMoney(subtotal) }}</span>
+            </div>
+            <div v-if="orderDiscountAmount > 0" class="flex justify-between text-green-600">
+              <span>Descuento ({{ formData.orderDiscountType === 'percentage' ? formData.orderDiscountValue + '%' : 'fijo' }}):</span>
+              <span>-{{ formatMoney(orderDiscountAmount) }}</span>
+            </div>
+          </template>
+
+          <!-- Exclusive tax mode display -->
+          <template v-else>
+            <div class="flex justify-between text-neutral-600">
+              <span>Antes de Impuesto:</span>
+              <span>{{ formatMoney(preTaxSubtotal) }}</span>
+            </div>
+            <div v-if="orderDiscountAmount > 0" class="flex justify-between text-green-600">
+              <span>Descuento ({{ formData.orderDiscountType === 'percentage' ? formData.orderDiscountValue + '%' : 'fijo' }}):</span>
+              <span>-{{ formatMoney(orderDiscountAmount) }}</span>
+            </div>
+            <div v-if="orderDiscountAmount > 0" class="flex justify-between text-neutral-600">
+              <span>Total con Descuento:</span>
+              <span>{{ formatMoney(preTaxTotal) }}</span>
+            </div>
+            <div v-if="totalTaxAmount > 0" class="flex justify-between text-neutral-600">
+              <span>Impuesto:</span>
+              <span>{{ formatMoney(totalTaxAmount) }}</span>
+            </div>
+            <div class="flex justify-between text-neutral-600">
+              <span>Subtotal:</span>
+              <span>{{ formatMoney(preTaxTotal + totalTaxAmount) }}</span>
+            </div>
+          </template>
+
           <div class="flex justify-between text-neutral-600">
             <span>Envío:</span>
             <span>{{
