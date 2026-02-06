@@ -170,14 +170,14 @@ const combinedItems = computed(() => {
 
 // Compute totals
 const totals = computed(() => {
-  let subtotal = 0;
+  let preTaxSubtotal = 0;
   let preTaxTotal = 0;
   let totalTaxAmount = 0;
   let deliveryTotal = 0;
   let orderDiscountAmount = 0;
 
   props.orders.forEach(order => {
-    subtotal += order.subtotal || 0;
+    preTaxSubtotal += order.preTaxSubtotal || 0;
     preTaxTotal += order.preTaxTotal || 0;
     totalTaxAmount += order.totalTaxAmount || 0;
     orderDiscountAmount += order.orderDiscountAmount || 0;
@@ -187,12 +187,12 @@ const totals = computed(() => {
   });
 
   return {
+    preTaxSubtotal,
     preTaxTotal,
     totalTaxAmount,
-    subtotal,
     delivery: deliveryTotal,
     orderDiscountAmount,
-    total: subtotal - orderDiscountAmount + deliveryTotal,
+    total: preTaxTotal + totalTaxAmount + deliveryTotal,
   };
 });
 
@@ -282,11 +282,6 @@ const primaryColor = computed(() => {
 // Get taxMode from first order (defaults to inclusive for backwards compatibility)
 const taxMode = computed(() => {
   return props.orders[0]?.taxMode || 'inclusive';
-});
-
-// Dynamic label for pre-tax total based on tax mode
-const preTaxLabel = computed(() => {
-  return taxMode.value === 'exclusive' ? 'Subtotal:' : 'Subtotal:';
 });
 
 // Trigger print
@@ -445,16 +440,16 @@ const handlePrint = () => {
     <div class="grand-total">
       <div class="totals-breakdown">
         <div class="total-row">
-          <span class="total-label">{{ preTaxLabel }}</span>
-          <span class="total-amount">{{ formatMoney(totals.preTaxTotal) }}</span>
-        </div>
-        <div v-if="totals.totalTaxAmount > 0" class="total-row">
-          <span class="total-label">IVA:</span>
-          <span class="total-amount">{{ formatMoney(totals.totalTaxAmount) }}</span>
+          <span class="total-label">Subtotal:</span>
+          <span class="total-amount">{{ formatMoney(totals.preTaxSubtotal) }}</span>
         </div>
         <div v-if="totals.orderDiscountAmount > 0" class="total-row discount-row">
           <span class="total-label">Descuento:</span>
           <span class="total-amount">-{{ formatMoney(totals.orderDiscountAmount) }}</span>
+        </div>
+        <div v-if="totals.totalTaxAmount > 0" class="total-row">
+          <span class="total-label">IVA:</span>
+          <span class="total-amount">{{ formatMoney(totals.totalTaxAmount) }}</span>
         </div>
         <div v-if="totals.delivery > 0" class="total-row">
           <span class="total-label">Domicilio:</span>

@@ -356,7 +356,7 @@ const taxMetricsColumns = [
   { key: 'taxPercentage', label: 'Tasa', formatter: (value) => `${value}%` },
   { key: 'quantity', label: 'Items' },
   { key: 'baseAmount', label: 'Base Gravable', formatter: 'money' },
-  { key: 'taxAmount', label: 'Valor', formatter: 'money' },
+  { key: 'taxAmount', label: 'Recaudo', formatter: 'money' },
 ];
 
 const keyValueColumns = [
