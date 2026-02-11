@@ -3,6 +3,8 @@
 import { computed, ref, onUnmounted } from 'vue';
 import { PhArrowRight } from '@phosphor-icons/vue';
 import { formatTime } from '@/utils/helpers';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const props = defineProps({
   columns: {
@@ -28,6 +30,10 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  showMonthInLabel: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits(['click', 'hover-change']);
@@ -43,11 +49,11 @@ const isLoading = computed(() => {
 const getNextToggleValue = computed(() => {
   if (props.column.type !== 'toggle' || !props.column.options) return null;
   const availableOptions = props.column.options.filter(
-    (opt) => !opt.skipWhenToggled
+    (opt) => !opt.skipWhenToggled,
   );
   const currentValue = props.row[props.column.field];
   const currentIndex = availableOptions.findIndex(
-    (opt) => opt.value === currentValue
+    (opt) => opt.value === currentValue,
   );
   return availableOptions[(currentIndex + 1) % availableOptions.length];
 });
@@ -55,7 +61,7 @@ const getNextToggleValue = computed(() => {
 const currentOption = computed(() => {
   if (props.column.type !== 'toggle' || !props.column.options) return null;
   return props.column.options.find(
-    (opt) => opt.value === props.row[props.column.field]
+    (opt) => opt.value === props.row[props.column.field],
   );
 });
 
@@ -90,12 +96,13 @@ const rowsToDisplay = computed(() => {
 });
 
 const remainingRowsCount = computed(
-  () => props.rows.length - DEFAULT_ROW_COUNT
+  () => props.rows.length - DEFAULT_ROW_COUNT,
 );
 
 const toggleShowAllRows = () => {
   showAllRows.value = !showAllRows.value;
 };
+
 </script>
 
 <template>
@@ -103,8 +110,14 @@ const toggleShowAllRows = () => {
     class="px-1 text-xs lg:text-sm py-2 relative group select-none border border-neutral-400 align-top"
   >
     <div class="min-h-20 w-full">
-      <p class="w-full text-center">
-        {{ day.toLocaleString('es-CO', { day: 'numeric' }) }}
+      <p
+        class="w-full text-center rounded mb-[2px]"
+        :class="day.getDate() === 1 ? 'bg-primary-800 text-white' : ''"
+      >
+        {{ showMonthInLabel
+          ? format(day, 'd MMM', { locale: es })
+          : format(day, 'd', { locale: es })
+        }}
       </p>
 
       <div

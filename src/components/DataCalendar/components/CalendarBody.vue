@@ -12,7 +12,10 @@ import {
   format,
   isSameDay,
   isSameWeek,
+  getMonth,
+  getYear,
 } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const props = defineProps({
   data: {
@@ -172,14 +175,61 @@ const isDayOutsideMonth = (day) => {
 
   return day < startOfMonth(monthStart) || day > endOfMonth(monthEnd);
 };
+
+// Check if the period spans multiple months
+const isMultiMonth = computed(() => {
+  const start = new Date(props.periodRange.start);
+  const end = new Date(props.periodRange.end);
+  return getMonth(start) !== getMonth(end) || getYear(start) !== getYear(end);
+});
+
+// Determine if a week row starts a new month compared to the previous week
+const isNewMonth = (weekIndex) => {
+  if (weekRows.value.length <= 1) return false;
+  if (weekIndex === 0) return true;
+  if (!isMultiMonth.value) return false;
+  // Show separator when this week contains the 1st of a month
+  return weekRows.value[weekIndex].some(d => d.getDate() === 1);
+};
+
+// Get the month label for a separator row
+const getMonthLabel = (weekIndex) => {
+  if (weekIndex === 0) {
+    return format(new Date(props.periodRange.start), 'MMMM yyyy', { locale: es });
+  }
+  const firstOfMonth = weekRows.value[weekIndex].find(d => d.getDate() === 1);
+  return format(firstOfMonth, 'MMMM yyyy', { locale: es });
+};
+
+// Whether a day cell should display its month abbreviation alongside the day number
+const shouldShowMonthInLabel = (day, weekIndex) => {
+  if (day.getDate() === 1) return true;
+  if (!isNewMonth(weekIndex)) return false;
+  const sepMonth = weekIndex === 0
+    ? getMonth(new Date(props.periodRange.start))
+    : getMonth(weekRows.value[weekIndex].find(d => d.getDate() === 1));
+  return day.getMonth() !== sepMonth;
+};
 </script>
 
 <template>
   <tbody>
     <template v-if="!isEmpty">
+      <template
+        v-for="(week, weekIndex) in weekRows"
+        :key="`week-group-${weekIndex}`"
+      >
+        <!-- Month separator row -->
+        <tr v-if="isNewMonth(weekIndex)">
+          <td
+            colspan="7"
+            class="px-4 py-1 text-xs font-semibold text-white bg-primary-800 capitalize text-center"
+          >
+            {{ getMonthLabel(weekIndex) }}
+          </td>
+        </tr>
+
         <tr
-          v-for="(week, weekIndex) in weekRows"
-          :key="`week-${weekIndex}`"
           class="border-t border-separate border-spacing-0 border-neutral-400 bg-neutral-100"
         >
           <CalendarDay
@@ -189,12 +239,14 @@ const isDayOutsideMonth = (day) => {
             :columns="props.columns"
             :rows="getDataForDay(day)"
             :is-outside-month="isDayOutsideMonth(day)"
+            :show-month-in-label="shouldShowMonthInLabel(day, weekIndex)"
             :selected-rows="selectedRows"
             :toggle-loading="toggleLoading"
             @click="handleCellClick"
             @hover-change="handleCellHover"
           />
         </tr>
+      </template>
     </template>
 
     <!-- Empty state -->
