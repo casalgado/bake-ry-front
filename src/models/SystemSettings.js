@@ -36,6 +36,7 @@ class SystemSettings extends BaseModel {
     { value: 'card', label: 'Tarjeta', displayText: 'DF' },
     { value: 'davivienda', label: 'Davivienda', displayText: 'DV' },
     { value: 'bancolombia', label: 'Bancolombia', displayText: 'BC' },
+    { value: 'bbva', label: 'BBVA', displayText: 'BB' },
     { value: 'complimentary', label: 'Regalo', displayText: 'RE' },
     { value: 'quote', label: 'Cotización', displayText: 'CO' },
   ];

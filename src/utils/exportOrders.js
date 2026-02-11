@@ -97,6 +97,7 @@ const getPaymentMethodText = (method) => {
     complimentary: 'cortesia',
     davivienda: 'davivienda',
     bancolombia: 'bancolombia',
+    bbva: 'bbva',
   };
   return methodMap[method] || method;
 };

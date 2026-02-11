@@ -31,16 +31,11 @@ import {
   PhExport,
   PhTrash,
   PhMoney,
-  PhCreditCard,
-  PhDeviceMobile,
-  PhGift,
   PhClockCounterClockwise,
   PhStorefront,
   PhMopedFront,
-  PhFile,
 } from '@phosphor-icons/vue';
-import BancolombiaIcon from '@/assets/icons/bancolombia.svg'; // Ensure this path is correct
-import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg'; // Ensure this path is correct
+import { paymentIconMap } from '@/utils/paymentIcons';
 
 // Utils
 import { formatMoney } from '@/utils/helpers';
@@ -158,15 +153,6 @@ const totals = computed(() => {
 });
 
 // Payment method icon mapping
-const paymentIconMap = {
-  cash: PhMoney,
-  transfer: PhDeviceMobile,
-  card: PhCreditCard,
-  bancolombia: BancolombiaIcon,
-  davivienda: DaviviendaIcon,
-  complimentary: PhGift,
-  quote: PhFile,
-};
 
 // Get payment method options from system settings
 const paymentMethodOptions = computed(() => {

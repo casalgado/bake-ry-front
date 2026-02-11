@@ -5,20 +5,14 @@ import FeatureCard from './FeatureCard.vue';
 import RadioFeatureCard from './RadioFeatureCard.vue';
 import {
   PhMoney,
-  PhDeviceMobile,
-  PhCreditCard,
-  PhGift,
   PhClock,
   PhCurrencyDollar,
   PhWifiX,
   PhChartBar,
-  PhUser,
   PhPackage,
-  PhFile,
   PhCircleHalf,
 } from '@phosphor-icons/vue';
-import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
-import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
+import { paymentIconMap } from '@/utils/paymentIcons';
 
 const props = defineProps({
   title: {
@@ -68,17 +62,6 @@ const taxModeOptions = [
   { value: 'inclusive', label: 'IVA Incluido' },
   { value: 'exclusive', label: 'IVA Adicional' },
 ];
-
-// Payment method icon mapping
-const paymentIconMap = {
-  cash: PhMoney,
-  transfer: PhDeviceMobile,
-  card: PhCreditCard,
-  bancolombia: BancolombiaIcon,
-  davivienda: DaviviendaIcon,
-  complimentary: PhGift,
-  quote: PhFile,
-};
 
 // Use the passed available payment methods prop
 const availablePaymentMethods = computed(() => {

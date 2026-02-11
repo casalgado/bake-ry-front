@@ -73,6 +73,7 @@ const methods = {
   complimentary: 'regalo',
   davivienda: 'davivienda',
   bancolombia: 'bancolombia',
+  bbva: 'bbva',
   quote: 'cotización',
 };
 

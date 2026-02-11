@@ -27,16 +27,11 @@ import PeriodSelector from '@/components/common/PeriodSelector.vue';
 // Icons
 import {
   PhMoney,
-  PhCreditCard,
-  PhDeviceMobile,
-  PhGift,
   PhMoped,
   PhBuilding,
   PhListNumbers,
-  PhFile,
 } from '@phosphor-icons/vue';
-import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
-import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
+import { paymentIconMap } from '@/utils/paymentIcons';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
@@ -98,15 +93,6 @@ const features = computed(() => {
 });
 
 // Payment method icon mapping
-const paymentIconMap = {
-  cash: PhMoney,
-  transfer: PhDeviceMobile,
-  card: PhCreditCard,
-  bancolombia: BancolombiaIcon,
-  davivienda: DaviviendaIcon,
-  complimentary: PhGift,
-  quote: PhFile,
-};
 
 // Get payment method options from system settings
 const paymentMethodOptions = computed(() => {

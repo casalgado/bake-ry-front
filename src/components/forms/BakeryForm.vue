@@ -1,8 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
-import { PhMoney, PhDeviceMobile, PhCreditCard, PhGift, PhClock, PhCurrencyDollar, PhCalendarBlank, PhCircle, PhCircleHalf, PhFile } from '@phosphor-icons/vue';
-import BancolombiaIcon from '@/assets/icons/bancolombia.svg';
-import DaviviendaIcon from '@/assets/icons/outline_davivenda.svg';
+import { PhMoney, PhClock, PhCalendarBlank, PhCircleHalf } from '@phosphor-icons/vue';
+import { paymentIconMap } from '@/utils/paymentIcons';
 import FeatureCard from '@/components/forms/FeatureCard.vue';
 import RadioFeatureCard from '@/components/forms/RadioFeatureCard.vue';
 
@@ -58,17 +57,8 @@ const PAYMENT_METHODS = [
   { value: 'card', label: 'Tarjeta' },
   { value: 'davivienda', label: 'Davivienda' },
   { value: 'bancolombia', label: 'Bancolombia' },
+  { value: 'bbva', label: 'BBVA' },
 ];
-
-const paymentIconMap = {
-  cash: PhMoney,
-  transfer: PhDeviceMobile,
-  card: PhCreditCard,
-  bancolombia: BancolombiaIcon,
-  davivienda: DaviviendaIcon,
-  complimentary: PhGift,
-  quote: PhFile,
-};
 
 const defaultDateOptions = [
   { value: 'delivery', label: 'Entrega' },
