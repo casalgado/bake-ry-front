@@ -107,7 +107,7 @@ describe('OrderInvoice', () => {
   });
 
   describe('Invoice Type', () => {
-    it('displays "FACTURA" by default', () => {
+    it('displays "RECIBO" by default', () => {
       wrapper = mount(OrderInvoice, {
         props: {
           orders: [mockOrder],
@@ -115,7 +115,7 @@ describe('OrderInvoice', () => {
         },
       });
 
-      expect(wrapper.text()).toContain('FACTURA');
+      expect(wrapper.text()).toContain('RECIBO');
     });
 
     it('displays "COTIZACIÓN" when invoice type is quote', () => {

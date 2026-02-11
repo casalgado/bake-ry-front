@@ -138,7 +138,7 @@ const {
       ];
       if (clientIds.length > 1) {
         alert(
-          'Por favor selecciona pedidos del mismo cliente para exportar una factura combinada.',
+          'Por favor selecciona pedidos del mismo cliente para exportar un recibo combinado.',
         );
         return;
       }

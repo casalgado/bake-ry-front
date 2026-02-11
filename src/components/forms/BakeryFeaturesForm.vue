@@ -262,10 +262,10 @@ watch(formData, (newValue) => {
       <!-- Invoice Features Section -->
       <div class="mb-6">
         <h3 class="text-lg font-semibold text-neutral-900 mb-2">
-          Configuración de Facturas / Cotizaciones
+          Configuración de Recibos / Cotizaciones
         </h3>
         <p class="text-sm text-neutral-600 mb-4">
-          Personaliza la información que aparece en tus facturas
+          Personaliza la información que aparece en tus recibos y cotizaciones.
         </p>
         <div class="space-y-4">
           <RadioFeatureCard
@@ -285,7 +285,7 @@ watch(formData, (newValue) => {
               v-model="formData.defaultTermsAndConditions"
               rows="4"
               class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Ingresa los términos y condiciones que aparecerán en todas las facturas..."
+              placeholder="Ingresa los términos y condiciones que aparecerán en todos los recibos y cotizaciones."
               :disabled="loading"
             />
           </div>

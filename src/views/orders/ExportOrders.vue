@@ -41,9 +41,9 @@ const orderIds = computed(() => {
 
 // Computed filename for the PDF
 const documentTitle = computed(() => {
-  if (orders.value.length === 0) return 'Factura';
+  if (orders.value.length === 0) return 'Recibo';
 
-  const invoiceType = orders.value.every(order => order.paymentMethod === 'quote') ? 'Cotizacion' : 'Factura';
+  const invoiceType = orders.value.every(order => order.paymentMethod === 'quote') ? 'Cotizacion' : 'Recibo';
   const clientName = orders.value[0]?.userName || 'Cliente';
   const cleanClientName = clientName.replace(/[^a-zA-Z0-9]/g, '_');
 

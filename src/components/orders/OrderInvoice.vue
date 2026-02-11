@@ -113,7 +113,7 @@ const invoiceTitle = computed(() => {
   if (props.invoiceType === 'quote') {
     return 'COTIZACIÓN';
   }
-  return 'FACTURA';
+  return 'RECIBO';
 });
 
 // Compute combined items from all orders
@@ -320,7 +320,7 @@ const handlePrint = () => {
     <!-- Info Section -->
     <div class="info-section">
       <div class="bill-to">
-        <h3>FACTURAR A</h3>
+        <h3>CLIENTE</h3>
         <p>{{ capitalize(clientInfo.name) }}</p>
         <div v-if="clientInfo.legalName" class="client-detail">{{ clientInfo.legalName }}</div>
         <div v-if="clientInfo.nationalId" class="client-detail">NIT/CC: {{ clientInfo.nationalId }}</div>
@@ -332,7 +332,7 @@ const handlePrint = () => {
       <div class="invoice-details">
         <table>
           <tr v-if="invoiceNumber">
-            <td>Número de {{ invoiceType === 'quote' ? 'Cotización' : 'Factura' }}:</td>
+            <td>Número de {{ invoiceType === 'quote' ? 'Cotización' : 'Recibo' }}:</td>
             <td>{{ invoiceNumber }}</td>
           </tr>
           <tr v-else-if="orders.length === 1">
@@ -431,7 +431,10 @@ const handlePrint = () => {
           </td>
           <td class="text-center">{{ item.quantity }}</td>
           <td class="text-right">{{ formatMoney(item.unitPrice) }}</td>
-          <td class="text-right">{{ formatMoney(item.lineTotal) }}</td>
+          <td class="text-right">
+            {{ formatMoney(item.lineTotal) }}
+            <span v-if="item.taxPercentage > 0" class="tax-indicator">IVA: {{ item.taxPercentage }}%</span>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -674,6 +677,13 @@ const handlePrint = () => {
 .item-description.editable:focus {
   background: #f9fafb;
   outline: 1px solid #e0e0e0;
+}
+
+.tax-indicator {
+  display: block;
+  font-size: 12px;
+  color: #555;
+  margin-top: -2px;
 }
 
 .add-description-btn {
