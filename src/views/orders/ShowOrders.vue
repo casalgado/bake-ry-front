@@ -37,6 +37,7 @@ import {
   PhMopedFront,
   PhStorefront,
   PhPrinter,
+  PhCopy,
 } from '@phosphor-icons/vue';
 import { paymentIconMap } from '@/utils/paymentIcons';
 
@@ -58,6 +59,7 @@ const isFormOpen = ref(false);
 const isHistoryOpen = ref(false);
 const isPrintOpen = ref(false);
 const orderHistory = ref([]);
+const duplicateData = ref(null);
 
 // Process data function for the table
 const processData = (orders) => {
@@ -122,6 +124,30 @@ const {
         clearSelection();
       }
       break;
+    case 'duplicate': {
+      const {
+        id, createdAt, updatedAt, lastEditedBy,
+        status, isPaid, paymentDate, isDeliveryPaid, driverMarkedAsPaid,
+        partialPaymentAmount, partialPaymentDate, deliveryDriverId,
+        preparationDate, dueDate,
+        ...rest
+      } = selectedOrder;
+      duplicateData.value = {
+        ...rest,
+        status: 0,
+        isPaid: false,
+        paymentDate: null,
+        isDeliveryPaid: false,
+        driverMarkedAsPaid: false,
+        partialPaymentAmount: 0,
+        partialPaymentDate: null,
+        deliveryDriverId: '-',
+        preparationDate: null,
+        dueDate: null,
+      };
+      isFormOpen.value = true;
+      break;
+    }
     case 'history':
       orderHistory.value = await orderStore.getHistory(selectedOrder.id);
       isHistoryOpen.value = true;
@@ -326,6 +352,14 @@ const tableActions = [
     variant: 'danger',
   },
   {
+    id: 'duplicate',
+    label: 'Duplicar',
+    icon: PhCopy,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'primary',
+  },
+  {
     id: 'history',
     label: 'Historial',
     icon: PhClockCounterClockwise,
@@ -351,12 +385,14 @@ const tableActions = [
 
 const handleSubmit = async (formData) => {
   try {
-    if (selectedItems.value[0]) {
+    if (duplicateData.value) {
+      await orderStore.create(formData);
+    } else {
       await orderStore.update(selectedItems.value[0].id, formData);
     }
     closeDialog();
   } catch (error) {
-    console.error('Failed to update order:', error);
+    console.error('Failed to save order:', error);
   }
 };
 
@@ -364,6 +400,7 @@ const closeDialog = () => {
   isFormOpen.value = false;
   isHistoryOpen.value = false;
   isPrintOpen.value = false;
+  duplicateData.value = null;
   clearSelection();
 };
 
@@ -424,10 +461,10 @@ watch(
           class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
         >
           <OrderForm
-            v-if="selectedItems[0]"
-            :title="'Editar Pedido'"
-            :key="selectedItems[0].id"
-            :initial-data="selectedItems[0]"
+            v-if="isFormOpen"
+            :title="duplicateData ? 'Duplicar Pedido' : 'Editar Pedido'"
+            :key="duplicateData ? 'duplicate-' + selectedItems[0]?.id : selectedItems[0]?.id"
+            :initial-data="duplicateData ?? selectedItems[0]"
             :loading="orderStore.loading"
             class="w-full"
             @submit="handleSubmit"

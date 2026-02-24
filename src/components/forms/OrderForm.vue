@@ -221,7 +221,7 @@ defineExpose({ resetForm });
 
 // Computed property for submit button text
 const submitButtonText = computed(() => {
-  return props.initialData ? 'Actualizar Pedido' : 'Crear Pedido';
+  return props.initialData?.id ? 'Actualizar Pedido' : 'Crear Pedido';
 });
 
 // Computed property for loading text
