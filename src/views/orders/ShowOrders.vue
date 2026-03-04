@@ -299,7 +299,6 @@ const columns = computed(() => [
         icon: paymentIconMap[method.value] || PhMoney,
         skipWhenToggled:
           method.value === 'complimentary' ||
-          method.value === 'quote' ||
           !activePaymentMethods.includes(method.value),
       }));
     },
