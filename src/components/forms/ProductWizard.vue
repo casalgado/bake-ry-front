@@ -480,7 +480,7 @@ const getOptionDisplay = (option, index) => {
 </script>
 <template>
   <div
-    class="relative w-full aspect-square flat-card mb-0 p-1"
+    class="relative w-full aspect-square flat-card p-1 mb-0"
     tabindex="0"
     @keydown="handleKeydown"
     @keyup="handleKeyup"
@@ -522,7 +522,7 @@ const getOptionDisplay = (option, index) => {
     </div>
 
     <!-- Breadcrumb -->
-    <div class="m-2 mt-0 py-1 px-2 text-[10px] flex items-center min-h-[24px] whitespace-nowrap">
+    <div class="m-2 mt-0 py-1 px-2 text-[10px] flex items-center h-[32px] whitespace-nowrap">
       <button
         class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
         :class="{ 'cursor-pointer': currentStep !== 'category' }"

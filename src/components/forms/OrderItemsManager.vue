@@ -1,5 +1,6 @@
 <script setup>
 import ProductWizard from './ProductWizard.vue';
+import ProductSearch from './ProductSearch.vue';
 import OrderLineItem from './OrderLineItem.vue';
 
 const props = defineProps({
@@ -12,6 +13,11 @@ const props = defineProps({
     type: Array,
     required: true,
     default: () => [],
+  },
+  selectionMode: {
+    type: String,
+    required: true,
+    default: 'wizard', // 'wizard' | 'search'
   },
 });
 
@@ -165,7 +171,17 @@ const updateItemDiscount = (index, discount) => {
 <template>
   <div class="mb-4 grid grid-cols-3 gap-x-3 gap-y-2 md:gap-y-0">
 
+    <!-- Product Wizard Mode -->
     <ProductWizard
+      v-if="selectionMode === 'wizard'"
+      @select="handleWizardSelect"
+      :products="products"
+      class="col-span-3 md:col-span-1"
+    />
+
+    <!-- Product Search Mode -->
+    <ProductSearch
+      v-if="selectionMode === 'search'"
       @select="handleWizardSelect"
       :products="products"
       class="col-span-3 md:col-span-1"

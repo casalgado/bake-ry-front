@@ -135,6 +135,9 @@ const userCombox = ref(null);
 const userHistory = ref([]);
 const currentHistoryIndex = ref(0);
 
+// Product selection mode
+const productSelectionMode = ref('wizard'); // 'wizard' | 'search'
+
 // Get next business day
 const getNextBusinessDay = () => {
   const date = new Date();
@@ -905,7 +908,36 @@ const clearPartialPayment = () => {
         />
       </div>
 
-      <div class="flex justify-end mb-2" >
+      <div class="flex justify-between mx-2" >
+        <!-- Product Selection Mode Tabs -->
+        <div class="inline-flex items-center gap-2">
+          <button
+            type="button"
+            @click="productSelectionMode = 'wizard'"
+            :class="[
+              'px-3 py-1 text-sm font-medium rounded-t-lg rounded-b-none border border-gray-200 transition-colors mb-0',
+              productSelectionMode === 'wizard'
+                ? 'bg-white text-neutral-900 border-b-white z-10 relative'
+                : 'text-neutral-600 hover:text-neutral-900 bg-gray-50 border-b-gray-200'
+            ]"
+          >
+            Explorar
+          </button>
+          <button
+            type="button"
+            @click="productSelectionMode = 'search'"
+            :class="[
+              'px-3 py-1 text-sm font-medium rounded-t-lg rounded-b-none border border-gray-200 transition-colors mb-0',
+              productSelectionMode === 'search'
+                ? 'bg-white text-neutral-900 border-b-white z-10 relative'
+                : 'text-neutral-600 hover:text-neutral-900 bg-gray-50 border-b-gray-200'
+            ]"
+          >
+            Buscar
+          </button>
+        </div>
+
+        <!-- Order History Navigation -->
         <div
           class="inline-flex items-center gap-2 bg-neutral-50 p-1 rounded-lg border border-neutral-200"
         >
@@ -949,6 +981,7 @@ const clearPartialPayment = () => {
       <OrderItemsManager
         v-model="formData.orderItems"
         :products="productStore.items"
+        :selectionMode="productSelectionMode"
       />
 
       <div class="base-card">
