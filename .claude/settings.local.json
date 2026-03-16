@@ -1,20 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Read(/C:\\Users\\casal\\documents\\web\\front\\bake-ry-front\\src\\components\\forms/**)",
-      "Read(/C:\\Users\\casal\\documents\\web\\front\\bake-ry-front\\src\\components\\forms/**)",
-      "Bash(npm test)",
-      "Bash(npm test:*)",
-      "Bash(git log:*)",
-      "Bash(git show:*)",
-      "WebSearch",
-      "Bash(curl:*)",
-      "Bash(grep:*)",
-      "Bash(chmod:*)",
-      "Bash(bash:*)",
-      "Bash(dir \"C:\\\\Users\\\\casal\\\\documents\\\\web\\\\back\\\\bake-ry\\\\functions\\\\src\" /b)",
-      "Bash(dir \"C:\\\\Users\\\\casal\\\\.claude\" /b)",
-      "Bash(ls -la \"C:\\\\Users\\\\casal\\\\documents\\\\web\\\\back\\\\bake-ry\\\\functions\\\\src\\\\services\"\" | grep -i \"sales|report \")"
+      "Read(//c/Users/casal/documents/web/back/bake-ry/functions/src/models/**)"
     ],
     "deny": [],
     "ask": []
