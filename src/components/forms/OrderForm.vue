@@ -135,8 +135,25 @@ const userCombox = ref(null);
 const userHistory = ref([]);
 const currentHistoryIndex = ref(0);
 
-// Product selection mode
-const productSelectionMode = ref('wizard'); // 'wizard' | 'search'
+// Product selection mode with localStorage persistence
+const getStoredSelectionMode = () => {
+  try {
+    return localStorage.getItem('productSelectionMode') || 'wizard';
+  } catch (error) {
+    return 'wizard';
+  }
+};
+
+const productSelectionMode = ref(getStoredSelectionMode());
+
+// Save selection mode preference to localStorage
+watch(productSelectionMode, (newMode) => {
+  try {
+    localStorage.setItem('productSelectionMode', newMode);
+  } catch (error) {
+    console.warn('Could not save product selection mode preference:', error);
+  }
+});
 
 // Get next business day
 const getNextBusinessDay = () => {
