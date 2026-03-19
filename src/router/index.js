@@ -331,13 +331,26 @@ const router = createRouter({
       ],
     },
     {
-      path: '/system-settings',
-      name: 'system-settings',
-      component: () => import('../views/SystemSettingsView.vue'),
+      path: '/system-admin',
+      name: 'system-admin',
+      component: () => import('../views/dashboard/SystemAdminDashboard.vue'),
+      redirect: { name: 'system-admin-bakeries' },
       meta: {
         requiresAuth: true,
         allowedRoles: ['system_admin'],
       },
+      children: [
+        {
+          path: 'bakeries',
+          name: 'system-admin-bakeries',
+          component: () => import('../views/SystemAdmin/BakeryManagementView.vue'),
+        },
+        {
+          path: 'settings',
+          name: 'system-settings',
+          component: () => import('../views/SystemSettingsView.vue'),
+        },
+      ],
     },
   ],
 });

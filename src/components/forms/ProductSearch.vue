@@ -189,11 +189,12 @@ defineExpose({ focus });
         <div class="relative">
           <PhMagnifyingGlass class="absolute left-2 top-1/2 transform -translate-y-1/2 text-neutral-600 w-4 h-4" />
           <input
+            id="pos-product-search-input"
             ref="searchInput"
             v-model="query"
             type="text"
-            placeholder=""
-            class="w-full pl-8 pr-8 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Buscar productos..."
+            class="w-full pl-8 pr-8 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 placeholder:text-neutral-400"
             autocomplete="off"
           />
           <button

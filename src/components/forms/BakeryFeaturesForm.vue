@@ -11,6 +11,9 @@ import {
   PhChartBar,
   PhPackage,
   PhCircleHalf,
+  PhGpsSlash,
+  PhUser,
+  PhCalendarBlank,
 } from '@phosphor-icons/vue';
 import { paymentIconMap } from '@/utils/paymentIcons';
 
@@ -24,6 +27,7 @@ const props = defineProps({
     default: () => ({
       activePaymentMethods: [],
       allowPartialPayment: false,
+      defaultDate: 'production',
       timeOfDay: false,
       offlineMode: false,
       // Reports features
@@ -34,6 +38,13 @@ const props = defineProps({
       // Invoicing features
       defaultTermsAndConditions: '',
       taxMode: 'inclusive',
+      // POS features
+      posEnabled: false,
+      posAutoMarkPaid: false,
+      posDefaultToCurrentDate: false,
+      posHideDeliveryOptions: false,
+      posAutoSelectClient: false,
+      posDefaultClientId: null,
     }),
   },
   availablePaymentMethods: {
@@ -44,9 +55,21 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  systemAdminMode: {
+    type: Boolean,
+    default: false,
+  },
+  bakeryId: {
+    type: String,
+    default: null,
+  },
 });
 
-const emit = defineEmits(['submit']);
+const emit = defineEmits(['dataChanged', 'save']);
+
+const handleSave = () => {
+  emit('save', formData.value);
+};
 
 const settingsStore = useBakerySettingsStore();
 const formData = ref({ ...props.initialData });
@@ -55,6 +78,12 @@ const formData = ref({ ...props.initialData });
 const reportFilterOptions = [
   { value: 'dueDate', label: 'Fecha de Pedido' },
   { value: 'paymentDate', label: 'Fecha de Pago' },
+];
+
+// Radio button options for default date
+const defaultDateOptions = [
+  { value: 'production', label: 'Preparación' },
+  { value: 'delivery', label: 'Entrega' },
 ];
 
 // Radio button options for tax mode
@@ -88,56 +117,29 @@ const togglePaymentMethod = (methodValue, isActive) => {
 
 // Watch for initialData changes and update form selectively
 watch(() => props.initialData, (newData, oldData) => {
-  if (newData && newData !== oldData) {
-    // Only update fields that have actually changed to prevent overriding user input
-    if (JSON.stringify(newData.activePaymentMethods) !== JSON.stringify(formData.value.activePaymentMethods)) {
-      formData.value.activePaymentMethods = [...(newData.activePaymentMethods || [])];
-    }
+  if (!newData || newData === oldData) return;
 
-    if (Object.prototype.hasOwnProperty.call(newData, 'allowPartialPayment') && newData.allowPartialPayment !== formData.value.allowPartialPayment) {
-      formData.value.allowPartialPayment = newData.allowPartialPayment;
-    }
+  // Update only fields that have actually changed to prevent overriding user input
+  Object.keys(newData).forEach(key => {
+    const newValue = newData[key];
+    const currentValue = formData.value[key];
 
-    if (Object.prototype.hasOwnProperty.call(newData, 'timeOfDay') && newData.timeOfDay !== formData.value.timeOfDay) {
-      formData.value.timeOfDay = newData.timeOfDay;
+    // Handle arrays specially (like activePaymentMethods)
+    if (Array.isArray(newValue)) {
+      if (JSON.stringify(newValue) !== JSON.stringify(currentValue)) {
+        formData.value[key] = [...newValue];
+      }
     }
-
-    if (Object.prototype.hasOwnProperty.call(newData, 'offlineMode') && newData.offlineMode !== formData.value.offlineMode) {
-      formData.value.offlineMode = newData.offlineMode;
+    // Handle primitives
+    else if (newValue !== currentValue) {
+      formData.value[key] = newValue;
     }
-
-    // Watch for new features changes
-    if (Object.prototype.hasOwnProperty.call(newData, 'defaultReportFilter') && newData.defaultReportFilter !== formData.value.defaultReportFilter) {
-      formData.value.defaultReportFilter = newData.defaultReportFilter;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(newData, 'showMultipleReports') && newData.showMultipleReports !== formData.value.showMultipleReports) {
-      formData.value.showMultipleReports = newData.showMultipleReports;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(newData, 'useProductCost') && newData.useProductCost !== formData.value.useProductCost) {
-      formData.value.useProductCost = newData.useProductCost;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(newData, 'defaultTermsAndConditions') && newData.defaultTermsAndConditions !== formData.value.defaultTermsAndConditions) {
-      formData.value.defaultTermsAndConditions = newData.defaultTermsAndConditions;
-    }
-
-    if (Object.prototype.hasOwnProperty.call(newData, 'taxMode') && newData.taxMode !== formData.value.taxMode) {
-      formData.value.taxMode = newData.taxMode;
-    }
-  }
+  });
 }, { deep: true, immediate: true });
 
-// Auto-save with debouncing
-let debounceTimer = null;
+// Emit data changes - let parent decide what to do
 watch(formData, (newValue) => {
-  if (debounceTimer) {
-    clearTimeout(debounceTimer);
-  }
-  debounceTimer = setTimeout(() => {
-    emit('submit', newValue);
-  }, 2000);
+  emit('dataChanged', newValue);
 }, { deep: true });
 </script>
 
@@ -171,12 +173,22 @@ watch(formData, (newValue) => {
         <p class="text-sm text-neutral-600 mb-4">
           Configuraciones adicionales para el manejo de pedidos
         </p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <FeatureCard
             v-model="formData.allowPartialPayment"
             :icon="PhCircleHalf"
             title="Pagos Parciales"
             description="Permite a los clientes realizar pagos parciales."
+            :disabled="loading"
+          />
+
+          <RadioFeatureCard
+            v-model="formData.defaultDate"
+            :icon="PhCalendarBlank"
+            title="Tipo de Fecha por Defecto"
+            description="En tu flujo de trabajo, ¿te organizas mejor por cuándo produces o cuándo entregas?"
+            :options="defaultDateOptions"
+            name="default-date"
             :disabled="loading"
           />
 
@@ -273,6 +285,68 @@ watch(formData, (newValue) => {
             />
           </div>
         </div>
+      </div>
+
+      <!-- POS Configuration Section -->
+      <div v-if="systemAdminMode" class="mb-6">
+        <h3 class="text-lg font-semibold text-neutral-900 mb-2">
+          Configuración POS (Punto de Venta)
+        </h3>
+        <p class="text-sm text-neutral-600 mb-4">
+          Configura el modo POS para operaciones de venta directa sin deliveries.
+        </p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <FeatureCard
+            v-model="formData.posEnabled"
+            :icon="PhCurrencyDollar"
+            title="Modo POS"
+            description="Habilita el modo punto de venta con funciones simplificadas"
+            :disabled="loading"
+          />
+
+          <FeatureCard
+            v-model="formData.posAutoMarkPaid"
+            :icon="PhMoney"
+            title="Auto-marcar como Pagado"
+            description="Marca automáticamente los pedidos como pagados al crearlos"
+            :disabled="loading"
+          />
+
+          <FeatureCard
+            v-model="formData.posDefaultToCurrentDate"
+            :icon="PhClock"
+            title="Fecha Actual por Defecto"
+            description="Usa la fecha actual automáticamente en lugar del selector de fecha"
+            :disabled="loading"
+          />
+
+          <FeatureCard
+            v-model="formData.posHideDeliveryOptions"
+            :icon="PhGpsSlash"
+            title="Ocultar Opciones de Delivery"
+            description="Oculta las secciones de delivery en formularios y navegación"
+            :disabled="loading"
+          />
+
+          <FeatureCard
+            v-model="formData.posAutoSelectClient"
+            :icon="PhUser"
+            title="Auto-seleccionar Cliente POS"
+            description="Crea y selecciona automáticamente un cliente 'Punto de Venta'"
+            :disabled="loading"
+          />
+        </div>
+      </div>
+
+      <!-- System Admin Save Button -->
+      <div v-if="systemAdminMode" class="mt-6 flex justify-end">
+        <button
+          @click="handleSave"
+          :disabled="loading"
+          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+        >
+          {{ loading ? 'Guardando...' : 'Guardar Configuración' }}
+        </button>
       </div>
 
     </div>

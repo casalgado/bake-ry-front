@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Read(//c/Users/casal/documents/web/back/bake-ry/functions/src/models/**)"
-    ],
-    "deny": [],
-    "ask": []
-  }
-}

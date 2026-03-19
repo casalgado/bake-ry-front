@@ -60,9 +60,10 @@ export class BakeryService {
    * @returns {Promise<Array>} Array of bakery objects
    * @throws {Error} If fetching fails
    */
-  static async getAllBakeries() {
+  static async getAllBakeries(includeDeleted = true) {
     try {
-      const response = await api.get('/bakeries');
+      const params = includeDeleted ? { includeDeleted: true } : {};
+      const response = await api.get('/bakeries', { params });
       return response.data;
     } catch (error) {
       throw this.handleError(error, 'Failed to fetch bakeries');

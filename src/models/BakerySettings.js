@@ -53,6 +53,14 @@ class BakerySettings extends BaseModel {
       showTermsAndConditions: true,
       taxMode: 'inclusive',
     },
+    pos: {
+      enabled: false,
+      autoMarkPaid: false,
+      defaultToCurrentDate: false,
+      hideDeliveryOptions: false,
+      autoSelectClient: false, // Toggle for auto-selecting POS client
+      defaultClientId: null, // Will store auto-created "Punto de Venta" client ID
+    },
   };
 
   static DEFAULT_BRANDING = {

@@ -27,6 +27,7 @@ const b2bClientsData = ref([]);
 const featuresFormData = ref({
   activePaymentMethods: [],
   allowPartialPayment: false,
+  defaultDate: 'production',
   timeOfDay: false,
   offlineMode: false,
   // Reports features
@@ -506,12 +507,21 @@ const initializeFeaturesForm = () => {
     if (Object.prototype.hasOwnProperty.call(orderFeatures, 'allowPartialPayment')) {
       newFormData.allowPartialPayment = orderFeatures.allowPartialPayment;
     }
+    if (Object.prototype.hasOwnProperty.call(orderFeatures, 'defaultDate')) {
+      newFormData.defaultDate = orderFeatures.defaultDate;
+    } else {
+      // Fallback to default if not set in backend
+      newFormData.defaultDate = 'production';
+    }
     if (Object.prototype.hasOwnProperty.call(orderFeatures, 'timeOfDay')) {
       newFormData.timeOfDay = orderFeatures.timeOfDay;
     }
     if (Object.prototype.hasOwnProperty.call(orderFeatures, 'offlineMode')) {
       newFormData.offlineMode = orderFeatures.offlineMode;
     }
+  } else {
+    // If no order features exist, ensure we have defaults
+    newFormData.defaultDate = 'production';
   }
 
   // Reports features
@@ -599,7 +609,28 @@ watch(
   { immediate: true, deep: true },
 );
 
-const handleFeaturesSubmit = async (formData) => {
+// Auto-save with debouncing for bakery admins
+let debounceTimer = null;
+const handleFeaturesDataChanged = (formData) => {
+  // Skip if data hasn't actually changed
+  const currentData = featuresFormData.value;
+  if (currentData && JSON.stringify(currentData) === JSON.stringify(formData)) {
+    return;
+  }
+
+  // Update local form preview immediately
+  featuresFormData.value = { ...formData };
+
+  // Debounced auto-save
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+  debounceTimer = setTimeout(async () => {
+    await saveFeaturesData(formData);
+  }, 2000);
+};
+
+const saveFeaturesData = async (formData) => {
   isFeaturesSaving.value = true;
   try {
     // Preserve existing features and merge with new data
@@ -612,6 +643,7 @@ const handleFeaturesSubmit = async (formData) => {
           ...(currentFeatures.order || {}),
           activePaymentMethods: formData.activePaymentMethods,
           allowPartialPayment: formData.allowPartialPayment,
+          defaultDate: formData.defaultDate,
           timeOfDay: formData.timeOfDay,
           offlineMode: formData.offlineMode,
         },
@@ -633,9 +665,6 @@ const handleFeaturesSubmit = async (formData) => {
         },
       },
     });
-
-    // Update local form data after successful save
-    featuresFormData.value = { ...formData };
 
     toastRef.value?.showSuccess(
       'Configuración Guardada',
@@ -758,7 +787,7 @@ const handleBrandingValidationError = (error) => {
     :initial-data="featuresFormData"
     :available-payment-methods="configurablePaymentMethods"
     :loading="isFeaturesSaving"
-    @submit="handleFeaturesSubmit"
+    @data-changed="handleFeaturesDataChanged"
   />
   <div class="hidden">
     <!-- Add Credit Card Form -->

@@ -9,7 +9,8 @@ import OrderItemsManager from './OrderItemsManager.vue';
 import NewClientDialog from './NewClientDialog.vue';
 import RadioButtonGroup from './RadioButtonGroup.vue';
 import { formatMoney, cleanString } from '@/utils/helpers';
-import { PhCaretLeft, PhCaretRight, PhX } from '@phosphor-icons/vue';
+import { getTodayString, getNextBusinessDayString, formatDateForInput } from '@/utils/dateUtils';
+import { PhCaretLeft, PhCaretRight, PhX, PhCaretDown } from '@phosphor-icons/vue';
 import { Order } from '@/models/Order.js';
 
 const props = defineProps({
@@ -135,6 +136,15 @@ const userCombox = ref(null);
 const userHistory = ref([]);
 const currentHistoryIndex = ref(0);
 
+// POS Configuration
+const posConfig = computed(() => bakerySettingsStore.posConfig);
+const shouldAutoSelectClient = computed(() => bakerySettingsStore.shouldAutoSelectClient);
+const shouldAutoMarkPaid = computed(() => bakerySettingsStore.shouldAutoMarkPaid);
+const shouldDefaultToCurrentDate = computed(() => bakerySettingsStore.shouldDefaultToCurrentDate);
+const shouldHideDeliveryOptions = computed(() => bakerySettingsStore.shouldHideDeliveryOptions);
+const posDefaultClientId = computed(() => bakerySettingsStore.posDefaultClientId);
+const isPOSMode = computed(() => bakerySettingsStore.isPOSMode);
+
 // Product selection mode with localStorage persistence
 const getStoredSelectionMode = () => {
   try {
@@ -155,52 +165,34 @@ watch(productSelectionMode, (newMode) => {
   }
 });
 
-// Get next business day
-const getNextBusinessDay = () => {
-  const date = new Date();
-  date.setDate(date.getDate() + 1); // Start with tomorrow
+const tomorrowString = getNextBusinessDayString();
 
-  // If it's Sunday (0), add 1 day to get to Monday
-  if (date.getDay() === 0) {
-    date.setDate(date.getDate() + 1);
-  }
-
-  return date;
+const getInitialFormState = () => {
+  return {
+    userId: '',
+    userName: '',
+    userEmail: '',
+    userPhone: '',
+    userNationalId: '',
+    userLegalName: '',
+    orderItems: [],
+    preparationDate: tomorrowString,
+    dueDate: tomorrowString,
+    paymentDate: '',
+    partialPaymentAmount: null,
+    partialPaymentDate: '',
+    dueTime: '',
+    fulfillmentType: 'delivery',
+    deliveryAddress: '',
+    deliveryFee: 7000,
+    paymentMethod: 'cash',
+    internalNotes: '',
+    deliveryNotes: '',
+    shouldUpdateClientAddress: false,
+    orderDiscountType: 'percentage',
+    orderDiscountValue: 0,
+  };
 };
-
-const tomorrow = getNextBusinessDay();
-const tomorrowString = tomorrow.toISOString().split('T')[0];
-
-const formatDateForInput = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toISOString().split('T')[0];
-};
-
-const getInitialFormState = () => ({
-  userId: '',
-  userName: '',
-  userEmail: '',
-  userPhone: '',
-  userNationalId: '',
-  userLegalName: '',
-  orderItems: [],
-  preparationDate: tomorrowString,
-  dueDate: tomorrowString,
-  paymentDate: '',
-  partialPaymentAmount: null,
-  partialPaymentDate: '',
-  dueTime: '',
-  fulfillmentType: 'delivery',
-  deliveryAddress: '',
-  deliveryFee: 7000,
-  paymentMethod: 'cash',
-  internalNotes: '',
-  deliveryNotes: '',
-  shouldUpdateClientAddress: false,
-  orderDiscountType: 'percentage',
-  orderDiscountValue: 0,
-});
 
 // Form state
 const formData = ref(
@@ -231,7 +223,15 @@ const resetForm = () => {
 
   nextTick(() => {
     setTimeout(() => {
-      userCombox.value?.focus();
+      if (isPOSMode.value) {
+        // In POS mode, focus the product search instead of user selection
+        const productSearchInput = document.getElementById('pos-product-search-input');
+        if (productSearchInput) {
+          productSearchInput.focus();
+        }
+      } else {
+        userCombox.value?.focus();
+      }
     }, 800);
   });
 };
@@ -263,6 +263,42 @@ const clearErrorsOnInput = (fields) => {
   );
 };
 
+const applyPOSSettings = () => {
+  const todayString = getTodayString();
+
+  // Switch to search mode for POS (easier product scanning/searching)
+  if (isPOSMode.value) {
+    productSelectionMode.value = 'search';
+  }
+
+  // Auto-select POS client
+  if (shouldAutoSelectClient.value && posDefaultClientId.value) {
+    formData.value.userId = posDefaultClientId.value;
+
+    // Find and select the user to populate other fields
+    const posUser = userStore.items.find(u => u.id === posDefaultClientId.value);
+    if (posUser) {
+      handleUserChange(posUser);
+    }
+  }
+
+  // Auto-mark as paid (pre-fill payment date)
+  if (shouldAutoMarkPaid.value) {
+    formData.value.paymentDate = todayString;
+  }
+
+  // Default to current date
+  if (shouldDefaultToCurrentDate.value) {
+    formData.value.preparationDate = todayString;
+    formData.value.dueDate = todayString;
+  }
+
+  // Hide delivery options (force pickup)
+  if (shouldHideDeliveryOptions.value) {
+    formData.value.fulfillmentType = 'pickup';
+  }
+};
+
 onMounted(async () => {
   fetching.value = true;
   await Promise.all([
@@ -273,11 +309,16 @@ onMounted(async () => {
   ]);
   fetching.value = false;
 
+  // Handle initial user selection - either from props or POS auto-select
   if (props.initialData?.userId) {
+    // Use the provided initial user
     const user = userStore.items.find((u) => u.id === props.initialData.userId);
     if (user) {
       handleUserChange(user);
     }
+  } else {
+    // Apply POS settings for new orders (including auto-client selection)
+    applyPOSSettings();
   }
 
   // Initialize selected fee type if there's an initial value
@@ -299,6 +340,17 @@ onMounted(async () => {
     'deliveryAddress',
     'orderItems',
   ]);
+
+  // Focus product search input in POS mode (after handleUserChange completes)
+  await nextTick();
+  if (isPOSMode.value) {
+    setTimeout(() => {
+      const productSearchInput = document.getElementById('pos-product-search-input');
+      if (productSearchInput) {
+        productSearchInput.focus();
+      }
+    }, 100); // Delay to ensure it runs after handleUserChange's setTimeout
+  }
 });
 
 const features = computed(() => {
@@ -313,6 +365,9 @@ const handleNewClientClick = () => {
 const handleClientCreated = (newClient) => {
   handleUserChange(newClient);
 };
+
+// POS client section collapse state
+const isClientSectionCollapsed = ref(true);
 
 const handleUserChange = async (user) => {
   formData.value.userId = user.id;
@@ -364,11 +419,20 @@ const handleUserChange = async (user) => {
   originalAddress.value = user.address;
   await nextTick();
   setTimeout(() => {
-    const nextElement = document.querySelector(
-      'input[name="preparation-date"]',
-    );
-    if (nextElement) {
-      nextElement.focus();
+    if (isPOSMode.value) {
+      // In POS mode, focus the product search instead of date field
+      const productSearchInput = document.getElementById('pos-product-search-input');
+      if (productSearchInput) {
+        productSearchInput.focus();
+      }
+    } else {
+      // Normal mode: focus the date field
+      const nextElement = document.querySelector(
+        'input[name="preparation-date"]',
+      );
+      if (nextElement) {
+        nextElement.focus();
+      }
     }
   }, 0);
 };
@@ -644,15 +708,7 @@ const handlePartialAmountChange = () => {
     formData.value.partialPaymentAmount &&
     !formData.value.partialPaymentDate
   ) {
-    formData.value.partialPaymentDate = new Date()
-      .toLocaleDateString('es-CO', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      })
-      .split('/')
-      .reverse()
-      .join('-');
+    formData.value.partialPaymentDate = getTodayString();
   }
 };
 
@@ -666,8 +722,26 @@ const clearPartialPayment = () => {
   <div class="form-container">
     <h2>{{ title }}</h2>
 
-    <form @submit.prevent="handleSubmit" :class="{ 'opacity-50': fetching }">
-      <div class="base-card flex flex-col gap-2">
+    <div v-if="fetching" class="text-center py-8">
+      <p class="text-neutral-600">Cargando...</p>
+    </div>
+
+    <form v-else @submit.prevent="handleSubmit">
+      <!-- Collapsed POS Display -->
+      <div
+        v-if="isPOSMode && isClientSectionCollapsed"
+        class="flat-card cursor-pointer p-3 flex items-center justify-between"
+        @click="isClientSectionCollapsed = false"
+      >
+        <span class="text-sm text-neutral-700">
+          <span class="font-bold">Cliente:</span> {{ formData.userName || 'Punto de Venta' }}
+        </span>
+        <PhCaretDown class="w-4 h-4 text-neutral-500" />
+      </div>
+
+      <!-- Full Client & Date Card -->
+      <div v-if="!isPOSMode || !isClientSectionCollapsed" id="client-date-card" class="base-card flex flex-col gap-2">
+
         <div>
           <label for="client-select">{{
             fetching ? "Clientes..." : "Clientes"
@@ -712,10 +786,11 @@ const clearPartialPayment = () => {
             <label for="preparation-date"
               >Fecha de
               {{
-                features.order?.defaultDate &&
+                isPOSMode ? "Venta" :
+                (features.order?.defaultDate &&
                 features.order.defaultDate === "delivery"
                   ? "Entrega"
-                  : "Preparación"
+                  : "Preparación")
               }}</label
             >
             <input
@@ -779,17 +854,7 @@ const clearPartialPayment = () => {
             <button
               class="btn utility-btn m-0"
               type="button"
-              @click="
-                formData.paymentDate = new Date()
-                  .toLocaleDateString('es-CO', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                  })
-                  .split('/')
-                  .reverse()
-                  .join('-')
-              "
+              @click="formData.paymentDate = getTodayString()"
             >
               Hoy
             </button>
@@ -860,13 +925,14 @@ const clearPartialPayment = () => {
 
       <div class="base-card flex flex-col gap-2">
         <RadioButtonGroup
+          v-if="!shouldHideDeliveryOptions"
           v-model="formData.fulfillmentType"
           :options="fulfillmentTypes"
           name="fulfillment-type"
           label="Tipo de Envío"
         />
 
-        <div v-if="formData.fulfillmentType === 'delivery'">
+        <div v-if="formData.fulfillmentType === 'delivery' && !shouldHideDeliveryOptions">
           <label for="delivery-address">Dirección de Entrega</label>
           <div class="grid grid-cols-[1fr_auto] gap-2">
             <input
@@ -897,7 +963,7 @@ const clearPartialPayment = () => {
         </div>
 
         <RadioButtonGroup
-          v-if="formData.fulfillmentType === 'delivery'"
+          v-if="formData.fulfillmentType === 'delivery' && !shouldHideDeliveryOptions"
           v-model="selectedDeliveryFee"
           :options="deliveryFeeOptions"
           name="delivery-fee"
@@ -1003,7 +1069,7 @@ const clearPartialPayment = () => {
 
       <div class="base-card">
         <div>
-          <label for="internal-notes">Comentarios Produccion</label>
+          <label for="internal-notes">{{ isPOSMode ? 'Comentarios' : 'Comentarios Produccion' }}</label>
           <textarea
             id="internal-notes"
             v-model="formData.internalNotes"
@@ -1013,7 +1079,7 @@ const clearPartialPayment = () => {
         </div>
       </div>
 
-      <div class="base-card">
+      <div v-if="!isPOSMode" class="base-card">
         <div>
           <label for="delivery-notes">Comentarios Domicilio</label>
           <textarea
@@ -1140,3 +1206,9 @@ const clearPartialPayment = () => {
     </form>
   </div>
 </template>
+
+<style scoped>
+.base-card {
+  padding-top: 5px !important;  /* Half of the default 1.5rem */
+}
+</style>

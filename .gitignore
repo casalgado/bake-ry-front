@@ -14,12 +14,16 @@ dist-ssr
 coverage
 *.local
 .env
+.claude/settings.local.json
 sandbox.*.js
 sandbox.*.html
 sandbox.*.json
 sandbox.*.txt
 
 zdocs
+
+# Firebase
+.firebase/hosting.*.cache
 
 /cypress/videos/
 /cypress/screenshots/
