@@ -1,6 +1,7 @@
 <script setup>
 import { usePeriodStore } from '@/stores/periodStore';
-import { computed } from 'vue';
+import { computed, ref, nextTick } from 'vue';
+import PeriodCalendar from './PeriodCalendar.vue';
 
 const props = defineProps({
   onlyFor: {
@@ -18,6 +19,9 @@ const props = defineProps({
 });
 
 const periodStore = usePeriodStore();
+const showCalendar = ref(false);
+const spanRef = ref(null);
+const calendarPosition = ref({ top: 0, left: 0 });
 
 // This controls if the period type buttons are shown at all.
 // They are shown if `onlyFor` is null (meaning all types are available)
@@ -37,11 +41,32 @@ const periodTypesToShow = computed(() => {
 if (props.onlyFor && props.onlyFor.length === 1) {
   periodStore.setPeriodType(props.onlyFor[0]);
 }
+
+// Calendar functions
+const handleSpanClick = async () => {
+  console.log('Span clicked, period type:', periodStore.periodType);
+
+  // Calculate position based on span element
+  await nextTick();
+  if (spanRef.value) {
+    const rect = spanRef.value.getBoundingClientRect();
+    calendarPosition.value = {
+      top: rect.bottom + 8,
+      left: rect.left + (rect.width / 2) - 128, // 128 is half of w-64 (256px)
+    };
+  }
+
+  showCalendar.value = true;
+};
+
+const closeCalendar = () => {
+  showCalendar.value = false;
+};
 </script>
 
 <template>
   <div
-    class="flex flex-col lg:flex-row lg:w-auto w-full mx-1 sm:mx-3 lg:items-center px-1 sm:px-2 bg-neutral-100 rounded-lg lg:mr-0"
+    class="relative flex flex-col lg:flex-row lg:w-auto w-full mx-1 sm:mx-3 lg:items-center px-1 sm:px-2 bg-neutral-100 rounded-lg lg:mr-0"
   >
     <div
       class="flex items-center justify-between gap-1 sm:gap-2 min-w-0"
@@ -68,7 +93,11 @@ if (props.onlyFor && props.onlyFor.length === 1) {
         </svg>
       </button>
 
-      <span class="text-neutral-800 font-medium text-center text-sm sm:text-base min-w-0 flex-1 px-1 truncate">
+      <span
+        ref="spanRef"
+        class="text-neutral-800 font-medium text-center text-sm sm:text-base w-32 sm:w-36 px-1 truncate cursor-pointer hover:text-primary-600 transition-colors duration-150"
+        @click="handleSpanClick"
+      >
         {{ periodStore.displayFormat }}
       </span>
 
@@ -118,4 +147,21 @@ if (props.onlyFor && props.onlyFor.length === 1) {
       </button>
     </div>
   </div>
+
+  <!-- Calendar positioned absolutely relative to viewport -->
+  <Teleport to="body">
+    <div
+      v-if="showCalendar"
+      class="fixed inset-0 z-[100]"
+      @click="closeCalendar"
+    >
+      <div
+        class="bg-white rounded-lg shadow-lg border border-neutral-200 w-64 p-2"
+        :style="`position: absolute; top: ${calendarPosition.top}px; left: ${calendarPosition.left}px;`"
+        @click.stop
+      >
+        <PeriodCalendar @close="closeCalendar" />
+      </div>
+    </div>
+  </Teleport>
 </template>
