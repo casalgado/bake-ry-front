@@ -209,7 +209,6 @@ export const useSystemAdminStore = defineStore('systemAdmin', {
               taxMode: featuresData.taxMode || 'inclusive',
             },
             pos: {
-              enabled: featuresData.posEnabled || false,
               autoMarkPaid: featuresData.posAutoMarkPaid || false,
               defaultToCurrentDate: featuresData.posDefaultToCurrentDate || false,
               hideDeliveryOptions: featuresData.posHideDeliveryOptions || false,

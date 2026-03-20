@@ -31,11 +31,6 @@ store.posConfig = computed(() => {
   return store.currentItem.features.pos;
 });
 
-store.isPOSMode = computed(() => {
-  const config = store.posConfig;
-  return config?.enabled || false;
-});
-
 store.shouldAutoMarkPaid = computed(() => {
   const config = store.posConfig;
   return config?.autoMarkPaid || false;

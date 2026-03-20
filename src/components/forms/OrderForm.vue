@@ -143,7 +143,6 @@ const shouldAutoMarkPaid = computed(() => bakerySettingsStore.shouldAutoMarkPaid
 const shouldDefaultToCurrentDate = computed(() => bakerySettingsStore.shouldDefaultToCurrentDate);
 const shouldHideDeliveryOptions = computed(() => bakerySettingsStore.shouldHideDeliveryOptions);
 const posDefaultClientId = computed(() => bakerySettingsStore.posDefaultClientId);
-const isPOSMode = computed(() => bakerySettingsStore.isPOSMode);
 
 // Product selection mode with localStorage persistence
 const getStoredSelectionMode = () => {
@@ -223,8 +222,8 @@ const resetForm = () => {
 
   nextTick(() => {
     setTimeout(() => {
-      if (isPOSMode.value) {
-        // In POS mode, focus the product search instead of user selection
+      if (shouldAutoSelectClient.value) {
+        // When auto-selecting client, focus the product search instead of user selection
         const productSearchInput = document.getElementById('pos-product-search-input');
         if (productSearchInput) {
           productSearchInput.focus();
@@ -266,11 +265,6 @@ const clearErrorsOnInput = (fields) => {
 const applyPOSSettings = () => {
   const todayString = getTodayString();
 
-  // Switch to search mode for POS (easier product scanning/searching)
-  if (isPOSMode.value) {
-    productSelectionMode.value = 'search';
-  }
-
   // Auto-select POS client
   if (shouldAutoSelectClient.value && posDefaultClientId.value) {
     formData.value.userId = posDefaultClientId.value;
@@ -291,6 +285,13 @@ const applyPOSSettings = () => {
   if (shouldDefaultToCurrentDate.value) {
     formData.value.preparationDate = todayString;
     formData.value.dueDate = todayString;
+
+    // Also set current time if time field is available
+    if (features.value?.order?.timeOfDay) {
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
+      formData.value.dueTime = currentTime;
+    }
   }
 
   // Hide delivery options (force pickup)
@@ -341,9 +342,9 @@ onMounted(async () => {
     'orderItems',
   ]);
 
-  // Focus product search input in POS mode (after handleUserChange completes)
+  // Focus product search input when auto-selecting client (after handleUserChange completes)
   await nextTick();
-  if (isPOSMode.value) {
+  if (shouldAutoSelectClient.value) {
     setTimeout(() => {
       const productSearchInput = document.getElementById('pos-product-search-input');
       if (productSearchInput) {
@@ -419,8 +420,8 @@ const handleUserChange = async (user) => {
   originalAddress.value = user.address;
   await nextTick();
   setTimeout(() => {
-    if (isPOSMode.value) {
-      // In POS mode, focus the product search instead of date field
+    if (shouldDefaultToCurrentDate.value) {
+      // When defaulting to current date, focus the product search instead of date field
       const productSearchInput = document.getElementById('pos-product-search-input');
       if (productSearchInput) {
         productSearchInput.focus();
@@ -729,7 +730,7 @@ const clearPartialPayment = () => {
     <form v-else @submit.prevent="handleSubmit">
       <!-- Collapsed POS Display -->
       <div
-        v-if="isPOSMode && isClientSectionCollapsed"
+        v-if="shouldAutoSelectClient && isClientSectionCollapsed"
         class="flat-card cursor-pointer p-3 flex items-center justify-between"
         @click="isClientSectionCollapsed = false"
       >
@@ -740,7 +741,7 @@ const clearPartialPayment = () => {
       </div>
 
       <!-- Full Client & Date Card -->
-      <div v-if="!isPOSMode || !isClientSectionCollapsed" id="client-date-card" class="base-card flex flex-col gap-2">
+      <div v-if="!shouldAutoSelectClient || !isClientSectionCollapsed" id="client-date-card" class="base-card flex flex-col gap-2">
 
         <div>
           <label for="client-select">{{
@@ -786,7 +787,7 @@ const clearPartialPayment = () => {
             <label for="preparation-date"
               >Fecha de
               {{
-                isPOSMode ? "Venta" :
+                shouldDefaultToCurrentDate ? "Venta" :
                 (features.order?.defaultDate &&
                 features.order.defaultDate === "delivery"
                   ? "Entrega"
@@ -1069,7 +1070,7 @@ const clearPartialPayment = () => {
 
       <div class="base-card">
         <div>
-          <label for="internal-notes">{{ isPOSMode ? 'Comentarios' : 'Comentarios Produccion' }}</label>
+          <label for="internal-notes">{{ shouldHideDeliveryOptions ? 'Comentarios' : 'Comentarios Produccion' }}</label>
           <textarea
             id="internal-notes"
             v-model="formData.internalNotes"
@@ -1079,7 +1080,7 @@ const clearPartialPayment = () => {
         </div>
       </div>
 
-      <div v-if="!isPOSMode" class="base-card">
+      <div v-if="!shouldHideDeliveryOptions" class="base-card">
         <div>
           <label for="delivery-notes">Comentarios Domicilio</label>
           <textarea

@@ -42,7 +42,6 @@ const featuresFormData = computed(() => {
     useProductCost: features.products?.useProductCost || false,
     defaultTermsAndConditions: features.invoicing?.defaultTermsAndConditions || '',
     taxMode: features.invoicing?.taxMode || 'inclusive',
-    posEnabled: features.pos?.enabled || false,
     posAutoMarkPaid: features.pos?.autoMarkPaid || false,
     posDefaultToCurrentDate: features.pos?.defaultToCurrentDate || false,
     posHideDeliveryOptions: features.pos?.hideDeliveryOptions || false,

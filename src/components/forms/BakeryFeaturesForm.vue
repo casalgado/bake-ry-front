@@ -39,7 +39,6 @@ const props = defineProps({
       defaultTermsAndConditions: '',
       taxMode: 'inclusive',
       // POS features
-      posEnabled: false,
       posAutoMarkPaid: false,
       posDefaultToCurrentDate: false,
       posHideDeliveryOptions: false,
@@ -293,17 +292,9 @@ watch(formData, (newValue) => {
           Configuración POS (Punto de Venta)
         </h3>
         <p class="text-sm text-neutral-600 mb-4">
-          Configura el modo POS para operaciones de venta directa sin deliveries.
+          Configura el modo POS para operaciones de venta directa.
         </p>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <FeatureCard
-            v-model="formData.posEnabled"
-            :icon="PhCurrencyDollar"
-            title="Modo POS"
-            description="Habilita el modo punto de venta con funciones simplificadas"
-            :disabled="loading"
-          />
-
           <FeatureCard
             v-model="formData.posAutoMarkPaid"
             :icon="PhMoney"
@@ -332,7 +323,7 @@ watch(formData, (newValue) => {
             v-model="formData.posAutoSelectClient"
             :icon="PhUser"
             title="Auto-seleccionar Cliente POS"
-            description="Crea y selecciona automáticamente un cliente 'Punto de Venta'"
+            description="Crea y selecciona automáticamente el cliente 'Punto de Venta'"
             :disabled="loading"
           />
         </div>
