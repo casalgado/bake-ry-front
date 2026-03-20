@@ -29,15 +29,18 @@ import {
   PhWifiX,
   PhGear,
   PhArrowsLeftRight,
+  PhBuildings,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
 import MobileNavigation from './MobileNavigation.vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { useAuthenticationStore } from '@/stores/authentication';
 
 const router = useRouter();
 const route = useRoute();
 const settingsStore = useBakerySettingsStore();
+const authStore = useAuthenticationStore();
 
 // Load bakery settings when component mounts
 onMounted(async () => {
@@ -227,6 +230,12 @@ const navigationSections = computed(() => {
           text: 'Configuración',
           path: '/dashboard/settings',
         },
+        ...(authStore.isSystemAdmin ? [{
+          id: 'negocios',
+          icon: PhBuildings,
+          text: 'Negocios',
+          path: '/system-admin/bakeries',
+        }] : []),
       ],
     },
   ];
