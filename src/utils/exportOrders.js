@@ -14,7 +14,9 @@ const transformOrderToRows = (order, orderIndex) => {
     nationalId: order.userNationalId || '',
     direccion: order.deliveryAddress || '',
     telefono: order.userPhone || '',
+    categoria: '',
     producto: '',
+    variacion: '',
     cantidad: '',
     subtotal: '',
     total: order.total || '',
@@ -24,10 +26,6 @@ const transformOrderToRows = (order, orderIndex) => {
   const itemRows = [];
   if (Array.isArray(order.orderItems)) {
     order.orderItems.forEach((item, itemIndex) => {
-      const productName = [item.productName || '', item.variation?.name || '']
-        .filter(Boolean)
-        .join(' ');
-
       itemRows.push({
         pedido: orderIndex + 1, // Order-level index
         id: '',
@@ -39,7 +37,9 @@ const transformOrderToRows = (order, orderIndex) => {
         nationalId: '',
         direccion: '',
         telefono: '',
-        producto: productName,
+        categoria: categoryShortener(item.collectionName) || item.collectionName || '',
+        producto: item.productName || '',
+        variacion: item.combination?.name || '',
         cantidad: item.quantity || '',
         subtotal: item.subtotal || '',
         total: '',
@@ -60,7 +60,9 @@ const transformOrderToRows = (order, orderIndex) => {
       nationalId: '',
       direccion: '',
       telefono: '',
+      categoria: 'servicio',
       producto: 'domicilio',
+      variacion: '',
       cantidad: 1,
       subtotal: order.deliveryFee,
       total: '',
@@ -79,7 +81,9 @@ const transformOrderToRows = (order, orderIndex) => {
     nationalId: '',
     direccion: '',
     telefono: '',
+    categoria: '',
     producto: '',
+    variacion: '',
     cantidad: '',
     subtotal: '',
     total: '',
@@ -100,6 +104,11 @@ const getPaymentMethodText = (method) => {
     bbva: 'bbva',
   };
   return methodMap[method] || method;
+};
+
+const categoryShortener = (text) => {
+  if (text == 'sourdough') return 'Pan';
+  return '';
 };
 
 // Main export function
@@ -130,11 +139,14 @@ const exportOrders = (orders) => {
     { width: 15 }, // pago_recibido
     { width: 15 }, // metodo
     { width: 20 }, // cliente
+    { width: 25 }, // razon_social
     { width: 25 }, // correo
     { width: 15 }, // nationalId
     { width: 30 }, // direccion
     { width: 15 }, // telefono
-    { width: 25 }, // producto
+    { width: 15 }, // categoria
+    { width: 20 }, // producto
+    { width: 15 }, // variacion
     { width: 10 }, // cantidad
     { width: 12 }, // subtotal
     { width: 12 }, // total
@@ -474,7 +486,9 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
     total_pago: entry.paymentAmount || '',
     total_pedido: order.total || '',
     pedido_id: order.id || '',
+    categoria: '',
     producto: '',
+    variacion: '',
     cantidad: '',
     subtotal: '',
   };
@@ -483,10 +497,6 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
   const itemRows = [];
   if (Array.isArray(order.orderItems)) {
     order.orderItems.forEach((item, itemIndex) => {
-      const productName = [item.productName || '', item.variation?.name || '']
-        .filter(Boolean)
-        .join(' ');
-
       itemRows.push({
         entrada: entryIndex + 1, // Payment entry index
         fecha_pago: '',
@@ -502,7 +512,9 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
         total_pago: '',
         total_pedido: '',
         pedido_id: '',
-        producto: productName,
+        categoria: categoryShortener(item.collectionName) || item.collectionName || '',
+        producto: item.productName || '',
+        variacion: item.combination?.name || '',
         cantidad: item.quantity || '',
         subtotal: item.subtotal || '',
       });
@@ -517,6 +529,7 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
       fecha_pedido: '',
       tipo_pago: '',
       cliente: '',
+      razon_social: '',
       correo: '',
       nationalId: '',
       direccion: '',
@@ -525,7 +538,9 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
       total_pago: '',
       total_pedido: '',
       pedido_id: '',
+      categoria: 'servicio',
       producto: 'domicilio',
+      variacion: '',
       cantidad: 1,
       subtotal: order.deliveryFee,
     });
@@ -547,7 +562,9 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
     total_pago: '',
     total_pedido: '',
     pedido_id: '',
+    categoria: '',
     producto: '',
+    variacion: '',
     cantidad: '',
     subtotal: '',
   };
@@ -594,7 +611,9 @@ const exportPaymentReport = (orders, options = {}) => {
     { width: 12 }, // total_pago
     { width: 12 }, // total_pedido
     { width: 15 }, // pedido_id
-    { width: 25 }, // producto
+    { width: 15 }, // categoria
+    { width: 20 }, // producto
+    { width: 15 }, // variacion
     { width: 10 }, // cantidad
     { width: 12 }, // subtotal
   ];
