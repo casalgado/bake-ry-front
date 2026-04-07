@@ -1,6 +1,6 @@
 <script setup>
 import { usePeriodStore } from '@/stores/periodStore';
-import { computed, ref, nextTick } from 'vue';
+import { computed, ref, nextTick, onMounted, onUnmounted } from 'vue';
 import PeriodCalendar from './PeriodCalendar.vue';
 
 const props = defineProps({
@@ -62,6 +62,21 @@ const handleSpanClick = async () => {
 const closeCalendar = () => {
   showCalendar.value = false;
 };
+
+// Close calendar on window resize
+const handleWindowResize = () => {
+  if (showCalendar.value) {
+    closeCalendar();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('resize', handleWindowResize);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleWindowResize);
+});
 </script>
 
 <template>
