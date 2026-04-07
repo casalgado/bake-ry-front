@@ -6,6 +6,7 @@ import { Dialog, DialogPanel } from '@headlessui/vue';
 // DataTable
 import DataTable from '@/components/DataTable/index.vue';
 import CombinedProductionInfoCell from '@/components/DataTable/renderers/CombinedProductionInfoCell.vue';
+import CommentsCell from '@/components/DataTable/renderers/CommentsCell.vue';
 
 // Components
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
@@ -38,6 +39,7 @@ const flattenedOrderItems = computed(() => {
         productionBatch: item.productionBatch || 0,
         status: item.status || 0,
         collectionOrder: categoryOrder[item.collectionName?.toLowerCase()] || 999,
+        orderComments: order.internalNotes || '',
       })),
     )
     .sort((a, b) => {
@@ -108,6 +110,16 @@ const columns = [
       variation: row.variation,
       combination: row.combination,
       totalQuantity: row.quantity,
+    }),
+  },
+  {
+    id: 'comments',
+    label: 'Comentarios',
+    field: 'orderComments',
+    sortable: true,
+    component: CommentsCell,
+    getProps: (row) => ({
+      comments: row.orderComments,
     }),
   },
   {
