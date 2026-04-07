@@ -19,7 +19,7 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 
 // Icons
-import { PhPen, PhKey } from '@phosphor-icons/vue';
+import { PhPen, PhKey, PhTrash } from '@phosphor-icons/vue';
 
 // Store initialization
 const settingsStore = useBakerySettingsStore();
@@ -118,6 +118,15 @@ const tableActions = computed(() => [
     maxSelected: 1,
     variant: 'primary',
   },
+  {
+    id: 'delete',
+    label: 'Eliminar',
+    icon: PhTrash,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'danger',
+    hideIf: selectedUser.value && (selectedUser.value.role === 'bakery_admin' || selectedUser.value.role === 'system_admin'),
+  },
 ]);
 
 // Event handlers
@@ -146,6 +155,19 @@ const handleAction = async ({ actionId, selectedIds }) => {
   case 'resetPassword': {
     const user = staffData.value.find(staff => staff.id === selectedIds[0]);
     if (user && user.email) {
+      // Store the action for confirmation
+      confirmAction.value = {
+        actionId,
+        user,
+      };
+      isConfirmOpen.value = true;
+    }
+    break;
+  }
+  case 'delete': {
+    const user = staffData.value.find(staff => staff.id === selectedIds[0]);
+    console.log('Delete action triggered for user:', user);
+    if (user) {
       // Store the action for confirmation
       confirmAction.value = {
         actionId,
@@ -184,6 +206,59 @@ const handleConfirmPasswordReset = async () => {
   }
 };
 
+const handleConfirmDelete = async () => {
+  if (!confirmAction.value) return;
+
+  console.log('Starting delete process for user:', confirmAction.value.user);
+  actionLoading.value.delete = true;
+
+  try {
+    console.log('Calling bakeryUserStore.remove with ID:', confirmAction.value.user.id);
+    console.log('Current bakeryUserStore state:', bakeryUserStore);
+    console.log('User object being deleted:', confirmAction.value.user);
+
+    const deleteResult = await bakeryUserStore.remove(confirmAction.value.user.id);
+    console.log('Delete API result:', deleteResult);
+
+    console.log('Delete successful, refreshing data...');
+    await refreshData();
+
+    // Clear selection after successful deletion
+    selectedUser.value = null;
+    dataTable.value?.clearSelection();
+
+    toastRef.value?.showSuccess(
+      'Usuario Eliminado',
+      `${confirmAction.value.user.firstName} ha sido eliminado exitosamente`,
+    );
+    console.log('Delete process completed successfully');
+  } catch (error) {
+    console.error('Delete failed:', error);
+    console.error('Error details:', {
+      message: error.message,
+      response: error.response,
+      status: error.response?.status,
+      data: error.response?.data,
+      stack: error.stack
+    });
+    toastRef.value?.showError(
+      'Error al Eliminar Usuario',
+      error.message || 'Por favor, inténtelo de nuevo más tarde',
+    );
+  } finally {
+    actionLoading.value.delete = false;
+    isConfirmOpen.value = false;
+    confirmAction.value = null;
+  }
+};
+
+const handleCancelDelete = () => {
+  console.log('Delete cancelled by user');
+  isConfirmOpen.value = false;
+  confirmAction.value = null;
+  actionLoading.value.delete = false;
+};
+
 const handleCancelPasswordReset = () => {
   isConfirmOpen.value = false;
   confirmAction.value = null;
@@ -211,8 +286,10 @@ const closeForm = () => {
 
 // Data fetching
 const refreshData = async () => {
+  console.log('refreshData: Starting data refresh...');
   await settingsStore.fetchById('default');
   staffData.value = await settingsStore.staff;
+  console.log('refreshData: New staff data:', staffData.value);
 };
 
 onMounted(async () => {
@@ -269,16 +346,19 @@ onMounted(async () => {
       </div>
     </Dialog>
 
-    <!-- Password Reset Confirmation Dialog -->
+    <!-- Confirmation Dialog (Password Reset / Delete) -->
     <ConfirmDialog
       :is-open="isConfirmOpen"
-      title="Restablecer Contraseña"
-      :message="`¿Enviar correo para restablecer la contraseña a ${confirmAction?.user?.email}?`"
-      confirm-text="Enviar Correo"
+      :title="confirmAction?.actionId === 'delete' ? 'Eliminar Usuario' : 'Restablecer Contraseña'"
+      :message="confirmAction?.actionId === 'delete'
+        ? `¿Está seguro que desea eliminar a ${confirmAction?.user?.firstName}? Esta acción no se puede deshacer.`
+        : `¿Enviar correo para restablecer la contraseña a ${confirmAction?.user?.email}?`"
+      :confirm-text="confirmAction?.actionId === 'delete' ? 'Eliminar' : 'Enviar Correo'"
       cancel-text="Cancelar"
-      :loading="actionLoading.resetPassword"
-      @confirm="handleConfirmPasswordReset"
-      @cancel="handleCancelPasswordReset"
+      :loading="confirmAction?.actionId === 'delete' ? actionLoading.delete : actionLoading.resetPassword"
+      :variant="confirmAction?.actionId === 'delete' ? 'danger' : 'primary'"
+      @confirm="confirmAction?.actionId === 'delete' ? handleConfirmDelete() : handleConfirmPasswordReset()"
+      @cancel="confirmAction?.actionId === 'delete' ? handleCancelDelete() : handleCancelPasswordReset()"
     />
 
     <!-- Toast Notifications -->
