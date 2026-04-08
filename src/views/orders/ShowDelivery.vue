@@ -99,10 +99,19 @@ const {
     const staff = await settingsStore.staff;
     deliveryDrivers.value = staff
       .filter((staff) => staff.role === 'delivery_assistant')
-      .map((staff) => ({
-        value: staff.id,
-        displayText: staff.firstName,
-      }));
+      .map((staff) => {
+        // Use the full name field and parse it to get firstName + last name initial
+
+        const nameParts = staff.name.trim().split(' ');
+        console.log('Name parts for staff:', staff.name, nameParts);
+        const firstName = nameParts[0];
+        const lastNameInitial = nameParts.length > 1 ? ` ${nameParts[nameParts.length - 1].charAt(0)}` : '';
+
+        return {
+          value: staff.id,
+          displayText: `${firstName}${lastNameInitial}`,
+        };
+      });
   },
   // Action handler
   async onAction({ actionId, selectedItems: items }) {

@@ -39,6 +39,7 @@ const toastRef = ref(null);
 
 const sortedStaffData = computed(() => {
   return [...staffData.value].sort((a, b) => {
+    console.log('Comparing:', a, 'with', b);
     // Priority names
     const priorityNames = ['Esteban', 'Jesus'];
 
@@ -60,16 +61,16 @@ const sortedStaffData = computed(() => {
     if (bIsPriority !== -1) return 1;
 
     // Otherwise, sort alphabetically
-    return a.firstName.localeCompare(b.firstName);
+    return a.name.localeCompare(b.name);
   });
 });
 
 // Table configuration
 const columns = [
   {
-    id: 'firstName',
+    id: 'fullName',
     label: 'Nombre',
-    field: 'firstName',
+    field: 'name',
     sortable: true,
   },
   {
@@ -239,7 +240,7 @@ const handleConfirmDelete = async () => {
       response: error.response,
       status: error.response?.status,
       data: error.response?.data,
-      stack: error.stack
+      stack: error.stack,
     });
     toastRef.value?.showError(
       'Error al Eliminar Usuario',
