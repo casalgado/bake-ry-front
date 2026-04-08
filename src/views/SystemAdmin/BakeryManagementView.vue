@@ -37,6 +37,7 @@ const featuresFormData = computed(() => {
     defaultDate: features.order?.defaultDate || 'production',
     timeOfDay: features.order?.timeOfDay || false,
     offlineMode: features.order?.offlineMode || false,
+    loadHistoricalOnUserSelection: features.order?.loadHistoricalOnUserSelection || false,
     defaultReportFilter: features.reports?.defaultReportFilter || 'dueDate',
     showMultipleReports: features.reports?.showMultipleReports || false,
     useProductCost: features.products?.useProductCost || false,

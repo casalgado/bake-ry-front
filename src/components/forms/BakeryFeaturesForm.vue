@@ -30,6 +30,7 @@ const props = defineProps({
       defaultDate: 'production',
       timeOfDay: false,
       offlineMode: false,
+      loadHistoricalOnUserSelection: false,
       // Reports features
       defaultReportFilter: 'dueDate',
       showMultipleReports: false,
@@ -204,6 +205,15 @@ watch(formData, (newValue) => {
             :icon="PhWifiX"
             title="Modo Sin Conexión"
             description="Habilita formulario para crear pedidos sin conexión a internet"
+            :disabled="loading"
+          />
+
+          <FeatureCard
+            v-if="systemAdminMode"
+            v-model="formData.loadHistoricalOnUserSelection"
+            :icon="PhUser"
+            title="Cargar Históricos al Seleccionar Usuario"
+            description="Carga automáticamente objetos históricos cuando se selecciona un usuario"
             :disabled="loading"
           />
         </div>

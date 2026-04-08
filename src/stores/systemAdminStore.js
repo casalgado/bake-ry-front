@@ -194,6 +194,7 @@ export const useSystemAdminStore = defineStore('systemAdmin', {
               allowPartialPayment: featuresData.allowPartialPayment,
               timeOfDay: featuresData.timeOfDay,
               offlineMode: featuresData.offlineMode,
+              loadHistoricalOnUserSelection: featuresData.loadHistoricalOnUserSelection,
             },
             reports: {
               defaultReportFilter: featuresData.defaultReportFilter,

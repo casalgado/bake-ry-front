@@ -10,6 +10,7 @@ import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import { PhPen, PhTrash, PhClockCounterClockwise } from '@phosphor-icons/vue';
 import UserCell from '@/components/DataTable/renderers/UserCell.vue';
 import EmailCell from '@/components/DataTable/renderers/EmailCell.vue';
+import ValueWithDescription from '@/components/DataTable/renderers/ValueWithDescription.vue';
 
 const router = useRouter();
 const bakeryUserStore = useBakeryUserStore();
@@ -104,13 +105,11 @@ const columns = [
     label: 'Category',
     field: 'category',
     sortable: true,
-  },
-  {
-    id: 'invoiceGracePeriod',
-    label: 'Gracia (días)',
-    field: 'invoiceGracePeriod',
-    sortable: true,
-    visible: (row) => row.category === 'B2B',
+    component: ValueWithDescription,
+    getProps: (row) => ({
+      value: row.category,
+      description: row.invoiceGracePeriod && row.invoiceGracePeriod > 0 ? `${row.invoiceGracePeriod} días` : null,
+    }),
   },
   {
     id: 'phone',

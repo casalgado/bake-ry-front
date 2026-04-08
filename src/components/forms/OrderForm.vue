@@ -359,6 +359,10 @@ const features = computed(() => {
   return bakerySettingsStore.items[0].features;
 });
 
+const shouldLoadHistoricalOnUserSelection = computed(() => {
+  return features.value?.order?.loadHistoricalOnUserSelection || false;
+});
+
 const handleNewClientClick = () => {
   isNewClientDialogOpen.value = true;
 };
@@ -392,23 +396,26 @@ const handleUserChange = async (user) => {
       if (userHistory.value.length > 0) {
         currentHistoryIndex.value = 0;
         const historicalOrder = userHistory.value[0];
-        formData.value.orderItems = addBasePricesToOrderItems(
-          historicalOrder.orderItems,
-          productStore.items,
-        );
-        formData.value.fulfillmentType = historicalOrder.fulfillmentType;
-        formData.value.deliveryFee = historicalOrder.deliveryFee;
-        formData.value.paymentMethod = historicalOrder.paymentMethod;
-        formData.value.orderDiscountType = historicalOrder.orderDiscountType || 'percentage';
-        formData.value.orderDiscountValue = historicalOrder.orderDiscountValue || 0;
+        if (shouldLoadHistoricalOnUserSelection.value) {
+          formData.value.orderItems = addBasePricesToOrderItems(
+            historicalOrder.orderItems,
+            productStore.items,
+          );
+          formData.value.fulfillmentType = historicalOrder.fulfillmentType;
+          formData.value.deliveryFee = historicalOrder.deliveryFee;
+          formData.value.paymentMethod = historicalOrder.paymentMethod;
+          formData.value.orderDiscountType = historicalOrder.orderDiscountType || 'percentage';
+          formData.value.orderDiscountValue = historicalOrder.orderDiscountValue || 0;
 
-        // Update selectedFeeType based on the historical delivery fee
-        const matchingOption = deliveryFeeOptions.find(
-          (option) => option.value === historicalOrder.deliveryFee,
-        );
-        selectedDeliveryFee.value = matchingOption
-          ? matchingOption.value
-          : 'custom';
+          // Update selectedFeeType based on the historical delivery fee
+          const matchingOption = deliveryFeeOptions.find(
+            (option) => option.value === historicalOrder.deliveryFee,
+          );
+          selectedDeliveryFee.value = matchingOption
+            ? matchingOption.value
+            : 'custom';
+        }
+
       }
     } catch (error) {
       console.warn('Could not fetch user history:', error.message);

@@ -253,7 +253,7 @@ const handleSubmit = () => {
       <div
         v-if="formUserType === 'client' && selectedUserType === 'company'"
       >
-        <label>Periodo de Gracia de Factura (días)</label>
+        <label>Días para vencimiento de factura</label>
         <input
           type="number"
           v-model.number="formData.invoiceGracePeriod"
@@ -261,9 +261,6 @@ const handleSubmit = () => {
           max="365"
           class="w-full"
         />
-        <span class="text-neutral-500 text-sm">
-          Días adicionales para pagar facturas después del vencimiento
-        </span>
       </div>
 
       <div>
