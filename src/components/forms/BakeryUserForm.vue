@@ -26,6 +26,7 @@ const props = defineProps({
       comment: '',
       phone: '',
       nationalId: '',
+      invoiceGracePeriod: 0,
     }),
   },
   loading: {
@@ -247,6 +248,22 @@ const handleSubmit = () => {
         <span v-if="errors.legalName" class="text-danger text-sm">{{
           errors.legalName
         }}</span>
+      </div>
+
+      <div
+        v-if="formUserType === 'client' && selectedUserType === 'company'"
+      >
+        <label>Periodo de Gracia de Factura (días)</label>
+        <input
+          type="number"
+          v-model.number="formData.invoiceGracePeriod"
+          min="0"
+          max="365"
+          class="w-full"
+        />
+        <span class="text-neutral-500 text-sm">
+          Días adicionales para pagar facturas después del vencimiento
+        </span>
       </div>
 
       <div>

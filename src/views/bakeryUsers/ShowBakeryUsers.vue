@@ -106,6 +106,13 @@ const columns = [
     sortable: true,
   },
   {
+    id: 'invoiceGracePeriod',
+    label: 'Gracia (días)',
+    field: 'invoiceGracePeriod',
+    sortable: true,
+    visible: (row) => row.category === 'B2B',
+  },
+  {
     id: 'phone',
     label: 'Tel',
     field: 'phone',
