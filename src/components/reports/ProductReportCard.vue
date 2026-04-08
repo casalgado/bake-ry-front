@@ -28,6 +28,7 @@ const formData = ref({
   start_date: getDefaultStartDate(),
   end_date: getDefaultEndDate(),
   categories: [],
+  detailLevel: 'product',
   period: '',
   metrics: 'both',
   segment: 'none',
@@ -36,6 +37,11 @@ const formData = ref({
 });
 
 // Options for selects
+const detailLevelOptions = [
+  { value: 'product', label: 'Producto' },
+  { value: 'combination', label: 'Combinación' },
+];
+
 const periodOptions = [
   { value: '', label: 'Sin agrupar' },
   { value: 'daily', label: 'Diario' },
@@ -117,6 +123,7 @@ const handleSubmit = async () => {
         },
       },
       options: {
+        detailLevel: formData.value.detailLevel,
         metrics: formData.value.metrics,
         segment: formData.value.segment,
       },
@@ -237,6 +244,22 @@ onMounted(async () => {
         <p class="text-xs text-neutral-500 mt-1">
           {{ formData.categories.length === 0 ? 'Todas las categorias' : `${formData.categories.length} seleccionada(s)` }}
         </p>
+      </div>
+
+      <!-- Detail Level ---->
+      <div>
+        <label class="block text-sm font-medium text-neutral-700 mb-1">
+          Nivel de detalle
+        </label>
+        <select v-model="formData.detailLevel" class="form-input w-full">
+          <option
+            v-for="option in detailLevelOptions"
+            :key="option.value"
+            :value="option.value"
+          >
+            {{ option.label }}
+          </option>
+        </select>
       </div>
 
       <!-- Period -->

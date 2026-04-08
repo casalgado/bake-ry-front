@@ -672,13 +672,22 @@ const exportProductReport = (reportData, options = {}) => {
   });
   const sortedPeriods = Array.from(allPeriods).sort();
 
+  // Auto-detect combination data
+  const hasCombinations = products.length > 0 && products[0].combinationName !== undefined;
+
   // Transform products into rows
   const rows = products.map((product) => {
     const row = {
       categoria: product.categoryName || '',
       producto: product.productName || '',
-      precio_promedio: product.avgPrice || 0,
     };
+
+    // Add combination column if data has combinations
+    if (hasCombinations) {
+      row.combinacion = product.combinationName || '';
+    }
+
+    row.precio_promedio = product.avgPrice || 0;
 
     // Add total columns based on metrics selection
     if (showIngresos) {
@@ -733,8 +742,14 @@ const exportProductReport = (reportData, options = {}) => {
   const baseCols = [
     { width: 20 }, // categoria
     { width: 25 }, // producto
-    { width: 15 }, // precio_promedio
   ];
+
+  // Add combination column if data has combinations
+  if (hasCombinations) {
+    baseCols.push({ width: 20 }); // combinacion
+  }
+
+  baseCols.push({ width: 15 }); // precio_promedio
 
   if (showIngresos) baseCols.push({ width: 15 }); // total_ingresos
   if (showCantidad) baseCols.push({ width: 15 }); // total_cantidad
