@@ -248,6 +248,7 @@ const navigateToCreate = () => {
         :columns="columns"
         :actions="tableActions"
         :filters="tableFilters"
+        :searchable-columns="['name', 'email', 'address', 'phone', 'nationalId']"
         :action-loading="actionLoading"
         :data-loading="bakeryUserStore.loading || isLoading"
         @selection-change="handleSelectionChange"
