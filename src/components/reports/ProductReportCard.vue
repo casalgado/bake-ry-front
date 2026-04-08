@@ -183,7 +183,7 @@ onMounted(async () => {
         </div>
         <div>
           <label class="block text-sm font-medium text-neutral-700 mb-1">
-            Fecha Fin
+            Fecha Fin (hasta antes del)
           </label>
           <input
             type="date"
@@ -249,7 +249,7 @@ onMounted(async () => {
       <!-- Detail Level ---->
       <div>
         <label class="block text-sm font-medium text-neutral-700 mb-1">
-          Nivel de detalle
+          Nivel de detalle (producto, combinación)
         </label>
         <select v-model="formData.detailLevel" class="form-input w-full">
           <option
@@ -265,7 +265,7 @@ onMounted(async () => {
       <!-- Period -->
       <div>
         <label class="block text-sm font-medium text-neutral-700 mb-1">
-          Agrupar por
+          Agrupar por (día, semana, mes)
         </label>
         <select v-model="formData.period" class="form-input w-full">
           <option
@@ -281,7 +281,7 @@ onMounted(async () => {
       <!-- Metrics -->
       <div>
         <label class="block text-sm font-medium text-neutral-700 mb-1">
-          Metricas
+          Métricas (ingreso, cantidad)
         </label>
         <select v-model="formData.metrics" class="form-input w-full">
           <option
@@ -297,7 +297,7 @@ onMounted(async () => {
       <!-- Segment -->
       <div>
         <label class="block text-sm font-medium text-neutral-700 mb-1">
-          Segmento
+          Segmento (B2B, B2C)
         </label>
         <select v-model="formData.segment" class="form-input w-full">
           <option

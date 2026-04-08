@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // Function to transform order data into rows
 const transformOrderToRows = (order, orderIndex) => {
@@ -654,8 +655,45 @@ const exportPaymentReport = (orders, options = {}) => {
   };
 };
 
-// EXPORT PRODUCT REPORT (from API response)
-const exportProductReport = (reportData, options = {}) => {
+// Helper functions for ExcelJS
+function applyHeaderStyle(row) {
+  row.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+  row.alignment = { vertical: 'middle', horizontal: 'center' };
+}
+
+function centerDataCells(worksheet, colKey) {
+  worksheet.getColumn(colKey).eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+    if (rowNumber > 1) cell.alignment = { horizontal: 'center' };
+  });
+}
+
+// Convert to clean number (no decimal tails)
+function toNum(v) {
+  if (v == null || String(v).trim() === '') return null;
+  const n = Number(v);
+  if (isNaN(n)) return null;
+  // If it's a whole number, return integer
+  if (n % 1 === 0) return Math.round(n);
+  // Otherwise, round to 2 decimals
+  return Math.round(n * 100) / 100;
+}
+
+async function downloadWorkbook(workbook, filename) {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// EXPORT PRODUCT REPORT (ExcelJS version)
+const exportProductReport = async (reportData, options = {}) => {
   const { products = [], metadata = {} } = reportData;
   const format = options.format || 'xlsx';
   const hasSegments = metadata.options?.segment === 'all';
@@ -675,130 +713,328 @@ const exportProductReport = (reportData, options = {}) => {
   // Auto-detect combination data
   const hasCombinations = products.length > 0 && products[0].combinationName !== undefined;
 
-  // Transform products into rows
-  const rows = products.map((product) => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Ventas por Producto');
+
+  // Build column definitions with better ordering
+  const columns = [
+    { header: 'Categoría', key: 'categoria', width: 20 },
+    { header: 'Producto', key: 'producto', width: 30 },
+  ];
+
+  if (hasCombinations) {
+    columns.push({ header: 'Combinación', key: 'combinacion', width: 20 });
+  }
+
+  // Better column order: Cantidad -> Ingresos -> Precio
+  if (showCantidad) {
+    columns.push({ header: 'Total Cantidad', key: 'total_cantidad', width: 12 });
+  }
+  if (showIngresos) {
+    columns.push({ header: 'Total Ingresos', key: 'total_ingresos', width: 15 });
+  }
+  // Precio Promedio only makes sense when we have both cantidad and ingresos
+  if (showCantidad && showIngresos) {
+    columns.push({ header: 'Precio Promedio', key: 'precio_promedio', width: 12 });
+  }
+
+  // Add B2B/B2C columns
+  if (hasSegments) {
+    if (showCantidad) {
+      columns.push({ header: 'B2B Cantidad', key: 'b2b_cantidad', width: 10 });
+      columns.push({ header: 'B2C Cantidad', key: 'b2c_cantidad', width: 10 });
+    }
+    if (showIngresos) {
+      columns.push({ header: 'B2B Ingresos', key: 'b2b_ingresos', width: 12 });
+      columns.push({ header: 'B2C Ingresos', key: 'b2c_ingresos', width: 12 });
+    }
+  }
+
+  // Add period columns with simplified headers
+  sortedPeriods.forEach((period) => {
+    if (showCantidad) {
+      columns.push({ header: 'Cantidad', key: `${period}_cantidad`, width: 10 });
+    }
+    if (showIngresos) {
+      columns.push({ header: 'Ingresos', key: `${period}_ingresos`, width: 12 });
+    }
+    if (hasSegments) {
+      if (showCantidad) {
+        columns.push({ header: 'B2B Cant', key: `${period}_b2b_cantidad`, width: 9 });
+        columns.push({ header: 'B2C Cant', key: `${period}_b2c_cantidad`, width: 9 });
+      }
+      if (showIngresos) {
+        columns.push({ header: 'B2B Ing', key: `${period}_b2b_ingresos`, width: 11 });
+        columns.push({ header: 'B2C Ing', key: `${period}_b2c_ingresos`, width: 11 });
+      }
+    }
+  });
+
+  worksheet.columns = columns;
+
+  // Create merged period headers if periods exist
+  if (sortedPeriods.length > 0) {
+    // Insert a new row at the top for period headers
+    worksheet.insertRow(1, []);
+
+    // Calculate base column count (before periods start)
+    let currentCol = 1; // Start from column 1
+    currentCol++; // categoria
+    currentCol++; // producto
+    if (hasCombinations) currentCol++;
+    if (showCantidad) currentCol++; // total_cantidad
+    if (showIngresos) currentCol++; // total_ingresos
+    if (showCantidad && showIngresos) currentCol++; // precio_promedio (only when both metrics)
+
+    if (hasSegments) {
+      if (showCantidad) currentCol += 2; // b2b_cantidad, b2c_cantidad
+      if (showIngresos) currentCol += 2; // b2b_ingresos, b2c_ingresos
+    }
+
+    // Add merged cells for each period
+    sortedPeriods.forEach((period) => {
+      // Calculate columns per period
+      let colsPerPeriod = 0;
+      if (showCantidad) colsPerPeriod++;
+      if (showIngresos) colsPerPeriod++;
+      if (hasSegments) {
+        if (showCantidad) colsPerPeriod += 2; // b2b/b2c cantidad
+        if (showIngresos) colsPerPeriod += 2; // b2b/b2c ingresos
+      }
+
+      const startCol = currentCol;
+      const endCol = currentCol + colsPerPeriod - 1;
+
+      // Merge cells for this period
+      worksheet.mergeCells(1, startCol, 1, endCol);
+
+      // Set the period label
+      const periodCell = worksheet.getCell(1, startCol);
+      periodCell.value = period;
+      periodCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      periodCell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      periodCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+
+      currentCol += colsPerPeriod;
+    });
+  }
+
+  // Transform and add data rows
+  products.forEach((product) => {
     const row = {
       categoria: product.categoryName || '',
       producto: product.productName || '',
     };
 
-    // Add combination column if data has combinations
     if (hasCombinations) {
       row.combinacion = product.combinationName || '';
     }
 
-    row.precio_promedio = product.avgPrice || 0;
-
-    // Add total columns based on metrics selection
-    if (showIngresos) {
-      row.total_ingresos = product.totalIngresos || 0;
-    }
     if (showCantidad) {
-      row.total_cantidad = product.totalCantidad || 0;
+      row.total_cantidad = toNum(product.totalCantidad);
+    }
+    if (showIngresos) {
+      row.total_ingresos = toNum(product.totalIngresos);
+    }
+    // Precio Promedio only makes sense when we have both cantidad and ingresos
+    if (showCantidad && showIngresos) {
+      row.precio_promedio = toNum(product.avgPrice);
     }
 
-    // Add B2B/B2C columns if segment breakdown is present
+    // Add B2B/B2C data
     if (hasSegments) {
-      if (showIngresos) {
-        row.b2b_ingresos = product.b2bIngresos || 0;
-        row.b2c_ingresos = product.b2cIngresos || 0;
-      }
       if (showCantidad) {
-        row.b2b_cantidad = product.b2bCantidad || 0;
-        row.b2c_cantidad = product.b2cCantidad || 0;
+        row.b2b_cantidad = toNum(product.b2bCantidad);
+        row.b2c_cantidad = toNum(product.b2cCantidad);
+      }
+      if (showIngresos) {
+        row.b2b_ingresos = toNum(product.b2bIngresos);
+        row.b2c_ingresos = toNum(product.b2cIngresos);
       }
     }
 
-    // Add dynamic period columns
+    // Add period data
     sortedPeriods.forEach((period) => {
       const periodData = product.periods?.[period] || {};
 
-      if (showIngresos) {
-        row[`${period}_ingresos`] = periodData.ingresos || 0;
-      }
       if (showCantidad) {
-        row[`${period}_cantidad`] = periodData.cantidad || 0;
+        row[`${period}_cantidad`] = toNum(periodData.cantidad);
+      }
+      if (showIngresos) {
+        row[`${period}_ingresos`] = toNum(periodData.ingresos);
       }
 
       if (hasSegments) {
-        if (showIngresos) {
-          row[`${period}_b2b_ingresos`] = periodData.b2bIngresos || 0;
-          row[`${period}_b2c_ingresos`] = periodData.b2cIngresos || 0;
-        }
         if (showCantidad) {
-          row[`${period}_b2b_cantidad`] = periodData.b2bCantidad || 0;
-          row[`${period}_b2c_cantidad`] = periodData.b2cCantidad || 0;
+          row[`${period}_b2b_cantidad`] = toNum(periodData.b2bCantidad);
+          row[`${period}_b2c_cantidad`] = toNum(periodData.b2cCantidad);
+        }
+        if (showIngresos) {
+          row[`${period}_b2b_ingresos`] = toNum(periodData.b2bIngresos);
+          row[`${period}_b2c_ingresos`] = toNum(periodData.b2cIngresos);
         }
       }
     });
 
-    return row;
+    worksheet.addRow(row);
   });
 
-  // Create worksheet
-  const worksheet = XLSX.utils.json_to_sheet(rows);
+  // Apply styling to headers
+  const headerRowNum = sortedPeriods.length > 0 ? 2 : 1; // Row 2 if periods exist, row 1 otherwise
+  applyHeaderStyle(worksheet.getRow(headerRowNum));
 
-  // Set base column widths
-  const baseCols = [
-    { width: 20 }, // categoria
-    { width: 25 }, // producto
-  ];
+  // Apply number formatting and centering
+  const quantityColumns = [];
+  const moneyColumns = []; // Start empty, add conditionally
 
-  // Add combination column if data has combinations
-  if (hasCombinations) {
-    baseCols.push({ width: 20 }); // combinacion
-  }
-
-  baseCols.push({ width: 15 }); // precio_promedio
-
-  if (showIngresos) baseCols.push({ width: 15 }); // total_ingresos
-  if (showCantidad) baseCols.push({ width: 15 }); // total_cantidad
-
-  if (hasSegments) {
-    if (showIngresos) {
-      baseCols.push({ width: 12 }); // b2b_ingresos
-      baseCols.push({ width: 12 }); // b2c_ingresos
-    }
-    if (showCantidad) {
-      baseCols.push({ width: 12 }); // b2b_cantidad
-      baseCols.push({ width: 12 }); // b2c_cantidad
-    }
-  }
-
-  // Add period column widths
-  sortedPeriods.forEach(() => {
-    if (showIngresos) baseCols.push({ width: 12 });
-    if (showCantidad) baseCols.push({ width: 12 });
+  // Only add columns that actually exist based on metrics
+  if (showCantidad) {
+    quantityColumns.push('total_cantidad');
     if (hasSegments) {
-      if (showIngresos) {
-        baseCols.push({ width: 12 }, { width: 12 }); // b2b/b2c ingresos
+      quantityColumns.push('b2b_cantidad', 'b2c_cantidad');
+    }
+  }
+
+  if (showIngresos) {
+    moneyColumns.push('total_ingresos');
+    if (hasSegments) {
+      moneyColumns.push('b2b_ingresos', 'b2c_ingresos');
+    }
+  }
+
+  // Precio Promedio only when both metrics are shown
+  if (showCantidad && showIngresos) {
+    moneyColumns.push('precio_promedio');
+  }
+
+  sortedPeriods.forEach((period) => {
+    if (showCantidad) {
+      quantityColumns.push(`${period}_cantidad`);
+      if (hasSegments) {
+        quantityColumns.push(`${period}_b2b_cantidad`, `${period}_b2c_cantidad`);
       }
-      if (showCantidad) {
-        baseCols.push({ width: 12 }, { width: 12 }); // b2b/b2c cantidad
+    }
+    if (showIngresos) {
+      moneyColumns.push(`${period}_ingresos`);
+      if (hasSegments) {
+        moneyColumns.push(`${period}_b2b_ingresos`, `${period}_b2c_ingresos`);
       }
     }
   });
 
-  worksheet['!cols'] = baseCols;
+  // Apply formatting to quantity columns (thousand separators)
+  const dataStartRow = sortedPeriods.length > 0 ? 3 : 2; // Row 3 if periods exist, row 2 otherwise
+  quantityColumns.forEach(colKey => {
+    const column = worksheet.getColumn(colKey);
+    if (column) {
+      column.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+        if (rowNumber >= dataStartRow) {
+          cell.alignment = { horizontal: 'center' };
+          cell.numFmt = '#,##0'; // Thousand separators, no decimals
+        }
+      });
+    }
+  });
 
-  // Create workbook
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Ventas por Producto');
+  // Apply formatting to money columns (currency)
+  moneyColumns.forEach(colKey => {
+    const column = worksheet.getColumn(colKey);
+    if (column) {
+      column.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+        if (rowNumber >= dataStartRow) {
+          cell.alignment = { horizontal: 'center' };
+          cell.numFmt = '$#,##0'; // Currency format with thousand separators, no decimals
+        }
+      });
+    }
+  });
 
-  // Generate filename
+  // Add thick vertical borders to separate periods
+  if (sortedPeriods.length > 0) {
+    const totalRows = products.length + 2; // +2 for both header rows
+
+    // Calculate base column count (categoria, producto, [combinacion], totals, [segments])
+    let baseColCount = 2; // categoria, producto
+    if (hasCombinations) baseColCount++;
+    if (showCantidad) baseColCount++; // total_cantidad
+    if (showIngresos) baseColCount++; // total_ingresos
+    if (showCantidad && showIngresos) baseColCount++; // precio_promedio (only when both metrics)
+
+    if (hasSegments) {
+      if (showCantidad) baseColCount += 2; // b2b_cantidad, b2c_cantidad
+      if (showIngresos) baseColCount += 2; // b2b_ingresos, b2c_ingresos
+    }
+
+    // Add borders for each period
+    sortedPeriods.forEach((period, periodIndex) => {
+      // Calculate columns per period
+      let colsPerPeriod = 0;
+      if (showCantidad) colsPerPeriod++;
+      if (showIngresos) colsPerPeriod++;
+      if (hasSegments) {
+        if (showCantidad) colsPerPeriod += 2; // b2b/b2c cantidad
+        if (showIngresos) colsPerPeriod += 2; // b2b/b2c ingresos
+      }
+
+      // Calculate start column for this period
+      const periodStartCol = baseColCount + (periodIndex * colsPerPeriod) + 1;
+      const periodEndCol = periodStartCol + colsPerPeriod - 1;
+
+      // Add thick left border to period start
+      for (let row = 1; row <= totalRows; row++) {
+        const cell = worksheet.getCell(row, periodStartCol);
+        cell.border = { ...cell.border, left: { style: 'thick' } };
+      }
+
+      // Add thick right border to period end
+      for (let row = 1; row <= totalRows; row++) {
+        const cell = worksheet.getCell(row, periodEndCol);
+        cell.border = { ...cell.border, right: { style: 'thick' } };
+      }
+    });
+  }
+
+  // Freeze header rows
+  const freezeYSplit = sortedPeriods.length > 0 ? 2 : 1; // Freeze 2 rows if periods exist, 1 otherwise
+  worksheet.views = [{ state: 'frozen', xSplit: 0, ySplit: freezeYSplit }];
+
+  // Generate descriptive filename based on query parameters
   const dateRange = options.startDate && options.endDate
     ? `${options.startDate}_${options.endDate}`
     : new Date().toISOString().split('T')[0];
-  const filename = `ventas_producto_${dateRange}`;
 
-  // Write file
-  if (format === 'csv') {
-    XLSX.writeFile(workbook, `${filename}.csv`, { bookType: 'csv' });
-  } else {
-    XLSX.writeFile(workbook, `${filename}.xlsx`);
-  }
+  let filename = 'ventas';
 
-  return { rows, periods: sortedPeriods };
+  // Add detail level
+  const detailLevel = metadata.options?.detailLevel;
+  if (detailLevel === 'product') filename += '_producto';
+  else if (detailLevel === 'combination') filename += '_combinacion';
+
+  // Add metrics type
+  const metricsType = metadata.options?.metrics;
+  if (metricsType === 'cantidad') filename += '_cantidad';
+  else if (metricsType === 'ingresos') filename += '_ingresos';
+  else if (metricsType === 'both') filename += '_ingresos_y_cantidad';
+
+  // Add segment type
+  const segment = metadata.options?.segment;
+  if (segment === 'b2b') filename += '_b2b';
+  else if (segment === 'b2c') filename += '_b2c';
+  else if (segment === 'all') filename += '_b2b_b2c';
+
+  // Add period grouping
+  const period = metadata.options?.period;
+  if (period === 'daily') filename += '_diario';
+  else if (period === 'weekly') filename += '_semanal';
+  else if (period === 'monthly') filename += '_mensual';
+
+  // Add date range and extension
+  filename += `_${dateRange}.xlsx`;
+
+  // Download file
+  await downloadWorkbook(workbook, filename);
+
+  return { products, periods: sortedPeriods };
 };
 
 // EXPORT INCOME STATEMENT
