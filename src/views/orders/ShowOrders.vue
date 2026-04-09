@@ -214,9 +214,16 @@ const features = computed(() => {
   return settingsStore.items[0].features;
 });
 
-// Get payment method options from system settings
+// Get payment method options from bakery settings (active payment methods only)
 const paymentMethodOptions = computed(() => {
-  return systemSettingsStore.availablePaymentMethods || [];
+  const settings = settingsStore.items[0];
+  const activePaymentMethods = settings?.features?.order?.activePaymentMethods || [];
+  const allSystemMethods = systemSettingsStore.availablePaymentMethods || [];
+
+  // Filter system payment methods to only include active ones for this bakery
+  return allSystemMethods.filter(method =>
+    activePaymentMethods.includes(method.value),
+  );
 });
 
 // Column definitions (now computed to handle dynamic payment methods)
