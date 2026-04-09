@@ -832,52 +832,6 @@ const clearUser = () => {
           </div>
         </div>
 
-        <div>
-          <label for="payment-date">Fecha de recepción del Pago</label>
-          <div class="grid grid-cols-[1fr_auto_auto] gap-2">
-            <input
-              id="payment-date"
-              type="date"
-              v-model="formData.paymentDate"
-              class="w-full"
-            />
-            <button
-              type="button"
-              class="utility-btn m-0"
-              :class="{ 'utility-btn-inactive': !formData.paymentDate }"
-              @click="formData.paymentDate = null"
-              :disabled="!formData.paymentDate"
-            >
-              <PhX class="" />
-            </button>
-            <button
-              class="btn utility-btn m-0"
-              type="button"
-              @click="formData.paymentDate = getTodayString()"
-            >
-              Hoy
-            </button>
-          </div>
-
-          <span v-if="errors.paymentDate" class="text-danger text-sm">{{
-            errors.paymentDate
-          }}</span>
-        </div>
-
-        <!-- Partial Payments Manager -->
-        <div v-if="features?.order?.allowPartialPayment">
-          <PartialPaymentsManager
-            v-model="formData.partialPayments"
-            :total-amount="total"
-            :payment-method-options="paymentMethodOptions"
-            :payment-date="formData.paymentDate"
-            :disabled="loading"
-          />
-          <span
-            v-if="errors.partialPayments"
-            class="text-danger text-sm mt-2 block"
-          >{{ errors.partialPayments }}</span>
-        </div>
       </div>
 
       <NewClientDialog
@@ -1088,6 +1042,56 @@ const clearUser = () => {
               <PhX class="" />
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Payment Card -->
+      <div class="base-card flex flex-col gap-2">
+        <div>
+          <label for="payment-date">Fecha de recepción del Pago</label>
+          <div class="grid grid-cols-[1fr_auto_auto] gap-2">
+            <input
+              id="payment-date"
+              type="date"
+              v-model="formData.paymentDate"
+              class="w-full"
+            />
+            <button
+              type="button"
+              class="utility-btn m-0"
+              :class="{ 'utility-btn-inactive': !formData.paymentDate }"
+              @click="formData.paymentDate = null"
+              :disabled="!formData.paymentDate"
+            >
+              <PhX class="" />
+            </button>
+            <button
+              class="btn utility-btn m-0"
+              type="button"
+              @click="formData.paymentDate = getTodayString()"
+            >
+              Hoy
+            </button>
+          </div>
+
+          <span v-if="errors.paymentDate" class="text-danger text-sm">{{
+            errors.paymentDate
+          }}</span>
+        </div>
+
+        <!-- Partial Payments Manager -->
+        <div v-if="features?.order?.allowPartialPayment" class="">
+          <PartialPaymentsManager
+            v-model="formData.partialPayments"
+            :total-amount="total"
+            :payment-method-options="paymentMethodOptions"
+            :payment-date="formData.paymentDate"
+            :disabled="loading"
+          />
+          <span
+            v-if="errors.partialPayments"
+            class="text-danger text-sm mt-2 block"
+          >{{ errors.partialPayments }}</span>
         </div>
       </div>
 

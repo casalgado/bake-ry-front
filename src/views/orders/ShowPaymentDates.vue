@@ -15,6 +15,31 @@ const unsubscribeRef = ref(null);
 const b2bClients = ref([]);
 const loading = ref(false);
 
+// Helper function to extract all payment dates from an order (supports both legacy and new structures)
+const getAllPaymentDates = (order) => {
+  const dates = [];
+
+  // Add main payment date if exists
+  if (order.paymentDate) {
+    dates.push(order.paymentDate);
+  }
+
+  // Handle new partialPayments array structure
+  if (order.partialPayments && Array.isArray(order.partialPayments)) {
+    order.partialPayments.forEach(payment => {
+      if (payment.date) {
+        dates.push(payment.date);
+      }
+    });
+  }
+  // Handle legacy partial payment structure
+  else if (order.partialPaymentDate) {
+    dates.push(order.partialPaymentDate);
+  }
+
+  return dates;
+};
+
 watch(
   () => periodStore.periodRange,
   async (newRange) => {
@@ -26,6 +51,8 @@ watch(
         b2bClients.value = await settingsStore.b2b_clients;
       }
 
+      // Note: The backend still needs to handle the new partialPayments array structure
+      // For now, we'll fetch using existing date fields and filter client-side if needed
       await orderStore.fetchAll({
         filters: {
           orDateRange: {
@@ -47,28 +74,77 @@ watch(
 
 const paymentEntries = computed(() => {
   const entries = [];
+  const startDate = periodStore.periodRange.start;
+  const endDate = periodStore.periodRange.end;
+
+  // Helper to check if a date is within the selected range
+  const isDateInRange = (date) => {
+    if (!date) return false;
+    const paymentDate = new Date(date);
+    return paymentDate >= startDate && paymentDate <= endDate;
+  };
 
   orderStore.items.forEach((order) => {
     if (order.isComplimentary) {
       // Skip complimentary orders
       return;
     }
-    // Handle partial payments (always show if exists)
-    if (order.partialPaymentDate && order.partialPaymentAmount > 0) {
-      entries.push({
-        id: `${order.id}-partial`,
-        paymentDate: order.partialPaymentDate,
-        orderDate: order.dueDate,
-        userName: `${order.userName}${order.userLegalName ? ` - ${order.userLegalName} -` : ''}`,
-        total: order.partialPaymentAmount,
-        order: order,
-        paymentType: 'parcial',
+
+    const hasNewStructure = order.partialPayments && Array.isArray(order.partialPayments) && order.partialPayments.length > 0;
+    const hasLegacyStructure = order.partialPaymentDate && order.partialPaymentAmount > 0;
+
+    // Handle new partialPayments array structure
+    if (hasNewStructure) {
+      // Add each partial payment as a separate entry (with date filtering)
+      order.partialPayments.forEach((payment, index) => {
+        if (payment.amount > 0 && payment.date && isDateInRange(payment.date)) {
+          entries.push({
+            id: `${order.id}-partial-${index}`,
+            paymentDate: payment.date,
+            orderDate: order.dueDate,
+            userName: `${order.userName}${order.userLegalName ? ` - ${order.userLegalName} -` : ''}`,
+            total: payment.amount,
+            order: order,
+            paymentType: 'parcial',
+          });
+        }
       });
 
-      // Only show balance payment if order is fully paid
+      // Calculate remaining balance from partial payments
+      const totalPartialPayments = order.partialPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const remaining = order.total - totalPartialPayments;
+
+      // Only show balance payment if order is fully paid, has remaining amount, and date is in range
+      if (order.isPaid && remaining > 0 && order.paymentDate && isDateInRange(order.paymentDate)) {
+        entries.push({
+          id: `${order.id}-final`,
+          paymentDate: order.paymentDate,
+          orderDate: order.dueDate,
+          userName: `${order.userName}${order.userLegalName ? ` - ${order.userLegalName} -` : ''}`,
+          total: remaining,
+          order: order,
+          paymentType: 'saldo',
+        });
+      }
+    }
+    // Handle legacy partial payment structure
+    else if (hasLegacyStructure) {
+      if (isDateInRange(order.partialPaymentDate)) {
+        entries.push({
+          id: `${order.id}-partial`,
+          paymentDate: order.partialPaymentDate,
+          orderDate: order.dueDate,
+          userName: `${order.userName}${order.userLegalName ? ` - ${order.userLegalName} -` : ''}`,
+          total: order.partialPaymentAmount,
+          order: order,
+          paymentType: 'parcial',
+        });
+      }
+
+      // Only show balance payment if order is fully paid and date is in range
       if (order.isPaid) {
         const remaining = order.total - order.partialPaymentAmount;
-        if (remaining > 0 && order.paymentDate) {
+        if (remaining > 0 && order.paymentDate && isDateInRange(order.paymentDate)) {
           entries.push({
             id: `${order.id}-final`,
             paymentDate: order.paymentDate,
@@ -81,8 +157,8 @@ const paymentEntries = computed(() => {
         }
       }
     }
-    // Handle full payments only for paid orders with payment date
-    else if (order.isPaid && order.paymentDate) {
+    // Handle full payments only for paid orders with payment date in range
+    else if (order.isPaid && order.paymentDate && isDateInRange(order.paymentDate)) {
       entries.push({
         id: order.id,
         paymentDate: order.paymentDate,
