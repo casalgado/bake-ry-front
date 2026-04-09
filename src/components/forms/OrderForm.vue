@@ -870,6 +870,7 @@ const clearUser = () => {
             v-model="formData.partialPayments"
             :total-amount="total"
             :payment-method-options="paymentMethodOptions"
+            :payment-date="formData.paymentDate"
             :disabled="loading"
           />
           <span
