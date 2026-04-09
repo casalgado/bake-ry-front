@@ -20,6 +20,7 @@ import OrderForm from '@/components/forms/OrderForm.vue';
 import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import ShowOrderHistory from '@/components/orders/ShowOrderHistory.vue';
 import TotalsSummary from '@/components/common/TotalsSummary.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
 // Stores
 import { useOrderStore } from '@/stores/orderStore';
@@ -58,8 +59,10 @@ const b2bClients = ref([]);
 const isFormOpen = ref(false);
 const isHistoryOpen = ref(false);
 const isPrintOpen = ref(false);
+const isConfirmOpen = ref(false);
 const orderHistory = ref([]);
 const duplicateData = ref(null);
+const orderToDelete = ref(null);
 
 // Process data function for the table
 const processData = (orders) => {
@@ -119,10 +122,8 @@ const {
       isFormOpen.value = true;
       break;
     case 'delete':
-      if (window.confirm('¿Estás seguro de querer eliminar este pedido?')) {
-        await orderStore.remove(selectedOrder.id);
-        clearSelection();
-      }
+      orderToDelete.value = selectedOrder;
+      isConfirmOpen.value = true;
       break;
     case 'duplicate': {
       const {
@@ -399,8 +400,27 @@ const closeDialog = () => {
   isFormOpen.value = false;
   isHistoryOpen.value = false;
   isPrintOpen.value = false;
+  isConfirmOpen.value = false;
   duplicateData.value = null;
+  orderToDelete.value = null;
   clearSelection();
+};
+
+const handleConfirmDelete = async () => {
+  try {
+    if (orderToDelete.value) {
+      await orderStore.remove(orderToDelete.value.id);
+    }
+  } catch (error) {
+    console.error('Failed to delete order:', error);
+  } finally {
+    closeDialog();
+  }
+};
+
+const handleCancelDelete = () => {
+  isConfirmOpen.value = false;
+  orderToDelete.value = null;
 };
 
 // Watch for period changes and refetch data
@@ -492,6 +512,18 @@ watch(
         </DialogPanel>
       </div>
     </Dialog>
+
+    <!-- Confirm Delete Dialog -->
+    <ConfirmDialog
+      :is-open="isConfirmOpen"
+      title="Eliminar Pedido"
+      message="¿Estás seguro de querer eliminar este pedido? Esta acción no se puede deshacer."
+      confirm-text="Eliminar"
+      cancel-text="Cancelar"
+      :loading="orderStore.loading"
+      @confirm="handleConfirmDelete"
+      @cancel="handleCancelDelete"
+    />
 
     <!-- Table -->
     <div>
