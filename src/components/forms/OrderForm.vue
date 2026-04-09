@@ -6,6 +6,7 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
 import OrderItemsManager from './OrderItemsManager.vue';
+import PartialPaymentsManager from './PartialPaymentsManager.vue';
 import NewClientDialog from './NewClientDialog.vue';
 import RadioButtonGroup from './RadioButtonGroup.vue';
 import { formatMoney, cleanString } from '@/utils/helpers';
@@ -178,8 +179,7 @@ const getInitialFormState = () => {
     preparationDate: tomorrowString,
     dueDate: tomorrowString,
     paymentDate: '',
-    partialPaymentAmount: null,
-    partialPaymentDate: '',
+    partialPayments: [],
     dueTime: '',
     fulfillmentType: 'delivery',
     deliveryAddress: '',
@@ -193,6 +193,31 @@ const getInitialFormState = () => {
   };
 };
 
+// Helper function to convert legacy partial payment data
+const convertLegacyPartialPayments = (initialData) => {
+  // If partialPayments array exists, use it
+  if (initialData.partialPayments && Array.isArray(initialData.partialPayments)) {
+    return initialData.partialPayments.map(payment => ({
+      id: Date.now().toString() + Math.random(),
+      amount: payment.amount || 0,
+      date: formatDateForInput(payment.date),
+      method: payment.method || initialData.paymentMethod || 'cash',
+    }));
+  }
+
+  // Otherwise, convert legacy scalar fields
+  if (initialData.partialPaymentAmount > 0 && initialData.partialPaymentDate) {
+    return [{
+      id: Date.now().toString(),
+      amount: initialData.partialPaymentAmount,
+      date: formatDateForInput(initialData.partialPaymentDate),
+      method: initialData.paymentMethod || 'cash',
+    }];
+  }
+
+  return [];
+};
+
 // Form state
 const formData = ref(
   props.initialData
@@ -201,9 +226,7 @@ const formData = ref(
       preparationDate: formatDateForInput(props.initialData.preparationDate),
       dueDate: formatDateForInput(props.initialData.dueDate),
       paymentDate: formatDateForInput(props.initialData.paymentDate),
-      partialPaymentDate: formatDateForInput(
-        props.initialData.partialPaymentDate,
-      ),
+      partialPayments: convertLegacyPartialPayments(props.initialData),
       orderItems: addBasePricesToOrderItems(
         props.initialData.orderItems,
         productStore.items,
@@ -336,8 +359,7 @@ onMounted(async () => {
     'userId',
     'preparationDate',
     'dueDate',
-    'partialPaymentAmount',
-    'partialPaymentDate',
+    'partialPayments',
     'deliveryAddress',
     'orderItems',
   ]);
@@ -479,34 +501,18 @@ const validate = () => {
     errors.value.preparationDate = 'Fecha de preparación es requerida';
   if (!formData.value.dueDate)
     errors.value.dueDate = 'Fecha de entrega es requerida';
-  if (
-    formData.value.partialPaymentAmount &&
-    !formData.value.partialPaymentDate
-  ) {
-    errors.value.partialPaymentAmount =
-      'Fecha de pago parcial es requerida si se ingresa un monto';
+  // Validate partial payments
+  const totalPartialPayments = formData.value.partialPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+  if (totalPartialPayments > total.value) {
+    errors.value.partialPayments = 'Los pagos parciales no pueden exceder el total del pedido';
   }
-  if (
-    formData.value.partialPaymentDate &&
-    (!formData.value.partialPaymentAmount ||
-      formData.value.partialPaymentAmount <= 0)
-  ) {
-    errors.value.partialPaymentAmount =
-      'Monto de pago parcial es requerido si se ingresa una fecha';
-  }
-  if (
-    formData.value.partialPayment > 0 &&
-    formData.value.partialPaymentAmount >= total.value
-  ) {
-    errors.value.partialPaymentAmount =
-      'El monto parcial no puede ser mayor o igual al total';
-  }
-  if (
-    formData.value.paymentDate &&
-    formData.value.partialPaymentDate > formData.value.paymentDate
-  ) {
-    errors.value.partialPaymentDate =
-    'La fecha de pago parcial no puede ser posterior a la fecha de pago';
+
+  // Validate individual partial payments
+  const hasInvalidPayments = formData.value.partialPayments.some(payment =>
+    !payment.amount || payment.amount <= 0 || !payment.date || !payment.method,
+  );
+  if (hasInvalidPayments) {
+    errors.value.partialPayments = 'Todos los pagos parciales deben tener monto, fecha y método válidos';
   }
   if (formData.value.dueDate < formData.value.preparationDate) {
     errors.value.dueDate =
@@ -709,21 +715,6 @@ const clearUser = () => {
   });
 };
 
-// Partial payment methods
-const handlePartialAmountChange = () => {
-  // If amount is entered and no date is set, set date to today
-  if (
-    formData.value.partialPaymentAmount &&
-    !formData.value.partialPaymentDate
-  ) {
-    formData.value.partialPaymentDate = getTodayString();
-  }
-};
-
-const clearPartialPayment = () => {
-  formData.value.partialPaymentAmount = null;
-  formData.value.partialPaymentDate = '';
-};
 </script>
 
 <template>
@@ -842,7 +833,7 @@ const clearPartialPayment = () => {
         </div>
 
         <div>
-          <label for="payment-date">Fecha de Pago</label>
+          <label for="payment-date">Fecha de recepción del Pago</label>
           <div class="grid grid-cols-[1fr_auto_auto] gap-2">
             <input
               id="payment-date"
@@ -873,56 +864,18 @@ const clearPartialPayment = () => {
           }}</span>
         </div>
 
-        <div
-          class="grid grid-cols-[1fr_1fr] gap-2"
-          :class="{ hidden: !features?.order?.allowPartialPayment }"
-        >
-          <div>
-            <label>Valor Pago Parcial</label>
-            <div class="grid grid-cols-[1fr] gap-2 items-center">
-              <input
-                type="number"
-                v-model="formData.partialPaymentAmount"
-                min="0"
-                step="1"
-                placeholder="0"
-                class="w-full"
-                @input="handlePartialAmountChange"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label>Fecha Pago Parcial</label>
-            <div class="grid grid-cols-[1fr_auto] gap-2 items-center">
-              <input
-                type="date"
-                v-model="formData.partialPaymentDate"
-                class="w-full"
-              />
-              <button
-                type="button"
-                class="utility-btn m-0 self-stretch"
-                :class="{
-                  'utility-btn-inactive':
-                    !formData.partialPaymentAmount &&
-                    !formData.partialPaymentDate,
-                }"
-                @click="clearPartialPayment"
-                :disabled="
-                  !formData.partialPaymentAmount && !formData.partialPaymentDate
-                "
-              >
-                <PhX class="" />
-              </button>
-            </div>
-          </div>
-
+        <!-- Partial Payments Manager -->
+        <div v-if="features?.order?.allowPartialPayment">
+          <PartialPaymentsManager
+            v-model="formData.partialPayments"
+            :total-amount="total"
+            :payment-method-options="paymentMethodOptions"
+            :disabled="loading"
+          />
           <span
-            v-if="errors.partialPaymentAmount"
-            class="text-danger text-sm col-span-2"
-            >{{ errors.partialPaymentAmount }}</span
-          >
+            v-if="errors.partialPayments"
+            class="text-danger text-sm mt-2 block"
+          >{{ errors.partialPayments }}</span>
         </div>
       </div>
 
