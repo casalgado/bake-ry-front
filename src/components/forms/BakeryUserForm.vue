@@ -190,6 +190,7 @@ const handleSubmit = () => {
   };
 
   if (!validate()) return;
+  console.log('beforeSubmit', submitData);
   emit('submit', submitData);
 };
 </script>
@@ -256,7 +257,7 @@ const handleSubmit = () => {
         <label>Días para vencimiento de factura</label>
         <input
           type="number"
-          v-model.number="formData.invoiceGracePeriod"
+          v-model="formData.invoiceGracePeriod"
           min="0"
           max="365"
           class="w-full"

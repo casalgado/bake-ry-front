@@ -38,7 +38,6 @@ const {
     switch (actionId) {
     case 'edit':
       isFormOpen.value = true;
-      console.log(selectedClient);
       break;
 
     case 'delete': {

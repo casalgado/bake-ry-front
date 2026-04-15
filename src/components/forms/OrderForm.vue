@@ -190,6 +190,7 @@ const getInitialFormState = () => {
     shouldUpdateClientAddress: false,
     orderDiscountType: 'percentage',
     orderDiscountValue: 0,
+    invoiceGracePeriod: 0,
   };
 };
 
@@ -407,7 +408,8 @@ const handleUserChange = async (user) => {
   formData.value.userPhone = user.phone;
   formData.value.userLegalName = user.legalName || ''; // Added userLegalName
   formData.value.userCategory = user.category || '';
-  formData.value.userNationalId = user.nationalId || ''; // Added userNationalId
+  formData.value.userNationalId = user.nationalId || '';
+  formData.value.invoiceGracePeriod = user.invoiceGracePeriod ?? 0;
   if (props.initialData) {
     formData.value.deliveryAddress = props.initialData.deliveryAddress;
   } else {

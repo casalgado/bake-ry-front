@@ -182,13 +182,14 @@ const columns = computed(() => [
   },
   {
     id: 'dueDate',
-    label: 'Entrega',
+    label: 'Pedido',
     field: 'dueDate',
     sortable: true,
     component: DateCell,
     getProps: (row) => ({
       value: row.dueDate,
       showTime: true,
+      invoiceGracePeriod: row.invoiceGracePeriod,
     }),
   },
   {
