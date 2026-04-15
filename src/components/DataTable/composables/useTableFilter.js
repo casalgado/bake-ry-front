@@ -65,7 +65,7 @@ export const useTableFilter = (options = {}) => {
               return value.includes(item[field].toLowerCase());
             }
             // Handle regular single values
-            return item[field].toLowerCase() === value;
+            return item[field].toLowerCase() === value.toLowerCase();
           });
         });
 
