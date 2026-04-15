@@ -56,6 +56,18 @@ export const formatDateForInput = (date) => {
 };
 
 /**
+ * Add a number of days to a date
+ * @param {Date|string} date - Base date
+ * @param {number} days - Number of days to add
+ * @returns {Date} New date
+ */
+export const addDays = (date, days) => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+/**
  * Format date for display in Spanish locale
  * @param {Date|string} date - Date to format
  * @param {Object} options - Intl.DateTimeFormat options
