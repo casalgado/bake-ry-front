@@ -232,6 +232,10 @@ const formData = ref(
         productStore.items,
         true,
       ),
+      // Ensure RadioButtonGroup fields have safe fallbacks
+      fulfillmentType: props.initialData.fulfillmentType ?? 'delivery',
+      paymentMethod: props.initialData.paymentMethod ?? 'cash',
+      orderDiscountType: props.initialData.orderDiscountType ?? 'percentage',
     }
     : getInitialFormState(),
 );
