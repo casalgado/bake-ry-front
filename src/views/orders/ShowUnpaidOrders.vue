@@ -258,7 +258,11 @@ const columns = computed(() => [
   },
 ]);
 
-const tableFilters = [
+const hasExpiredOrders = computed(() =>
+  tableData.value.some(order => order.isInvoiceExpired),
+);
+
+const tableFilters = computed(() => [
   {
     field: 'userCategory',
     options: [
@@ -266,7 +270,14 @@ const tableFilters = [
       { label: 'B2C', value: 'B2C' },
     ],
   },
-];
+  {
+    field: 'isInvoiceExpired',
+    visible: hasExpiredOrders.value,
+    options: [
+      { label: 'Vencidas', value: true },
+    ],
+  },
+]);
 
 // Table actions
 const tableActions = [

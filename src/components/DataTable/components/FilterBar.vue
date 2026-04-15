@@ -117,7 +117,7 @@ onClickOutside(searchContainer, () => {
       <!-- Desktop view -->
       <div class="hidden lg:flex items-center gap-2" v-if="visibleFilters">
         <template v-for="filter in filters" :key="filter.field">
-          <div class="flex items-center gap-1">
+          <div v-if="filter.visible !== false" class="flex items-center gap-1">
             <template v-for="option in filter.options" :key="option.value">
               <button @click="$emit('toggle-filter', filter.field, option.value)"
                 class="px-2 py-1.5 rounded-lg text-sm font-medium transition-colors" :class="[
@@ -149,22 +149,24 @@ onClickOutside(searchContainer, () => {
             leave-to-class="transform scale-95 opacity-0">
             <MenuItems
               class="absolute right-0 mt-2 w-72 origin-top-right bg-white rounded-lg shadow-lg border divide-y divide-neutral-100 focus:outline-none z-50">
-              <div v-for="filter in filters" :key="filter.field" class="p-4">
-                <div class="space-y-1">
-                  <div v-for="option in filter.options" :key="option.value"
-                    @click.stop="$emit('toggle-filter', filter.field, option.value)"
-                    class="flex items-center gap-2 text-sm cursor-pointer p-2 hover:bg-neutral-50 rounded">
-                    <div class="w-4 h-4 border rounded flex items-center justify-center" :class="[
-                      isOptionSelected(filter.field, option.value)
-                        ? 'bg-primary-600 border-primary-600'
-                        : 'border-neutral-300'
-                    ]">
-                      <PhCheck v-if="isOptionSelected(filter.field, option.value)" class="w-3 h-3 text-white" />
+              <template v-for="filter in filters" :key="filter.field">
+                <div v-if="filter.visible !== false" class="p-4">
+                  <div class="space-y-1">
+                    <div v-for="option in filter.options" :key="option.value"
+                      @click.stop="$emit('toggle-filter', filter.field, option.value)"
+                      class="flex items-center gap-2 text-sm cursor-pointer p-2 hover:bg-neutral-50 rounded">
+                      <div class="w-4 h-4 border rounded flex items-center justify-center" :class="[
+                        isOptionSelected(filter.field, option.value)
+                          ? 'bg-primary-600 border-primary-600'
+                          : 'border-neutral-300'
+                      ]">
+                        <PhCheck v-if="isOptionSelected(filter.field, option.value)" class="w-3 h-3 text-white" />
+                      </div>
+                      {{ option.label }}
                     </div>
-                    {{ option.label }}
                   </div>
                 </div>
-              </div>
+              </template>
 
               <div v-if="hasActiveFilters" class="p-4">
                 <button @click="clearAll"

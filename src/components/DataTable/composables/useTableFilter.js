@@ -11,7 +11,7 @@ const removeAccents = (str) => {
     'ä': 'a', 'ë': 'e', 'ï': 'i', 'ö': 'o', 'ü': 'u',
     'Ä': 'A', 'Ë': 'E', 'Ï': 'I', 'Ö': 'O', 'Ü': 'U',
     'â': 'a', 'ê': 'e', 'î': 'i', 'ô': 'o', 'û': 'u',
-    'Â': 'A', 'Ê': 'E', 'Î': 'I', 'Ô': 'O', 'Û': 'U'
+    'Â': 'A', 'Ê': 'E', 'Î': 'I', 'Ô': 'O', 'Û': 'U',
   };
 
   return str.replace(/[áéíóúÁÉÍÓÚàèìòùÀÈÌÒÙäëïöüÄËÏÖÜâêîôûÂÊÎÔÛ]/g, match => accentMap[match]);
@@ -65,7 +65,7 @@ export const useTableFilter = (options = {}) => {
               return value.includes(item[field].toLowerCase());
             }
             // Handle regular single values
-            return item[field].toLowerCase() === value.toLowerCase();
+            return String(item[field]).toLowerCase() === String(value).toLowerCase();
           });
         });
 
