@@ -257,10 +257,9 @@ const handleSubmit = () => {
         <label>Días para vencimiento de factura</label>
         <input
           type="number"
-          v-model="formData.invoiceGracePeriod"
-          min="0"
-          max="365"
+          v-model.number="formData.invoiceGracePeriod"
           class="w-full"
+          @wheel="$event.target.blur()"
         />
       </div>
 
