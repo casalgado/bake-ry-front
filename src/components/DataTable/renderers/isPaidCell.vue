@@ -13,16 +13,17 @@ const props = defineProps({
 
 const orderInstance = computed(() => new Order(props.order));
 
+const formatDate = (dateStr) => {
+  const date = new Date(dateStr);
+  const day = date.getDate();
+  const month = date.toLocaleDateString('es', { month: 'short' });
+  return `${day} ${month}`;
+};
+
 const displayDate = computed(() => {
   const order = orderInstance.value;
-  if (order.paymentDate) {
-    const date = new Date(order.paymentDate);
-    return date.toLocaleDateString('es-CO', { day: 'numeric', month: 'numeric' });
-  }
-  if (order.partialPaymentDate) {
-    const date = new Date(order.partialPaymentDate);
-    return `${date.toLocaleDateString('es-CO', { day: 'numeric', month: 'numeric' })}`;
-  }
+  if (order.paymentDate) return formatDate(order.paymentDate);
+  if (order.partialPaymentDate) return formatDate(order.partialPaymentDate);
   return '';
 });
 
