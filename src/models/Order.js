@@ -194,7 +194,7 @@ class Order extends BaseModel {
     userCategory = '',
     userLegalName = '',
     userNationalId = '',
-    invoiceGracePeriod = 0,
+    invoiceGracePeriod = null,
     orderItems = [],
 
     // Dates

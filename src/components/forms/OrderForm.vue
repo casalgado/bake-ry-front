@@ -190,7 +190,7 @@ const getInitialFormState = () => {
     shouldUpdateClientAddress: false,
     orderDiscountType: 'percentage',
     orderDiscountValue: 0,
-    invoiceGracePeriod: 0,
+    invoiceGracePeriod: null,
   };
 };
 
@@ -409,7 +409,11 @@ const handleUserChange = async (user) => {
   formData.value.userLegalName = user.legalName || ''; // Added userLegalName
   formData.value.userCategory = user.category || '';
   formData.value.userNationalId = user.nationalId || '';
-  formData.value.invoiceGracePeriod = user.invoiceGracePeriod ?? 0;
+  if (!props.initialData) {
+    formData.value.invoiceGracePeriod = user.invoiceGracePeriod || null;
+  } else if (formData.value.invoiceGracePeriod === null && user.invoiceGracePeriod > 0) {
+    formData.value.invoiceGracePeriod = user.invoiceGracePeriod;
+  }
   if (props.initialData) {
     formData.value.deliveryAddress = props.initialData.deliveryAddress;
   } else {
@@ -1053,36 +1057,54 @@ const clearUser = () => {
 
       <!-- Payment Card -->
       <div class="base-card flex flex-col gap-2">
-        <div>
-          <label for="payment-date">Fecha de recepción del Pago</label>
-          <div class="grid grid-cols-[1fr_auto_auto] gap-2">
+        <div
+          :class="formData.userCategory === 'B2B' && formData.invoiceGracePeriod !== null
+            ? 'grid grid-cols-[1fr_2fr] gap-2'
+            : ''"
+        >
+          <div v-if="formData.userCategory === 'B2B' && formData.invoiceGracePeriod !== null">
+            <label>Vencimiento (en dias)</label>
             <input
-              id="payment-date"
-              type="date"
-              v-model="formData.paymentDate"
+              type="number"
+              v-model.number="formData.invoiceGracePeriod"
+              min="0"
+              max="365"
               class="w-full"
+              @wheel="$event.target.blur()"
             />
-            <button
-              type="button"
-              class="utility-btn m-0"
-              :class="{ 'utility-btn-inactive': !formData.paymentDate }"
-              @click="formData.paymentDate = null"
-              :disabled="!formData.paymentDate"
-            >
-              <PhX class="" />
-            </button>
-            <button
-              class="btn utility-btn m-0"
-              type="button"
-              @click="formData.paymentDate = getTodayString()"
-            >
-              Hoy
-            </button>
           </div>
 
-          <span v-if="errors.paymentDate" class="text-danger text-sm">{{
-            errors.paymentDate
-          }}</span>
+          <div>
+            <label for="payment-date">Fecha de recepción del Pago</label>
+            <div class="grid grid-cols-[1fr_auto_auto] gap-2">
+              <input
+                id="payment-date"
+                type="date"
+                v-model="formData.paymentDate"
+                class="w-full"
+              />
+              <button
+                type="button"
+                class="utility-btn m-0"
+                :class="{ 'utility-btn-inactive': !formData.paymentDate }"
+                @click="formData.paymentDate = null"
+                :disabled="!formData.paymentDate"
+              >
+                <PhX class="" />
+              </button>
+              <button
+                class="btn utility-btn m-0"
+                type="button"
+                @click="formData.paymentDate = getTodayString()"
+              >
+                Hoy
+              </button>
+            </div>
+
+            <span v-if="errors.paymentDate" class="text-danger text-sm">{{
+              errors.paymentDate
+            }}</span>
+          </div>
         </div>
 
         <!-- Partial Payments Manager -->

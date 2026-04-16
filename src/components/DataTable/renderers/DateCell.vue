@@ -9,7 +9,7 @@ const props = defineProps({
   },
   invoiceGracePeriod: {
     type: Number,
-    default: 0,
+    default: null,
   },
 });
 
