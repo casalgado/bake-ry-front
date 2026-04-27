@@ -26,7 +26,7 @@ const props = defineProps({
       comment: '',
       phone: '',
       nationalId: '',
-      invoiceGracePeriod: 0,
+      invoiceGracePeriod: null,
     }),
   },
   loading: {
@@ -186,6 +186,7 @@ const handleSubmit = () => {
   const submitData = {
     ...formData.value,
     legalName: formData.value.legalName || '',
+    invoiceGracePeriod: formData.value.invoiceGracePeriod === '' ? null : formData.value.invoiceGracePeriod,
     ...parseSpanishName(formData.value.name, formData.value.category),
   };
 

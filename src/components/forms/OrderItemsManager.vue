@@ -113,57 +113,65 @@ const handleWizardSelect = (selection) => {
 
 const updateItemQuantity = (index, newQuantity) => {
   if (newQuantity < 1) return;
-  const newItems = [...props.modelValue];
-  newItems[index].quantity = newQuantity;
+  const newItems = props.modelValue.map((item, i) =>
+    i !== index ? item : { ...item, quantity: newQuantity },
+  );
   emit('update:modelValue', newItems);
 };
 
 const updateItemPrice = (index, newPrice) => {
-  const newItems = [...props.modelValue];
-  newItems[index].currentPrice = newPrice;
-  if (newItems[index].variation) {
-    newItems[index].variation.currentPrice = newPrice;
-  }
+  const newItems = props.modelValue.map((item, i) => {
+    if (i !== index) return item;
+    const updated = { ...item, currentPrice: newPrice };
+    if (item.variation) {
+      updated.variation = { ...item.variation, currentPrice: newPrice };
+    }
+    return updated;
+  });
   emit('update:modelValue', newItems);
 };
 
 const toggleItemComplimentary = (index) => {
-  const newItems = [...props.modelValue];
-  newItems[index].isComplimentary = !newItems[index].isComplimentary;
+  const newItems = props.modelValue.map((item, i) =>
+    i !== index ? item : { ...item, isComplimentary: !item.isComplimentary },
+  );
   emit('update:modelValue', newItems);
 };
 
 const removeItem = (index) => {
-  const newItems = [...props.modelValue];
-  newItems.splice(index, 1);
-  emit('update:modelValue', newItems);
+  emit('update:modelValue', props.modelValue.filter((_, i) => i !== index));
 };
 
 const updateItemCostPrice = (index, newCostPrice) => {
-  const newItems = [...props.modelValue];
-  newItems[index].costPrice = newCostPrice;
-  if (newItems[index].combination) {
-    newItems[index].combination.costPrice = newCostPrice;
-  }
+  const newItems = props.modelValue.map((item, i) => {
+    if (i !== index) return item;
+    const updated = { ...item, costPrice: newCostPrice };
+    if (item.combination) {
+      updated.combination = { ...item.combination, costPrice: newCostPrice };
+    }
+    return updated;
+  });
   emit('update:modelValue', newItems);
 };
 
 const updateItemTaxPercentage = (index, newTaxPercentage) => {
-  const newItems = [...props.modelValue];
-  newItems[index].taxPercentage = newTaxPercentage;
+  const newItems = props.modelValue.map((item, i) =>
+    i !== index ? item : { ...item, taxPercentage: newTaxPercentage },
+  );
   emit('update:modelValue', newItems);
 };
 
 const updateItemReferencePrice = (index, newReferencePrice) => {
-  const newItems = [...props.modelValue];
-  newItems[index].referencePrice = newReferencePrice;
+  const newItems = props.modelValue.map((item, i) =>
+    i !== index ? item : { ...item, referencePrice: newReferencePrice },
+  );
   emit('update:modelValue', newItems);
 };
 
 const updateItemDiscount = (index, discount) => {
-  const newItems = [...props.modelValue];
-  newItems[index].discountType = discount.type;
-  newItems[index].discountValue = discount.value;
+  const newItems = props.modelValue.map((item, i) =>
+    i !== index ? item : { ...item, discountType: discount.type, discountValue: discount.value },
+  );
   emit('update:modelValue', newItems);
 };
 </script>

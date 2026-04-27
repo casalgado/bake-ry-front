@@ -45,7 +45,9 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
         (c) => c.id === combinationId,
       );
       const basePrice = matchingCombination?.basePrice || 0;
-      const costPrice = matchingCombination?.costPrice || item.combination.costPrice || 0;
+      const costPrice = preserveCurrentPrice
+        ? (item.costPrice ?? item.combination.costPrice ?? matchingCombination?.costPrice ?? 0)
+        : (matchingCombination?.costPrice ?? item.combination.costPrice ?? 0);
       const accountingCode = matchingCombination?.accountingCode || item.combination.accountingCode || '';
       const currentPrice = preserveCurrentPrice ? item.currentPrice : item.currentPrice || basePrice;
       return {
@@ -85,7 +87,7 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
           return {
             ...item,
             basePrice: basePrice,
-            costPrice: matchingVariation.costPrice || 0,
+            costPrice: preserveCurrentPrice ? (item.costPrice ?? matchingVariation.costPrice ?? 0) : (matchingVariation.costPrice ?? 0),
             currentPrice: currentPrice,
             // Discount tracking fields
             referencePrice: item.referencePrice ?? (basePrice > 0 ? basePrice : currentPrice),
@@ -99,7 +101,7 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
       return {
         ...item,
         basePrice: basePrice,
-        costPrice: product.variations[0].costPrice || 0,
+        costPrice: preserveCurrentPrice ? (item.costPrice ?? product.variations[0].costPrice ?? 0) : (product.variations[0].costPrice ?? 0),
         currentPrice: currentPrice,
         // Discount tracking fields
         referencePrice: item.referencePrice ?? (basePrice > 0 ? basePrice : currentPrice),
@@ -114,7 +116,7 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
     return {
       ...item,
       basePrice: basePrice,
-      costPrice: product.costPrice || 0,
+      costPrice: preserveCurrentPrice ? (item.costPrice ?? product.costPrice ?? 0) : (product.costPrice ?? 0),
       currentPrice: currentPrice,
       // Discount tracking fields
       referencePrice: item.referencePrice ?? (basePrice > 0 ? basePrice : currentPrice),

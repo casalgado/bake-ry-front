@@ -167,6 +167,7 @@ onMounted(() => {
             type="number"
             :value="item.quantity"
             @input="handleQuantityInput"
+            @wheel.prevent
             class="w-8 text-sm text-center bg-transparent outline-none p-0 border-none"
             min="1"
             step="1"
@@ -185,6 +186,7 @@ onMounted(() => {
             <input
               type="number"
               @input="handleDiscountChange"
+              @wheel.prevent
               @focus="$event.target.select()"
               :value="discount"
               class="w-full px-1 py-0.5 text-right border rounded text-xs text-neutral-500"
@@ -201,6 +203,7 @@ onMounted(() => {
               type="number"
               :value="item.currentPrice"
               @input="handlePriceChange"
+              @wheel.prevent
               @focus="$event.target.select()"
               class="w-full px-1 py-0.5 text-right border rounded text-sm"
               :class="{
@@ -255,6 +258,7 @@ onMounted(() => {
               type="number"
               :value="item.taxPercentage || 0"
               @input="handleTaxPercentageChange"
+              @wheel.prevent
               @focus="$event.target.select()"
               class="w-full px-1 py-0.5 text-right border rounded text-xs"
               :disabled="item.isComplimentary"
@@ -271,6 +275,7 @@ onMounted(() => {
               type="number"
               :value="item.costPrice || 0"
               @input="handleCostPriceChange"
+              @wheel.prevent
               @focus="$event.target.select()"
               class="w-full px-1 py-0.5 text-right border rounded text-xs"
               :class="{ 'border-amber-300 bg-amber-50': costValidationError }"
