@@ -59,6 +59,10 @@ watch(
             dateFields: ['paymentDate', 'partialPaymentDate'],
             startDate: newRange.start.toISOString(),
             endDate: newRange.end.toISOString(),
+            overlapRange: {
+              minField: 'earliestPartialPaymentDate',
+              maxField: 'partialPaymentDate',
+            },
           },
         },
       });

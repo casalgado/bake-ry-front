@@ -126,12 +126,17 @@ export class BaseService {
       params.or_date_fields = query.filters.orDateRange.dateFields.join(',');
       params.or_start_date = query.filters.orDateRange.startDate;
       params.or_end_date = query.filters.orDateRange.endDate;
+
+      if (query.filters.orDateRange.overlapRange) {
+        params.or_overlap_min_field = query.filters.orDateRange.overlapRange.minField;
+        params.or_overlap_max_field = query.filters.orDateRange.overlapRange.maxField;
+      }
     }
 
     // Add other filters
+    const handledFilterKeys = new Set(['dateRange', 'orDateRange']);
     Object.entries(query.filters || {}).forEach(([key, value]) => {
-      if (key !== 'dateRange') {
-        // Skip dateRange as it's already handled
+      if (!handledFilterKeys.has(key)) {
         params[key] = value;
       }
     });
