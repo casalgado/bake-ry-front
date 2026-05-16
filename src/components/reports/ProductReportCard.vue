@@ -2,11 +2,13 @@
 import { ref, computed, onMounted } from 'vue';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import { useAuthenticationStore } from '@/stores/authentication';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { OrderService } from '@/services/orderService';
 import { exportProductReport } from '@/utils/exportOrders';
 
 const collectionStore = useProductCollectionStore();
 const authStore = useAuthenticationStore();
+const bakerySettingsStore = useBakerySettingsStore();
 
 // Form state
 const loading = ref(false);
@@ -18,10 +20,11 @@ const getDefaultStartDate = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 };
 
-// Get today as default end
+// Get last day of current month as default end
 const getDefaultEndDate = () => {
   const now = new Date();
-  return now.toISOString().split('T')[0];
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
 };
 
 const formData = ref({
@@ -113,13 +116,18 @@ const handleSubmit = async () => {
   try {
     const service = new OrderService(authStore.getBakeryId);
 
+    // Add 1 day to end_date for backend query (to make the inclusive date work with <= filter)
+    const [y, m, d] = formData.value.end_date.split('-').map(Number);
+    const endDateExclusive = new Date(y, m - 1, d + 1);
+    const endDateStr = `${endDateExclusive.getFullYear()}-${String(endDateExclusive.getMonth() + 1).padStart(2, '0')}-${String(endDateExclusive.getDate()).padStart(2, '0')}`;
+
     // Build query using the same structure as salesReport
     const query = {
       filters: {
         dateRange: {
           dateField: formData.value.date_field,
           startDate: formData.value.start_date,
-          endDate: formData.value.end_date,
+          endDate: endDateStr,
         },
       },
       options: {
@@ -156,10 +164,17 @@ const handleSubmit = async () => {
   }
 };
 
-// Load categories on mount
+// Load categories and settings on mount
 onMounted(async () => {
+  const promises = [bakerySettingsStore.fetchById('default')];
   if (!collectionStore.items.length) {
-    await collectionStore.fetchAll();
+    promises.push(collectionStore.fetchAll());
+  }
+  await Promise.all(promises);
+
+  const defaultFilter = bakerySettingsStore.currentItem?.features?.reports?.defaultReportFilter;
+  if (defaultFilter) {
+    formData.value.date_field = defaultFilter;
   }
 });
 </script>
@@ -183,7 +198,7 @@ onMounted(async () => {
         </div>
         <div>
           <label class="block text-sm font-medium text-neutral-700 mb-1">
-            Fecha Fin (hasta antes del)
+            Fecha Fin
           </label>
           <input
             type="date"

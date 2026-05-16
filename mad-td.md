@@ -1,0 +1,1 @@
+Meter los domicilios en los reportes de venta que se sacan en la pestaña de reportes. 

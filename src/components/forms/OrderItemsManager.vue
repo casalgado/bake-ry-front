@@ -119,12 +119,12 @@ const updateItemQuantity = (index, newQuantity) => {
   emit('update:modelValue', newItems);
 };
 
-const updateItemPrice = (index, newPrice) => {
+const updateItem = (index, delta) => {
   const newItems = props.modelValue.map((item, i) => {
     if (i !== index) return item;
-    const updated = { ...item, currentPrice: newPrice };
-    if (item.variation) {
-      updated.variation = { ...item.variation, currentPrice: newPrice };
+    const updated = { ...item, ...delta };
+    if ('currentPrice' in delta && item.variation) {
+      updated.variation = { ...item.variation, currentPrice: delta.currentPrice };
     }
     return updated;
   });
@@ -157,20 +157,6 @@ const updateItemCostPrice = (index, newCostPrice) => {
 const updateItemTaxPercentage = (index, newTaxPercentage) => {
   const newItems = props.modelValue.map((item, i) =>
     i !== index ? item : { ...item, taxPercentage: newTaxPercentage },
-  );
-  emit('update:modelValue', newItems);
-};
-
-const updateItemReferencePrice = (index, newReferencePrice) => {
-  const newItems = props.modelValue.map((item, i) =>
-    i !== index ? item : { ...item, referencePrice: newReferencePrice },
-  );
-  emit('update:modelValue', newItems);
-};
-
-const updateItemDiscount = (index, discount) => {
-  const newItems = props.modelValue.map((item, i) =>
-    i !== index ? item : { ...item, discountType: discount.type, discountValue: discount.value },
   );
   emit('update:modelValue', newItems);
 };
@@ -208,11 +194,9 @@ const updateItemDiscount = (index, discount) => {
             :item="item"
             :index="index"
             @update:quantity="updateItemQuantity"
-            @update:price="updateItemPrice"
+            @update:item="updateItem"
             @update:costPrice="updateItemCostPrice"
             @update:taxPercentage="updateItemTaxPercentage"
-            @update:referencePrice="updateItemReferencePrice"
-            @update:discount="updateItemDiscount"
             @toggle-complimentary="toggleItemComplimentary"
             @remove="removeItem"
           />

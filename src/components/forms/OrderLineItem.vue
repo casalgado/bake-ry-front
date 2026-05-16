@@ -23,11 +23,9 @@ const props = defineProps({
 
 const emit = defineEmits([
   'update:quantity',
-  'update:price',
-  'update:discount',
+  'update:item',
   'update:costPrice',
   'update:taxPercentage',
-  'update:referencePrice',
   'toggle-complimentary',
   'remove',
 ]);
@@ -73,26 +71,33 @@ const handlePriceChange = (event) => {
   const newPrice = Number(event.target.value);
 
   if (isVariablePrice.value) {
-    // Variable price product: direct price change updates referencePrice and clears discount
-    emit('update:referencePrice', props.index, newPrice);
-    emit('update:discount', props.index, { type: null, value: 0 });
     discount.value = 0;
+    emit('update:item', props.index, {
+      currentPrice: newPrice,
+      referencePrice: newPrice,
+      discountType: null,
+      discountValue: 0,
+    });
   } else {
-    // Normal product: recalculate discount percentage from basePrice
-    discount.value = Math.round(
-      ((props.item.basePrice - newPrice) / props.item.basePrice) * 100,
-    );
-    emit('update:discount', props.index, { type: 'percentage', value: discount.value });
+    const discountVal = Math.round(((props.item.basePrice - newPrice) / props.item.basePrice) * 100);
+    discount.value = discountVal;
+    emit('update:item', props.index, {
+      currentPrice: newPrice,
+      discountType: 'percentage',
+      discountValue: discountVal,
+    });
   }
-  emit('update:price', props.index, newPrice);
 };
 
 const handleDiscountChange = (event) => {
   discount.value = Math.min(100, Math.max(0, Number(event.target.value)));
   const refPrice = effectiveReferencePrice.value;
-  const newPrice = refPrice * (1 - discount.value / 100);
-  emit('update:price', props.index, Math.round(newPrice));
-  emit('update:discount', props.index, { type: 'percentage', value: discount.value });
+  const newPrice = Math.round(refPrice * (1 - discount.value / 100));
+  emit('update:item', props.index, {
+    currentPrice: newPrice,
+    discountType: 'percentage',
+    discountValue: discount.value,
+  });
 };
 
 const handleToggleComplimentary = () => {
