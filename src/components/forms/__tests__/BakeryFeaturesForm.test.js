@@ -637,6 +637,7 @@ describe('BakeryFeaturesForm', () => {
       expect(vm.paymentIconMap).toHaveProperty('card');
       expect(vm.paymentIconMap).toHaveProperty('bancolombia');
       expect(vm.paymentIconMap).toHaveProperty('davivienda');
+      expect(vm.paymentIconMap).toHaveProperty('nequi');
       expect(vm.paymentIconMap).toHaveProperty('complimentary');
       expect(vm.paymentIconMap).toHaveProperty('quote');
     });

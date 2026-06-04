@@ -252,9 +252,10 @@ const monthlyData = computed(() => {
     <!-- Report Display -->
     <div v-if="hasReport" class="space-y-4 sm:space-y-6">
       <!-- Disclaimer -->
-      <div class="bg-neutral-900 border border-warning text-warning rounded-md p-3 text-xs">
+      <div class="base-card p-3 text-xs text-neutral-600">
         <strong>IMPORTANTE:</strong> Este reporte muestra únicamente Rentabilidad (ingresos menos costo de productos).
         No incluye gastos operativos como arriendo, servicios públicos, salarios, marketing, etc.
+        Solo considera <strong>pedidos completamente pagados</strong> — los pedidos pendientes de pago o parcialmente pagados no se incluyen en este cálculo.
       </div>
 
       <!-- Monthly Table -->
@@ -505,7 +506,7 @@ const monthlyData = computed(() => {
 
       <!-- Excluded Products Section -->
       <div v-if="excludedProducts.length > 0" class="mb-4 sm:mb-8">
-        <h3 class="text-primary sm:text-lg font-semibold mb-2 sm:mb-4 flex items-center gap-2 cursor-pointer" @click="expandedProducts = !expandedProducts">
+        <h3 class="text-neutral-850 sm:text-lg font-semibold mb-2 sm:mb-4 flex items-center gap-2 cursor-pointer" @click="expandedProducts = !expandedProducts">
           <PhCaretDown :size="18" :class="{ 'rotate-180': expandedProducts }" class="transition" />
           Productos sin costo definido ({{ excludedProducts.length }})
         </h3>

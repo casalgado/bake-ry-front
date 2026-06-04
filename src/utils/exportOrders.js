@@ -103,6 +103,7 @@ const getPaymentMethodText = (method) => {
     davivienda: 'davivienda',
     bancolombia: 'bancolombia',
     bbva: 'bbva',
+    nequi: 'nequi',
   };
   return methodMap[method] || method;
 };

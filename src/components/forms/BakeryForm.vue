@@ -58,6 +58,7 @@ const PAYMENT_METHODS = [
   { value: 'davivienda', label: 'Davivienda' },
   { value: 'bancolombia', label: 'Bancolombia' },
   { value: 'bbva', label: 'BBVA' },
+  { value: 'nequi', label: 'Nequi' },
 ];
 
 const defaultDateOptions = [

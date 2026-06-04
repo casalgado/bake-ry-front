@@ -74,6 +74,7 @@ const methods = {
   davivienda: 'davivienda',
   bancolombia: 'bancolombia',
   bbva: 'bbva',
+  nequi: 'nequi',
   quote: 'cotización',
 };
 
