@@ -324,6 +324,7 @@ class Order extends BaseModel {
       termsAndConditions: '',
       notes: '',
       customTitle: '',
+      subtitles: [],
       ...(invoiceCustomizations || {}),
     };
 

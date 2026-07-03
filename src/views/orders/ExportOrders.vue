@@ -6,6 +6,7 @@ import OrderInvoice from '@/components/orders/OrderInvoice.vue';
 import OrderForm from '@/components/forms/OrderForm.vue';
 import ToastNotification from '@/components/ToastNotification.vue';
 import { Order } from '@/models/Order.js';
+import { generateId } from '@/utils/helpers';
 import { PhPen, PhPrinter, PhX } from '@phosphor-icons/vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
@@ -143,7 +144,7 @@ onMounted(async () => {
 });
 
 // Handle invoice updates with auto-save
-const handleInvoiceUpdate = async ({ type, orderIndex, itemIndex, itemId, direction, value, discountType, discountValue }) => {
+const handleInvoiceUpdate = async ({ type, orderIndex, itemIndex, itemId, direction, value, discountType, discountValue, beforeItemId, subtitleId }) => {
   if (!orders.value.length) return;
 
   try {
@@ -206,6 +207,30 @@ const handleInvoiceUpdate = async ({ type, orderIndex, itemIndex, itemId, direct
         totalTaxAmount: order.totalTaxAmount,
         total: order.total,
       });
+    } else if (type === 'subtitle:add') {
+      const target = orders.value[0];
+      const newSubtitle = { id: generateId(), text: '', beforeItemId };
+      target.invoiceCustomizations = {
+        ...target.invoiceCustomizations,
+        subtitles: [...(target.invoiceCustomizations?.subtitles || []), newSubtitle],
+      };
+      await orderStore.patch(target.id, { invoiceCustomizations: target.invoiceCustomizations });
+    } else if (type === 'subtitle:update') {
+      const target = orders.value[0];
+      const current = target.invoiceCustomizations?.subtitles || [];
+      target.invoiceCustomizations = {
+        ...target.invoiceCustomizations,
+        subtitles: current.map(s => s.id === subtitleId ? { ...s, text: value } : s),
+      };
+      await orderStore.patch(target.id, { invoiceCustomizations: target.invoiceCustomizations });
+    } else if (type === 'subtitle:delete') {
+      const target = orders.value[0];
+      const current = target.invoiceCustomizations?.subtitles || [];
+      target.invoiceCustomizations = {
+        ...target.invoiceCustomizations,
+        subtitles: current.filter(s => s.id !== subtitleId),
+      };
+      await orderStore.patch(target.id, { invoiceCustomizations: target.invoiceCustomizations });
     }
 
     // Show success toast

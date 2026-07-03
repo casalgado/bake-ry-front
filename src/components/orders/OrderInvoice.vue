@@ -47,24 +47,24 @@ watch(termsSource, (value) => {
   editableTerms.value = value;
 }, { immediate: true });
 
-// Debounced update handlers (1 second delay)
-const updateDescription = useDebounceFn((orderIndex, itemId, value) => {
+// Save on blur (avoids cursor jump and cross-field debounce clobbering)
+const updateDescription = (orderIndex, itemId, value) => {
   emit('update', {
     type: 'description',
     orderIndex,
     itemId,
     value: value.trim(),
   });
-}, 1000);
+};
 
-const updateTitle = useDebounceFn((orderIndex, itemId, value) => {
+const updateTitle = (orderIndex, itemId, value) => {
   emit('update', {
     type: 'title',
     orderIndex,
     itemId,
     value: value.trim(),
   });
-}, 1000);
+};
 
 // Convert newlines to <br> for contenteditable display
 const formatDescriptionForDisplay = (text) => {
@@ -78,6 +78,24 @@ const updateTerms = useDebounceFn((value) => {
     value: value.trim(),
   });
 }, 1500);
+
+const colSpan = computed(() => props.orders.length > 1 ? 6 : 4);
+
+const subtitles = computed(() =>
+  props.orders[0]?.invoiceCustomizations?.subtitles || [],
+);
+
+const addSubtitle = (beforeItemId) => {
+  emit('update', { type: 'subtitle:add', beforeItemId });
+};
+
+const updateSubtitleText = (subtitleId, value) => {
+  emit('update', { type: 'subtitle:update', subtitleId, value: value.trim() });
+};
+
+const deleteSubtitle = (subtitleId) => {
+  emit('update', { type: 'subtitle:delete', subtitleId });
+};
 
 // Reorder item within an order
 const reorderItem = (orderIndex, itemId, direction) => {
@@ -116,20 +134,35 @@ const invoiceTitle = computed(() => {
   return 'RECIBO';
 });
 
-// Compute combined items from all orders
-// Uses pre-tax prices in the table; tax totals shown at bottom
+// Compute combined items from all orders, interleaved with subtitle section headers
 const combinedItems = computed(() => {
   const items = [];
 
+  // Build beforeItemId -> subtitle[] map
+  const subtitleMap = new Map();
+  subtitles.value.forEach(sub => {
+    const key = sub.beforeItemId ?? null;
+    if (!subtitleMap.has(key)) subtitleMap.set(key, []);
+    subtitleMap.get(key).push(sub);
+  });
+
+  // Subtitles anchored before all items (beforeItemId === null)
+  (subtitleMap.get(null) || []).forEach(sub => {
+    items.push({ type: 'subtitle', id: sub.id, text: sub.text });
+  });
+
   props.orders.forEach((order, orderIndex) => {
     if (order.orderItems && Array.isArray(order.orderItems)) {
-      // Sort items by displayOrder before processing
       const sortedItems = order.orderItems
         .slice()
         .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
       sortedItems.forEach((item, itemIndex) => {
-        // Use preTaxPrice for unit price (price without tax)
+        // Insert subtitles anchored before this item
+        (subtitleMap.get(item.id) || []).forEach(sub => {
+          items.push({ type: 'subtitle', id: sub.id, text: sub.text });
+        });
+
         const preTaxUnitPrice = item.preTaxPrice || item.currentPrice || 0;
         items.push({
           id: item.id,
@@ -150,7 +183,6 @@ const combinedItems = computed(() => {
       });
     }
 
-    // Add delivery fee as a line item if applicable (no tax on delivery)
     if (order.fulfillmentType === 'delivery' && order.deliveryFee > 0) {
       items.push({
         orderId: order.id,
@@ -368,74 +400,104 @@ const handlePrint = () => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(item, index) in combinedItems" :key="index">
-          <td class="relative">
-            <!-- Reorder arrows (absolutely positioned, hidden on print) -->
-            <div
-              v-if="item.orderIndex !== undefined"
-              class="reorder-arrows print:hidden"
-            >
-              <button
-                type="button"
-                @click="reorderItem(item.orderIndex, item.id, 'up')"
-                :disabled="isFirstItemInOrder(item)"
-                class="reorder-btn"
+        <template v-for="(item, index) in combinedItems" :key="item.type === 'subtitle' ? 'sub-' + item.id : (item.id || index)">
+          <!-- Section subtitle row -->
+          <tr v-if="item.type === 'subtitle'" class="subtitle-row">
+            <td :colspan="colSpan" class="subtitle-cell">
+              <div class="subtitle-wrapper">
+                <div
+                  contenteditable="true"
+                  class="subtitle-text editable-subtitle"
+                  @blur="e => updateSubtitleText(item.id, e.target.innerText)"
+                  :data-placeholder="'Nombre de sección...'"
+                >{{ item.text }}</div>
+                <button
+                  type="button"
+                  class="delete-subtitle-btn print:hidden"
+                  @click="deleteSubtitle(item.id)"
+                >×</button>
+              </div>
+            </td>
+          </tr>
+          <!-- Regular item row -->
+          <tr v-else>
+            <td class="relative">
+              <!-- Reorder arrows (absolutely positioned, hidden on print) -->
+              <div
+                v-if="item.orderIndex !== undefined"
+                class="reorder-arrows print:hidden"
               >
-                <PhCaretUp class="w-3 h-3" />
-              </button>
-              <button
-                type="button"
-                @click="reorderItem(item.orderIndex, item.id, 'down')"
-                :disabled="isLastItemInOrder(item)"
-                class="reorder-btn"
-              >
-                <PhCaretDown class="w-3 h-3" />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  @click="reorderItem(item.orderIndex, item.id, 'up')"
+                  :disabled="isFirstItemInOrder(item)"
+                  class="reorder-btn"
+                >
+                  <PhCaretUp class="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  @click="reorderItem(item.orderIndex, item.id, 'down')"
+                  :disabled="isLastItemInOrder(item)"
+                  class="reorder-btn"
+                >
+                  <PhCaretDown class="w-3 h-3" />
+                </button>
+              </div>
 
-            <!-- Editable item title for order items -->
-            <div
-              v-if="item.orderIndex !== undefined"
-              contenteditable="true"
-              @input="e => updateTitle(item.orderIndex, item.id, e.target.innerText)"
-              class="item-title editable-title"
-            >{{ item.invoiceTitle }}</div>
-            <!-- Non-editable title for delivery fee -->
-            <div v-else class="item-title">
-              {{ item.productName }}
-            </div>
-            <!-- Show description if it exists OR is being edited -->
-            <div
-              v-if="item.orderIndex !== undefined && (item.productDescription || editingDescriptions.has(`${item.orderIndex}-${item.id}`))"
-              contenteditable="true"
-              @input="e => updateDescription(item.orderIndex, item.id, e.target.innerText)"
-              @focus="startEditingDescription(`${item.orderIndex}-${item.id}`)"
-              class="item-description editable"
-              :data-placeholder="'Descripción del producto...'"
-              v-html="formatDescriptionForDisplay(item.productDescription)"
-            />
-            <!-- Show add button when empty and not editing -->
-            <button
-              v-else-if="item.orderIndex !== undefined"
-              @click="startEditingDescription(`${item.orderIndex}-${item.id}`)"
-              class="add-description-btn print:hidden"
-            >
-              + Agregar descripción
-            </button>
-          </td>
-          <td v-if="orders.length > 1" class="text-center">
-            #{{ formatOrderId(item.orderId) }}
-          </td>
-          <td v-if="orders.length > 1" class="text-center">
-            {{ formatDate(item.preparationDate) }}
-          </td>
-          <td class="text-center">{{ item.quantity }}</td>
-          <td class="text-right">{{ formatMoney(item.unitPrice) }}</td>
-          <td class="text-right">
-            {{ formatMoney(item.lineTotal) }}
-            <span v-if="item.taxPercentage > 0" class="tax-indicator">IVA: {{ item.taxPercentage }}%</span>
-          </td>
-        </tr>
+              <!-- Editable item title for order items -->
+              <div
+                v-if="item.orderIndex !== undefined"
+                contenteditable="true"
+                @blur="e => updateTitle(item.orderIndex, item.id, e.target.innerText)"
+                class="item-title editable-title"
+              >{{ item.invoiceTitle }}</div>
+              <!-- Non-editable title for delivery fee -->
+              <div v-else class="item-title">
+                {{ item.productName }}
+              </div>
+              <!-- Add section subtitle before this item -->
+              <button
+                v-if="item.orderIndex !== undefined"
+                type="button"
+                @click="addSubtitle(item.id)"
+                class="add-subtitle-btn print:hidden"
+              >
+                + Subtítulo
+              </button>
+              <!-- Show description if it exists OR is being edited -->
+              <div
+                v-if="item.orderIndex !== undefined && (item.productDescription || editingDescriptions.has(`${item.orderIndex}-${item.id}`))"
+                contenteditable="true"
+                @blur="e => updateDescription(item.orderIndex, item.id, e.target.innerText)"
+                @focus="startEditingDescription(`${item.orderIndex}-${item.id}`)"
+                class="item-description editable"
+                :data-placeholder="'Descripción del producto...'"
+                v-html="formatDescriptionForDisplay(item.productDescription)"
+              />
+              <!-- Show add button when empty and not editing -->
+              <button
+                v-else-if="item.orderIndex !== undefined"
+                @click="startEditingDescription(`${item.orderIndex}-${item.id}`)"
+                class="add-description-btn print:hidden"
+              >
+                + Agregar descripción
+              </button>
+            </td>
+            <td v-if="orders.length > 1" class="text-center">
+              #{{ formatOrderId(item.orderId) }}
+            </td>
+            <td v-if="orders.length > 1" class="text-center">
+              {{ formatDate(item.preparationDate) }}
+            </td>
+            <td class="text-center">{{ item.quantity }}</td>
+            <td class="text-right">{{ formatMoney(item.unitPrice) }}</td>
+            <td class="text-right">
+              {{ formatMoney(item.lineTotal) }}
+              <span v-if="item.taxPercentage > 0" class="tax-indicator">IVA: {{ item.taxPercentage }}%</span>
+            </td>
+          </tr>
+        </template>
       </tbody>
     </table>
 
@@ -700,6 +762,84 @@ const handlePrint = () => {
   color: #2563eb;
 }
 
+.add-subtitle-btn {
+  font-size: 12px;
+  color: #3b82f6;
+  margin-top: 4px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  display: block;
+}
+
+.add-subtitle-btn:hover {
+  color: #2563eb;
+}
+
+/* Section subtitle row */
+.subtitle-row td {
+  padding: 0;
+  border-bottom: none;
+}
+
+.subtitle-cell {
+  padding: 2px 15px !important;
+  background: #f3f4f6;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.subtitle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subtitle-text {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 0.8px;
+  text-align: left;
+  text-transform: uppercase;
+  outline: none;
+  padding: 5px 4px;
+  border-radius: 3px;
+}
+
+.editable-subtitle:hover {
+  background: #e9eaeb;
+}
+
+.editable-subtitle:focus {
+  background: #e9eaeb;
+}
+
+.editable-subtitle:empty:focus:before {
+  content: attr(data-placeholder);
+  color: #d1d5db;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.delete-subtitle-btn {
+  color: #d1d5db;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.delete-subtitle-btn:hover {
+  color: #ef4444;
+}
+
 /* Reorder arrows */
 .reorder-arrows {
   position: absolute;
@@ -873,6 +1013,15 @@ const handlePrint = () => {
     background: transparent !important;
     padding: 0 !important;
     margin: 0 0 8px 0 !important;
+  }
+
+  .subtitle-cell {
+    background: transparent !important;
+    border-color: #e5e7eb !important;
+  }
+
+  .subtitle-text {
+    padding: 4px 0 !important;
   }
 
   table {
