@@ -17,6 +17,11 @@ const router = createRouter({
       component: () => import('../views/PrivacyPolicy.vue'),
     },
     {
+      path: '/roadmap',
+      name: 'roadmap',
+      component: () => import('../views/RoadmapView.vue'),
+    },
+    {
       path: '/test-image-upload',
       name: 'test-image-upload',
       component: () => import('../views/TestImageUpload.vue'),
