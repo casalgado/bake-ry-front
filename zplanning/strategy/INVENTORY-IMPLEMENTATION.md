@@ -288,7 +288,7 @@ Everything else — driver assignment, payment marking on standard orders, notes
 | New: `stockMovements` collection | append-only ledger (§8.2), composite indexes (§8.2) |
 | New: `stockGaps` collection | gap markers: order, item, combination, date, reason (§6) |
 | New: stock counts (phase 3) | count doc: items with counted quantities, draft/completed, `completedAt`; completion baselines each included item (§8.3); partial counts supported (§8.1) |
-| New: purchases / Compras (phase 4) | purchase doc → `purchase` movements + cache increments; presentation multipliers applied at entry time only; optional prompt to update ingredient `costPerUnit` from purchase price; **IVA descontable / retención fields from day one** (roadmap accounting note) |
+| New: purchases / Compras (phase 4) | purchase doc → `purchase` movements + cache increments; presentation multipliers applied at entry time only; optional prompt to update ingredient `costPerUnit` from purchase price; **tax fields from day one in the accounting vocabulary** — `ivaAmount`, `retefuente`, `reteica`, `reteiva`, same names as `AccountingEntry` (§13) |
 
 New backend surface: `stockService` (movements + cache + expansion/deduction + drift verify), `stockCountService` (phase 3), `purchaseService` (phase 4), with routes following the existing factory patterns. All changes are additive; no data migration required (existing products default to `inventoryMode: 'none'`, existing `product.recipeId` untouched, `Ingredient.currentStock` ignored then removed).
 
@@ -306,6 +306,7 @@ The roadmap's cross-cutting rule: **data entry is the product risk, not the repo
 6. **Recipe totals sanity check.** Before adopting a computed cost, show it against the manual one: "tu costo manual dice 3.500, la receta dice 4.200" — a moment of real value, not friction.
 7. **Never surface inventory UI on `none`-mode products.**
 8. **Counts are fast, partial, and interruptible** (phase 3): filterable item list from the `stocks` collection, big numeric inputs, save-as-draft, complete only what was counted.
+9. **Per-item "comprado vs consumido vs merma" summary** in the stock view: for a date range, movement totals grouped by type. The user never sells flour — sales deduct it through recipes — so `purchase` totals vs `sale` totals vs the gap a count reveals answer "¿cuánto compré, cuánto usé, cuánto perdí?". Every count is implicitly a shrinkage report for the period since the last one; the count-completion summary shows counted-vs-expected per item and calls the difference what it is. Consistently high merma on one ingredient means waste **or** an inaccurate recipe — the system can't tell which, but it points at where to look.
 
 ---
 
@@ -315,3 +316,17 @@ The roadmap's cross-cutting rule: **data entry is the product risk, not the repo
 2. **Role access:** which roles may record counts, purchases, adjustments (`production_assistant`, `accounting_assistant`, `bakery_staff`?). Decide when building routes.
 3. **Production entries for stocked intermediates (accepted IOU, §4):** compound `production` movement; Compras phase or later.
 4. **Negative stock policy:** deduction can drive `currentStock` below zero (sale before purchase entry). Proposed: allow it, display prominently, let counts correct — never block sales. Confirm during phase 2 UI.
+
+---
+
+## 13. Relationship to the Accounting epic
+
+Boundary contract with [ACCOUNTING-IMPLEMENTATION.md](./ACCOUNTING-IMPLEMENTATION.md) (mirrored there as its §13). The two epics are **independent by construction** — a business can adopt either, both, or neither, in any order — and stay that way by holding five rules:
+
+1. **The only shared data is `costPrice` / `costPerUnit`.** Accounting consumes them (the COGS waterfall in the income statement); inventory refreshes them (recipe cost propagation, §7). No other reads or writes cross the boundary. A client without inventory maintains costs manually — today's behavior — and their P&L still works.
+2. **The income statement never reads `purchases`; Compras never writes `accountingEntries`.** If a "cash view of ingredient spend" is ever wanted, it's a report over `purchases` — never expense entries.
+3. **Ingredient spend is never an expense entry — universal rule, not inventory-conditional.** Flour recorded as an expense double-counts against COGS whether or not the inventory module exists, because COGS comes from `costPrice` either way. Guarded in the expense form by the decoy category (accounting §5).
+4. **One tax vocabulary**: `ivaAmount`, `retefuente`, `reteica`, `reteiva` — identical flat scalars on both `accountingEntries` and `purchases`, so future IVA/retención reports union the two collections without translation.
+5. **Supplier entities / accounts payable belong to neither epic** — balance-sheet phase. Until then `counterparty` (entries) and `supplier` (purchases) remain free text and must not grow into entities independently.
+
+Failure asymmetry worth remembering: rent-into-Compras is structurally impossible (the item picker only offers stock items), while flour-into-Gastos types in fine (an entry needs only an amount) — so the entire guard budget sits on the expense form's side, and the merma summary (§11.9) is the backstop that makes anything that leaks through visible instead of permanent.

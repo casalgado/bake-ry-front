@@ -22,6 +22,11 @@ const router = createRouter({
       component: () => import('../views/RoadmapView.vue'),
     },
     {
+      path: '/competition',
+      name: 'competition',
+      component: () => import('../views/CompetitionView.vue'),
+    },
+    {
       path: '/test-image-upload',
       name: 'test-image-upload',
       component: () => import('../views/TestImageUpload.vue'),

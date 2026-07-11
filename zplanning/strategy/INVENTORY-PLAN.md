@@ -15,6 +15,34 @@ Phases 1–4 map 1:1 to the roadmap sub-phases. Phase 0 is pre-existing-defect h
 
 ---
 
+## Notes for the implementer — read before writing any code
+
+**Always keep both documents in context.** This plan says *what*; [INVENTORY-IMPLEMENTATION.md](./INVENTORY-IMPLEMENTATION.md) says *why*. Several decisions look like things you could "simplify" — they are not oversights, they are the design. Do not deviate from them:
+
+- **No recipe fallback.** A combination without a recipe never inherits the product's recipe. A missing recipe is a gap marker, never a guess (§2, §6).
+- **No unit conversions inside the ledger, ever.** Movement quantities are always in the item's own unit; presentation math happens at entry time only (§6, §8).
+- **Gaps never block sales.** Inventory failures degrade to `stockGaps` entries; an order must always be able to complete (§6).
+- **`none`-mode products show zero inventory UI.** No badges, no warnings, no empty columns. Silence is the feature (§5, §11.7).
+
+**Non-negotiable invariants** (violating any of these is the bug class that passes casual testing and corrupts ledgers weeks later):
+
+1. **Movements are append-only.** No code path updates or deletes a `stockMovements` doc. Corrections are new `compensation` movements. There are no update/delete endpoints — don't add them "for admin convenience".
+2. **Every movement write goes through `writeMovements` (1B.1).** Deduction, reversal, compensation, adjustments, counts, purchases, production — all of them. Never write a movement doc or increment a stocks doc directly anywhere else.
+3. **Movement doc + `currentStock` increment land in the same Firestore transaction, always.** One without the other must be impossible.
+4. **Firestore transactions read everything before writing anything.** The idempotency check (existing deterministic IDs), the `refs.orderId` lookup for compensation diffs, and the stocks-doc reads all happen first; only then the creates/increments. Interleaving reads after writes throws at runtime only sometimes — order the code correctly, don't rely on the emulator to catch it.
+5. **`affectsStock(order)` exists exactly once** — one exported helper in `stockService`. Every call site (create, patch, patchAll, remove) imports it. Never inline or re-derive the logic.
+6. **Deterministic IDs are the idempotency mechanism.** Sale movements: `{orderId}_{orderItemId}_{itemKey}`. Never add an "already deducted" flag on the order doc — that's a second source of truth that will drift.
+7. **`itemKey` is built by one function.** Never string-concatenate keys at call sites.
+
+**Where the subtle-wrongness risk is concentrated.** Most of this plan is pattern-following inside an established codebase (models, factory services, forms, stores). These steps are not — slow down, write the tests alongside the code, and prefer asking over guessing:
+
+- **1B.1 `writeMovements`** — the primitive everything else trusts. Get invariants 3, 4, 6 exactly right here and every later phase inherits correctness.
+- **2.2–2.4 expansion, deduction hook, compensation** — recursive expansion with pass-through yield scaling, predicate edges threaded through `orderService` (the most business-critical existing service; its current behavior for non-inventory orders must be provably unchanged), and the compensation diff (expand new state, diff against existing movements, write only the delta). The 2.6 test list is the correctness contract for this cluster — implement those tests faithfully from their descriptions, not from what the implementation happens to do.
+- **`patchAll` (2.3)** — one deduction transaction per order. Piggybacking deductions onto the shared 500-op batch is the tempting shortcut that breaks at exactly the wrong scale.
+- **Backward-compat read defaults (1A.4)** — legacy recipe rows must read as `type: 'ingredient'` without any bulk rewrite of stored docs. Test with a real pre-existing recipe doc shape, not just new-format fixtures.
+
+---
+
 ## Phase 0 — Hygiene (backend, small, independent)
 
 Standalone fixes that reduce risk before anything is built on top. No frontend work.
@@ -126,18 +154,20 @@ Frontend plumbing first: `src/services/stockService.js` + `src/stores/stockStore
 - [ ] **1C.5 Stock view** (first visible inventory screen)
   - New: `src/views/inventory/` + route (admin sidebar entry), backed by the `stocks` list endpoint via `stockStore`.
   - DataTable of tracked items: name, unit, `currentStock`, last movement date. Row → movement history (paginated from 1B.3). Manual adjustment dialog (signed qty + reason → 1B.4).
+  - **Per-item movement summary for a date range**: totals grouped by movement `type` — comprado / consumido / ajustes / conteos. This is the "bought vs consumed vs lost" view users actually want (design doc §11.9); it's one `(itemKey, timestamp)` query grouped client-side by type. Ships with the stock view but only becomes fully meaningful once counts (phase 3) and purchases (phase 4) feed it — that's fine, the UI doesn't change.
   - This screen validates the entire ledger end-to-end by hand before any automation exists.
 
 **Done when:** a client can define combination-level recipes with products and ingredients as components; computed costs flow to `costPrice` and the income statement; manufactured ingredients carry recipes with yield; items opt into tracking and their stock is adjustable and auditable by hand. Nothing deducts automatically yet, and clients who ignore all of it see nothing new.
 
 ---
 
-## Phase 2 — Automatic deduction on completed sale
+## Phase 2 — Automatic deduction (the `affectsStock` predicate)
 
-- [ ] **2.1 ⚠️ DECIDE FIRST: the "completed" trigger** (§12.1)
-  - `Order.status` is a bare number indexed into a configurable settings list ("Completada" = index 4 by convention) — the trigger needs a firm, tenant-safe definition, including POS orders that may never walk the status ladder (candidate: POS orders with `autoMarkPaid` complete immediately).
-  - Also confirm here: **negative stock policy** (§12.4 — proposed: allow it, display prominently, never block sales) and whether deduction failures inside the order transaction abort the order or degrade to a gap (recommendation: degrade — inventory must never block a sale, §6).
-  - This is the only open decision in the plan; nothing before this step waits on it.
+- [ ] **2.1 The `affectsStock` predicate + `Order.salesChannel`** (§9 — decided)
+  - Predicate: `affectsStock(order) = order.status >= 1 OR (order.salesChannel === 'pos' && order fully paid)`. Deduction/reversal are **edges** of this one boolean — there are no independent triggers. Partial payments never satisfy the paid leg.
+  - Backend: add `Order.salesChannel: 'standard' | 'pos'` (default `'standard'`) to `src/models/Order.js` with enum validation; implement `affectsStock(order)` as a single exported helper in `stockService` — never inline the logic at call sites.
+  - Frontend: `OrderForm.vue` stamps `salesChannel: 'pos'` when operating in POS mode (it already knows — the POS behavior flags drive the form); orders are otherwise `'standard'`. No UI change visible to users.
+  - Still to confirm during this phase (small, non-blocking): **negative stock policy** (§12.4 — proposed: allow it, display prominently, never block sales) and whether a deduction failure inside the order flow aborts the order or degrades to a gap (recommendation: degrade — inventory must never block a sale, §6).
 - [ ] **2.2 Expansion + deduction resolver in `stockService`** (§6)
   - `expandOrderItem(bakeryId, orderItem) → { movements[], gaps[] }` implementing the universal rule:
     - product `none` → nothing; product `unit` → −qty on its sellable unit, stop; product `recipe` → resolve recipe via 1A.3's helper (**no fallback**) → no recipe: gap marker; recipe: recurse into components ×quantity.
@@ -145,23 +175,23 @@ Frontend plumbing first: `src/services/stockService.js` + `src/stores/stockStore
   - Deterministic sale-movement IDs: `{orderId}_{orderItemId}_{itemKey}` (§8.2).
   - Gap markers → `bakeries/{bakeryId}/stockGaps` docs (orderId, orderItemId, productId, combinationId, date, reason) for missing recipes **and** expansion anomalies (deactivated component, depth exceeded at runtime). Gaps never block the sale (§6).
   - Runtime depth guard mirrors the save-time cap (defense in depth — data saved before 1A.6 could exist).
-- [ ] **2.3 Order hook: the `diffObjects` gate** (§9)
-  - File: `src/services/orderService.js` (`patch`, `patchAll`, `remove`).
-  - Stock code runs **only** when the diff shows: (a) status transition **into** completed → full deduction via `expandOrderItem` + `writeMovements` (idempotent by ID); (b) status transition **out of** completed, or deletion of a completed order → full reversal (compensating movements for everything the order's movements show, from the `refs.orderId` lookup); (c) `orderItems` changes on an already-completed order → 2.4.
-  - Everything else — driver assignment, payment marking, notes, delivery fields — never enters the stock path. Zero inventory cost for mundane patches.
-  - `patchAll`: detect completion transitions per order and run **one deduction transaction per order** — never piggyback all deductions onto the shared 500-op batch (§8.5).
+- [ ] **2.3 Order hook: predicate edges in the `diffObjects` gate** (§9)
+  - File: `src/services/orderService.js` — `create`, `patch`, `patchAll`, `remove`. **`create` is included**: a POS order with `autoMarkPaid` is born with the predicate true and must deduct at creation.
+  - Stock code runs **only** on: (a) predicate **false → true** (either leg) → full deduction via `expandOrderItem` + `writeMovements` (idempotent by ID); (b) predicate **true → false**, or deletion while true → full reversal (compensating movements for everything the order's movements show, from the `refs.orderId` lookup); (c) `orderItems` changes while the predicate is true → 2.4. Predicate true→true (the other leg turning on) is a no-op by construction.
+  - Everything else — driver assignment, payment marking on standard orders, notes, delivery fields — never flips the predicate and never enters the stock path. Zero inventory cost for mundane patches.
+  - `patchAll`: evaluate the predicate edge per order and run **one deduction transaction per order** — never piggyback all deductions onto the shared 500-op batch (§8.5).
 - [ ] **2.4 Compensation on item edits** (§8.6)
   - Expand the order's **new** item state → diff against the order's **existing** movements (`refs.orderId`) → write only delta movements (`type: 'compensation'`, `refs.compensates` pointing at the originals). Empty diff → zero writes. Originals never rewritten.
 - [ ] **2.5 Drift verify job** (§8.3)
   - `stockService.verify(bakeryId)`: per stocks doc, recompute `baselineQty + Σ movements since baselineAt`, compare to `currentStock`, report and optionally repair (repair writes an `adjustment` movement, keeping the ledger honest — never a silent cache overwrite).
   - Expose as an on-demand admin endpoint first; schedule (Cloud Scheduler) later only if drift is ever actually observed.
 - [ ] **2.6 Tests for phase 2** *(the highest-value suite of the epic; ask before running)*
-  - Burger-combo expansion (recipe→product→recipe→ingredients, mixed with a `unit` coke); pass-through intermediate scaling by yield; no-fallback gap on missing combination recipe; idempotent re-completion (run twice, one set of movements); un-complete reversal restores stock exactly; quantity-edit compensation writes only the delta; mundane patch (driver assigned) triggers zero stock reads/writes; runtime depth guard.
+  - Burger-combo expansion (recipe→product→recipe→ingredients, mixed with a `unit` coke); pass-through intermediate scaling by yield; no-fallback gap on missing combination recipe; idempotent re-deduction (predicate flipped twice, one set of movements); predicate true→true is a no-op (status-1 order later marked paid); POS order born paid deducts at creation; partial payment on a POS order does **not** deduct; reversal restores stock exactly when both legs go false; quantity-edit compensation writes only the delta; mundane patch (driver assigned) triggers zero stock reads/writes; runtime depth guard.
 - [ ] **2.7 Frontend: gaps + negative stock**
   - Coverage matrix (1C.3) and stock view (1C.5) surface gap markers: "N ventas sin descargar inventario", linking to the order and the missing recipe.
   - Negative `currentStock` displayed prominently per the 2.1 policy (red, explanatory tooltip "ventas registradas antes de la compra — corrige con un conteo"), never blocking anything.
 
-**Done when:** completing an order moves stock correctly for `unit` and `recipe` products at any nesting depth; editing/uncompleting/deleting compensates exactly; re-running any trigger is a structural no-op; gaps are visible and actionable; mundane order edits are provably free.
+**Done when:** an order flipping `affectsStock` on (status leaves Recibida, or POS fully paid — including at creation) moves stock correctly for `unit` and `recipe` products at any nesting depth; flipping it off reverses exactly; item edits while on compensate exactly; re-firing any edge is a structural no-op; gaps are visible and actionable; mundane order edits are provably free.
 
 ---
 
@@ -176,6 +206,7 @@ Frontend plumbing first: `src/services/stockService.js` + `src/stores/stockStore
 - [ ] **3.3 Count UI** (UX §11.8 — designed as a data-entry problem first)
   - New views under `src/views/inventory/`: count list + count entry screen.
   - Item list pulled from `stocks` (filter by type/category/name), big touch-friendly numeric inputs, enter-advances, save-as-draft and resume across sessions, complete-with-summary ("contaste 14 de 32 items — los demás no cambian").
+  - The completion summary also shows, per item, counted vs expected — that difference **is** the period's merma (loss) measurement (design doc §11.9). Display it plainly; every count doubles as a shrinkage report for the period since the last count.
   - Show the expected (current) stock next to the input **after** entry or on demand, not before — anchoring the counter biases the count.
 - [ ] **3.4 Tests for phase 3** *(ask before running)*
   - Baseline absorption: movements before completion stop affecting derived stock, movements after apply. Partial count leaves excluded items' baselines untouched. Completing twice is rejected. Drift verify (2.5) agrees with post-count state.
@@ -188,10 +219,10 @@ Frontend plumbing first: `src/services/stockService.js` + `src/stores/stockStore
 
 - [ ] **4.1 Decide role access for purchases** (§12.2) — likely `accounting_assistant` + admins; same settings-toggle escape hatch as 3.1.
 - [ ] **4.2 `purchaseService`** (§10)
-  - New: `src/services/purchaseService.js` + controller/routes. Purchase doc: `bakeries/{bakeryId}/purchases/{id}` — supplier (free text now, entity later), date, payment method, lines `[{ itemKey, presentation?, presentationQty?, baseQty, unitCost, ivaDescontable?, retencion? }]`, totals.
+  - New: `src/services/purchaseService.js` + controller/routes. Purchase doc: `bakeries/{bakeryId}/purchases/{id}` — supplier (free text now, entity later), date, payment method, lines `[{ itemKey, presentation?, presentationQty?, baseQty, unitCost }]`, totals, and doc-level tax fields `ivaAmount, retefuente, reteica, reteiva` (flat scalars defaulting to 0).
   - **Presentation multipliers are entry-time only** ("bulto = 25000 g" → the line stores `baseQty: 25000` in the item's base unit; the presentation fields are display memory, never model conversions — roadmap units decision).
   - Saving a purchase → one `purchase` movement per line (positive qty, `unitCost` snapshot, `refs.purchaseId`) via `writeMovements`.
-  - **IVA descontable / retención fields captured from day one** (roadmap accounting note: reporting can come later, the data can't be reconstructed retroactively). No tax reports in this phase — capture only.
+  - **Tax fields captured from day one, in the accounting vocabulary** (roadmap accounting note: reporting can come later, the data can't be reconstructed retroactively). The field names deliberately match `AccountingEntry` (`ivaAmount`, `retefuente`, `reteica`, `reteiva`) so a future IVA-descontable/retención report is a union of `accountingEntries` + `purchases` with zero translation (design doc §13). No tax reports in this phase — capture only.
 - [ ] **4.3 Cost update prompt** (§10)
   - When a line's effective unit cost differs from the ingredient's current `costPerUnit`: optional, per-line prompt "actualizar costo de harina a $X?" → rides the existing ingredient cost-propagation chain (which now reaches product `costPrice` via 1A.8). Never automatic — purchase prices fluctuate; the user decides what the standard cost is.
 - [ ] **4.4 Purchase entry UI**
