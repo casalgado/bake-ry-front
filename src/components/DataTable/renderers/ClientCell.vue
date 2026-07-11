@@ -1,9 +1,10 @@
 <!-- components/DataTable/renderers/ClientCell.vue -->
 <script setup>
+import { computed } from 'vue';
 import { PhCheckFat, PhBuildings } from '@phosphor-icons/vue';
 import { formatTime, capitalize } from '@/utils/helpers';
 
-defineProps({
+const props = defineProps({
   name: String,
   phone: String,
   legalName: String,
@@ -20,7 +21,15 @@ defineProps({
     type: String,
     default: null,
   },
+  isSelected: {
+    type: Boolean,
+    default: false,
+  },
 });
+
+const subtitleClass = computed(() =>
+  props.isSelected ? 'text-neutral-200' : 'text-neutral-500',
+);
 
 const formatPhoneNumber = (phone) => {
   if (!phone) return '';
@@ -44,8 +53,8 @@ const formatPhoneNumber = (phone) => {
     >
       {{ phone }}
     </a>
-    <span v-if="dueTime" class="text-xs text-neutral-500">{{ formatTime(dueTime) }}</span>
-    <span v-if="comment" class="text-xs text-neutral-500">{{ capitalize(comment) }}</span>
+    <span v-if="dueTime" class="text-xs" :class="subtitleClass">{{ formatTime(dueTime) }}</span>
+    <span v-if="comment" class="text-xs" :class="subtitleClass">{{ capitalize(comment) }}</span>
 
   </div>
 </template>

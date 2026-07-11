@@ -50,6 +50,8 @@ const isClickEnabled = computed(() => {
   return !props.selectedRows.size || props.selectedRows.has(props.row.id);
 });
 
+const isRowSelected = computed(() => props.selectedRows.has(props.row.id));
+
 // Determine if this cell is in loading state
 const isLoading = computed(() => {
   return props.toggleLoading[`${props.row.id}-${props.column.field}`];
@@ -188,6 +190,7 @@ onUnmounted(() => {
         v-else-if="column.component"
         :is="column.component"
         v-bind="column.getProps(row)"
+        :is-selected="isRowSelected"
       />
       <template v-else>
         <template v-if="column.displayText">
