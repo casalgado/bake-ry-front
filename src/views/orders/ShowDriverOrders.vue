@@ -1,7 +1,8 @@
 <script setup>
 // Vue Core
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
+import ToastNotification from '@/components/ToastNotification.vue';
 
 // DataTable Core
 import DataTable from '@/components/DataTable/index.vue';
@@ -30,6 +31,7 @@ import {
   PhMoped,
   PhBuilding,
   PhListNumbers,
+  PhChatText,
 } from '@phosphor-icons/vue';
 import { paymentIconMap } from '@/utils/paymentIcons';
 
@@ -40,6 +42,10 @@ const settingsStore = useBakerySettingsStore();
 const systemSettingsStore = useSystemSettingsStore();
 const isSequenceDialogOpen = ref(false);
 const selectedSequence = ref(1);
+const isCommentDialogOpen = ref(false);
+const commentText = ref('');
+const commentInputRef = ref(null);
+const toastRef = ref(null);
 
 const userId = computed(() => authStore.getUserData?.uid);
 
@@ -71,7 +77,10 @@ const {
     case 'set_sequence':
       selectedSequence.value = 1;
       isSequenceDialogOpen.value = true;
-      console.log('set_sequence');
+      break;
+    case 'comment':
+      commentText.value = selectedItems.value[0]?.deliveryNotes || '';
+      isCommentDialogOpen.value = true;
       break;
     }
   },
@@ -117,8 +126,45 @@ const handleSequenceSubmit = async () => {
     clearSelection();
   } catch (error) {
     console.error('Failed to update sequence:', error);
+    toastRef.value?.showError('Error al actualizar la secuencia', error.message || 'Intenta nuevamente');
   } finally {
     actionLoading.value['set_sequence'] = false;
+  }
+};
+
+const commentPresets = ['Recibido por:', 'Recibido en portería'];
+
+const applyCommentPreset = async (preset) => {
+  commentText.value = commentText.value.trimEnd()
+    ? `${commentText.value.trimEnd()} ${preset} `
+    : `${preset} `;
+  await nextTick();
+  const input = commentInputRef.value;
+  input?.focus();
+  input?.setSelectionRange(commentText.value.length, commentText.value.length);
+};
+
+const closeCommentDialog = () => {
+  isCommentDialogOpen.value = false;
+  commentText.value = '';
+};
+
+const handleCommentSubmit = async () => {
+  try {
+    actionLoading.value['comment'] = true;
+    await orderStore.patchAll([
+      {
+        id: selectedItems.value[0]?.id,
+        data: { deliveryNotes: commentText.value.trim() },
+      },
+    ]);
+    closeCommentDialog();
+    clearSelection();
+  } catch (error) {
+    console.error('Failed to update comment:', error);
+    toastRef.value?.showError('Error al guardar el comentario', error.message || 'Intenta nuevamente');
+  } finally {
+    actionLoading.value['comment'] = false;
   }
 };
 
@@ -128,6 +174,14 @@ const tableActions = [
     label: 'Secuencia',
     icon: PhListNumbers,
     minSelected: 1,
+    variant: 'primary',
+  },
+  {
+    id: 'comment',
+    label: 'Comentario',
+    icon: PhChatText,
+    minSelected: 1,
+    maxSelected: 1,
     variant: 'primary',
   },
 ];
@@ -339,6 +393,54 @@ watch(
       </div>
     </Dialog>
 
+    <!-- Comment Dialog -->
+    <Dialog
+      :open="isCommentDialogOpen"
+      @close="closeCommentDialog"
+      class="relative z-50"
+    >
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel
+          class="form-container bg-white rounded-lg p-6 max-w-md w-full"
+        >
+          <h3 class="text-lg font-medium mb-4">Comentario</h3>
+
+          <textarea
+            ref="commentInputRef"
+            v-model="commentText"
+            rows="3"
+            placeholder="Escribe un comentario"
+            class="w-full mb-4 p-2 border rounded"
+          />
+
+          <div class="grid grid-cols-2 gap-2 mb-4">
+            <button
+              v-for="preset in commentPresets"
+              :key="preset"
+              @click="applyCommentPreset(preset)"
+              class="bg-primary-600 text-white hover:bg-primary-700 py-2 px-2 rounded-lg text-sm font-medium"
+            >
+              {{ preset }}
+            </button>
+          </div>
+
+          <div class="flex justify-end gap-2">
+            <button @click="closeCommentDialog" class="utility-btn">
+              Cancelar
+            </button>
+            <button
+              @click="handleCommentSubmit"
+              :disabled="actionLoading.comment"
+              class="action-btn"
+            >
+              {{ actionLoading.comment ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
+
     <!-- Table -->
     <div>
       <DataTable
@@ -354,6 +456,9 @@ watch(
         class="bg-white shadow-lg rounded-lg"
       />
     </div>
+
+    <!-- Toast Notification -->
+    <ToastNotification ref="toastRef" />
   </div>
 </template>
 
