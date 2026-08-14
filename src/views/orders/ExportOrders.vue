@@ -181,13 +181,17 @@ const handleInvoiceUpdate = async ({ type, orderIndex, itemIndex, itemId, direct
       const order = new Order(orderData);
       const success = order.reorderItem(itemId, direction);
 
-      if (success) {
-        // Update local state and save
-        orderData.orderItems = order.orderItems.map(item => item.toPlainObject());
-        await orderStore.patch(orderData.id, {
-          orderItems: orderData.orderItems,
-        });
+      if (!success) {
+        console.warn('reorderItem failed for item:', itemId, direction);
+        toastRef.value?.showError('Error al reordenar', 'No se pudo mover el producto');
+        return;
       }
+
+      // Update local state and save
+      orderData.orderItems = order.orderItems.map(item => item.toPlainObject());
+      await orderStore.patch(orderData.id, {
+        orderItems: orderData.orderItems,
+      });
     } else if (type === 'discount') {
       // Update order discount
       const order = new Order(orderData);

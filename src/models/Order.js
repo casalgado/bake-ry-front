@@ -455,12 +455,6 @@ class Order extends BaseModel {
 
   // Move an item up or down by one position
   reorderItem(itemId, direction) {
-    // Auto-normalize if all items have same displayOrder (handles legacy data)
-    const allSame = this.orderItems.every(item => item.displayOrder === this.orderItems[0]?.displayOrder);
-    if (allSame && this.orderItems.length > 1) {
-      this.normalizeItemDisplayOrders();
-    }
-
     const sorted = this.getSortedOrderItems();
     const currentIndex = sorted.findIndex(item => item.id === itemId);
 
@@ -471,12 +465,14 @@ class Order extends BaseModel {
     // Check boundaries
     if (targetIndex < 0 || targetIndex >= sorted.length) return false;
 
-    // Swap displayOrder values
-    const currentItem = sorted[currentIndex];
-    const targetItem = sorted[targetIndex];
-    const tempOrder = currentItem.displayOrder;
-    currentItem.displayOrder = targetItem.displayOrder;
-    targetItem.displayOrder = tempOrder;
+    // Splice and renumber instead of swapping displayOrder values:
+    // legacy items can share duplicate or undefined displayOrders, which
+    // makes a swap a silent no-op. Renumbering self-heals that data.
+    const [item] = sorted.splice(currentIndex, 1);
+    sorted.splice(targetIndex, 0, item);
+    sorted.forEach((it, index) => {
+      it.displayOrder = index;
+    });
 
     return true;
   }
