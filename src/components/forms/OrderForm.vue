@@ -738,21 +738,22 @@ const clearUser = () => {
     </div>
 
     <form v-else @submit.prevent="handleSubmit">
-      <!-- Collapsed POS Display -->
-      <div
-        v-if="shouldAutoSelectClient && isClientSectionCollapsed"
-        class="flat-card cursor-pointer p-3 flex items-center justify-between"
-        @click="isClientSectionCollapsed = false"
-      >
-        <span class="text-sm text-neutral-700">
-          <span class="font-bold">Cliente:</span> {{ formData.userName || 'Punto de Venta' }}
-        </span>
-        <PhCaretDown class="w-4 h-4 text-neutral-500" />
-      </div>
+      <!-- Client, Date & Delivery Card -->
+      <div class="base-card flex flex-col gap-4">
 
-      <!-- Full Client & Date Card -->
-      <div v-if="!shouldAutoSelectClient || !isClientSectionCollapsed" id="client-date-card" class="base-card flex flex-col gap-2">
+        <!-- Collapsed POS client display -->
+        <div
+          v-if="shouldAutoSelectClient && isClientSectionCollapsed"
+          class="cursor-pointer flex items-center justify-between"
+          @click="isClientSectionCollapsed = false"
+        >
+          <span class="text-sm text-neutral-700">
+            <span class="font-bold">Cliente:</span> {{ formData.userName || 'Punto de Venta' }}
+          </span>
+          <PhCaretDown class="w-4 h-4 text-neutral-500" />
+        </div>
 
+        <template v-if="!shouldAutoSelectClient || !isClientSectionCollapsed">
         <div>
           <label for="client-select">{{
             fetching ? "Clientes..." : "Clientes"
@@ -843,24 +844,17 @@ const clearUser = () => {
             }}</span>
           </div>
         </div>
+        </template>
 
-      </div>
-
-      <NewClientDialog
-        v-model:isOpen="isNewClientDialogOpen"
-        @client-created="handleClientCreated"
-      />
-
-      <div class="base-card flex flex-col gap-2">
+        <template v-if="!shouldHideDeliveryOptions">
         <RadioButtonGroup
-          v-if="!shouldHideDeliveryOptions"
           v-model="formData.fulfillmentType"
           :options="fulfillmentTypes"
           name="fulfillment-type"
           label="Tipo de Envío"
         />
 
-        <div v-if="formData.fulfillmentType === 'delivery' && !shouldHideDeliveryOptions">
+        <div v-if="formData.fulfillmentType === 'delivery'">
           <label for="delivery-address">Dirección de Entrega</label>
           <div class="grid grid-cols-[1fr_auto] gap-2">
             <input
@@ -889,35 +883,14 @@ const clearUser = () => {
             errors.deliveryAddress
           }}</span>
         </div>
+        </template>
 
-        <RadioButtonGroup
-          v-if="formData.fulfillmentType === 'delivery' && !shouldHideDeliveryOptions"
-          v-model="selectedDeliveryFee"
-          :options="deliveryFeeOptions"
-          name="delivery-fee"
-          label="Costo de Envío"
-          has-custom-option
-          custom-option-value="custom"
-        >
-          <template #custom-input>
-            <input
-              type="number"
-              v-model="formData.deliveryFee"
-              min="0"
-              step="1"
-              placeholder="Ingrese valor personalizado"
-              class="mt-2 w-full"
-            />
-          </template>
-        </RadioButtonGroup>
-
-        <RadioButtonGroup
-          v-model="formData.paymentMethod"
-          :options="paymentMethodOptions"
-          name="payment-method"
-          label="Método de Pago"
-        />
       </div>
+
+      <NewClientDialog
+        v-model:isOpen="isNewClientDialogOpen"
+        @client-created="handleClientCreated"
+      />
 
       <div class="flex justify-between mx-2" >
         <!-- Product Selection Mode Tabs -->
@@ -995,7 +968,7 @@ const clearUser = () => {
         :selectionMode="productSelectionMode"
       />
 
-      <div class="base-card">
+      <div class="base-card flex flex-col gap-4">
         <div>
           <label for="internal-notes">{{ shouldHideDeliveryOptions ? 'Comentarios' : 'Comentarios Produccion' }}</label>
           <textarea
@@ -1005,10 +978,8 @@ const clearUser = () => {
             rows="3"
           ></textarea>
         </div>
-      </div>
 
-      <div v-if="!shouldHideDeliveryOptions" class="base-card">
-        <div>
+        <div v-if="!shouldHideDeliveryOptions">
           <label for="delivery-notes">Comentarios Domicilio</label>
           <textarea
             id="delivery-notes"
@@ -1019,7 +990,8 @@ const clearUser = () => {
         </div>
       </div>
 
-      <div class="base-card">
+      <!-- Payment Card -->
+      <div class="base-card flex flex-col gap-4">
         <div class="flex items-end gap-4">
           <RadioButtonGroup
             v-model="formData.orderDiscountType"
@@ -1055,10 +1027,35 @@ const clearUser = () => {
             </button>
           </div>
         </div>
-      </div>
 
-      <!-- Payment Card -->
-      <div class="base-card flex flex-col gap-2">
+        <RadioButtonGroup
+          v-if="formData.fulfillmentType === 'delivery' && !shouldHideDeliveryOptions"
+          v-model="selectedDeliveryFee"
+          :options="deliveryFeeOptions"
+          name="delivery-fee"
+          label="Costo de Envío"
+          has-custom-option
+          custom-option-value="custom"
+        >
+          <template #custom-input>
+            <input
+              type="number"
+              v-model="formData.deliveryFee"
+              min="0"
+              step="1"
+              placeholder="Ingrese valor personalizado"
+              class="mt-2 w-full"
+            />
+          </template>
+        </RadioButtonGroup>
+
+        <RadioButtonGroup
+          v-model="formData.paymentMethod"
+          :options="paymentMethodOptions"
+          name="payment-method"
+          label="Método de Pago"
+        />
+
         <div
           :class="formData.userCategory === 'B2B' && formData.invoiceGracePeriod !== null
             ? 'grid grid-cols-[1fr_2fr] gap-2'
@@ -1202,9 +1199,3 @@ const clearUser = () => {
     </form>
   </div>
 </template>
-
-<style scoped>
-.base-card {
-  padding-top: 5px !important;  /* Half of the default 1.5rem */
-}
-</style>
