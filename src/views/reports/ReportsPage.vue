@@ -1,11 +1,58 @@
 <script setup>
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import ProductReportCard from '@/components/reports/ProductReportCard.vue';
+import {
+  PhChartLineUp,
+  PhCalendarCheck,
+  PhCalculator,
+  PhTag,
+  PhUsersThree,
+} from '@phosphor-icons/vue';
 
 const route = useRoute();
-const clientPersistencyRouteName = computed(() =>
-  route.path.startsWith('/accounting') ? 'accounting-client-persistency' : 'admin-client-persistency',
+
+const reports = [
+  {
+    title: 'Venta',
+    icon: PhChartLineUp,
+    desc: 'Ventas por periodo, cliente y forma de pago.',
+    admin: 'salesReport',
+    accounting: 'accountingSalesReport',
+  },
+  {
+    title: 'Fechas de Pago',
+    icon: PhCalendarCheck,
+    desc: 'Pedidos agrupados por fecha de pago.',
+    admin: 'paymentDates',
+    accounting: 'accountingPaymentDates',
+  },
+  {
+    title: 'Rentabilidad',
+    icon: PhCalculator,
+    desc: 'Ingresos menos costo de productos, mes a mes.',
+    admin: 'admin-income-statement',
+    accounting: 'accounting-income-statement',
+  },
+  {
+    title: 'Ventas por Producto',
+    icon: PhTag,
+    desc: 'Descarga de ingresos y cantidades por producto.',
+    admin: 'admin-product-report',
+    accounting: 'accounting-product-report',
+  },
+  {
+    title: 'Comportamiento Clientes',
+    icon: PhUsersThree,
+    desc: 'Clientes nuevos y recurrentes.',
+    admin: 'admin-client-persistency',
+    accounting: 'accounting-client-persistency',
+  },
+];
+
+const isAccounting = computed(() => route.path.startsWith('/accounting'));
+
+const availableReports = computed(() =>
+  reports.map(r => ({ ...r, name: isAccounting.value ? r.accounting : r.admin })),
 );
 </script>
 
@@ -15,16 +62,18 @@ const clientPersistencyRouteName = computed(() =>
       Reportes
     </h2>
 
-    <div class="grid gap-4">
-      <ProductReportCard />
+    <div class="grid gap-4 md:grid-cols-3">
       <router-link
-        :to="{ name: clientPersistencyRouteName }"
-        class="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
+        v-for="report in availableReports"
+        :key="report.name"
+        :to="{ name: report.name }"
+        class="base-card block hover:shadow-md transition-shadow"
       >
-        <h3 class="text-lg font-semibold">Persistencia de Clientes</h3>
-        <p class="text-sm text-neutral-500 mt-1">
-          Clientes nuevos, recurrentes y en riesgo de dejar de pedir.
-        </p>
+        <h3 class="text-lg font-semibold flex items-center gap-2">
+          <component :is="report.icon" :size="20" class="shrink-0" />
+          {{ report.title }}
+        </h3>
+        <p class="text-sm text-neutral-500 mt-1">{{ report.desc }}</p>
       </router-link>
     </div>
   </div>

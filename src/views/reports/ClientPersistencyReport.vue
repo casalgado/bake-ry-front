@@ -4,19 +4,20 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useOrderStore } from '@/stores/orderStore';
 import { formatMoney } from '@/utils/helpers';
 import { exportClientPersistency } from '@/utils/exportOrders';
+import { PhSpinner, PhDownloadSimple } from '@phosphor-icons/vue';
 
 const bakerySettingsStore = useBakerySettingsStore();
 const orderStore = useOrderStore();
 
 const filters = ref({
-  period: 'weekly',
+  period: 'monthly',
   count: 12,
   segment: 'b2b',
   dateField: 'dueDate',
 });
 
 const report = ref(null);
-const loading = ref(true);
+const loading = ref(false);
 const error = ref(null);
 const sortBy = ref('persistent');
 const statusFilter = ref(null);
@@ -32,7 +33,7 @@ const segmentOptions = [
   { value: 'b2c', label: 'B2C' },
 ];
 const dateFieldOptions = [
-  { value: 'dueDate', label: 'Fecha de Entrega' },
+  { value: 'dueDate', label: 'Fecha de Pedido' },
   { value: 'paymentDate', label: 'Fecha de Pago' },
 ];
 const sortOptions = [
@@ -85,8 +86,6 @@ onMounted(async () => {
   } catch {
     // Settings only provide a default date field; fall back to dueDate.
   }
-
-  generate();
 });
 
 const tiles = computed(() => {
@@ -178,10 +177,10 @@ const handleExport = () => {
 <template>
   <div class="container p-2 sm:p-4 px-2 lg:px-4">
     <h2 class="text-lg sm:text-2xl font-bold text-neutral-800 mb-4">
-      Persistencia de Clientes
+      Comportamiento Clientes
     </h2>
 
-    <div class="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap items-end gap-3">
+    <div class="base-card flex flex-wrap items-end gap-3">
       <div>
         <label class="block text-xs text-neutral-500 mb-1">Periodo</label>
         <select v-model="filters.period" class="form-input">
@@ -206,8 +205,13 @@ const handleExport = () => {
           <option v-for="opt in dateFieldOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
         </select>
       </div>
-      <button class="btn-primary" :disabled="loading" @click="generate">
-        {{ loading ? 'Generando...' : 'Generar' }}
+      <button
+        class="action-btn flex items-center gap-2 disabled:opacity-50"
+        :disabled="loading"
+        @click="generate"
+      >
+        <PhSpinner v-if="loading" class="animate-spin" :size="16" />
+        {{ loading ? 'Generando...' : 'Generar Reporte' }}
       </button>
     </div>
 
@@ -216,7 +220,7 @@ const handleExport = () => {
     </div>
 
     <template v-if="loading && !report">
-      <div class="bg-white rounded-lg shadow p-4 mb-4 animate-pulse space-y-2">
+      <div class="base-card animate-pulse space-y-2">
         <div class="h-4 bg-neutral-200 rounded w-1/3"></div>
         <div class="h-4 bg-neutral-200 rounded w-2/3"></div>
         <div class="h-4 bg-neutral-200 rounded w-1/2"></div>
@@ -224,7 +228,7 @@ const handleExport = () => {
     </template>
 
     <template v-else-if="report">
-      <div class="bg-white rounded-lg shadow p-4 mb-4">
+      <div class="base-card">
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <component
             :is="tile.status ? 'button' : 'div'"
@@ -252,14 +256,13 @@ const handleExport = () => {
         </p>
       </div>
 
-      <div class="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap items-center gap-3">
+      <div class="base-card flex flex-wrap items-center gap-3">
         <span class="text-xs text-neutral-500">Ordenar:</span>
         <button
           v-for="opt in sortOptions"
           :key="opt.value"
           type="button"
-          class="px-2 py-1 text-sm rounded"
-          :class="sortBy === opt.value ? 'bg-primary-100 text-primary-700 font-semibold' : 'text-neutral-600 hover:bg-neutral-100'"
+          :class="sortBy === opt.value ? 'utility-btn-active' : 'utility-btn-inactive'"
           @click="sortBy = opt.value"
         >
           {{ opt.label }}
@@ -273,20 +276,23 @@ const handleExport = () => {
         <button
           v-if="statusFilter"
           type="button"
-          class="flex items-center gap-1 px-2 py-1 text-sm rounded bg-neutral-100 text-neutral-700"
+          class="utility-btn-inactive flex items-center gap-1"
           @click="statusFilter = null"
         >
           {{ statusLabels[statusFilter] || statusFilter }} ✕
         </button>
 
-        <button class="btn-secondary ml-auto" @click="handleExport">CSV</button>
+        <button class="utility-btn-inactive flex items-center gap-2 ml-auto" @click="handleExport">
+          <PhDownloadSimple :size="16" />
+          Descargar CSV
+        </button>
       </div>
 
-      <div v-if="filteredSortedClients.length === 0" class="bg-white rounded-lg shadow p-8 text-center text-neutral-500">
+      <div v-if="filteredSortedClients.length === 0" class="base-card p-8 text-center text-neutral-500">
         No hay clientes que coincidan con estos filtros.
       </div>
 
-      <div v-else class="bg-white rounded-lg shadow overflow-x-auto">
+      <div v-else class="base-card p-0 overflow-x-auto">
         <table class="persistency-table">
           <thead>
             <tr>
@@ -332,8 +338,8 @@ const handleExport = () => {
       </div>
     </template>
 
-    <div v-else-if="!loading" class="bg-white rounded-lg shadow p-8 text-center text-neutral-500">
-      Genera el reporte para ver la persistencia de clientes.
+    <div v-else-if="!loading" class="base-card p-8 text-center text-neutral-500">
+      Genera el reporte para ver el comportamiento de tus clientes.
     </div>
   </div>
 </template>

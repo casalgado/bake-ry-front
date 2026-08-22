@@ -4,7 +4,6 @@ import { useRouter, useRoute } from 'vue-router';
 import {
   PhChartLineUp,
   PhChartBar,
-  PhCalculator,
   PhDresser,
   PhTag,
   PhArrowsLeftRight,
@@ -32,12 +31,6 @@ const navigationSections = [
         icon: PhCalendarCheck,
         text: 'Fechas de Pago',
         path: '/accounting/paymentDates',
-      },
-      {
-        id: 'income_statement',
-        icon: PhCalculator,
-        text: 'Rentabilidad',
-        path: '/accounting/income-statement',
       },
       {
         id: 'reportes',

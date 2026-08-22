@@ -66,7 +66,7 @@ const segmentOptions = [
 ];
 
 const dateFieldOptions = [
-  { value: 'dueDate', label: 'Fecha de Entrega' },
+  { value: 'dueDate', label: 'Fecha de Pedido' },
   { value: 'paymentDate', label: 'Fecha de Pago' },
 ];
 
@@ -180,10 +180,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow p-4">
-    <h3 class="text-lg font-semibold mb-4">Ventas por Producto</h3>
+  <div class="container p-2 sm:p-4 px-2 lg:px-4">
+    <h2 class="text-lg sm:text-2xl font-bold text-neutral-800 mb-4">
+      Ventas por Producto
+    </h2>
 
-    <form @submit.prevent="handleSubmit" class="space-y-4">
+    <form @submit.prevent="handleSubmit" class="base-card space-y-4">
       <!-- Date Range -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
