@@ -227,6 +227,11 @@ const router = createRouter({
           name: 'admin-income-statement',
           component: () => import('../views/reports/IncomeStatement.vue'),
         },
+        {
+          path: 'client-persistency',
+          name: 'admin-client-persistency',
+          component: () => import('../views/reports/ClientPersistencyReport.vue'),
+        },
       ],
     },
     {
@@ -258,6 +263,11 @@ const router = createRouter({
           path: 'income-statement',
           name: 'accounting-income-statement',
           component: () => import('../views/reports/IncomeStatement.vue'),
+        },
+        {
+          path: 'client-persistency',
+          name: 'accounting-client-persistency',
+          component: () => import('../views/reports/ClientPersistencyReport.vue'),
         },
         {
           path: 'product-collections',

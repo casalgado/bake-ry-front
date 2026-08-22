@@ -1,5 +1,12 @@
 <script setup>
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import ProductReportCard from '@/components/reports/ProductReportCard.vue';
+
+const route = useRoute();
+const clientPersistencyRouteName = computed(() =>
+  route.path.startsWith('/accounting') ? 'accounting-client-persistency' : 'admin-client-persistency',
+);
 </script>
 
 <template>
@@ -10,6 +17,15 @@ import ProductReportCard from '@/components/reports/ProductReportCard.vue';
 
     <div class="grid gap-4">
       <ProductReportCard />
+      <router-link
+        :to="{ name: clientPersistencyRouteName }"
+        class="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow"
+      >
+        <h3 class="text-lg font-semibold">Persistencia de Clientes</h3>
+        <p class="text-sm text-neutral-500 mt-1">
+          Clientes nuevos, recurrentes y en riesgo de dejar de pedir.
+        </p>
+      </router-link>
     </div>
   </div>
 </template>

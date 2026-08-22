@@ -87,6 +87,21 @@ store.getHistory = async (orderId) => {
   }
 };
 
+store.getClientReport = async (query = {}) => {
+  store.setLoading(true);
+  store.clearError();
+
+  try {
+    const response = await service.getClientReport(query);
+    return response.data;
+  } catch (err) {
+    store.setError(err);
+    throw err;
+  } finally {
+    store.setLoading(false);
+  }
+};
+
 store.getIncomeStatement = async (query = {}) => {
   store.setLoading(true);
   store.clearError();

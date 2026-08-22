@@ -50,6 +50,21 @@ export class OrderService extends BaseService {
     }
   }
 
+  async getClientReport(query = {}) {
+    try {
+      // Format query parameters using the base service method
+      const params = this.formatQueryParams(query);
+
+      const response = await this.api.get(
+        `${this.basePath}/orders/client_report`,
+        { params },
+      );
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   async getIncomeStatement(query = {}) {
     try {
       // Use formatQueryParams to properly format the query
