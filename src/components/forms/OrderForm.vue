@@ -1,3 +1,9 @@
+<script>
+// POS only: remembers the last recoger/domicilio choice for the session.
+// Module scope so it survives form resets and remounts; cleared on page reload.
+let lastPosFulfillmentType = null;
+</script>
+
 <script setup>
 import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { useProductStore } from '@/stores/productStore';
@@ -169,6 +175,18 @@ watch(productSelectionMode, (newMode) => {
 
 const tomorrowString = getNextBusinessDayString();
 
+const deliveryFeeOptions = [
+  { value: 6000, label: '6,000' },
+  { value: 7000, label: '7,000' },
+  { value: 8000, label: '8,000' },
+  { value: 9000, label: '9,000' },
+  { value: 10000, label: '10,000' },
+  { value: 'custom', label: 'Otro' },
+];
+
+// Must stay one of the deliveryFeeOptions values, otherwise the radio group falls to "Otro"
+const DEFAULT_DELIVERY_FEE = 7000;
+
 const getInitialFormState = () => {
   return {
     userId: '',
@@ -185,7 +203,7 @@ const getInitialFormState = () => {
     dueTime: '',
     fulfillmentType: 'delivery',
     deliveryAddress: '',
-    deliveryFee: 7000,
+    deliveryFee: DEFAULT_DELIVERY_FEE,
     paymentMethod: 'cash',
     internalNotes: '',
     deliveryNotes: '',
@@ -248,7 +266,8 @@ const errors = ref({});
 const resetForm = () => {
   formData.value = getInitialFormState();
   errors.value = {};
-  selectedDeliveryFee.value = deliveryFeeOptions[0].value;
+  selectedDeliveryFee.value = DEFAULT_DELIVERY_FEE;
+  applyPOSSettings();
 
   nextTick(() => {
     setTimeout(() => {
@@ -327,8 +346,21 @@ const applyPOSSettings = () => {
   // Hide delivery options (force pickup)
   if (shouldHideDeliveryOptions.value) {
     formData.value.fulfillmentType = 'pickup';
+  } else if (shouldAutoSelectClient.value && lastPosFulfillmentType) {
+    // Restore the cashier's last recoger/domicilio choice
+    formData.value.fulfillmentType = lastPosFulfillmentType;
   }
 };
+
+// Remember the choice while in POS mode, for the next order in this session
+watch(
+  () => formData.value.fulfillmentType,
+  (newValue) => {
+    if (!props.initialData && shouldAutoSelectClient.value && !shouldHideDeliveryOptions.value) {
+      lastPosFulfillmentType = newValue;
+    }
+  },
+);
 
 onMounted(async () => {
   fetching.value = true;
@@ -602,16 +634,7 @@ const discountTypeOptions = [
   { value: 'fixed', label: 'Fijo ($)' },
 ];
 
-const deliveryFeeOptions = [
-  { value: 6000, label: '6,000' },
-  { value: 7000, label: '7,000' },
-  { value: 8000, label: '8,000' },
-  { value: 9000, label: '9,000' },
-  { value: 10000, label: '10,000' },
-  { value: 'custom', label: 'Otro' },
-];
-
-const selectedDeliveryFee = ref(deliveryFeeOptions[0].value);
+const selectedDeliveryFee = ref(DEFAULT_DELIVERY_FEE);
 
 watch(selectedDeliveryFee, (newValue) => {
   if (newValue === 'custom') {
