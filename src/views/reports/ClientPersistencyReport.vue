@@ -4,8 +4,9 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useOrderStore } from '@/stores/orderStore';
 import { formatMoney } from '@/utils/helpers';
 import { formatDateDisplay } from '@/utils/dateUtils';
-import { PhSpinner } from '@phosphor-icons/vue';
+import { PhSpinner, PhInfo } from '@phosphor-icons/vue';
 import ClientHistoryModal from '@/components/orders/ClientHistoryModal.vue';
+import AppTooltip from '@/components/common/AppTooltip.vue';
 
 const bakerySettingsStore = useBakerySettingsStore();
 const orderStore = useOrderStore();
@@ -21,7 +22,7 @@ const report = ref(null);
 const loading = ref(false);
 const error = ref(null);
 const activeTab = ref('nuevos');
-const selectedBucket = ref('caido');
+const selectedBucket = ref('estrella');
 const historyClient = ref(null);
 const sortKey = ref('orderCount');
 const sortDir = ref('desc');
@@ -41,15 +42,17 @@ const dateFieldOptions = [
   { value: 'paymentDate', label: 'Fecha de Pago' },
 ];
 
-// completePlural carries its own adjective: "semanas completas" but "meses completos".
+// Spanish gender: "semana" is feminine, "mes" masculine, so any determiner that goes
+// with the unit has to be stored alongside it rather than assembled at the call site.
 const periodUnits = {
-  weekly: { singular: 'semana', plural: 'semanas', completePlural: 'semanas completas' },
-  biweekly: { singular: 'quincena', plural: 'quincenas', completePlural: 'quincenas completas' },
-  monthly: { singular: 'mes', plural: 'meses', completePlural: 'meses completos' },
+  weekly: { singular: 'semana', plural: 'semanas', completePlural: 'semanas completas', article: 'la', allPlural: 'todas las semanas' },
+  biweekly: { singular: 'quincena', plural: 'quincenas', completePlural: 'quincenas completas', article: 'la', allPlural: 'todas las quincenas' },
+  monthly: { singular: 'mes', plural: 'meses', completePlural: 'meses completos', article: 'el', allPlural: 'todos los meses' },
 };
 
 const unitsFor = (period) =>
-  periodUnits[period] || { singular: period, plural: period, completePlural: period };
+  periodUnits[period] ||
+  { singular: period, plural: period, completePlural: period, article: '', allPlural: period };
 
 const bucketOrder = ['estrella', 'futuraEstrella', 'reactivado', 'intermitente', 'caido', 'perdido'];
 const bucketLabels = {
@@ -79,7 +82,7 @@ const generate = async () => {
     }
     report.value = result;
     activeTab.value = 'nuevos';
-    selectedBucket.value = 'caido';
+    selectedBucket.value = 'estrella';
     sortKey.value = 'orderCount';
     sortDir.value = 'desc';
   } catch (err) {
@@ -101,24 +104,61 @@ onMounted(async () => {
   }
 });
 
+// Period boundaries are calendar dates, but they arrive as instants pinned to
+// midnight in the server's zone (UTC). Reading them back in the viewer's zone
+// walks them a day backwards — 1 mar becomes 28 feb — so they are always
+// rendered in UTC, never in local time.
+const PERIOD_TZ = 'UTC';
+
 const rangeBarText = computed(() => {
   if (!report.value) return '';
   const { meta } = report.value;
-  const dateOpts = { day: 'numeric', month: 'short', year: 'numeric' };
+  const dateOpts = { day: 'numeric', month: 'short', year: 'numeric', timeZone: PERIOD_TZ };
   const range = `${formatDateDisplay(meta.rangeStart, dateOpts)} → ${formatDateDisplay(meta.rangeEnd, dateOpts)}`;
   return `${meta.count} ${unitsFor(meta.period).plural} · ${range}`;
 });
 
+// The backend returns only the finished percentage, but the two sides of the ratio are
+// just bucket sizes, so the tooltip can show the arithmetic without a backend change.
+const recurringBuckets = ['estrella', 'futuraEstrella', 'reactivado', 'intermitente'];
+
 const kpiCards = computed(() => {
   if (!report.value) return [];
-  const { kpis, meta } = report.value;
+  const { kpis, meta, buckets } = report.value;
   const newPct = kpis.activeClients > 0 ? Math.round(100 * kpis.newClients / kpis.activeClients) : null;
-  const units = unitsFor(meta.period);
+  const u = unitsFor(meta.period);
+  const bucketSize = key => (buckets?.[key] || []).length;
+  const recurring = recurringBuckets.reduce((sum, key) => sum + bucketSize(key), 0);
+  const evaluated = bucketOrder.reduce((sum, key) => sum + bucketSize(key), 0);
   return [
-    { key: 'clientes', label: 'CLIENTES', value: kpis.activeClients },
-    { key: 'nuevos', label: 'NUEVOS', value: newPct !== null ? `${kpis.newClients} (${newPct}%)` : kpis.newClients },
-    { key: 'promedio', label: 'PROMEDIO NUEVOS', value: kpis.avgNewPerPeriod, caption: `Clientes nuevos por ${units.singular}, promediando solo ${units.completePlural}.` },
-    { key: 'recurrentes', label: '% RECURRENTES', value: kpis.returningPct !== null ? `${kpis.returningPct}%` : '—' },
+    {
+      key: 'clientes',
+      label: 'CLIENTES',
+      value: kpis.activeClients,
+      description: 'Clientes que hicieron al menos un pedido en el rango seleccionado.',
+    },
+    {
+      key: 'nuevos',
+      label: 'NUEVOS',
+      value: newPct !== null ? `${kpis.newClients} (${newPct}%)` : kpis.newClients,
+      description: 'Clientes que hicieron su primer pedido de la historia dentro de este rango. El porcentaje es sobre el total de clientes del rango.',
+    },
+    {
+      key: 'promedio',
+      label: 'PROMEDIO NUEVOS',
+      value: kpis.avgNewPerPeriod,
+      description: `Clientes nuevos por ${u.singular}, promediando solo ${u.completePlural}.`,
+    },
+    {
+      key: 'recurrentes',
+      label: '% RECURRENTES',
+      value: kpis.returningPct !== null ? `${kpis.returningPct}%` : '—',
+      description: [
+        `Cálculo: ${recurring} recurrentes ÷ ${evaluated} evaluados = ${kpis.returningPct ?? '—'}%`,
+        'Cuentan como recurrentes: estrella, futura estrella, reactivado e intermitente. No cuentan: caído y perdido.',
+        `Quien hizo su primer pedido en ${u.article} ${u.singular} actual queda fuera del cálculo — con un solo pedido todavía no se sabe si vuelve. Entra al terminar ${u.article} ${u.singular}, cuando ya tenga historia completa.`,
+      ].join('\n\n'),
+    },
   ];
 });
 
@@ -147,6 +187,21 @@ const nuevosClients = computed(() => {
   }));
 });
 
+// The bucket rules are stated in terms of the selected period, so the copy is built
+// from the report's own units rather than hardcoded to months.
+const bucketDescriptions = computed(() => {
+  const u = unitsFor(report.value?.meta?.period);
+  return {
+    nuevos: `Hicieron su primer pedido en ${u.article} ${u.singular} actual.`,
+    estrella: `Pidieron en ${u.allPlural} del rango, sin fallar una sola vez. Los mejores clientes.`,
+    futuraEstrella: `Llegaron durante el rango y desde entonces han pedido cada ${u.singular} sin fallar. Van camino a ser Estrellas.`,
+    reactivado: `Estuvieron perdidos — 3 o más ${u.plural} sin pedir — y acaban de volver.`,
+    intermitente: `Piden con altibajos, saltándose ${u.plural} de vez en cuando. Siguen activos, solo que irregulares.`,
+    caido: `Dejaron de pedir hace 1 o 2 ${u.plural}.`,
+    perdido: `Llevan 3 o más ${u.plural} sin pedir.`,
+  };
+});
+
 const bucketSummaries = computed(() => {
   if (!report.value) return [];
   const summaries = bucketOrder.map(key => {
@@ -154,6 +209,7 @@ const bucketSummaries = computed(() => {
     return {
       key,
       label: bucketLabels[key],
+      description: bucketDescriptions.value[key],
       count: clients.length,
       total: clients.reduce((sum, c) => sum + (c.rangeTotal || 0), 0),
     };
@@ -161,10 +217,20 @@ const bucketSummaries = computed(() => {
   summaries.unshift({
     key: 'nuevos',
     label: 'Recién Llegados',
+    description: bucketDescriptions.value.nuevos,
     count: nuevosClients.value.length,
     total: nuevosClients.value.reduce((sum, c) => sum + (c.rangeTotal || 0), 0),
   });
   return summaries;
+});
+
+const activityDescription = computed(() => {
+  const u = unitsFor(report.value?.meta?.period);
+  return [
+    `Un cuadro por cada ${u.singular} del rango, del más antiguo al más reciente.`,
+    'Verde: pidió. Gris: no pidió. Sin relleno: todavía no era cliente.',
+    `El círculo del final es ${u.article} ${u.singular} en curso: azul si ya pidió, gris si aún no.`,
+  ].join('\n\n');
 });
 
 const selectedBucketClients = computed(() => {
@@ -204,7 +270,7 @@ const sortedBucketClients = computed(() => {
 });
 
 const formatPeriodRange = (period) => {
-  const opts = { day: 'numeric', month: 'short' };
+  const opts = { day: 'numeric', month: 'short', timeZone: PERIOD_TZ };
   return `${formatDateDisplay(period.start, opts)} – ${formatDateDisplay(period.end, opts)}`;
 };
 
@@ -289,11 +355,20 @@ const closeHistory = () => {
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div v-for="card in kpiCards" :key="card.key" class="base-card">
-          <div class="text-xs font-semibold text-neutral-500">{{ card.label }}</div>
-          <div class="text-2xl font-bold text-neutral-800">{{ card.value }}</div>
-          <div v-if="card.caption" class="text-xs font-semibold text-neutral-500 mt-1">{{ card.caption }}</div>
-        </div>
+        <AppTooltip
+          v-for="card in kpiCards"
+          :key="card.key"
+          :text="card.description"
+          placement="bottom"
+          class="w-full"
+          tabindex="0"
+        >
+          <div class="base-card relative w-full">
+            <PhInfo :size="15" aria-hidden="true" class="absolute top-2.5 right-2.5 text-neutral-500" />
+            <div class="pr-5 text-xs font-semibold text-neutral-500">{{ card.label }}</div>
+            <div class="text-2xl font-bold text-neutral-800">{{ card.value }}</div>
+          </div>
+        </AppTooltip>
       </div>
 
       <div class="flex gap-2 mb-4">
@@ -326,7 +401,7 @@ const closeHistory = () => {
           <div class="text-xs text-neutral-400 mb-2">{{ formatPeriodRange(period) }}</div>
 
           <div v-if="entry.clients.length === 0" class="text-sm text-neutral-400">
-            Sin clientes nuevos
+            -
           </div>
           <ul v-else class="space-y-1">
             <li
@@ -346,18 +421,29 @@ const closeHistory = () => {
 
       <div v-else>
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
-          <button
+          <!-- No tabindex: the button inside is the tab stop, and its focus opens the tooltip. -->
+          <AppTooltip
             v-for="bucket in bucketSummaries"
             :key="bucket.key"
-            type="button"
-            class="base-card w-full text-left"
-            :class="selectedBucket === bucket.key ? 'border-primary bg-primary-100' : ''"
-            @click="selectedBucket = bucket.key"
+            :text="bucket.description"
+            placement="top"
+            class="w-full"
           >
-            <div class="text-xs font-semibold text-neutral-500">{{ bucket.label }}</div>
-            <div class="text-xl font-bold text-neutral-800">{{ bucket.count }}</div>
-            <div class="text-xs font-semibold text-neutral-500">{{ formatMoney(bucket.total) }}</div>
-          </button>
+            <template #default="{ describedBy }">
+              <button
+                type="button"
+                class="base-card relative w-full text-left"
+                :class="selectedBucket === bucket.key ? 'border-primary bg-primary-100' : ''"
+                :aria-describedby="describedBy"
+                @click="selectedBucket = bucket.key"
+              >
+                <PhInfo :size="15" aria-hidden="true" class="absolute top-2.5 right-2.5 text-neutral-500" />
+                <div class="pr-5 text-xs font-semibold text-neutral-500">{{ bucket.label }}</div>
+                <div class="text-xl font-bold text-neutral-800">{{ bucket.count }}</div>
+                <div class="text-xs font-semibold text-neutral-500">{{ formatMoney(bucket.total) }}</div>
+              </button>
+            </template>
+          </AppTooltip>
         </div>
 
         <div v-if="selectedBucketClients.length === 0" class="base-card p-8 text-center text-neutral-500">
@@ -379,7 +465,14 @@ const closeHistory = () => {
                     <span v-if="sortKey === col.key">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
                   </button>
                 </th>
-                <th class="text-left py-2 px-3 font-medium text-neutral-600">Actividad</th>
+                <th class="text-left py-2 px-3 font-medium text-neutral-600">
+                  <AppTooltip :text="activityDescription" placement="left" tabindex="0">
+                    <span class="inline-flex items-center gap-1">
+                      Actividad
+                      <PhInfo :size="15" aria-hidden="true" class="text-neutral-500" />
+                    </span>
+                  </AppTooltip>
+                </th>
               </tr>
             </thead>
             <tbody>

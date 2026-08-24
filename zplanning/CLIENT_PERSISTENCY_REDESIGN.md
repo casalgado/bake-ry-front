@@ -54,7 +54,7 @@ Horizontal-scroll flex of period cards, **newest first (left)**.
 #### Recurrentes tab
 Applies to every client with ≥1 order in range **except** those whose first order is in the current period (they live in the Nuevos tab only).
 
-Bucket summary cards in a row (count + total value). Click one → its client list below. One list at a time. **Default selection: Caídos** (the actionable bucket).
+Bucket summary cards in a row (count + total value). Click one → its client list below. One list at a time. **Default selection: Estrellas** (the first card, and the healthy baseline the other buckets read against).
 
 Client row: name, total in range, N pedidos, última orden ("hace 3 semanas"). Click → history modal.
 
@@ -109,7 +109,7 @@ Examples (N=8, no partial-period order unless noted):
 - **Trivial streaks accepted**: born in the last complete period with a single `1` → Futura Estrella (streak of 1 is honest).
 - **Reactivado threshold = Perdido threshold = 3 quiet periods**, hard-coded symmetry: one concept read forward or backward. A Reactivado is a Perdido who came back.
 - **Self-healing lifecycle** (no stored state, recomputed from the vector each report): Perdido → Reactivado → Intermitente → (range slides past the gap) → Estrella.
-- Bucket card order in UI: Estrellas · Futuras Estrellas · Reactivados · Intermitentes · Caídos · Perdidos. Default selection stays Caídos.
+- Bucket card order in UI: Estrellas · Futuras Estrellas · Reactivados · Intermitentes · Caídos · Perdidos. Default selection is Estrellas.
 - % Recurrentes numerator = Estrellas + Futuras Estrellas + Reactivados + Intermitentes.
 
 Known caveat (document in UI, don't solve): a loyal monthly client viewed weekly looks Intermitente/Caído. Weekly/quincena views judge weekly/quincena cadence — pick the period that matches the segment's rhythm.
