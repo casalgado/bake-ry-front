@@ -87,6 +87,17 @@ store.getHistory = async (orderId) => {
   }
 };
 
+// Deliberately does NOT touch store.items / loading / error: this is a lookup
+// for a single client, not a replacement for the currently loaded order list.
+// Callers own their own loading state.
+store.getClientOrders = async (userId) => {
+  const response = await service.getAll({
+    filters: { userId },
+    sort: { field: 'dueDate', direction: 'desc' },
+  });
+  return response.data;
+};
+
 store.getClientReport = async (query = {}) => {
   store.setLoading(true);
   store.clearError();

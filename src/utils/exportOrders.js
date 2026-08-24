@@ -1152,36 +1152,6 @@ const exportIncomeStatement = (reportData, options = {}) => {
   }
 };
 
-// EXPORT CLIENT PERSISTENCY REPORT
-const exportClientPersistency = (report) => {
-  const { periods = [], clients = [] } = report;
-
-  const rows = clients.map((client) => {
-    const row = {
-      cliente: client.name || '',
-      pedidos: client.orderCount,
-      ltv: client.ltv,
-      primer_pedido: client.firstOrderDate ? new Date(client.firstOrderDate).toISOString().split('T')[0] : '',
-      ultimo_pedido: client.lastOrderDate ? new Date(client.lastOrderDate).toISOString().split('T')[0] : '',
-      dias_desde_ultimo: client.daysSinceLast,
-      mediana_dias_entre_pedidos: client.medianGapDays ?? '',
-      estado: client.status,
-    };
-    periods.forEach((period, index) => {
-      // period.key is unique; labels can repeat across years
-      row[period.key] = client.cells[index]?.total || 0;
-    });
-    return row;
-  });
-
-  const worksheet = XLSX.utils.json_to_sheet(rows);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Persistencia');
-
-  const filename = `persistencia_clientes_${new Date().toISOString().split('T')[0]}.csv`;
-  XLSX.writeFile(workbook, filename, { bookType: 'csv' });
-};
-
 // Helper function to format month label (used in export)
 const formatMonthLabel = (monthStr) => {
   const [year, month] = monthStr.split('-');
@@ -1190,4 +1160,4 @@ const formatMonthLabel = (monthStr) => {
   return `${months[parseInt(month) - 1]} ${year}`;
 };
 
-export { exportOrders, exportProducts, exportPaymentReport, exportProductReport, exportIncomeStatement, exportClientPersistency };
+export { exportOrders, exportProducts, exportPaymentReport, exportProductReport, exportIncomeStatement };

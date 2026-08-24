@@ -3,28 +3,32 @@ import { ref, computed, onMounted } from 'vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useOrderStore } from '@/stores/orderStore';
 import { formatMoney } from '@/utils/helpers';
-import { exportClientPersistency } from '@/utils/exportOrders';
-import { PhSpinner, PhDownloadSimple } from '@phosphor-icons/vue';
+import { formatDateDisplay } from '@/utils/dateUtils';
+import { PhSpinner } from '@phosphor-icons/vue';
+import ClientHistoryModal from '@/components/orders/ClientHistoryModal.vue';
 
 const bakerySettingsStore = useBakerySettingsStore();
 const orderStore = useOrderStore();
 
 const filters = ref({
   period: 'monthly',
-  count: 12,
-  segment: 'b2b',
+  count: 6,
+  segment: 'b2c',
   dateField: 'dueDate',
 });
 
 const report = ref(null);
 const loading = ref(false);
 const error = ref(null);
-const sortBy = ref('persistent');
-const statusFilter = ref(null);
-const minOrders = ref(1);
+const activeTab = ref('nuevos');
+const selectedBucket = ref('caido');
+const historyClient = ref(null);
+const sortKey = ref('orderCount');
+const sortDir = ref('desc');
 
 const periodOptions = [
   { value: 'weekly', label: 'Semanas' },
+  { value: 'biweekly', label: 'Quincenas' },
   { value: 'monthly', label: 'Meses' },
 ];
 const countOptions = [4, 6, 8, 12];
@@ -36,20 +40,25 @@ const dateFieldOptions = [
   { value: 'dueDate', label: 'Fecha de Pedido' },
   { value: 'paymentDate', label: 'Fecha de Pago' },
 ];
-const sortOptions = [
-  { value: 'name', label: 'Nombre' },
-  { value: 'value', label: 'Valor' },
-  { value: 'persistent', label: 'Persistencia' },
-  { value: 'new', label: 'Nuevos' },
-];
-const minOrdersOptions = [1, 2, 5, 10];
 
-const statusLabels = {
-  active: 'Activo',
-  overdue: 'Atrasado',
-  at_risk: 'En riesgo',
-  lapsed: 'Perdido',
-  one_time: 'Compra única',
+// completePlural carries its own adjective: "semanas completas" but "meses completos".
+const periodUnits = {
+  weekly: { singular: 'semana', plural: 'semanas', completePlural: 'semanas completas' },
+  biweekly: { singular: 'quincena', plural: 'quincenas', completePlural: 'quincenas completas' },
+  monthly: { singular: 'mes', plural: 'meses', completePlural: 'meses completos' },
+};
+
+const unitsFor = (period) =>
+  periodUnits[period] || { singular: period, plural: period, completePlural: period };
+
+const bucketOrder = ['estrella', 'futuraEstrella', 'reactivado', 'intermitente', 'caido', 'perdido'];
+const bucketLabels = {
+  estrella: 'Estrellas',
+  futuraEstrella: 'Futuras Estrellas',
+  reactivado: 'Reactivados',
+  intermitente: 'Intermitentes',
+  caido: 'Caídos',
+  perdido: 'Perdidos',
 };
 
 const generate = async () => {
@@ -64,7 +73,15 @@ const generate = async () => {
         date_field: filters.value.dateField,
       },
     };
-    report.value = await orderStore.getClientReport(query);
+    const result = await orderStore.getClientReport(query);
+    if (!result?.kpis || !result?.periods || !result?.buckets || !result?.nuevosPorPeriodo) {
+      throw new Error('Respuesta del servidor inválida.');
+    }
+    report.value = result;
+    activeTab.value = 'nuevos';
+    selectedBucket.value = 'caido';
+    sortKey.value = 'orderCount';
+    sortDir.value = 'desc';
   } catch (err) {
     error.value = err.message || 'Error al obtener el reporte de persistencia';
   } finally {
@@ -73,10 +90,6 @@ const generate = async () => {
 };
 
 onMounted(async () => {
-  if (window.innerWidth < 640) {
-    filters.value.count = 6;
-  }
-
   try {
     await bakerySettingsStore.fetchById('default');
     const defaultFilter = bakerySettingsStore.currentItem?.features?.reports?.defaultReportFilter;
@@ -88,89 +101,132 @@ onMounted(async () => {
   }
 });
 
-const tiles = computed(() => {
-  if (!report.value) return [];
-  const t = report.value.summary.tiles;
-  const newClientsDelta = t.newClients.prevPeriod != null
-    ? t.newClients.value - t.newClients.prevPeriod
-    : null;
+const rangeBarText = computed(() => {
+  if (!report.value) return '';
+  const { meta } = report.value;
+  const dateOpts = { day: 'numeric', month: 'short', year: 'numeric' };
+  const range = `${formatDateDisplay(meta.rangeStart, dateOpts)} → ${formatDateDisplay(meta.rangeEnd, dateOpts)}`;
+  return `${meta.count} ${unitsFor(meta.period).plural} · ${range}`;
+});
 
+const kpiCards = computed(() => {
+  if (!report.value) return [];
+  const { kpis, meta } = report.value;
+  const newPct = kpis.activeClients > 0 ? Math.round(100 * kpis.newClients / kpis.activeClients) : null;
+  const units = unitsFor(meta.period);
   return [
-    {
-      key: 'nuevos',
-      label: 'NUEVOS',
-      value: t.newClients.value,
-      caption: newClientsDelta !== null
-        ? `${newClientsDelta >= 0 ? '↑' : '↓'} ${Math.abs(newClientsDelta)} periodo ant.`
-        : null,
-    },
-    {
-      key: 'regresaron',
-      label: 'REGRESARON',
-      value: t.returnRate.value !== null ? `${t.returnRate.value}%` : '—',
-      caption: `de ${t.returnRate.judged} juzgados${t.returnRate.tooEarly ? ' · ' + t.returnRate.tooEarly + ' muy recientes' : ''}`,
-    },
-    {
-      key: 'at_risk',
-      label: 'EN RIESGO',
-      value: t.atRisk.count,
-      status: 'at_risk',
-    },
-    {
-      key: 'lapsed',
-      label: 'PERDIDOS',
-      value: t.lapsed.count,
-      status: 'lapsed',
-    },
+    { key: 'clientes', label: 'CLIENTES', value: kpis.activeClients },
+    { key: 'nuevos', label: 'NUEVOS', value: newPct !== null ? `${kpis.newClients} (${newPct}%)` : kpis.newClients },
+    { key: 'promedio', label: 'PROMEDIO NUEVOS', value: kpis.avgNewPerPeriod, caption: `Clientes nuevos por ${units.singular}, promediando solo ${units.completePlural}.` },
+    { key: 'recurrentes', label: '% RECURRENTES', value: kpis.returningPct !== null ? `${kpis.returningPct}%` : '—' },
   ];
 });
 
-const insight = computed(() => {
-  if (!report.value) return '';
-  const { gained, lost } = report.value.summary.tiles.quickRatio;
-  if (gained > lost) return `Tu base está creciendo: entran ${gained}, se van ${lost}.`;
-  if (gained < lost) return `Tu base se está reduciendo: entran ${gained}, se van ${lost}.`;
-  return `Tu base está estable: entran ${gained}, se van ${lost}.`;
-});
-
-const toggleStatusFilter = (status) => {
-  statusFilter.value = statusFilter.value === status ? null : status;
-};
-
-const filteredSortedClients = computed(() => {
+const nuevosPeriodsReversed = computed(() => {
   if (!report.value) return [];
-  let list = report.value.clients.filter(c => c.orderCount >= minOrders.value);
-  if (statusFilter.value) {
-    list = list.filter(c => c.status === statusFilter.value);
-  }
-
-  const sorted = [...list];
-  if (sortBy.value === 'name') {
-    sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-  } else if (sortBy.value === 'value') {
-    sorted.sort((a, b) => b.windowTotal - a.windowTotal);
-  } else if (sortBy.value === 'persistent') {
-    sorted.sort((a, b) => b.persistentCount - a.persistentCount);
-  } else if (sortBy.value === 'new') {
-    sorted.sort((a, b) => {
-      if (a.firstSeenIndex === -1) return 1;
-      if (b.firstSeenIndex === -1) return -1;
-      return b.firstSeenIndex - a.firstSeenIndex;
-    });
-  }
-  return sorted;
+  return report.value.periods
+    .map((period, index) => ({ period, entry: report.value.nuevosPorPeriodo[index] }))
+    .reverse();
 });
 
-const warningTitle = (client) => {
-  const baseline = client.gapRatio ? Math.round(client.daysSinceLast / client.gapRatio) : null;
-  if (baseline === null) {
-    return `Sin historial suficiente para estimar su ritmo. Han pasado ${client.daysSinceLast} días.`;
+// Clients whose first-ever order landed in the still-open period. The backend
+// keeps them out of the buckets (they have no complete-period history to
+// classify), so they get their own card here. Mapped to the bucket row shape:
+// no vector, and the partial dot is filled by definition.
+const nuevosClients = computed(() => {
+  if (!report.value) return [];
+  const partial = report.value.nuevosPorPeriodo[report.value.nuevosPorPeriodo.length - 1];
+  return (partial?.clients || []).map(c => ({
+    userId: c.userId,
+    name: c.name,
+    rangeTotal: c.total,
+    orderCount: c.orderCount,
+    lastOrderDate: c.lastOrderDate,
+    vector: '',
+    orderedInPartial: true,
+  }));
+});
+
+const bucketSummaries = computed(() => {
+  if (!report.value) return [];
+  const summaries = bucketOrder.map(key => {
+    const clients = report.value.buckets[key] || [];
+    return {
+      key,
+      label: bucketLabels[key],
+      count: clients.length,
+      total: clients.reduce((sum, c) => sum + (c.rangeTotal || 0), 0),
+    };
+  });
+  summaries.unshift({
+    key: 'nuevos',
+    label: 'Recién Llegados',
+    count: nuevosClients.value.length,
+    total: nuevosClients.value.reduce((sum, c) => sum + (c.rangeTotal || 0), 0),
+  });
+  return summaries;
+});
+
+const selectedBucketClients = computed(() => {
+  if (!report.value) return [];
+  if (selectedBucket.value === 'nuevos') return nuevosClients.value;
+  return report.value.buckets[selectedBucket.value] || [];
+});
+
+const clientColumns = [
+  { key: 'name', label: 'Cliente', align: 'left', type: 'text' },
+  { key: 'rangeTotal', label: 'Total', align: 'right' },
+  { key: 'orderCount', label: 'Pedidos', align: 'right' },
+  { key: 'lastOrderDate', label: 'Última orden', align: 'left', type: 'date' },
+];
+
+const setSort = (key) => {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey.value = key;
+    sortDir.value = 'desc';
   }
-  return `Suele pedir cada ${baseline} días. Han pasado ${client.daysSinceLast}.`;
 };
 
-const handleExport = () => {
-  if (report.value) exportClientPersistency(report.value);
+const sortedBucketClients = computed(() => {
+  const rows = [...selectedBucketClients.value];
+  const dir = sortDir.value === 'asc' ? 1 : -1;
+  const type = clientColumns.find(c => c.key === sortKey.value)?.type;
+  rows.sort((a, b) => {
+    const av = a[sortKey.value];
+    const bv = b[sortKey.value];
+    if (type === 'text') return String(av || '').localeCompare(String(bv || '')) * dir;
+    if (type === 'date') return (new Date(av) - new Date(bv)) * dir;
+    return ((av || 0) - (bv || 0)) * dir;
+  });
+  return rows;
+});
+
+const formatPeriodRange = (period) => {
+  const opts = { day: 'numeric', month: 'short' };
+  return `${formatDateDisplay(period.start, opts)} – ${formatDateDisplay(period.end, opts)}`;
+};
+
+// 'always' so day 2 reads "hace 2 días" rather than "anteayer"; 0 and 1 are spelled out.
+const relativeTime = new Intl.RelativeTimeFormat('es', { numeric: 'always' });
+
+const relativeFromNow = (dateValue) => {
+  const diffDays = Math.floor((Date.now() - new Date(dateValue).getTime()) / 86400000);
+  if (diffDays <= 0) return 'hoy';
+  if (diffDays === 1) return 'ayer';
+  if (diffDays < 7) return relativeTime.format(-diffDays, 'day');
+  if (diffDays < 35) return relativeTime.format(-Math.floor(diffDays / 7), 'week');
+  if (diffDays < 365) return relativeTime.format(-Math.floor(diffDays / 30), 'month');
+  return relativeTime.format(-Math.floor(diffDays / 365), 'year');
+};
+
+const openHistory = (client) => {
+  historyClient.value = { userId: client.userId, name: client.name };
+};
+
+const closeHistory = () => {
+  historyClient.value = null;
 };
 </script>
 
@@ -206,7 +262,7 @@ const handleExport = () => {
         </select>
       </div>
       <button
-        class="action-btn flex items-center gap-2 disabled:opacity-50"
+        class="action-btn flex items-center gap-2 px-3 py-2 text-sm my-0 disabled:opacity-50"
         :disabled="loading"
         @click="generate"
       >
@@ -228,119 +284,148 @@ const handleExport = () => {
     </template>
 
     <template v-else-if="report">
-      <div class="base-card">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <component
-            :is="tile.status ? 'button' : 'div'"
-            v-for="tile in tiles"
-            :key="tile.key"
-            :type="tile.status ? 'button' : null"
-            :aria-pressed="tile.status ? statusFilter === tile.status : null"
-            class="text-left p-3 rounded-lg border"
-            :class="[
-              tile.status && statusFilter === tile.status ? 'border-primary bg-primary-100' : 'border-neutral-200',
-              tile.status ? 'cursor-pointer hover:border-primary-300' : '',
-            ]"
-            @click="tile.status && toggleStatusFilter(tile.status)"
-          >
-            <div class="text-xs font-semibold text-neutral-500">{{ tile.label }}</div>
-            <div class="text-2xl font-bold text-neutral-800">{{ tile.value }}</div>
-            <div v-if="tile.caption" class="text-xs text-neutral-400 mt-1">{{ tile.caption }}</div>
-          </component>
+      <div class="bg-neutral-50 rounded-lg px-3 py-2 mb-4">
+        <span class="text-sm font-semibold text-neutral-700">{{ rangeBarText }}</span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <div v-for="card in kpiCards" :key="card.key" class="base-card">
+          <div class="text-xs font-semibold text-neutral-500">{{ card.label }}</div>
+          <div class="text-2xl font-bold text-neutral-800">{{ card.value }}</div>
+          <div v-if="card.caption" class="text-xs font-semibold text-neutral-500 mt-1">{{ card.caption }}</div>
         </div>
-        <p class="text-xs text-neutral-400 mt-3">
-          Calculado sobre todo el historial, no solo el periodo mostrado.
-        </p>
-        <p v-if="insight" class="text-sm text-neutral-600 mt-2">
-          ▸ {{ insight }}
-        </p>
       </div>
 
-      <div class="base-card flex flex-wrap items-center gap-3">
-        <span class="text-xs text-neutral-500">Ordenar:</span>
+      <div class="flex gap-2 mb-4">
         <button
-          v-for="opt in sortOptions"
-          :key="opt.value"
           type="button"
-          :class="sortBy === opt.value ? 'utility-btn-active' : 'utility-btn-inactive'"
-          @click="sortBy = opt.value"
+          :class="activeTab === 'nuevos' ? 'utility-btn-active' : 'utility-btn-inactive'"
+          @click="activeTab = 'nuevos'"
         >
-          {{ opt.label }}
+          Nuevos
         </button>
-
-        <span class="text-xs text-neutral-500 ml-4">Min. pedidos:</span>
-        <select v-model.number="minOrders" class="form-input form-input-sm">
-          <option v-for="n in minOrdersOptions" :key="n" :value="n">{{ n }}</option>
-        </select>
-
         <button
-          v-if="statusFilter"
           type="button"
-          class="utility-btn-inactive flex items-center gap-1"
-          @click="statusFilter = null"
+          :class="activeTab === 'recurrentes' ? 'utility-btn-active' : 'utility-btn-inactive'"
+          @click="activeTab = 'recurrentes'"
         >
-          {{ statusLabels[statusFilter] || statusFilter }} ✕
-        </button>
-
-        <button class="utility-btn-inactive flex items-center gap-2 ml-auto" @click="handleExport">
-          <PhDownloadSimple :size="16" />
-          Descargar CSV
+          Recurrentes
         </button>
       </div>
 
-      <div v-if="filteredSortedClients.length === 0" class="base-card p-8 text-center text-neutral-500">
-        No hay clientes que coincidan con estos filtros.
+      <div v-if="activeTab === 'nuevos'" class="flex gap-3 overflow-x-auto pb-2">
+        <div
+          v-for="{ period, entry } in nuevosPeriodsReversed"
+          :key="period.key"
+          class="base-card flex-shrink-0 w-64"
+        >
+          <div class="flex items-center justify-between">
+            <div class="font-semibold text-neutral-800">{{ period.label }}</div>
+            <div class="text-xs font-semibold text-neutral-500">{{ entry.clients.length }} nuevos</div>
+          </div>
+          <div class="text-xs text-neutral-400 mb-2">{{ formatPeriodRange(period) }}</div>
+
+          <div v-if="entry.clients.length === 0" class="text-sm text-neutral-400">
+            Sin clientes nuevos
+          </div>
+          <ul v-else class="space-y-1">
+            <li
+              v-for="client in entry.clients"
+              :key="client.userId"
+              class="flex justify-between items-baseline text-sm cursor-pointer hover:text-primary-600"
+              tabindex="0"
+              @click="openHistory(client)"
+              @keydown.enter="openHistory(client)"
+            >
+              <span class="truncate">{{ client.name }}</span>
+              <span class="text-neutral-500 whitespace-nowrap ml-2">{{ formatMoney(client.total, { slim: true }) }} · {{ client.orderCount }}p</span>
+            </li>
+          </ul>
+        </div>
       </div>
 
-      <div v-else class="base-card p-0 overflow-x-auto">
-        <table class="persistency-table">
-          <thead>
-            <tr>
-              <th class="sticky-col">Cliente</th>
-              <th v-for="period in report.periods" :key="period.key">{{ period.label }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="summary-row">
-              <td class="sticky-col">Nuevos</td>
-              <td v-for="(p, i) in report.summary.perPeriod" :key="i">{{ p.nuevos || '—' }}</td>
-            </tr>
-            <tr class="summary-row">
-              <td class="sticky-col">Activos</td>
-              <td v-for="(p, i) in report.summary.perPeriod" :key="i">{{ p.activos || '—' }}</td>
-            </tr>
-            <tr v-for="client in filteredSortedClients" :key="client.userId">
-              <td class="sticky-col">
-                {{ client.name }}
-                <span
-                  v-if="client.status === 'at_risk' || client.status === 'lapsed'"
-                  :title="warningTitle(client)"
-                  class="text-amber-500"
-                >⚠</span>
-              </td>
-              <td
-                v-for="(cell, i) in client.cells"
-                :key="i"
-                :class="`cell-${cell.status}`"
+      <div v-else>
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
+          <button
+            v-for="bucket in bucketSummaries"
+            :key="bucket.key"
+            type="button"
+            class="base-card w-full text-left"
+            :class="selectedBucket === bucket.key ? 'border-primary bg-primary-100' : ''"
+            @click="selectedBucket = bucket.key"
+          >
+            <div class="text-xs font-semibold text-neutral-500">{{ bucket.label }}</div>
+            <div class="text-xl font-bold text-neutral-800">{{ bucket.count }}</div>
+            <div class="text-xs font-semibold text-neutral-500">{{ formatMoney(bucket.total) }}</div>
+          </button>
+        </div>
+
+        <div v-if="selectedBucketClients.length === 0" class="base-card p-8 text-center text-neutral-500">
+          No hay clientes en este grupo.
+        </div>
+        <div v-else class="base-card p-0 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-neutral-200">
+                <th
+                  v-for="col in clientColumns"
+                  :key="col.key"
+                  :class="col.align === 'right' ? 'text-right' : 'text-left'"
+                  class="py-2 px-3 font-medium text-neutral-600 select-none"
+                  :aria-sort="sortKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'"
+                >
+                  <button type="button" class="font-medium" @click="setSort(col.key)">
+                    {{ col.label }}
+                    <span v-if="sortKey === col.key">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
+                  </button>
+                </th>
+                <th class="text-left py-2 px-3 font-medium text-neutral-600">Actividad</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="client in sortedBucketClients"
+                :key="client.userId"
+                class="border-b border-neutral-100 hover:bg-neutral-50 cursor-pointer"
+                tabindex="0"
+                @click="openHistory(client)"
+                @keydown.enter="openHistory(client)"
               >
-                {{ cell.total > 0 ? formatMoney(cell.total, { slim: true }) : '—' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="flex items-center gap-4 mt-3 text-xs text-neutral-500">
-        <span class="flex items-center gap-1"><span class="legend-swatch cell-persistent"></span> Persistente</span>
-        <span class="flex items-center gap-1"><span class="legend-swatch cell-new"></span> Nuevo</span>
-        <span class="flex items-center gap-1"><span class="legend-swatch cell-old"></span> Antiguo</span>
-        <span class="flex items-center gap-1"><span class="cell-absent">—</span> Ausente</span>
+                <td class="py-2 px-3">{{ client.name }}</td>
+                <td class="py-2 px-3 text-right whitespace-nowrap">{{ formatMoney(client.rangeTotal) }}</td>
+                <td class="py-2 px-3 text-right">{{ client.orderCount }}</td>
+                <td class="py-2 px-3 whitespace-nowrap">{{ relativeFromNow(client.lastOrderDate) }}</td>
+                <td class="py-2 px-3">
+                  <span class="vector-strip">
+                    <span
+                      v-for="(cell, i) in (client.vector || '').split('')"
+                      :key="i"
+                      class="vector-dot"
+                      :class="`vector-dot-${cell === '.' ? 'blank' : cell}`"
+                    ></span>
+                    <span
+                      class="vector-dot vector-dot-partial"
+                      :class="client.orderedInPartial ? 'vector-dot-partial-active' : 'vector-dot-partial-empty'"
+                    ></span>
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </template>
 
     <div v-else-if="!loading" class="base-card p-8 text-center text-neutral-500">
       Genera el reporte para ver el comportamiento de tus clientes.
     </div>
+
+    <ClientHistoryModal
+      :is-open="!!historyClient"
+      :user-id="historyClient?.userId"
+      :name="historyClient?.name"
+      @update:is-open="closeHistory"
+    />
   </div>
 </template>
 
@@ -349,66 +434,40 @@ const handleExport = () => {
   @apply border border-neutral-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
 }
 
-/* Modifier: use together with .form-input */
-.form-input-sm {
-  @apply px-2 py-1;
+.vector-strip {
+  display: inline-flex;
+  gap: 2px;
 }
 
-.persistency-table {
-  border-collapse: collapse;
-  width: 100%;
-}
-
-.persistency-table th,
-.persistency-table td {
-  padding: 0.5rem 0.75rem;
-  text-align: center;
-  white-space: nowrap;
-  border-bottom: 1px solid #f1f1f1;
-}
-
-.persistency-table th:first-child,
-.persistency-table td:first-child {
-  text-align: left;
-}
-
-.sticky-col {
-  position: sticky;
-  left: 0;
-  background: white;
-  z-index: 1;
-}
-
-.summary-row {
-  background: #fafafa;
-  font-weight: 600;
-}
-
-.summary-row .sticky-col {
-  background: #fafafa;
-}
-
-.cell-persistent {
-  background: #dcfce7;
-}
-
-.cell-new {
-  background: #dbeafe;
-}
-
-.cell-old {
-  background: transparent;
-}
-
-.cell-absent {
-  color: #b3b3b3;
-}
-
-.legend-swatch {
+.vector-dot {
   display: inline-block;
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 2px;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 1px;
+}
+
+.vector-dot-blank {
+  background: transparent;
   border: 1px solid #e5e5e5;
+}
+
+.vector-dot-0 {
+  background: #c9c9c9;
+}
+
+.vector-dot-1 {
+  background: #16a34a;
+}
+
+.vector-dot-partial {
+  border-radius: 50%;
+}
+
+.vector-dot-partial-empty {
+  background: #c9c9c9;
+}
+
+.vector-dot-partial-active {
+  background: #2395ff;
 }
 </style>
