@@ -156,7 +156,7 @@ const kpiCards = computed(() => {
       description: [
         `Cálculo: ${recurring} recurrentes ÷ ${evaluated} evaluados = ${kpis.returningPct ?? '—'}%`,
         'Cuentan como recurrentes: estrella, futura estrella, reactivado e intermitente. No cuentan: caído y perdido.',
-        `Quien hizo su primer pedido en ${u.article} ${u.singular} actual queda fuera del cálculo — con un solo pedido todavía no se sabe si vuelve. Entra al terminar ${u.article} ${u.singular}, cuando ya tenga historia completa.`,
+        `Quien hizo su primer pedido en ${u.article} ${u.singular} actual queda fuera del cálculo, con un solo pedido todavía no se sabe si vuelve. Entra al terminar ${u.article} ${u.singular}, cuando ya tenga historia completa.`,
       ].join('\n\n'),
     },
   ];
@@ -195,7 +195,7 @@ const bucketDescriptions = computed(() => {
     nuevos: `Hicieron su primer pedido en ${u.article} ${u.singular} actual.`,
     estrella: `Pidieron en ${u.allPlural} del rango, sin fallar una sola vez. Los mejores clientes.`,
     futuraEstrella: `Llegaron durante el rango y desde entonces han pedido cada ${u.singular} sin fallar. Van camino a ser Estrellas.`,
-    reactivado: `Estuvieron perdidos — 3 o más ${u.plural} sin pedir — y acaban de volver.`,
+    reactivado: `Estuvieron perdidos, 3 o más ${u.plural} sin pedir, y acaban de volver.`,
     intermitente: `Piden con altibajos, saltándose ${u.plural} de vez en cuando. Siguen activos, solo que irregulares.`,
     caido: `Dejaron de pedir hace 1 o 2 ${u.plural}.`,
     perdido: `Llevan 3 o más ${u.plural} sin pedir.`,
