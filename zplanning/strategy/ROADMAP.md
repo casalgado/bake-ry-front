@@ -37,6 +37,8 @@ Open questions / gaps to resolve before implementation:
 - Period closing: leaning to snapshot-on-close (closing a month stores the statement as a frozen document; later edits to underlying data flag drift instead of silently changing it) rather than hard-locking edits.
 - Colombia tax: sales IVA already tracked on products/orders; the gap is the purchases/expenses side (IVA descontable, retención). Include those fields in the new expense/purchase entry forms from day one — reporting can come later, but the data can't be reconstructed retroactively.
 
+Cross-cutting resolved decision (applies to both epics): **Inventory and Accounting ship as modules, off by default**, activated per business via a `features.inventory.enabled` / `features.accounting.enabled` flag on `BakerySettings` — the existing feature-flag mechanism. The flag gates frontend visibility only (nav, routes, entry points); no backend logic branches on it, since both epics already no-op for a non-adopting business. Details in each implementation doc's §14.
+
 Cross-cutting emphasis (applies to Inventory too): **data entry is the product risk, not the reports**. Reports are cheap once data exists; the epics succeed only if recording costs, purchases, and counts is fast and low-friction. Every entry flow should be designed and reviewed as a UX problem first.
 
 ### WhatsApp AI sales bot

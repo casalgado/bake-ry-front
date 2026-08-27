@@ -68,6 +68,13 @@ const router = createRouter({
       },
       children: [
         {
+          path: 'inventory',
+          name: 'inventory',
+          component: () => import('../views/inventory/ShowStock.vue'),
+          // Opt-in module: unreachable by URL while the flag is off (§14).
+          meta: { requiresFeature: 'inventory' },
+        },
+        {
           path: 'show-bakery',
           name: 'show-bakery',
           component: () => import('../views/bakeries/ShowBakery.vue'),
@@ -448,6 +455,31 @@ router.beforeEach(async (to, from, next) => {
         next({ name: 'home' }); // fallback
       }
       return;
+    }
+
+    // Opt-in modules: a disabled module's routes are not reachable, even by URL.
+    // Frontend visibility only — see zplanning/strategy/INVENTORY-IMPLEMENTATION.md §14.
+    if (to.meta.requiresFeature) {
+      // Imported lazily: bakerySettingsStore touches pinia at module scope.
+      const { useBakerySettingsStore } = await import('@/stores/bakerySettingsStore');
+      const settingsStore = useBakerySettingsStore();
+
+      if (!settingsStore.items.length) {
+        try {
+          await settingsStore.fetchById('default');
+        } catch (err) {
+          console.error('Could not load settings for feature guard:', err);
+        }
+      }
+
+      const isEnabled = settingsStore.items[0]
+        ?.features?.[to.meta.requiresFeature]?.enabled === true;
+
+      if (!isEnabled) {
+        console.warn(`Access denied: module "${to.meta.requiresFeature}" is not enabled`);
+        next({ name: 'dashboard' });
+        return;
+      }
     }
   }
 

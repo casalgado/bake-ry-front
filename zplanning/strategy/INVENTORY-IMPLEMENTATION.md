@@ -15,6 +15,7 @@ Design decisions for the Inventory epic ([ROADMAP.md](./ROADMAP.md) → Next →
 | Ledger: stocks docs + movements collection | ✅ Decided |
 | Stock triggers (which order changes touch stock) | ✅ Decided |
 | Trigger predicate (the "completed" definition) | ✅ Decided (§9) |
+| Module activation (opt-in per business) | ✅ Decided (§14) |
 | Role access for counts / purchases | 🔶 Open |
 
 ---
@@ -330,3 +331,27 @@ Boundary contract with [ACCOUNTING-IMPLEMENTATION.md](./ACCOUNTING-IMPLEMENTATIO
 5. **Supplier entities / accounts payable belong to neither epic** — balance-sheet phase. Until then `counterparty` (entries) and `supplier` (purchases) remain free text and must not grow into entities independently.
 
 Failure asymmetry worth remembering: rent-into-Compras is structurally impossible (the item picker only offers stock items), while flour-into-Gastos types in fine (an entry needs only an amount) — so the entire guard budget sits on the expense form's side, and the merma summary (§11.9) is the backstop that makes anything that leaks through visible instead of permanent.
+
+---
+
+## 14. Decision: module activation (shared with Accounting)
+
+Mirrored verbatim as Accounting §14. Both epics ship as **modules that are off by default** and are switched on per business.
+
+**Mechanism — the existing one, no new machinery.** `BakerySettings.features` already carries per-business behavior flags (`features.pos.enabled`, `features.order.offlineMode`) merged against `DEFAULT_FEATURES` in both the backend and frontend `BakerySettings` model, edited by system admins in `BakeryManagementView.vue`, and already consumed by `AdminSidebar.vue` to splice nav sections in and out. Two more flags join it:
+
+```
+features.inventory  = { enabled: false }
+features.accounting = { enabled: false }
+```
+
+Defaults `false`, so every existing business reads as "off" with no migration — the same trick as `inventoryMode: 'none'` (§5).
+
+**The flag gates doors, never logic.** This is the rule that keeps the toggle from becoming a bug factory:
+
+- **Frontend only**: sidebar sections, route guards (`meta.requiresFeature`), settings tabs, and entry points into product/order forms (the `inventoryMode` selector, §11.1). Off = the business sees no trace of the module, exactly as `none`-mode products see no inventory UI.
+- **Never in the backend**: no `if (features.inventory.enabled)` in `orderService`, `stockService`, or the statement computation. Both epics already no-op for a non-adopting business by construction — every product is `inventoryMode: 'none'` so `expandOrderItem` yields nothing, and with no `accountingEntries` the statement's net profit equals its gross profit. A settings check would be a **second kill switch that can drift from the first**, and toggling inventory off for a month would silently stop deductions while sales continued — a hole in an append-only ledger that no count can explain. Data collection is unconditional; only the doors open and close.
+
+**What the flag does not exempt.** Rules marked universal in §13 stay universal: ingredient spend is never an expense entry, and the decoy category (accounting §5) redirects whether or not inventory is enabled. Only its message text is context-aware.
+
+**Self-containment is the §13 contract, not the toggle.** The toggle is visibility; independence is the five data rules above. New code lives in its own directories (`src/views/inventory/`, `src/services/stockService.js`, `src/stores/stockStore.js`; the accounting counterparts) and existing services gain hooks, not knowledge of each other.

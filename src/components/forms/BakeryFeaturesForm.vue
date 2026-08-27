@@ -14,6 +14,8 @@ import {
   PhGpsSlash,
   PhUser,
   PhCalendarBlank,
+  PhWarehouse,
+  PhCalculator,
 } from '@phosphor-icons/vue';
 import { paymentIconMap } from '@/utils/paymentIcons';
 
@@ -45,6 +47,9 @@ const props = defineProps({
       posHideDeliveryOptions: false,
       posAutoSelectClient: false,
       posDefaultClientId: null,
+      // Opt-in modules
+      inventoryEnabled: false,
+      accountingEnabled: false,
     }),
   },
   availablePaymentMethods: {
@@ -334,6 +339,32 @@ watch(formData, (newValue) => {
             :icon="PhUser"
             title="Auto-seleccionar Cliente POS"
             description="Crea y selecciona automáticamente el cliente 'Punto de Venta'"
+            :disabled="loading"
+          />
+        </div>
+      </div>
+
+      <!-- Modules Section -->
+      <div v-if="systemAdminMode" class="mb-6">
+        <h3 class="text-lg font-semibold text-neutral-900 mb-2">Módulos</h3>
+        <p class="text-sm text-neutral-600 mb-4">
+          Activa módulos opcionales para este negocio. Desactivados, no aparecen en ninguna parte
+          de la aplicación.
+        </p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <FeatureCard
+            v-model="formData.inventoryEnabled"
+            :icon="PhWarehouse"
+            title="Inventario"
+            description="Recetas, control de stock, conteos y compras"
+            :disabled="loading"
+          />
+
+          <FeatureCard
+            v-model="formData.accountingEnabled"
+            :icon="PhCalculator"
+            title="Contabilidad"
+            description="Costos fijos, gastos, otros ingresos y estado de resultados"
             :disabled="loading"
           />
         </div>

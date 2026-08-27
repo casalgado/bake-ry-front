@@ -14,6 +14,7 @@ Design decisions for the Accounting epic ([ROADMAP.md](./ROADMAP.md) → Next �
 | COGS boundary vs Compras (no double counting) | ✅ Decided |
 | Compras/Gastos boundary UX (decoy category + layers) | ✅ Decided |
 | Income statement relocation + structure | ✅ Decided |
+| Module activation (opt-in per business) | ✅ Decided (§14) |
 | Role access for entries/templates | 🔶 Open |
 | Default category lists (final wording) | 🔶 Open |
 | Period closing (snapshot-on-close) | 🔶 Open — later phase |
@@ -233,3 +234,29 @@ Boundary contract with [INVENTORY-IMPLEMENTATION.md](./INVENTORY-IMPLEMENTATION.
 3. **Ingredient spend is never an expense entry — universal rule, not inventory-conditional** (§7). Guarded by the decoy category (§5).
 4. **One tax vocabulary**: `ivaAmount`, `retefuente`, `reteica`, `reteiva` — identical flat scalars on both `accountingEntries` and `purchases`, so future IVA/retención reports union the two collections without translation.
 5. **Supplier entities / accounts payable belong to neither epic** — balance-sheet phase. Until then `counterparty` (entries) and `supplier` (purchases) remain free text and must not grow into entities independently.
+
+---
+
+## 14. Decision: module activation (shared with Inventory)
+
+Mirrored verbatim as Inventory §14. Both epics ship as **modules that are off by default** and are switched on per business.
+
+**Mechanism — the existing one, no new machinery.** `BakerySettings.features` already carries per-business behavior flags (`features.pos.enabled`, `features.order.offlineMode`) merged against `DEFAULT_FEATURES` in both the backend and frontend `BakerySettings` model, edited by system admins in `BakeryManagementView.vue`, and already consumed by `AdminSidebar.vue` to splice nav sections in and out. Two more flags join it:
+
+```
+features.inventory  = { enabled: false }
+features.accounting = { enabled: false }
+```
+
+Defaults `false`, so every existing business reads as "off" with no migration — the same trick as inventory's `inventoryMode: 'none'`.
+
+**The flag gates doors, never logic.** This is the rule that keeps the toggle from becoming a bug factory:
+
+- **Frontend only**: sidebar sections (admin **and** accounting sidebars), route guards (`meta.requiresFeature`), settings tabs (category management, §5), and entry points into the month view and entry forms. Off = the business sees no trace of the module.
+- **Never in the backend**: no `if (features.accounting.enabled)` in `accountingService`, `orderService`, or the statement computation. Both epics already no-op for a non-adopting business by construction — with no `accountingEntries` the statement's net profit simply equals its gross profit, and every product is `inventoryMode: 'none'` so nothing deducts. A settings check would be a **second kill switch that can drift from the first**, and on the inventory side toggling off for a month would silently stop deductions while sales continued — a hole in an append-only ledger that no count can explain. Data collection is unconditional; only the doors open and close.
+
+**One consequence specific to this epic:** the extended income statement (§8) is *not* behind the flag. It replaces the existing one for everyone; a business with the accounting module off simply has no entries, so the new "operating expenses / net profit" rows read zero. Hiding the rows behind the flag would fork the report into two shapes for no gain.
+
+**What the flag does not exempt.** Rules marked universal in §13 stay universal: ingredient spend is never an expense entry, and the decoy category (§5) redirects whether or not inventory is enabled. Only its message text is context-aware.
+
+**Self-containment is the §13 contract, not the toggle.** The toggle is visibility; independence is the five data rules above. New code lives in its own directories (`src/services/accountingService.js`, `src/stores/accountingStore.js`, accounting views; the inventory counterparts) and existing services gain hooks, not knowledge of each other.

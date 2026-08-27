@@ -216,6 +216,16 @@ export const useSystemAdminStore = defineStore('systemAdmin', {
               autoSelectClient: featuresData.posAutoSelectClient || false,
               defaultClientId: posDefaultClientId,
             },
+            inventory: {
+              // Spread first: this form only owns `enabled`, and a patch
+              // replaces the whole features object — without this, saving it
+              // would wipe the bakery's warehouses and orderDefault.
+              ...(this.bakeries[bakeryIndex]?.settings?.features?.inventory || {}),
+              enabled: featuresData.inventoryEnabled || false,
+            },
+            accounting: {
+              enabled: featuresData.accountingEnabled || false,
+            },
           },
         };
 

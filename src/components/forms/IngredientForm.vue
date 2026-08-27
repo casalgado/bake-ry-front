@@ -55,7 +55,6 @@ const formData = ref(
     notes: '',
     costPerUnit: 0,
     currency: 'COP',
-    currentStock: 0,
     unit: '',
     suppliers: [],
     preferredSupplierId: null,
@@ -90,7 +89,6 @@ const validate = () => {
   if (!formData.value.unit) errors.value.unit = 'La unidad es requerida';
   if (formData.value.costPerUnit < 0) errors.value.costPerUnit = 'El costo no puede ser negativo';
   if (!formData.value.storageTemp) errors.value.storageTemp = 'La temperatura de almacenamiento es requerida';
-  if (formData.value.currentStock < 0) errors.value.currentStock = 'El stock no puede ser negativo';
 
   return Object.keys(errors.value).length === 0;
 };
@@ -256,20 +254,6 @@ const handleSubmit = async () => {
             readonly
           />
         </div>
-      </div>
-
-      <!-- Current Stock -->
-      <div>
-        <label class="block">Stock Actual</label>
-        <input
-          type="number"
-          v-model="formData.currentStock"
-          step="0.01"
-          min="0"
-          class="form-input"
-          :class="{ 'error': errors.currentStock }"
-        />
-        <span v-if="errors.currentStock" class="error-text">{{ errors.currentStock }}</span>
       </div>
 
       <!-- Unit -->

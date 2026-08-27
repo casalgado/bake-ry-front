@@ -55,3 +55,13 @@ store.posDefaultClientId = computed(() => {
   const config = store.posConfig;
   return config?.defaultClientId || null;
 });
+
+// Opt-in modules (see zplanning/strategy/INVENTORY-IMPLEMENTATION.md §14).
+// Read items[0] — the single settings doc — like the rest of the app does.
+store.isInventoryEnabled = computed(
+  () => store.items[0]?.features?.inventory?.enabled === true,
+);
+
+store.isAccountingEnabled = computed(
+  () => store.items[0]?.features?.accounting?.enabled === true,
+);

@@ -30,6 +30,7 @@ import {
   PhGear,
   PhArrowsLeftRight,
   PhBuildings,
+  PhWarehouse,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -127,6 +128,18 @@ const navigationSections = computed(() => {
         },
       ],
     },
+    // Opt-in module: off by default, activated per business by a system admin (§14).
+    ...(settingsStore.isInventoryEnabled ? [{
+      title: 'Inventario',
+      items: [
+        {
+          id: 'inventario',
+          icon: PhWarehouse,
+          text: 'Existencias',
+          path: '/dashboard/inventory',
+        },
+      ],
+    }] : []),
     ...(!settingsStore.shouldHideDeliveryOptions ? [{
       title: 'Entrega',
       items: [

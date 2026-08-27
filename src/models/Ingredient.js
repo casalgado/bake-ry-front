@@ -27,9 +27,6 @@ class Ingredient extends BaseModel {
     costPerUnit = 0,
     currency = 'COP',
 
-    // Inventory Management
-    currentStock = 0,
-
     // Units and Measurements
     unit,
 
@@ -68,8 +65,8 @@ class Ingredient extends BaseModel {
     this.costPerUnit = costPerUnit;
     this.currency = currency;
 
-    // Inventory Management
-    this.currentStock = currentStock;
+    // Current stock is NOT held here — it lives on the stocks docs
+    // (zplanning/strategy/INVENTORY-IMPLEMENTATION.md §8.1).
 
     // Units and Measurements
     this.unit = unit;

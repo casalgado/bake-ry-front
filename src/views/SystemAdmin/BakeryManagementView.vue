@@ -48,6 +48,8 @@ const featuresFormData = computed(() => {
     posHideDeliveryOptions: features.pos?.hideDeliveryOptions || false,
     posAutoSelectClient: features.pos?.autoSelectClient || false,
     posDefaultClientId: features.pos?.defaultClientId || null,
+    inventoryEnabled: features.inventory?.enabled || false,
+    accountingEnabled: features.accounting?.enabled || false,
   };
 });
 

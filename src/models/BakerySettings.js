@@ -61,6 +61,19 @@ class BakerySettings extends BaseModel {
       autoSelectClient: false, // Toggle for auto-selecting POS client
       defaultClientId: null, // Will store auto-created "Punto de Venta" client ID
     },
+    // Opt-in modules. Gate frontend visibility only — never backend logic.
+    // See zplanning/strategy/INVENTORY-IMPLEMENTATION.md §14.
+    inventory: {
+      enabled: false,
+      // "Bodegas" in the UI, `warehouses` in code and data. Living in the
+      // defaults means every bakery has one without a migration; a bakery
+      // with exactly one sees no bodega UI at all (CORRECTIONS §1.1).
+      warehouses: [{ id: 'main', name: 'Principal', isDefault: true }],
+      orderDefault: 'produce', // 'smart' | 'produce' | 'stock' (§2.1)
+    },
+    accounting: {
+      enabled: false,
+    },
   };
 
   static DEFAULT_BRANDING = {
