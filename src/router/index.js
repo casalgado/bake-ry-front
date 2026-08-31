@@ -110,6 +110,13 @@ const router = createRouter({
           component: () => import('../views/recipes/ShowRecipes.vue'),
         },
         {
+          path: 'recipe-book',
+          name: 'recipe-book',
+          component: () => import('../views/recipes/RecipeBookView.vue'),
+          // Same opt-in module as Existencias, so the URL can't outlive the link.
+          meta: { requiresFeature: 'inventory' },
+        },
+        {
           path: 'recipes/create',
           name: 'create-recipe',
           component: () => import('../views/recipes/CreateRecipe.vue'),

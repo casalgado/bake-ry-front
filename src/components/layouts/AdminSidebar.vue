@@ -139,6 +139,12 @@ const navigationSections = computed(() => {
           text: 'Existencias',
           path: '/dashboard/inventory',
         },
+        {
+          id: 'recipe-book',
+          icon: PhChefHat,
+          text: 'Recetario',
+          path: '/dashboard/recipe-book',
+        },
       ],
     }] : []),
     ...(!settingsStore.shouldHideDeliveryOptions ? [{
