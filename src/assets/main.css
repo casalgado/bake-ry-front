@@ -1,6 +1,9 @@
 @import './base.css';
 @import './custom-components.css';
 @import './custom-base.css';
+/* ui-* comes last so it wins ties against the frozen system above. */
+@import './ui/tokens.css';
+@import './ui/ui.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

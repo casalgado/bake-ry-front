@@ -33,3 +33,13 @@ open from the same audit, not done:
 
 
 En la tabla te productos, los precios deberian mostrarse venta / costo como en el form.
+
+
+money formatting is in three dialects (found 2026-08-27):
+- formatMoney (utils/helpers.js:126) is en-US / USD, 0 decimals. This is the one we want everywhere by default: comma thousands separators. Used in ~8 files, and the new inventory views use it too.
+- ShowOrderHistory.vue:60, ShowUserHistory.vue:23 and IncomeStatement.vue:147 each define their own local formatCurrency with es-CO (dot thousands). For IncomeStatement that is on purpose, Colombian accountants expect it. For the other two it is probably just copy paste and should go back to formatMoney.
+- so the fix is NOT "make everything es-CO". It is: keep formatMoney as the default, give it an opt in for the accounting format (something like formatMoney(v, { accounting: true })), move IncomeStatement onto that, and delete the two other local copies.
+- currency is hardcoded USD in formatMoney even though the app is COP. Decide if currency is per bakery (a settings field) or just fixed, then set it once.
+- bug: SimpleTable.vue:38 calls formatMoney(value, currency), but the second arg is destructured as { slim = false }. Passing a currency string silently yields slim undefined and the argument is dropped. That table has never actually supported a currency.
+
+no quantity formatter exists. getUnitTypeLabel (helpers.js:235) maps weight/volume/count to Spanish labels for form dropdowns, that is not the same thing. Inventory needs formatQty (number only, max 3 decimals, unit rendered as its own span next to it, not glued into the string).

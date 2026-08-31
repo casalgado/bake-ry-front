@@ -125,9 +125,9 @@ All API communication is abstracted through service classes:
 - TanStack forms for complex form validation
 
 #### Styling Approach
-- Tailwind CSS for utility-first styling
-- Custom base styles in `src/assets/`
-- Comprehensive design system documented in `StyleGuidelines.md`
+- Two systems coexist. The old one is Tailwind classes + `src/assets/custom-components.css`, and it is **frozen**.
+- The new one is `ui-*`: `src/assets/ui/tokens.css` (colors) and `src/assets/ui/ui.css` (classes), with a live gallery at `/system-admin/ux`. **Read `src/assets/ui/CLAUDE.md` before writing any new view or touching either file.**
+- New views use `ui-*` for color and Tailwind for arrangement. Migration is gradual, per screen.
 - SVG icons loaded via vite-svg-loader with currentColor support
 
 #### Code Quality

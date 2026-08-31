@@ -1,0 +1,687 @@
+<title>La Bodega</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+
+<style>
+:root{
+  --ground:#F6F7F4; --surface:#FFFFFF; --surface-2:#EFF1EC; --surface-3:#E6E9E1;
+  --ink:#161C18; --ink-2:#5A635C; --ink-3:#8A9289;
+  --line:#DCE0D7; --line-strong:#C3C9BC;
+  --accent:#B4315C; --accent-ink:#8E2148; --accent-soft:#F7E4EA;
+  --ok:#5E8A4E; --ok-soft:#E6EFE0;
+  --pending:#B8801A; --pending-soft:#F7EDD8;
+  --shadow:0 1px 2px rgba(22,28,24,.06), 0 8px 24px -12px rgba(22,28,24,.18);
+  --display:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --body:"Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#131612; --surface:#1B1F1A; --surface-2:#232821; --surface-3:#2B3129;
+    --ink:#EAEEE6; --ink-2:#9AA396; --ink-3:#6F776C;
+    --line:#2E342C; --line-strong:#3E463B;
+    --accent:#E5799A; --accent-ink:#F0A0B8; --accent-soft:#3A1F28;
+    --ok:#8FC178; --ok-soft:#233021;
+    --pending:#E0AE55; --pending-soft:#332A16;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#131612; --surface:#1B1F1A; --surface-2:#232821; --surface-3:#2B3129;
+  --ink:#EAEEE6; --ink-2:#9AA396; --ink-3:#6F776C;
+  --line:#2E342C; --line-strong:#3E463B;
+  --accent:#E5799A; --accent-ink:#F0A0B8; --accent-soft:#3A1F28;
+  --ok:#8FC178; --ok-soft:#233021;
+  --pending:#E0AE55; --pending-soft:#332A16;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--body); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit; color:inherit; background:none; border:none; cursor:pointer}
+input{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+
+.wrap{max-width:1280px; margin:0 auto; padding:24px 20px 64px}
+.note{font-size:13px; color:var(--ink-2); max-width:70ch}
+.note b{color:var(--ink)}
+.kicker{
+  font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3);
+}
+h1{
+  font-family:var(--display); font-weight:800; font-size:clamp(28px,4vw,40px);
+  letter-spacing:-.02em; margin:.2em 0 .1em; text-wrap:balance;
+}
+.head{display:flex; flex-wrap:wrap; gap:16px 32px; align-items:flex-end; justify-content:space-between; margin-bottom:22px}
+
+/* ---------- app shell ---------- */
+.app{
+  background:var(--surface); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--shadow); overflow:hidden;
+}
+.rail{
+  display:flex; align-items:stretch; gap:2px; padding:8px 10px 0;
+  background:var(--surface-2); border-bottom:1px solid var(--line);
+  overflow-x:auto; scrollbar-width:thin;
+}
+.tab{
+  display:flex; align-items:center; gap:9px; white-space:nowrap;
+  padding:9px 14px; border-radius:9px 9px 0 0;
+  border:1px solid transparent; border-bottom:none;
+  color:var(--ink-2); font-weight:600; font-size:14px;
+  position:relative; top:1px;
+}
+.tab:hover{color:var(--ink); background:color-mix(in srgb, var(--surface) 55%, transparent)}
+.tab[aria-selected="true"]{background:var(--surface); border-color:var(--line); color:var(--ink)}
+.tab .dot{width:7px; height:7px; border-radius:50%; background:var(--pending); flex:none}
+.tab .home{font-family:var(--display); font-weight:700; letter-spacing:-.01em}
+.tab .badge{
+  font-family:var(--mono); font-size:11.5px; color:var(--ink-3); font-variant-numeric:tabular-nums;
+}
+.tab .x{
+  margin-left:2px; width:18px; height:18px; border-radius:5px; line-height:16px;
+  text-align:center; color:var(--ink-3); font-size:14px;
+}
+.tab .x:hover{background:var(--surface-3); color:var(--ink)}
+
+/* ---------- columns ---------- */
+.cols{display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr); min-height:600px}
+.cols.one{grid-template-columns:minmax(0,1fr)}
+.col{padding:20px 22px; min-width:0}
+.col + .col{border-left:1px solid var(--line)}
+.col.right{background:var(--surface-2)}
+@media (max-width:900px){ .cols{grid-template-columns:1fr} .col + .col{border-left:none; border-top:1px solid var(--line)} }
+
+.colhead{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px}
+.colhead h2{font-family:var(--display); font-weight:700; font-size:17px; letter-spacing:-.01em; margin:0}
+.colhead .sub{font-size:13px; color:var(--ink-3)}
+
+/* ---------- bodega header: the number you came for ---------- */
+.vault{
+  display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:14px 24px;
+  padding:14px 16px; margin-bottom:16px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:12px;
+}
+.col.right .vault{background:var(--surface)}
+.vault .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
+.vault .v{
+  font-family:var(--display); font-size:30px; font-weight:800; letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums; line-height:1.05;
+}
+.acts{display:flex; flex-wrap:wrap; gap:7px}
+.abtn{
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:13.5px; font-weight:700; padding:7px 13px; border-radius:9px;
+  border:1px solid var(--line-strong); background:var(--surface); color:var(--ink-2);
+  transition:transform .1s, border-color .1s, color .1s, box-shadow .1s;
+}
+.abtn:hover{transform:translateY(-1px); border-color:var(--accent); color:var(--accent); box-shadow:var(--shadow)}
+.abtn.solid{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+.abtn.solid:hover{color:var(--ground); border-color:var(--ink); opacity:.9}
+.abtn .g{font-family:var(--mono); font-size:14px; line-height:1}
+
+/* ---------- shelves / stock rows ---------- */
+.shelf{margin-bottom:18px}
+.shelf h3{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); margin:0 0 8px; display:flex; align-items:center; gap:8px;
+}
+.shelf h3::after{content:""; flex:1; height:1px; background:var(--line)}
+.list{display:flex; flex-direction:column; gap:5px}
+.srow{
+  display:grid; grid-template-columns:1fr auto auto; gap:12px; align-items:baseline;
+  width:100%; text-align:left; padding:9px 12px; border-radius:9px;
+  border:1px solid transparent; transition:background .12s, border-color .12s;
+}
+.srow:hover{background:var(--surface-2)}
+.srow[aria-current="true"]{background:var(--accent-soft); border-color:color-mix(in srgb, var(--accent) 30%, transparent)}
+.srow .nm{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.srow .q{
+  font-family:var(--mono); font-weight:600; font-size:15px; font-variant-numeric:tabular-nums;
+  letter-spacing:-.01em;
+}
+.srow .q small{font-weight:400; font-size:11.5px; color:var(--ink-3); margin-left:3px}
+.srow .val{font-family:var(--mono); font-size:12.5px; color:var(--ink-3); font-variant-numeric:tabular-nums; width:76px; text-align:right}
+.srow.zero .q{color:var(--ink-3)}
+.srow.neg .q{color:var(--accent)}
+.srow.bump{animation:bump .6s cubic-bezier(.2,.8,.2,1)}
+@keyframes bump{
+  0%{background:var(--ok-soft); transform:translateX(-5px)}
+  60%{background:var(--ok-soft)}
+  100%{background:transparent; transform:none}
+}
+
+/* ---------- item detail / history ---------- */
+.detail h2{font-family:var(--display); font-weight:800; font-size:22px; letter-spacing:-.02em; margin:0 0 2px}
+.detail .sub{font-family:var(--mono); font-size:12.5px; color:var(--ink-3)}
+.hist{display:flex; flex-direction:column; gap:0; margin-top:6px}
+.mv{
+  display:grid; grid-template-columns:52px 1fr 78px; gap:12px; align-items:baseline;
+  padding:9px 2px; border-bottom:1px solid var(--line); font-size:13.5px;
+}
+.mv:last-child{border-bottom:none}
+.mv .d{font-family:var(--mono); font-size:11.5px; color:var(--ink-3)}
+.mv .why{color:var(--ink-2)}
+.mv .why b{color:var(--ink); font-weight:600}
+.mv .n{font-family:var(--mono); font-weight:600; text-align:right; font-variant-numeric:tabular-nums}
+.mv .n.in{color:var(--ok)} .mv .n.out{color:var(--accent)}
+.mv.fresh{animation:flash .6s cubic-bezier(.2,.8,.2,1)}
+@keyframes flash{0%{background:var(--ok-soft); transform:translateX(-6px)} 100%{background:transparent; transform:none}}
+
+/* ---------- documents (mesa equivalent) ---------- */
+.doc{
+  border:1.5px dashed var(--line-strong); border-radius:12px; padding:10px;
+  background:repeating-linear-gradient(-45deg, transparent 0 11px, color-mix(in srgb, var(--ink) 3%, transparent) 11px 12px);
+  transition:border-color .15s, background-color .15s;
+}
+.doc.over{border-color:var(--accent); background-color:var(--accent-soft)}
+.lines{display:flex; flex-direction:column; gap:6px}
+.line{
+  display:grid; grid-template-columns:1fr auto auto auto auto; gap:10px; align-items:center;
+  background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:9px 11px;
+}
+.line.prep{border-left:3px solid var(--accent)}
+.line.prod{border-left:3px solid var(--ink-3)}
+.line .nm{font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.line .nm small{display:block; font-weight:400; font-size:11.5px; color:var(--ink-3); font-family:var(--mono)}
+.qty{
+  width:76px; text-align:right; font-family:var(--mono); font-weight:600; font-size:14px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:7px; padding:5px 7px;
+  font-variant-numeric:tabular-nums;
+}
+.qty:focus{outline:2px solid var(--accent); outline-offset:0; background:var(--surface)}
+.qty.wide{width:92px}
+.unit{font-family:var(--mono); font-size:12.5px; color:var(--ink-3); width:28px}
+.del{color:var(--ink-3); width:22px; height:22px; border-radius:6px; line-height:20px; text-align:center}
+.del:hover{background:var(--accent-soft); color:var(--accent)}
+.line.flash{animation:flash .5s cubic-bezier(.2,.8,.2,1)}
+.empty{padding:36px 16px; text-align:center; color:var(--ink-3); font-size:13.5px}
+.empty b{display:block; color:var(--ink-2); font-weight:600; margin-bottom:3px}
+
+.foot{
+  display:flex; flex-wrap:wrap; gap:14px 28px; align-items:flex-end; justify-content:space-between;
+  margin-top:16px; padding-top:14px; border-top:1px solid var(--line);
+}
+.tot{display:flex; flex-direction:column; gap:2px}
+.tot .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
+.tot .v{font-family:var(--mono); font-size:20px; font-weight:600; font-variant-numeric:tabular-nums}
+.tot .v.big{font-family:var(--display); font-size:26px; font-weight:800; letter-spacing:-.02em}
+.tot .v.ok{color:var(--ok)} .tot .v.bad{color:var(--accent)}
+
+/* meta strip on a document */
+.meta{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px}
+.field{
+  display:flex; align-items:center; gap:8px; background:var(--surface);
+  border:1px solid var(--line); border-radius:9px; padding:6px 11px; font-size:13.5px;
+}
+.field .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+.field input{border:none; background:none; outline:none; width:120px; font-weight:600}
+
+/* ---------- despensa side (draggable stock chips) ---------- */
+.items{display:flex; flex-wrap:wrap; gap:6px}
+.item{
+  display:inline-flex; align-items:baseline; gap:8px; cursor:grab;
+  background:var(--surface); border:1px solid var(--line); border-radius:8px;
+  padding:6px 10px; font-size:13.5px; font-weight:600;
+  transition:transform .1s, border-color .1s, box-shadow .1s;
+}
+.item:hover{transform:translateY(-1px); border-color:var(--line-strong); box-shadow:var(--shadow)}
+.item:active{cursor:grabbing; transform:scale(.97)}
+.item.dragging{opacity:.4}
+.item .u{font-family:var(--mono); font-size:11.5px; color:var(--ink-3); font-weight:500; font-variant-numeric:tabular-nums}
+.item .u.neg{color:var(--accent)}
+.item.prep{border-left:3px solid var(--accent)}
+.item.prod{border-left:3px solid var(--ink-3)}
+.shelf .hint{font-size:12px; color:var(--ink-3); margin:-3px 0 8px}
+
+/* ---------- conteo ---------- */
+.count{display:flex; flex-direction:column; gap:5px}
+.crow{
+  display:grid; grid-template-columns:1fr 92px 96px 92px; gap:14px; align-items:center;
+  padding:9px 12px; border-radius:9px; border:1px solid var(--line); background:var(--surface);
+}
+.crow .nm{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.crow .sys{font-family:var(--mono); font-size:13.5px; color:var(--ink-3); text-align:right; font-variant-numeric:tabular-nums}
+.crow .dif{font-family:var(--mono); font-size:13.5px; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; color:var(--ink-3)}
+.crow .dif.up{color:var(--ok)} .crow .dif.down{color:var(--accent)}
+.crow.done{background:var(--surface-2)}
+.chead{
+  display:grid; grid-template-columns:1fr 92px 96px 92px; gap:14px; padding:0 12px 7px;
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3);
+}
+.chead span:not(:first-child){text-align:right}
+
+/* progress */
+.progress{margin-bottom:16px}
+.progress .bar{height:7px; border-radius:99px; background:var(--surface-3); overflow:hidden}
+.progress .bar i{display:block; height:100%; background:var(--ok); border-radius:99px; transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.progress .cap{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-2); margin-top:7px}
+.progress .cap b{font-family:var(--mono); font-weight:600; color:var(--ink)}
+
+/* legend */
+.legend{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:26px}
+.lcard{background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.lcard h4{font-family:var(--display); font-size:14.5px; margin:0 0 5px; letter-spacing:-.01em}
+.lcard p{margin:0; font-size:13px; color:var(--ink-2)}
+.lcard .step{font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:.1em}
+@media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="kicker">Existencias · prototipo de interacción</div>
+      <h1>La Bodega</h1>
+      <p class="note">La pestaña fija <b>Bodega</b> responde una sola pregunta: qué hay. Los números nunca se editan a mano — se mueven cuando registras lo que pasó. Cada trabajo abre su propia pestaña: <b>Ingreso</b> (lo que llega de afuera), <b>Producción</b> (lo que hacemos, productos y preparaciones) y <b>Conteo</b> (el físico). Izquierda: el documento que estás llenando. Derecha: la bodega de donde arrastras.</p>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="rail" id="rail"></div>
+    <div class="cols" id="cols"></div>
+  </div>
+
+  <div class="legend">
+    <div class="lcard"><div class="step">1</div><h4>Bodega</h4><p>Entras y ves los números. Clic en un item: la derecha cuenta su historia — cada movimiento, cuándo y por qué. Nada navega.</p></div>
+    <div class="lcard"><div class="step">2</div><h4>Abrir un trabajo</h4><p>Ingreso, Producción o Conteo abren pestaña. Bodega sigue viva atrás: si suena el teléfono, el trabajo se queda donde lo dejaste.</p></div>
+    <div class="lcard"><div class="step">3</div><h4>Llenar</h4><p>Arrastras de la derecha al documento. Cada chip muestra lo que ya tienes, así que cargas sin salir a consultar.</p></div>
+    <div class="lcard"><div class="step">4</div><h4>Confirmar</h4><p>La pestaña se cierra, vuelves a Bodega y los números suben con un golpe. Ese es el premio de esta vista.</p></div>
+  </div>
+</div>
+
+<script>
+const money = n => "$" + Math.round(n).toLocaleString("es-CO");
+const num = n => (Math.round(n*100)/100).toLocaleString("es-CO");
+
+/* ---------------- data ---------------- */
+const SHELVES = { ing:"Ingredientes", prep:"Preparaciones", prod:"Productos" };
+
+const ITEMS = [
+  {id:"harina",  shelf:"ing",  name:"Harina de trigo",     unit:"kg",  cost:3500,  stock:12.4},
+  {id:"azucar",  shelf:"ing",  name:"Azúcar",              unit:"kg",  cost:4200,  stock:3},
+  {id:"manteq",  shelf:"ing",  name:"Mantequilla",         unit:"kg",  cost:22000, stock:0},
+  {id:"huevo",   shelf:"ing",  name:"Huevo",               unit:"und", cost:650,   stock:84},
+  {id:"cacao",   shelf:"ing",  name:"Cacao en polvo",      unit:"kg",  cost:38000, stock:1.2},
+  {id:"levadura",shelf:"ing",  name:"Levadura fresca",     unit:"kg",  cost:14000, stock:-0.3},
+  {id:"crema",   shelf:"prep", name:"Crema pastelera",     unit:"kg",  cost:12400, stock:2.1},
+  {id:"ganache", shelf:"prep", name:"Ganache",             unit:"kg",  cost:28000, stock:0.6},
+  {id:"almibar", shelf:"prep", name:"Almíbar de vainilla", unit:"L",   cost:6100,  stock:1.4},
+  {id:"croissant",shelf:"prod",name:"Croissant",           unit:"und", cost:1450,  stock:18},
+  {id:"torta5",  shelf:"prod", name:"Torta de chocolate · 500 g", unit:"und", cost:12800, stock:3},
+  {id:"pantaj",  shelf:"prod", name:"Pan tajado",          unit:"und", cost:2600,  stock:0},
+  {id:"coca",    shelf:"prod", name:"Coca-Cola 400 ml",    unit:"und", cost:1800,  stock:42, resale:true},
+];
+const byId = id => ITEMS.find(i=>i.id===id);
+const shelfItems = s => ITEMS.filter(i=>i.shelf===s);
+
+const MOV = {
+  harina:[{d:"26 ago", q:10, why:"Ingreso · Molinos del Valle"},{d:"25 ago", q:-1.2, why:"Producción · pan campesino"},{d:"24 ago", q:-0.4, why:"Merma · bulto roto"},{d:"21 ago", q:25, why:"Ingreso · Molinos del Valle"}],
+  azucar:[{d:"25 ago", q:-2.5, why:"Producción · tortas"},{d:"20 ago", q:8, why:"Ingreso · Distribuidora Sur"}],
+  manteq:[{d:"26 ago", q:-1.8, why:"Producción · croissant"},{d:"22 ago", q:4, why:"Ingreso · Distribuidora Sur"}],
+  huevo:[{d:"26 ago", q:-36, why:"Producción · tortas"},{d:"23 ago", q:120, why:"Ingreso · Granja La Loma"}],
+  cacao:[{d:"24 ago", q:-0.8, why:"Producción · torta de chocolate"},{d:"18 ago", q:2, why:"Ingreso · Distribuidora Sur"}],
+  levadura:[{d:"26 ago", q:-0.5, why:"Producción · croissant"},{d:"19 ago", q:1, why:"Ingreso · Distribuidora Sur"}],
+  crema:[{d:"26 ago", q:3, why:"Producción · lote de crema"},{d:"26 ago", q:-0.9, why:"Producción · milhojas"}],
+  ganache:[{d:"25 ago", q:1.5, why:"Producción · lote de ganache"},{d:"25 ago", q:-0.9, why:"Producción · torta de chocolate"}],
+  almibar:[{d:"24 ago", q:2, why:"Producción · lote de almíbar"},{d:"26 ago", q:-0.6, why:"Producción · tortas"}],
+  croissant:[{d:"27 ago", q:40, why:"Producción · turno mañana"},{d:"27 ago", q:-22, why:"Venta"}],
+  torta5:[{d:"26 ago", q:6, why:"Producción · turno tarde"},{d:"27 ago", q:-3, why:"Venta"}],
+  pantaj:[{d:"25 ago", q:-12, why:"Venta"},{d:"25 ago", q:12, why:"Producción · turno mañana"}],
+  coca:[{d:"23 ago", q:60, why:"Ingreso · reventa"},{d:"27 ago", q:-18, why:"Venta"}],
+};
+
+const valor = () => ITEMS.reduce((s,i)=>s+i.stock*i.cost,0);
+
+/* ---------------- state ---------------- */
+let state = { tab:"bodega", sel:"harina", docs:[] };
+let seq = 1, fresh = {};   // fresh: itemId -> true, for the bump animation
+
+const KIND = {
+  ingreso:    {label:"Ingreso",    sign:+1, shelves:["ing","prod"],  drop:"Arrastra lo que llegó"},
+  produccion: {label:"Producción", sign:+1, shelves:["prod","prep"], drop:"Arrastra lo que se hizo"},
+};
+
+/* ---------------- rail ---------------- */
+function renderRail(){
+  const rail = document.getElementById("rail");
+  rail.innerHTML = "";
+
+  const home = document.createElement("button");
+  home.className = "tab"; home.setAttribute("aria-selected", state.tab==="bodega");
+  home.innerHTML = `<span class="home">Bodega</span>`;
+  home.onclick = () => { state.tab="bodega"; render(); };
+  rail.appendChild(home);
+
+  state.docs.forEach(doc=>{
+    const t = document.createElement("button");
+    t.className = "tab"; t.setAttribute("aria-selected", state.tab===doc.id);
+    const badge = doc.kind==="conteo"
+      ? `${doc.lines.filter(l=>l.counted!==null).length}/${doc.lines.length}`
+      : `${doc.lines.length}`;
+    t.innerHTML = `<span>${KIND[doc.kind]?.label || "Conteo"}</span>
+                   <span class="badge">${badge}</span>
+                   <span class="dot"></span>
+                   <span class="x" title="Cerrar">×</span>`;
+    t.onclick = e => {
+      if(e.target.classList.contains("x")){
+        state.docs = state.docs.filter(d=>d!==doc);
+        if(state.tab===doc.id) state.tab="bodega";
+      } else state.tab = doc.id;
+      render();
+    };
+    rail.appendChild(t);
+  });
+}
+
+/* ---------------- bodega ---------------- */
+function renderBodega(){
+  const cols = document.getElementById("cols");
+  cols.className = "cols";
+
+  const left = document.createElement("div"); left.className = "col";
+  left.innerHTML = `
+    <div class="vault">
+      <div>
+        <div class="k">Valor en bodega</div>
+        <div class="v">${money(valor())}</div>
+      </div>
+      <div class="acts">
+        <button class="abtn solid" data-new="ingreso"><span class="g">↓</span> Ingreso</button>
+        <button class="abtn" data-new="produccion"><span class="g">✦</span> Producción</button>
+        <button class="abtn" data-new="conteo"><span class="g">☰</span> Conteo</button>
+      </div>
+    </div>`;
+
+  Object.entries(SHELVES).forEach(([key,label])=>{
+    const sh = document.createElement("div"); sh.className = "shelf";
+    sh.innerHTML = `<h3>${label}</h3>`;
+    const list = document.createElement("div"); list.className = "list";
+    shelfItems(key).forEach(it=>{
+      const b = document.createElement("button");
+      b.className = "srow" + (it.stock<0?" neg":it.stock===0?" zero":"") + (fresh[it.id]?" bump":"");
+      b.setAttribute("aria-current", state.sel===it.id);
+      b.innerHTML = `<span class="nm">${it.name}</span>
+                     <span class="q">${num(it.stock)}<small>${it.unit}</small></span>
+                     <span class="val">${money(it.stock*it.cost)}</span>`;
+      b.onclick = ()=>{ state.sel = it.id; render(); };
+      list.appendChild(b);
+    });
+    sh.appendChild(list); left.appendChild(sh);
+  });
+
+  const it = byId(state.sel);
+  const right = document.createElement("div"); right.className = "col right detail";
+  const rows = (MOV[it.id]||[]).map((m,i)=>`
+    <div class="mv${m.fresh&&i===0?" fresh":""}">
+      <span class="d">${m.d}</span>
+      <span class="why">${m.why}</span>
+      <span class="n ${m.q>=0?"in":"out"}">${m.q>0?"+":""}${num(m.q)} ${it.unit}</span>
+    </div>`).join("");
+
+  right.innerHTML = `
+    <h2>${it.name}</h2>
+    <div class="sub">${num(it.stock)} ${it.unit} · ${money(it.stock*it.cost)} · costo ${money(it.cost)}/${it.unit}${it.resale?" · reventa":""}</div>
+    <div class="vault" style="margin-top:16px">
+      <div>
+        <div class="k">Existencia</div>
+        <div class="v" style="color:${it.stock<0?"var(--accent)":"inherit"}">${num(it.stock)} <span style="font-size:16px;color:var(--ink-3)">${it.unit}</span></div>
+      </div>
+      <div class="acts">
+        <button class="abtn" data-merma="${it.id}"><span class="g">✕</span> Merma</button>
+        <button class="abtn" data-salida="${it.id}"><span class="g">→</span> Salida</button>
+      </div>
+    </div>
+    <div class="colhead" style="margin-top:20px"><h2 style="font-size:15px">Movimientos</h2><span class="sub">${(MOV[it.id]||[]).length} registros</span></div>
+    <div class="hist">${rows || '<div class="empty">Sin movimientos todavía.</div>'}</div>`;
+
+  cols.replaceChildren(left, right);
+
+  left.querySelectorAll("[data-new]").forEach(b=>{
+    b.onclick = ()=> openDoc(b.dataset.new);
+  });
+  right.querySelectorAll("[data-merma],[data-salida]").forEach(b=>{
+    b.onclick = ()=> quickOut(it, b.hasAttribute("data-merma") ? "Merma" : "Salida manual");
+  });
+}
+
+/* una merma es una línea: no merece una pestaña */
+function quickOut(it, why){
+  it.stock = Math.round((it.stock - 1)*100)/100;
+  (MOV[it.id] = MOV[it.id]||[]).unshift({d:"27 ago", q:-1, why:`${why} · registrada ahora`, fresh:true});
+  fresh = {[it.id]:true};
+  render();
+  setTimeout(()=>{ fresh={}; (MOV[it.id][0]||{}).fresh=false; }, 700);
+}
+
+/* ---------------- documents ---------------- */
+function openDoc(kind){
+  const doc = { id:"d"+(seq++), kind, lines:[], date:"27 ago 2026", who: kind==="ingreso" ? "Molinos del Valle" : "Turno mañana" };
+  if(kind==="conteo") doc.lines = ITEMS.map(i=>({id:i.id, counted:null}));
+  state.docs.push(doc); state.tab = doc.id; render();
+}
+const currentDoc = () => state.docs.find(d=>d.id===state.tab);
+
+function addLine(doc, itemId){
+  const ex = doc.lines.find(l=>l.id===itemId);
+  if(ex) ex.q = Math.round((ex.q + 1)*100)/100;
+  else {
+    const it = byId(itemId);
+    doc.lines.push({ id:itemId, q: it.unit==="und" ? 10 : 1, cost: it.cost });
+  }
+  render();
+  const el = document.querySelector(`.line[data-id="${itemId}"]`);
+  if(el){ el.classList.add("flash"); setTimeout(()=>el.classList.remove("flash"), 520); }
+}
+
+function renderDoc(doc){
+  const cols = document.getElementById("cols");
+  cols.className = "cols";
+  const K = KIND[doc.kind];
+
+  /* ---- left: the document ---- */
+  const left = document.createElement("div"); left.className = "col";
+  const isIngreso = doc.kind==="ingreso";
+  left.innerHTML = `
+    <div class="colhead">
+      <h2>${K.label}</h2>
+      <span class="sub">${doc.lines.length} línea${doc.lines.length===1?"":"s"}</span>
+    </div>
+    <div class="meta">
+      <label class="field"><span class="k">Fecha</span><input value="${doc.date}"></label>
+      <label class="field"><span class="k">${isIngreso?"Proveedor":"Responsable"}</span><input value="${doc.who}"></label>
+    </div>`;
+
+  const zone = document.createElement("div"); zone.className = "doc";
+  if(!doc.lines.length){
+    zone.innerHTML = `<div class="empty"><b>${K.drop}</b>Arrastra desde la bodega, a la derecha.</div>`;
+  } else {
+    const lines = document.createElement("div"); lines.className = "lines";
+    doc.lines.forEach(l=>{
+      const it = byId(l.id);
+      const row = document.createElement("div");
+      row.className = "line " + (it.shelf==="prep"?"prep":it.shelf==="prod"?"prod":"");
+      row.dataset.id = l.id;
+      row.innerHTML = `
+        <span class="nm">${it.name}<small>en bodega ${num(it.stock)} ${it.unit}</small></span>
+        <input class="qty" value="${l.q}" data-f="q">
+        <span class="unit">${it.unit}</span>
+        ${isIngreso
+          ? `<input class="qty wide" value="${l.cost}" data-f="cost" title="Costo por ${it.unit}">`
+          : `<span class="unit" style="width:92px"></span>`}
+        <button class="del" title="Quitar">×</button>`;
+      row.querySelectorAll("input").forEach(inp=>{
+        inp.oninput = ()=>{
+          const v = parseFloat(inp.value.replace(",", ".")) || 0;
+          l[inp.dataset.f] = v;
+          renderFoot(doc);
+        };
+      });
+      row.querySelector(".del").onclick = ()=>{ doc.lines = doc.lines.filter(x=>x!==l); render(); };
+      lines.appendChild(row);
+    });
+    zone.appendChild(lines);
+  }
+  zone.addEventListener("dragover", e=>{ e.preventDefault(); zone.classList.add("over"); });
+  zone.addEventListener("dragleave", ()=> zone.classList.remove("over"));
+  zone.addEventListener("drop", e=>{
+    e.preventDefault(); zone.classList.remove("over");
+    const id = e.dataTransfer.getData("text/plain");
+    if(id) addLine(doc, id);
+  });
+  left.appendChild(zone);
+
+  const foot = document.createElement("div"); foot.id = "foot";
+  left.appendChild(foot);
+
+  /* ---- right: the bodega you take from ---- */
+  const right = document.createElement("div"); right.className = "col right";
+  right.innerHTML = `<div class="colhead"><h2>Bodega</h2><span class="sub">lo que hay ahora</span></div>`;
+  K.shelves.forEach(s=>{
+    const sh = document.createElement("div"); sh.className = "shelf";
+    sh.innerHTML = `<h3>${SHELVES[s]}</h3>`;
+    const box = document.createElement("div"); box.className = "items";
+    shelfItems(s).forEach(it=>{
+      const chip = document.createElement("div");
+      chip.className = "item " + (s==="prep"?"prep":s==="prod"?"prod":"");
+      chip.draggable = true;
+      chip.innerHTML = `<span>${it.name}</span><span class="u${it.stock<0?" neg":""}">${num(it.stock)} ${it.unit}</span>`;
+      chip.addEventListener("dragstart", e=>{
+        e.dataTransfer.setData("text/plain", it.id);
+        chip.classList.add("dragging");
+      });
+      chip.addEventListener("dragend", ()=> chip.classList.remove("dragging"));
+      chip.addEventListener("dblclick", ()=> addLine(doc, it.id));
+      box.appendChild(chip);
+    });
+    sh.appendChild(box); right.appendChild(sh);
+  });
+
+  cols.replaceChildren(left, right);
+  renderFoot(doc);
+}
+
+function renderFoot(doc){
+  const foot = document.getElementById("foot");
+  if(!foot) return;
+  const isIngreso = doc.kind==="ingreso";
+  const total = doc.lines.reduce((s,l)=> s + l.q * (isIngreso ? l.cost : byId(l.id).cost), 0);
+  foot.className = "foot";
+  foot.innerHTML = `
+    <div class="tot">
+      <span class="k">${isIngreso?"Total de la compra":"Valor producido"}</span>
+      <span class="v big">${money(total)}</span>
+    </div>
+    <button class="abtn solid" ${doc.lines.length?"":"disabled style=opacity:.45"}>Confirmar ${isIngreso?"ingreso":"producción"}</button>`;
+  const btn = foot.querySelector("button");
+  if(doc.lines.length) btn.onclick = ()=> confirmDoc(doc);
+}
+
+function confirmDoc(doc){
+  const isIngreso = doc.kind==="ingreso";
+  fresh = {};
+  doc.lines.forEach(l=>{
+    const it = byId(l.id);
+    it.stock = Math.round((it.stock + l.q)*100)/100;
+    if(isIngreso && l.cost) it.cost = l.cost;   // la compra actualiza el costo
+    (MOV[it.id] = MOV[it.id]||[]).unshift({
+      d:"27 ago", q:l.q, fresh:true,
+      why: isIngreso ? `Ingreso · ${doc.who}` : `Producción · ${doc.who}`,
+    });
+    fresh[it.id] = true;
+  });
+  state.docs = state.docs.filter(d=>d!==doc);
+  state.tab = "bodega";
+  render();
+  setTimeout(()=>{ fresh = {}; Object.values(MOV).forEach(a=>a.forEach(m=>m.fresh=false)); }, 900);
+}
+
+/* ---------------- conteo ---------------- */
+function renderConteo(doc){
+  const cols = document.getElementById("cols");
+  cols.className = "cols one";
+  const col = document.createElement("div"); col.className = "col";
+  const done = doc.lines.filter(l=>l.counted!==null).length;
+
+  col.innerHTML = `
+    <div class="colhead">
+      <h2>Conteo</h2>
+      <span class="sub">escribe lo que hay, no la diferencia</span>
+    </div>
+    <div class="progress">
+      <div class="bar"><i style="width:${done/doc.lines.length*100}%"></i></div>
+      <div class="cap"><span>Items contados</span><span><b>${done}</b> / ${doc.lines.length}</span></div>
+    </div>
+    <div class="chead"><span>Item</span><span>Sistema</span><span>Contado</span><span>Diferencia</span></div>`;
+
+  const list = document.createElement("div"); list.className = "count";
+  doc.lines.forEach(l=>{
+    const it = byId(l.id);
+    const dif = l.counted===null ? null : Math.round((l.counted - it.stock)*100)/100;
+    const row = document.createElement("div");
+    row.className = "crow" + (l.counted!==null?" done":"");
+    row.innerHTML = `
+      <span class="nm">${it.name}</span>
+      <span class="sys">${num(it.stock)} ${it.unit}</span>
+      <input class="qty" value="${l.counted===null?"":l.counted}" placeholder="—">
+      <span class="dif ${dif===null?"":dif>0?"up":dif<0?"down":""}">${dif===null?"—":(dif>0?"+":"")+num(dif)}</span>`;
+    const inp = row.querySelector("input");
+    inp.oninput = ()=>{
+      l.counted = inp.value.trim()==="" ? null : (parseFloat(inp.value.replace(",", ".")) || 0);
+      const d = l.counted===null ? null : Math.round((l.counted - it.stock)*100)/100;
+      const cell = row.querySelector(".dif");
+      cell.textContent = d===null ? "—" : (d>0?"+":"")+num(d);
+      cell.className = "dif " + (d===null?"":d>0?"up":d<0?"down":"");
+      row.classList.toggle("done", l.counted!==null);
+      renderRail();
+    };
+    list.appendChild(row);
+  });
+  col.appendChild(list);
+
+  const ajustes = doc.lines.filter(l=>l.counted!==null && l.counted!==byId(l.id).stock).length;
+  const foot = document.createElement("div"); foot.className = "foot";
+  foot.innerHTML = `
+    <div class="tot">
+      <span class="k">Ajustes que se registrarán</span>
+      <span class="v big ${ajustes?"bad":"ok"}">${ajustes}</span>
+    </div>
+    <button class="abtn solid" ${done?"":"disabled style=opacity:.45"}>Cerrar conteo</button>`;
+  if(done) foot.querySelector("button").onclick = ()=> closeConteo(doc);
+  col.appendChild(foot);
+
+  cols.replaceChildren(col);
+}
+
+function closeConteo(doc){
+  fresh = {};
+  doc.lines.forEach(l=>{
+    if(l.counted===null) return;
+    const it = byId(l.id);
+    const dif = Math.round((l.counted - it.stock)*100)/100;
+    if(!dif) return;
+    it.stock = l.counted;
+    (MOV[it.id] = MOV[it.id]||[]).unshift({d:"27 ago", q:dif, why:"Conteo · ajuste", fresh:true});
+    fresh[it.id] = true;
+  });
+  state.docs = state.docs.filter(d=>d!==doc);
+  state.tab = "bodega";
+  render();
+  setTimeout(()=>{ fresh = {}; Object.values(MOV).forEach(a=>a.forEach(m=>m.fresh=false)); }, 900);
+}
+
+/* ---------------- render ---------------- */
+function render(){
+  renderRail();
+  const doc = currentDoc();
+  if(!doc) renderBodega();
+  else if(doc.kind==="conteo") renderConteo(doc);
+  else renderDoc(doc);
+}
+render();
+</script>

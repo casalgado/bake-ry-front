@@ -1,0 +1,526 @@
+/* ui-* components. Structure and neutrals only.
+ *
+ * Colors come from ui/tokens.css and are used sparingly on purpose: surfaces,
+ * lines, ink, and brand for "this one is active". The six accents are opt in
+ * through data-accent and nothing here reaches for them on its own.
+ *
+ * Arrangement (flex, gap, padding, breakpoints) stays in Tailwind at the call
+ * site. These classes only own what changes between light and dark.
+ */
+
+/* Opt in accent. Put data-accent="plum" on a chip, card or section head and the
+ * component picks it up. Without it, components are neutral. */
+[data-accent='brand']  { --ui-accent: var(--ui-brand);  --ui-accent-soft: var(--ui-brand-soft); }
+[data-accent='berry']  { --ui-accent: var(--ui-berry);  --ui-accent-soft: var(--ui-berry-soft); }
+[data-accent='plum']   { --ui-accent: var(--ui-plum);   --ui-accent-soft: var(--ui-plum-soft); }
+[data-accent='violet'] { --ui-accent: var(--ui-violet); --ui-accent-soft: var(--ui-violet-soft); }
+[data-accent='sky']    { --ui-accent: var(--ui-sky);    --ui-accent-soft: var(--ui-sky-soft); }
+[data-accent='leaf']   { --ui-accent: var(--ui-leaf);   --ui-accent-soft: var(--ui-leaf-soft); }
+[data-accent='lime']   { --ui-accent: var(--ui-lime);   --ui-accent-soft: var(--ui-lime-soft); }
+
+/* The pre-ui base layer styles bare elements (header, h1-h6) with fixed light
+ * neutrals, and a rule on the element beats the ink inherited from the themed
+ * wrapper. Undo it once here instead of at every call site. */
+[data-ui-theme] header { background: transparent; border-bottom: 0; }
+[data-ui-theme] :is(h1, h2, h3, h4, h5, h6) { color: var(--ui-ink); }
+
+/* ---------- focus ---------- */
+
+/* Keyboard focus, once, for everything. The old system has no focus state at
+ * all, so this is the one place the new one is not just a restyle. */
+.ui-btn:focus-visible,
+.ui-tab:focus-visible,
+.ui-tab-close:focus-visible,
+.ui-item:focus-visible,
+.ui-chip:focus-visible,
+.ui-card-action:focus-visible {
+  outline: 2px solid var(--ui-brand);
+  outline-offset: 2px;
+}
+
+/* ---------- numbers ---------- */
+
+/* tabular-nums keeps digits the same width so columns of numbers line up. */
+.ui-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* The unit is subordinate to the number, never glued into the string. */
+.ui-unit {
+  font-size: 0.75em;
+  font-weight: 400;
+  color: var(--ui-ink-muted);
+  margin-left: 0.25em;
+}
+
+/* ---------- 1. tabs ---------- */
+
+/* No border-bottom on the strip: the divider between tabs and pane is the
+ * surface step (0 → 1), so the selected tab has nothing to cover. The old
+ * version drew a line here and pushed the tab 1px down to hide it, which could
+ * never work — overflow-x makes this a scroll container, and a scroll container
+ * clips at the padding box, so that 1px was always cut off. */
+.ui-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 8px 10px 0;
+  background: var(--ui-surface-0);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+/* Bottom border transparent, never `none`: the box keeps its height so tabs
+ * don't shift by a pixel when selected, and a transparent border shows the
+ * tab's own background, which is what lets the selected one run into the pane. */
+.ui-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  padding: 9px 14px;
+  border: 1px solid var(--ui-line);
+  border-bottom-color: transparent;
+  border-radius: 9px 9px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-ink-muted);
+  cursor: pointer;
+  /* Flex items shrink by default, so without this the strip squashes tabs into
+   * each other instead of scrolling, and overflow-x never fires. */
+  flex: none;
+}
+
+/* Unselected sits empty on the strip; only its outline says it is a tab. */
+.ui-tab:hover { color: var(--ui-ink); border-color: var(--ui-line-strong); border-bottom-color: transparent; }
+
+/* Selected is the top edge of the pane, so it takes the pane's fill. */
+.ui-tab[aria-selected='true'] {
+  background: var(--ui-surface-1);
+  border-color: var(--ui-line-strong);
+  border-bottom-color: transparent;
+  color: var(--ui-ink);
+}
+
+.ui-tab-badge {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ui-ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Unsaved work. The one dot in the system. */
+.ui-tab-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ui-brand);
+}
+
+/* A real <button>, which is why .ui-tab is a div with role="tab" and not a
+ * button itself: closing and selecting are two actions, and one can't nest
+ * inside the other. Wire it with @click.stop or the close selects the tab on
+ * the way out, and give it an aria-label — the glyph is the only content.
+ * It borrows .ui-btn-icon's hover — fill solid, flip the glyph to the ink —
+ * without borrowing its markup.
+ * Flex centering, not line-height: the glyph is an inline SVG, so a text
+ * baseline parks it high. */
+.ui-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  /* custom-components.css puts `my-2` on every `button` element. */
+  margin: 0;
+  border-radius: 5px;
+  color: var(--ui-ink-muted);
+  cursor: pointer;
+}
+
+.ui-tab-close:hover { background: var(--ui-danger); color: var(--ui-danger-ink); }
+
+/* ---------- 2. panes ---------- */
+
+.ui-app {
+  background: var(--ui-surface-1);
+  border: 1px solid var(--ui-line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* Column ratio is per instance: style="--panes: 1fr 2fr 2fr". */
+.ui-panes {
+  display: grid;
+  grid-template-columns: var(--panes, minmax(0, 1fr) minmax(0, 1fr));
+}
+
+.ui-pane { padding: 20px 22px; min-width: 0; }
+.ui-pane + .ui-pane { border-left: 1px solid var(--ui-line); }
+
+/* The pane you take things from sits one step back. */
+.ui-pane-sunken { background: var(--ui-surface-0); }
+
+@media (max-width: 900px) {
+  .ui-panes { grid-template-columns: minmax(0, 1fr); }
+  .ui-pane + .ui-pane { border-left: none; border-top: 1px solid var(--ui-line); }
+}
+
+/* ---------- 3. pane head ---------- */
+
+.ui-panehead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.ui-panehead-title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; color: var(--ui-ink); }
+.ui-panehead-sub { font-size: 13px; color: var(--ui-ink-muted); }
+
+/* ---------- 4. section head ---------- */
+
+/* Small label with a hairline running to the edge. Groups rows without a box. */
+.ui-sectionhead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ui-accent, var(--ui-ink-muted));
+}
+
+.ui-sectionhead::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ui-line);
+}
+
+/* ---------- 5. item ---------- */
+
+/* The workhorse row: icon / title+desc / trailing bits. Replaces most tables.
+ * Slots are optional, the grid is driven by content. */
+.ui-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 9px 12px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--ui-ink);
+}
+
+.ui-item:hover { background: var(--ui-surface-2); }
+
+/* Selected outranks every other row paint, hover and the negative wash
+ * included, so it carries :hover to stay above them. */
+.ui-item[aria-current='true'],
+.ui-item[aria-current='true']:hover {
+  background: var(--ui-brand-soft);
+  border-color: var(--ui-brand);
+}
+
+.ui-item-icon { color: var(--ui-ink-muted); display: flex; }
+
+.ui-item-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-item-desc { font-size: 11.5px; color: var(--ui-ink-muted); font-weight: 400; }
+
+/* Trailing group: the number, then whatever else. */
+.ui-item-trail {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  justify-content: flex-end;
+}
+
+.ui-item-num { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ui-item-meta { font-size: 12.5px; color: var(--ui-ink-muted); font-variant-numeric: tabular-nums; }
+
+/* Nothing there. Muted, not alarming. */
+.ui-item-zero .ui-item-num { color: var(--ui-ink-muted); }
+
+/* Impossible number. The row is marked, the digits stay readable.
+ * :hover is included, not because the row reacts, but because .ui-item:hover
+ * outranks a bare class and would wash the marking off exactly when you point
+ * at it. Any later state that also paints the row needs the same treatment. */
+.ui-item-negative,
+.ui-item-negative:hover { background: var(--ui-berry-soft); }
+
+/* Rows in a list share one line instead of each carrying a box. */
+.ui-item-divided { border-radius: 0; border-bottom-color: var(--ui-line); }
+.ui-item-divided:last-child { border-bottom-color: transparent; }
+
+/* ---------- 6. card ---------- */
+
+.ui-card {
+  background: var(--ui-surface-1);
+  border: 1px solid var(--ui-line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--ui-ink);
+}
+
+/* Title always sits on top, whatever else the card holds. */
+.ui-card-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.ui-card-sub { font-size: 12.5px; color: var(--ui-ink-muted); margin-top: 2px; }
+.ui-card-body { font-size: 13px; color: var(--ui-ink-muted); }
+
+.ui-card-media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--ui-surface-2);
+}
+
+.ui-card-media:last-child { border-radius: 0 0 12px 12px; }
+
+/* Only the media goes edge to edge; everything else keeps its padding. */
+.ui-card-flush { padding: 0; overflow: hidden; }
+.ui-card-flush > :not(.ui-card-media) { padding-inline: 16px; }
+.ui-card-flush > :first-child { padding-top: 14px; }
+.ui-card-flush > :last-child:not(.ui-card-media) { padding-bottom: 14px; }
+
+/* Hover never moves anything. It steps the surface one rung up the ladder,
+ * which is the same "closer to your face" idea the surfaces already encode. */
+.ui-card-action { cursor: pointer; transition: background-color 0.12s, border-color 0.12s; }
+.ui-card-action:hover { background: var(--ui-surface-2); border-color: var(--ui-line-strong); }
+
+/* An accent reads as a spine, never a fill. */
+.ui-card[data-accent] { border-left: 3px solid var(--ui-accent); }
+
+/* ---------- 7. chip ---------- */
+
+/* A thing you pick up. Name plus how much of it there is. */
+.ui-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--ui-surface-1);
+  border: 1px solid var(--ui-line);
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ui-ink);
+}
+
+.ui-chip:hover { border-color: var(--ui-line-strong); }
+.ui-chip-meta { font-size: 11.5px; font-weight: 400; color: var(--ui-ink-muted); font-variant-numeric: tabular-nums; }
+
+.ui-chip-draggable { cursor: grab; }
+.ui-chip-draggable:active { cursor: grabbing; transform: scale(0.97); }
+.ui-chip-dragging { opacity: 0.4; }
+
+/* ---------- 8. tag ---------- */
+
+/* A word about something. Never interactive. */
+.ui-tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  background: var(--ui-accent-soft, var(--ui-surface-2));
+  color: var(--ui-accent, var(--ui-ink-muted));
+}
+
+/* ---------- 9. stat ---------- */
+
+.ui-stat { display: flex; flex-direction: column; gap: 2px; }
+
+.ui-stat-k {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ui-ink-muted);
+}
+
+.ui-stat-v {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--ui-ink);
+}
+
+/* The number you came to the screen for. One per screen. */
+.ui-stat-hero .ui-stat-v { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+
+/* ---------- 10. bar and pips ---------- */
+
+/* Progress toward done. Fill is per instance: style="--fill: 40%". */
+.ui-bar {
+  height: 7px;
+  border-radius: 99px;
+  background: var(--ui-surface-2);
+  border: 1px solid var(--ui-line);
+  overflow: hidden;
+}
+
+.ui-bar::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: var(--fill, 0%);
+  background: var(--ui-accent, var(--ui-brand));
+  border-radius: 99px;
+  transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Same idea, countable. Use under ~8, past that use a bar. */
+.ui-pips { display: flex; gap: 3px; flex: none; }
+
+.ui-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ui-line-strong);
+  background: transparent;
+}
+
+.ui-pip-on { background: var(--ui-accent, var(--ui-brand)); border-color: var(--ui-accent, var(--ui-brand)); }
+
+/* ---------- 11. button ---------- */
+
+/* Every variant hangs off three per-button variables, so a new intent is one
+ * rule that swaps them instead of four rules that repeat the hover math. */
+.ui-btn {
+  --btn: var(--ui-brand);
+  --btn-soft: var(--ui-brand-soft);
+  --btn-ink: var(--ui-brand-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  /* custom-components.css puts `my-2` on every `button` element. Neutralize it
+   * here so call sites stop fighting it with m-0 / !m-0. */
+  margin: 0;
+  padding: 7px 13px;
+  border: 1px solid var(--ui-line-strong);
+  border-radius: 9px;
+  background: var(--ui-surface-1);
+  /* Full ink, not muted: a muted label is how a disabled button reads, and a
+   * screen where every secondary action looks disabled has no secondary action. */
+  color: var(--ui-ink);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.1s, border-color 0.1s, color 0.1s;
+}
+
+/* Fills with its own soft, so the button lights up instead of jumping. */
+.ui-btn:hover { background: var(--btn-soft); border-color: var(--btn); color: var(--btn); }
+
+/* One per group: the thing you actually came to do. */
+.ui-btn-solid { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); }
+
+/* Already filled, so it deepens rather than lights up. */
+.ui-btn-solid:hover {
+  background: color-mix(in oklab, var(--btn) 86%, var(--ui-ink));
+  border-color: color-mix(in oklab, var(--btn) 86%, var(--ui-ink));
+  color: var(--btn-ink);
+}
+
+/* Destructive. Swaps the three variables, so it composes with solid and quiet. */
+.ui-btn-danger { --btn: var(--ui-danger); --btn-soft: var(--ui-danger-soft); --btn-ink: var(--ui-danger-ink); }
+.ui-btn-danger:not(.ui-btn-solid) { color: var(--ui-danger); }
+
+/* Square. The icon is the whole label, so the side padding matches the top.
+ * Give the glyph `weight="bold"` at the call site: at 12-14px a regular
+ * Phosphor stroke disappears against the border. */
+.ui-btn-icon { padding: 7px; gap: 0; }
+
+/* There is no label to tint, so a soft fill barely registers. It goes solid
+ * instead — same colors as .ui-btn-solid, picked up from the same variables,
+ * so the danger icon lands on red without a rule of its own. */
+.ui-btn-icon:hover { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); }
+
+/* pointer-events, not a pile of :disabled:hover overrides: CSS hover still fires
+ * on a disabled button, and one line kills it for every variant at once. */
+.ui-btn:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+
+/* ---------- 12. input and field ---------- */
+
+/* A number you type. Right aligned because it will sit in a column. */
+.ui-input {
+  width: 100%;
+  padding: 5px 8px;
+  background: var(--ui-surface-2);
+  border: 1px solid var(--ui-line);
+  border-radius: 7px;
+  color: var(--ui-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-input::placeholder { color: var(--ui-ink-muted); font-weight: 400; }
+.ui-input:focus { outline: 2px solid var(--ui-brand); outline-offset: 0; background: var(--ui-surface-1); }
+.ui-input-num { text-align: right; }
+
+/* Label above, so the input keeps its full width for the value. */
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ui-field-k {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ui-ink-muted);
+}
+
+/* ---------- 13. dropzone ---------- */
+
+/* Reads as a surface you put things on, not a container that holds them. */
+.ui-dropzone {
+  padding: 10px;
+  border: 1.5px dashed var(--ui-line-strong);
+  border-radius: 12px;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 11px,
+    color-mix(in srgb, var(--ui-ink) 3%, transparent) 11px 12px
+  );
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.ui-dropzone-over { border-color: var(--ui-brand); background-color: var(--ui-brand-soft); }
+
+/* ---------- 14. empty ---------- */
+
+.ui-empty {
+  padding: 36px 16px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--ui-ink-muted);
+}
+
+.ui-empty b { display: block; font-weight: 600; margin-bottom: 3px; color: var(--ui-ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-bar::after { transition: none; }
+}

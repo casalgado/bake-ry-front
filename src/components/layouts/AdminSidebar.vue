@@ -31,6 +31,7 @@ import {
   PhArrowsLeftRight,
   PhBuildings,
   PhWarehouse,
+  PhPalette,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -242,6 +243,11 @@ const navigationSections = computed(() => {
           icon: PhBuildings,
           text: 'Negocios',
           path: '/system-admin/bakeries',
+        }, {
+          id: 'ux',
+          icon: PhPalette,
+          text: 'UX',
+          path: '/system-admin/ux',
         }] : []),
       ],
     },

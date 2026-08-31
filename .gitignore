@@ -39,3 +39,6 @@ zdocs
 *.sw?
 
 *.tsbuildinfo
+
+# Claude Code isolation worktrees
+.claude/worktrees/

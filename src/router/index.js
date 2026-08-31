@@ -387,6 +387,11 @@ const router = createRouter({
           name: 'system-settings',
           component: () => import('../views/SystemSettingsView.vue'),
         },
+        {
+          path: 'ux',
+          name: 'system-admin-ux',
+          component: () => import('../views/SystemAdmin/UxView.vue'),
+        },
       ],
     },
   ],

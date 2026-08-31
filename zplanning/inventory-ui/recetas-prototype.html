@@ -1,0 +1,593 @@
+<title>Mesa y Despensa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+
+<style>
+:root{
+  --ground:#F6F7F4; --surface:#FFFFFF; --surface-2:#EFF1EC; --surface-3:#E6E9E1;
+  --ink:#161C18; --ink-2:#5A635C; --ink-3:#8A9289;
+  --line:#DCE0D7; --line-strong:#C3C9BC;
+  --accent:#B4315C; --accent-ink:#8E2148; --accent-soft:#F7E4EA;
+  --ok:#5E8A4E; --ok-soft:#E6EFE0;
+  --pending:#B8801A; --pending-soft:#F7EDD8;
+  --shadow:0 1px 2px rgba(22,28,24,.06), 0 8px 24px -12px rgba(22,28,24,.18);
+  --display:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --body:"Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#131612; --surface:#1B1F1A; --surface-2:#232821; --surface-3:#2B3129;
+    --ink:#EAEEE6; --ink-2:#9AA396; --ink-3:#6F776C;
+    --line:#2E342C; --line-strong:#3E463B;
+    --accent:#E5799A; --accent-ink:#F0A0B8; --accent-soft:#3A1F28;
+    --ok:#8FC178; --ok-soft:#233021;
+    --pending:#E0AE55; --pending-soft:#332A16;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#131612; --surface:#1B1F1A; --surface-2:#232821; --surface-3:#2B3129;
+  --ink:#EAEEE6; --ink-2:#9AA396; --ink-3:#6F776C;
+  --line:#2E342C; --line-strong:#3E463B;
+  --accent:#E5799A; --accent-ink:#F0A0B8; --accent-soft:#3A1F28;
+  --ok:#8FC178; --ok-soft:#233021;
+  --pending:#E0AE55; --pending-soft:#332A16;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--body); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit; color:inherit; background:none; border:none; cursor:pointer}
+input{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+
+.wrap{max-width:1280px; margin:0 auto; padding:24px 20px 64px}
+
+/* ---------- page framing (mockup chrome, not part of the app) ---------- */
+.note{
+  font-size:13px; color:var(--ink-2); max-width:68ch;
+}
+.note b{color:var(--ink)}
+.kicker{
+  font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3);
+}
+h1{
+  font-family:var(--display); font-weight:800; font-size:clamp(28px,4vw,40px);
+  letter-spacing:-.02em; margin:.2em 0 .1em; text-wrap:balance;
+}
+.head{display:flex; flex-wrap:wrap; gap:16px 32px; align-items:flex-end; justify-content:space-between; margin-bottom:22px}
+
+/* ---------- app shell ---------- */
+.app{
+  background:var(--surface); border:1px solid var(--line); border-radius:14px;
+  box-shadow:var(--shadow); overflow:hidden;
+}
+
+/* tab rail */
+.rail{
+  display:flex; align-items:stretch; gap:2px; padding:8px 10px 0;
+  background:var(--surface-2); border-bottom:1px solid var(--line);
+  overflow-x:auto; scrollbar-width:thin;
+}
+.tab{
+  display:flex; align-items:center; gap:9px; white-space:nowrap;
+  padding:9px 14px; border-radius:9px 9px 0 0;
+  border:1px solid transparent; border-bottom:none;
+  color:var(--ink-2); font-weight:600; font-size:14px;
+  position:relative; top:1px;
+}
+.tab:hover{color:var(--ink); background:color-mix(in srgb, var(--surface) 55%, transparent)}
+.tab[aria-selected="true"]{
+  background:var(--surface); border-color:var(--line); color:var(--ink);
+}
+.tab .dot{width:7px; height:7px; border-radius:50%; background:var(--pending); flex:none}
+.tab .dot.done{background:var(--ok)}
+.tab .home{font-family:var(--display); font-weight:700; letter-spacing:-.01em}
+.tab .x{
+  margin-left:2px; width:18px; height:18px; border-radius:5px; line-height:16px;
+  text-align:center; color:var(--ink-3); font-size:14px;
+}
+.tab .x:hover{background:var(--surface-3); color:var(--ink)}
+.rail .spacer{flex:1}
+
+/* two columns */
+.cols{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); min-height:560px}
+.cols.build{grid-template-columns:minmax(0,1.25fr) minmax(0,.85fr)}
+.col{padding:20px 22px; min-width:0}
+.col + .col{border-left:1px solid var(--line)}
+.col.right{background:var(--surface-2)}
+@media (max-width:900px){ .cols, .cols.build{grid-template-columns:1fr} .col + .col{border-left:none; border-top:1px solid var(--line)} }
+
+.colhead{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px}
+.colhead h2{
+  font-family:var(--display); font-weight:700; font-size:17px; letter-spacing:-.01em; margin:0;
+}
+.colhead .sub{font-size:13px; color:var(--ink-3)}
+
+/* search */
+.search{
+  display:flex; align-items:center; gap:8px; width:100%;
+  background:var(--surface); border:1px solid var(--line); border-radius:9px;
+  padding:8px 11px; margin-bottom:14px;
+}
+.search input{border:none; background:none; outline:none; width:100%; font-size:14px}
+.search svg{flex:none; color:var(--ink-3)}
+
+/* progress */
+.progress{margin-bottom:16px}
+.progress .bar{height:7px; border-radius:99px; background:var(--surface-3); overflow:hidden}
+.progress .bar i{display:block; height:100%; background:var(--ok); border-radius:99px; transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.progress .cap{display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink-2); margin-top:7px}
+.progress .cap b{font-family:var(--mono); font-weight:600; color:var(--ink)}
+
+/* product rows */
+.list{display:flex; flex-direction:column; gap:6px}
+.prow{
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+  padding:11px 12px; border-radius:10px; border:1px solid transparent;
+  transition:background .12s, border-color .12s;
+}
+.prow:hover{background:var(--surface-2)}
+.col.right .prow:hover{background:var(--surface)}
+.prow[aria-current="true"]{background:var(--accent-soft); border-color:color-mix(in srgb, var(--accent) 30%, transparent)}
+.prow .nm{flex:1; min-width:0; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.prow .meta{font-size:12.5px; color:var(--ink-3); font-weight:400}
+.pips{display:flex; gap:3px; flex:none}
+.pip{width:8px; height:8px; border-radius:50%; border:1.5px solid var(--line-strong); background:transparent}
+.pip.on{background:var(--ok); border-color:var(--ok)}
+.count{font-family:var(--mono); font-size:12.5px; color:var(--ink-2); flex:none; font-variant-numeric:tabular-nums}
+
+/* combination cards */
+.combos{display:flex; flex-direction:column; gap:8px}
+.combo{
+  display:grid; grid-template-columns:1fr auto; gap:4px 14px; align-items:center;
+  background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--pending);
+  border-radius:10px; padding:12px 14px; width:100%; text-align:left;
+  transition:transform .12s, box-shadow .12s, border-color .12s;
+}
+.combo.done{border-left-color:var(--ok)}
+.combo:hover{transform:translateY(-1px); box-shadow:var(--shadow); border-color:var(--line-strong)}
+.combo .title{font-weight:700; letter-spacing:-.01em}
+.combo .facts{
+  grid-column:1/2; display:flex; flex-wrap:wrap; gap:4px 14px;
+  font-family:var(--mono); font-size:12.5px; color:var(--ink-2); font-variant-numeric:tabular-nums;
+}
+.combo .facts .miss{color:var(--pending)}
+.chip{
+  font-family:var(--body); font-size:11.5px; font-weight:700; letter-spacing:.03em;
+  padding:3px 9px; border-radius:99px; white-space:nowrap;
+  background:var(--ok-soft); color:var(--ok);
+}
+.chip.pend{background:var(--pending-soft); color:var(--pending)}
+.chip.manual{background:var(--surface-3); color:var(--ink-2)}
+.margin{font-family:var(--mono); font-weight:600; font-variant-numeric:tabular-nums}
+.margin.low{color:var(--accent)}
+
+/* siblings strip */
+.sibs{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px}
+.sib{
+  display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600;
+  padding:5px 10px; border-radius:99px; border:1px solid var(--line); background:var(--surface);
+  color:var(--ink-2);
+}
+.sib .dot{width:6px;height:6px;border-radius:50%;background:var(--pending)}
+.sib .dot.done{background:var(--ok)}
+.sib[aria-current="true"]{background:var(--ink); color:var(--ground); border-color:var(--ink)}
+.sib:hover{border-color:var(--line-strong); color:var(--ink)}
+.sib[aria-current="true"]:hover{color:var(--ground)}
+
+/* mesa */
+.mesa{
+  border:1.5px dashed var(--line-strong); border-radius:12px; padding:10px;
+  background:
+    repeating-linear-gradient(-45deg, transparent 0 11px, color-mix(in srgb, var(--ink) 3%, transparent) 11px 12px);
+  transition:border-color .15s, background-color .15s;
+}
+.mesa.over{border-color:var(--accent); background-color:var(--accent-soft)}
+.lines{display:flex; flex-direction:column; gap:6px}
+.line{
+  display:grid; grid-template-columns:auto 1fr auto auto auto; gap:10px; align-items:center;
+  background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:9px 11px;
+}
+.line.prep{border-left:3px solid var(--accent)}
+.line.prod{border-left:3px solid var(--ink-3)}
+.line .badge{
+  font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); width:42px;
+}
+.line .nm{font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.line .nm small{display:block; font-weight:400; font-size:11.5px; color:var(--ink-3); font-family:var(--mono)}
+.qty{
+  width:74px; text-align:right; font-family:var(--mono); font-weight:600; font-size:14px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:7px; padding:5px 7px;
+  font-variant-numeric:tabular-nums;
+}
+.qty:focus{outline:2px solid var(--accent); outline-offset:0; background:var(--surface)}
+.unit{font-family:var(--mono); font-size:12.5px; color:var(--ink-3); width:26px}
+.cost{font-family:var(--mono); font-size:13px; color:var(--ink-2); width:78px; text-align:right; font-variant-numeric:tabular-nums}
+.del{color:var(--ink-3); width:22px; height:22px; border-radius:6px; line-height:20px; text-align:center}
+.del:hover{background:var(--accent-soft); color:var(--accent)}
+.line.flash{animation:flash .5s cubic-bezier(.2,.8,.2,1)}
+@keyframes flash{0%{background:var(--accent-soft); transform:translateX(-6px)} 100%{background:var(--surface); transform:none}}
+.empty{padding:34px 16px; text-align:center; color:var(--ink-3); font-size:13.5px}
+
+/* scale bar */
+.scalebar{display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap}
+.scalebar .lab{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
+.sbtn{
+  font-family:var(--mono); font-weight:600; font-size:13px; padding:5px 11px; border-radius:8px;
+  border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
+}
+.sbtn:hover{border-color:var(--accent); color:var(--accent)}
+
+/* totals */
+.totals{
+  display:flex; flex-wrap:wrap; gap:14px 28px; align-items:baseline; justify-content:space-between;
+  margin-top:16px; padding-top:14px; border-top:1px solid var(--line);
+}
+.tot{display:flex; flex-direction:column; gap:2px}
+.tot .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
+.tot .v{font-family:var(--mono); font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+.tot .v.big{font-family:var(--display); font-size:26px; font-weight:800}
+.tot .v.good{color:var(--ok)} .tot .v.bad{color:var(--accent)}
+
+/* despensa */
+.shelf{margin-bottom:16px}
+.shelf h3{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); margin:0 0 8px; display:flex; align-items:center; gap:8px;
+}
+.shelf h3::after{content:""; flex:1; height:1px; background:var(--line)}
+.items{display:flex; flex-wrap:wrap; gap:6px}
+.item{
+  display:inline-flex; align-items:center; gap:7px; cursor:grab;
+  background:var(--surface); border:1px solid var(--line); border-radius:8px;
+  padding:6px 10px; font-size:13.5px; font-weight:600;
+  transition:transform .1s, border-color .1s, box-shadow .1s;
+}
+.item:hover{transform:translateY(-1px); border-color:var(--line-strong); box-shadow:var(--shadow)}
+.item:active{cursor:grabbing; transform:scale(.97)}
+.item.dragging{opacity:.4}
+.item .u{font-family:var(--mono); font-size:11.5px; color:var(--ink-3); font-weight:400}
+.item.prep{border-left:3px solid var(--accent)}
+.item.prod{border-left:3px solid var(--ink-3)}
+.item.rec{border-left:3px solid var(--pending); border-style:dashed; border-left-style:solid}
+.shelf .hint{font-size:12px; color:var(--ink-3); margin:-3px 0 8px}
+
+/* mockup annotations */
+.legend{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:26px}
+.lcard{background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:14px 16px}
+.lcard h4{font-family:var(--display); font-size:14.5px; margin:0 0 5px; letter-spacing:-.01em}
+.lcard p{margin:0; font-size:13px; color:var(--ink-2)}
+.lcard .step{font-family:var(--mono); font-size:11px; color:var(--accent); letter-spacing:.1em}
+@media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="kicker">Recetas · prototipo de interacción</div>
+      <h1>Mesa y Despensa</h1>
+      <p class="note">Dos columnas, una barra de pestañas. La pestaña fija <b>Recetario</b> es el tablero: productos a la izquierda, sus combinaciones a la derecha. Abrir una combinación crea su propia pestaña, y ahí las columnas cambian de papel una sola vez: <b>la mesa</b> a la izquierda, <b>la despensa</b> a la derecha. Arrastra de la despensa a la mesa.</p>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="rail" id="rail"></div>
+    <div class="cols" id="cols"></div>
+  </div>
+
+  <div class="legend">
+    <div class="lcard"><div class="step">1</div><h4>Recetario</h4><p>Elige un producto: la derecha se llena con sus combinaciones. Nada navega todavía. Los puntos huecos son lo que falta.</p></div>
+    <div class="lcard"><div class="step">2</div><h4>Abrir una combinación</h4><p>Se crea una pestaña. La receta vuela de la columna derecha a la izquierda y la despensa aparece detrás.</p></div>
+    <div class="lcard"><div class="step">3</div><h4>Construir</h4><p>Arrastra ingredientes y preparaciones. Las recetas de otras combinaciones se disuelven en líneas; las preparaciones entran enteras.</p></div>
+    <div class="lcard"><div class="step">4</div><h4>Cerrar</h4><p>Costo y margen se mueven en cada tecla. El punto de la combinación se rellena y el contador del recetario sube.</p></div>
+  </div>
+</div>
+
+<script>
+const money = n => "$" + Math.round(n).toLocaleString("es-CO");
+
+/* ---------------- data ---------------- */
+const ING = {
+  harina:{id:"harina", name:"Harina de trigo", unit:"g", cost:3.5},
+  azucar:{id:"azucar", name:"Azúcar", unit:"g", cost:4.2},
+  manteq:{id:"manteq", name:"Mantequilla", unit:"g", cost:22},
+  huevo:{id:"huevo", name:"Huevo", unit:"und", cost:650},
+  cacao:{id:"cacao", name:"Cacao en polvo", unit:"g", cost:38},
+  leche:{id:"leche", name:"Leche", unit:"ml", cost:4.5},
+  sal:{id:"sal", name:"Sal", unit:"g", cost:1.8},
+  levadura:{id:"levadura", name:"Levadura fresca", unit:"g", cost:14},
+};
+const PREP = {
+  crema:{id:"crema", name:"Crema pastelera", unit:"g", cost:12.4},
+  ganache:{id:"ganache", name:"Ganache", unit:"g", cost:28},
+  almibar:{id:"almibar", name:"Almíbar de vainilla", unit:"ml", cost:6.1},
+};
+const PROD = {
+  coca:{id:"coca", name:"Coca-Cola 400 ml", unit:"und", cost:1800},
+  panh:{id:"panh", name:"Pan de hamburguesa", unit:"und", cost:900},
+};
+
+const products = [
+  { id:"p1", name:"Torta de chocolate", cat:"Tortas", combos:[
+      { id:"c1", name:"500 g", price:38000, lines:[
+          {k:"ing", id:"harina", q:180},{k:"ing", id:"azucar", q:150},
+          {k:"ing", id:"cacao", q:45},{k:"ing", id:"manteq", q:120},
+          {k:"ing", id:"huevo", q:3},{k:"prep", id:"ganache", q:90} ] },
+      { id:"c2", name:"1000 g", price:68000, lines:[] },
+      { id:"c3", name:"1500 g", price:96000, lines:[] },
+  ]},
+  { id:"p2", name:"Torta de vainilla", cat:"Tortas", combos:[
+      { id:"c4", name:"500 g", price:34000, lines:[
+          {k:"ing", id:"harina", q:190},{k:"ing", id:"azucar", q:150},
+          {k:"ing", id:"manteq", q:110},{k:"ing", id:"huevo", q:3},
+          {k:"prep", id:"crema", q:120} ] },
+      { id:"c5", name:"1000 g", price:62000, lines:[
+          {k:"ing", id:"harina", q:380},{k:"ing", id:"azucar", q:300},
+          {k:"ing", id:"manteq", q:220},{k:"ing", id:"huevo", q:6},
+          {k:"prep", id:"crema", q:200} ] },
+  ]},
+  { id:"p3", name:"Cheesecake", cat:"Tortas", combos:[
+      { id:"c6", name:"Porción", price:9500, lines:[] },
+      { id:"c7", name:"Entera", price:72000, lines:[] },
+  ]},
+  { id:"p4", name:"Croissant", cat:"Panadería", combos:[
+      { id:"c8", name:"—", price:3800, lines:[
+          {k:"ing", id:"harina", q:60},{k:"ing", id:"manteq", q:35},
+          {k:"ing", id:"levadura", q:2},{k:"ing", id:"sal", q:1} ] },
+  ]},
+  { id:"p5", name:"Pan campesino", cat:"Panadería", combos:[
+      { id:"c9", name:"500 g", price:7500, lines:[] },
+      { id:"c10", name:"1000 g", price:13000, lines:[] },
+  ]},
+];
+
+const findCombo = cid => {
+  for (const p of products) for (const c of p.combos) if (c.id === cid) return {p, c};
+  return null;
+};
+const lineCost = l => (l.k==="ing"?ING:l.k==="prep"?PREP:PROD)[l.id].cost * l.q;
+const lineRef  = l => (l.k==="ing"?ING:l.k==="prep"?PREP:PROD)[l.id];
+const comboCost = c => c.lines.reduce((s,l)=>s+lineCost(l),0);
+const covered = p => p.combos.filter(c=>c.lines.length).length;
+const totalCombos = products.reduce((s,p)=>s+p.combos.length,0);
+const totalCovered = () => products.reduce((s,p)=>s+covered(p),0);
+
+/* ---------------- state ---------------- */
+let state = { tab:"home", selected:"p1", tabs:[] };  // tabs: [comboId]
+
+/* ---------------- render: rail ---------------- */
+function renderRail(){
+  const rail = document.getElementById("rail");
+  rail.innerHTML = "";
+  rail.appendChild(tabEl({ key:"home", label:"Recetario", home:true }));
+  state.tabs.forEach(cid=>{
+    const {p,c} = findCombo(cid);
+    rail.appendChild(tabEl({ key:cid, label:`${p.name} · ${c.name}`, done:c.lines.length>0, close:true }));
+  });
+  const sp = document.createElement("div"); sp.className="spacer"; rail.appendChild(sp);
+}
+function tabEl({key,label,home,done,close}){
+  const b = document.createElement("button");
+  b.className="tab"; b.setAttribute("aria-selected", state.tab===key);
+  if(!home){ const d=document.createElement("span"); d.className="dot"+(done?" done":""); b.appendChild(d); }
+  const s=document.createElement("span"); s.textContent=label; if(home) s.className="home"; b.appendChild(s);
+  b.onclick = ()=>{ state.tab=key; render(); };
+  if(close){
+    const x=document.createElement("span"); x.className="x"; x.textContent="×";
+    x.onclick=(e)=>{ e.stopPropagation(); state.tabs=state.tabs.filter(t=>t!==key);
+      if(state.tab===key) state.tab="home"; render(); };
+    b.appendChild(x);
+  }
+  return b;
+}
+
+/* ---------------- render: home ---------------- */
+function renderHome(){
+  const cols = document.getElementById("cols");
+  cols.className = "cols";
+  const prod = products.find(p=>p.id===state.selected);
+  cols.innerHTML = `
+    <div class="col">
+      <div class="colhead"><h2>Productos</h2><span class="sub">${products.length} con receta</span></div>
+      <div class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input placeholder="Buscar producto…" aria-label="Buscar producto">
+      </div>
+      <div class="progress">
+        <div class="bar"><i style="width:${Math.round(totalCovered()/totalCombos*100)}%"></i></div>
+        <div class="cap"><span>Combinaciones con receta</span><b>${totalCovered()} / ${totalCombos}</b></div>
+      </div>
+      <div class="list" id="plist"></div>
+    </div>
+    <div class="col right">
+      <div class="colhead"><h2>${prod.name}</h2><span class="sub">${covered(prod)} de ${prod.combos.length} listas</span></div>
+      <div class="combos" id="clist"></div>
+    </div>`;
+
+  const pl = cols.querySelector("#plist");
+  let cat = null;
+  products.forEach(p=>{
+    if(p.cat!==cat){ cat=p.cat;
+      const h=document.createElement("div"); h.className="kicker"; h.style.margin="12px 0 4px 12px"; h.textContent=cat; pl.appendChild(h); }
+    const b=document.createElement("button"); b.className="prow";
+    b.setAttribute("aria-current", state.selected===p.id);
+    b.innerHTML = `<span class="nm">${p.name}<span class="meta"> · ${p.combos.length===1?"sin variaciones":p.combos.length+" combinaciones"}</span></span>
+      <span class="pips">${p.combos.map(c=>`<i class="pip${c.lines.length?" on":""}"></i>`).join("")}</span>
+      <span class="count">${covered(p)}/${p.combos.length}</span>`;
+    b.onclick=()=>{ state.selected=p.id; render(); };
+    pl.appendChild(b);
+  });
+
+  const cl = cols.querySelector("#clist");
+  prod.combos.forEach(c=>{
+    const cost = comboCost(c), has = c.lines.length>0;
+    const marg = has ? (c.price-cost)/c.price*100 : null;
+    const b=document.createElement("button"); b.className="combo"+(has?" done":"");
+    b.innerHTML = `
+      <span class="title">${c.name==="—"?prod.name:c.name}</span>
+      <span class="chip ${has?"":"pend"}">${has?"con receta":"sin receta"}</span>
+      <span class="facts">
+        <span>precio ${money(c.price)}</span>
+        ${has?`<span>costo ${money(cost)}</span><span class="margin ${marg<35?"low":""}">margen ${marg.toFixed(0)}%</span>`
+             :`<span class="miss">costo sin calcular</span>`}
+      </span>`;
+    b.onclick=()=>{ if(!state.tabs.includes(c.id)) state.tabs.push(c.id); state.tab=c.id; render(); };
+    cl.appendChild(b);
+  });
+}
+
+/* ---------------- render: builder ---------------- */
+function renderBuilder(cid){
+  const {p,c} = findCombo(cid);
+  const cols = document.getElementById("cols");
+  cols.className = "cols build";
+  cols.innerHTML = `
+    <div class="col">
+      <div class="colhead"><h2>${p.name} · ${c.name==="—"?"receta":c.name}</h2><span class="sub">precio ${money(c.price)}</span></div>
+      <div class="sibs" id="sibs"></div>
+      <div class="scalebar">
+        <span class="lab">Escalar la receta</span>
+        ${[1.5,2,3].map(f=>`<button class="sbtn" data-f="${f}">×${f}</button>`).join("")}
+        <button class="sbtn" data-f="0.5">×0.5</button>
+      </div>
+      <div class="mesa" id="mesa"><div class="lines" id="lines"></div></div>
+      <div class="totals" id="totals"></div>
+    </div>
+    <div class="col right">
+      <div class="colhead"><h2>Despensa</h2><span class="sub">arrastra a la mesa</span></div>
+      <div class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input placeholder="Buscar o crear ingrediente…" aria-label="Buscar ingrediente">
+      </div>
+      <div id="shelves"></div>
+    </div>`;
+
+  // siblings
+  const sibs = cols.querySelector("#sibs");
+  p.combos.forEach(s=>{
+    const b=document.createElement("button"); b.className="sib";
+    b.setAttribute("aria-current", s.id===cid);
+    b.innerHTML = `<span class="dot${s.lines.length?" done":""}"></span>${s.name==="—"?"receta":s.name}`;
+    b.onclick=()=>{ if(!state.tabs.includes(s.id)) state.tabs.push(s.id); state.tab=s.id; render(); };
+    sibs.appendChild(b);
+  });
+
+  cols.querySelectorAll(".sbtn").forEach(b=>b.onclick=()=>{
+    const f = parseFloat(b.dataset.f);
+    c.lines.forEach(l=> l.q = Math.round(l.q*f*100)/100);
+    render(); flashAll();
+  });
+
+  renderLines(c);
+  renderShelves(c);
+
+  const mesa = cols.querySelector("#mesa");
+  mesa.addEventListener("dragover", e=>{ e.preventDefault(); mesa.classList.add("over"); });
+  mesa.addEventListener("dragleave", ()=> mesa.classList.remove("over"));
+  mesa.addEventListener("drop", e=>{
+    e.preventDefault(); mesa.classList.remove("over");
+    addToMesa(c, JSON.parse(e.dataTransfer.getData("text/plain")));
+  });
+}
+
+function renderLines(c){
+  const box = document.getElementById("lines");
+  box.innerHTML = "";
+  if(!c.lines.length){
+    box.innerHTML = `<div class="empty">La mesa está vacía.<br>Arrastra algo de la despensa, o trae la receta de otra combinación para empezar.</div>`;
+  }
+  c.lines.forEach((l,i)=>{
+    const ref = lineRef(l);
+    const row = document.createElement("div");
+    row.className = "line" + (l.k==="prep"?" prep":l.k==="prod"?" prod":"");
+    row.innerHTML = `
+      <span class="badge">${l.k==="ing"?"ingr":l.k==="prep"?"prep":"prod"}</span>
+      <span class="nm">${ref.name}${l.k==="prep"?`<small>receta propia · ${money(ref.cost)}/${ref.unit}</small>`:""}</span>
+      <input class="qty" type="number" step="any" value="${l.q}" aria-label="Cantidad de ${ref.name}">
+      <span class="unit">${ref.unit}</span>
+      <span class="cost">${money(lineCost(l))}</span>
+      <button class="del" title="Quitar">×</button>`;
+    row.querySelector(".qty").addEventListener("input", e=>{
+      l.q = parseFloat(e.target.value)||0;
+      row.querySelector(".cost").textContent = money(lineCost(l));
+      renderTotals(c);
+    });
+    row.querySelector(".del").onclick = ()=>{ c.lines.splice(i,1); render(); };
+    box.appendChild(row);
+  });
+  renderTotals(c);
+}
+
+function renderTotals(c){
+  const cost = comboCost(c);
+  const marg = c.price ? (c.price-cost)/c.price*100 : 0;
+  const good = marg>=35;
+  document.getElementById("totals").innerHTML = `
+    <div class="tot"><span class="k">Costo receta</span><span class="v">${money(cost)}</span></div>
+    <div class="tot"><span class="k">Precio</span><span class="v">${money(c.price)}</span></div>
+    <div class="tot"><span class="k">Utilidad</span><span class="v">${money(c.price-cost)}</span></div>
+    <div class="tot"><span class="k">Margen</span><span class="v big ${good?"good":"bad"}">${marg.toFixed(0)}%</span></div>`;
+}
+
+function renderShelves(c){
+  const host = document.getElementById("shelves");
+  host.innerHTML = "";
+  shelf(host, "Ingredientes", Object.values(ING).map(x=>({...x,k:"ing"})), "");
+  shelf(host, "Preparaciones", Object.values(PREP).map(x=>({...x,k:"prep"})), "Entran como una sola línea y conservan su receta.");
+  shelf(host, "Productos", Object.values(PROD).map(x=>({...x,k:"prod"})), "");
+  const others = [];
+  products.forEach(p=>p.combos.forEach(o=>{ if(o.id!==c.id && o.lines.length) others.push({k:"rec", id:o.id, name:`${p.name} ${o.name==="—"?"":o.name}`.trim(), unit:`${o.lines.length} líneas`, cost:0}); }));
+  shelf(host, "Recetas", others, "Se disuelven en sus líneas al soltarlas. Puedes escalarlas después.");
+}
+function shelf(host, title, items, hint){
+  const s=document.createElement("div"); s.className="shelf";
+  s.innerHTML = `<h3>${title}</h3>${hint?`<p class="hint">${hint}</p>`:""}<div class="items"></div>`;
+  const box = s.querySelector(".items");
+  items.forEach(it=>{
+    const b=document.createElement("button");
+    b.className = "item" + (it.k==="prep"?" prep":it.k==="prod"?" prod":it.k==="rec"?" rec":"");
+    b.draggable = true;
+    b.innerHTML = `${it.name} <span class="u">${it.unit}</span>`;
+    b.addEventListener("dragstart", e=>{ e.dataTransfer.setData("text/plain", JSON.stringify(it)); b.classList.add("dragging"); });
+    b.addEventListener("dragend", ()=> b.classList.remove("dragging"));
+    b.onclick = ()=>{ const {c} = findCombo(state.tab); addToMesa(c, it); };
+    box.appendChild(b);
+  });
+  host.appendChild(s);
+}
+
+function addToMesa(c, it){
+  if(it.k === "rec"){                       // recipes dissolve into their lines
+    const src = findCombo(it.id).c;
+    src.lines.forEach(l=>{
+      const ex = c.lines.find(x=>x.k===l.k && x.id===l.id);
+      if(ex) ex.q += l.q; else c.lines.push({k:l.k, id:l.id, q:l.q});
+    });
+  } else {                                   // everything else is one whole line
+    const ex = c.lines.find(x=>x.k===it.k && x.id===it.id);
+    if(ex) ex.q += 1; else c.lines.push({k:it.k, id:it.id, q: it.unit==="und"?1:100});
+  }
+  render(); flashAll();
+}
+function flashAll(){
+  document.querySelectorAll("#lines .line").forEach((el,i)=>{
+    setTimeout(()=>{ el.classList.add("flash"); setTimeout(()=>el.classList.remove("flash"),500); }, i*35);
+  });
+}
+
+/* ---------------- go ---------------- */
+function render(){
+  renderRail();
+  if(state.tab==="home") renderHome(); else renderBuilder(state.tab);
+}
+render();
+</script>

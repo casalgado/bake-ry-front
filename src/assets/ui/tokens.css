@@ -1,0 +1,86 @@
+/* ui-* design tokens. Values only, no rules.
+ *
+ * light-dark(light, dark) picks a value from `color-scheme`, so both themes
+ * live on one line and stay comparable. Requires Chrome/Edge 123+, Safari 17.5+,
+ * Firefox 120+.
+ *
+ * `color-scheme: light` pins the app to light for now: the old (non ui-*) 95%
+ * of the app has no dark styles, so following the OS today would half-break it.
+ * Put data-ui-theme="dark" on any element to flip that subtree. When migration
+ * is done, change this one line to `light dark` and the whole app follows the OS.
+ *
+ * The whole list is re-declared on [data-ui-theme] and not only on :root, and
+ * that is load-bearing: light-dark() and var() inside a custom property resolve
+ * on the element that DECLARES it. Declared only on :root, every token would
+ * resolve against the root's light scheme and inherit down as light values, so
+ * a themed wrapper would change nothing.
+ */
+
+:root,
+[data-ui-theme] {
+  color-scheme: light;
+
+  /* Surfaces. The number is how close to your face, not how dark:
+   * 0 = the page, 1 = a column or card on it, 2 = a row or well inside that. */
+  --ui-surface-0: light-dark(#f5f0eb, #1a1512);
+  --ui-surface-1: light-dark(#faf8f5, #241d18);
+  --ui-surface-2: light-dark(#fffdfb, #2f2620);
+
+  /* Lines. `line` divides rows, `line-strong` edges a whole section. */
+  --ui-line: light-dark(#e6dfd8, #3a3029);
+  --ui-line-strong: light-dark(#d4c8bc, #4e4238);
+
+  /* Ink. Never pure black/white, always tinted warm to match the cream. */
+  --ui-ink: light-dark(#2a231a, #f5f0eb);
+  --ui-ink-muted: light-dark(#7e684d, #a89684);
+
+  /* Brand. `-ink` is what you write on top of a solid brand fill. */
+  --ui-brand: light-dark(#d9842a, #f0a04b);
+  --ui-brand-ink: light-dark(#ffffff, #2a1d0c);
+
+  /* Destructive intent, not a state. Deeper and browner than berry on purpose:
+   * berry is a decorative accent whose meaning the view decides, this one always
+   * means "this deletes something". */
+  --ui-danger: light-dark(#b21414, #f2635c);
+  --ui-danger-ink: light-dark(#ffffff, #2a0c0c);
+
+  /* Accents. Six, separated by hue so they stay apart at chip size.
+   * Dark is re-picked, never inverted: lighter and still saturated, because a
+  * mid-tone that sings on cream goes muddy on a dark ground.
+   * Which one means what is decided in the view, never here. */
+  --ui-berry: light-dark(#d20d21, #fa3c42);
+  --ui-plum: light-dark(#d10095, #fa4fc0);
+    --ui-violet: light-dark(#5b21e5, #a98bff);
+    --ui-sky: light-dark(#009cf8, #4db8ff);
+  --ui-leaf: light-dark(#267000, #57c21a);
+  --ui-lime: light-dark(#84b100, #b9e82e);
+/* Softs are derived, never picked by hand, so they can't drift off hue.
+   *
+   * Mix the solid into the surface it will sit on, in oklab: sRGB mixing goes
+   * muddy through the middle, oklab keeps the hue and the perceived lightness.
+   * Mixing against the surface (not white) is what makes one formula work in
+   * both themes. Dark grounds swallow chroma, so dark needs a stronger tint
+   * (set on the dark theme below — light-dark() takes colors only, not lengths). */
+  --ui-tint: 16%;
+
+  --ui-brand-soft: color-mix(in oklab, var(--ui-brand) var(--ui-tint), var(--ui-surface-1));
+  --ui-danger-soft: color-mix(in oklab, var(--ui-danger) var(--ui-tint), var(--ui-surface-1));
+  --ui-berry-soft: color-mix(in oklab, var(--ui-berry) var(--ui-tint), var(--ui-surface-1));
+  --ui-plum-soft: color-mix(in oklab, var(--ui-plum) var(--ui-tint), var(--ui-surface-1));
+  --ui-violet-soft: color-mix(in oklab, var(--ui-violet) var(--ui-tint), var(--ui-surface-1));
+  --ui-sky-soft: color-mix(in oklab, var(--ui-sky) var(--ui-tint), var(--ui-surface-1));
+  --ui-leaf-soft: color-mix(in oklab, var(--ui-leaf) var(--ui-tint), var(--ui-surface-1));
+  --ui-lime-soft: color-mix(in oklab, var(--ui-lime) var(--ui-tint), var(--ui-surface-1));
+}
+
+/* Any element can carry a theme, which is what lets the /ux gallery go dark on
+ * its own while the un-migrated app around it stays light. Same specificity as
+ * the block above, so these win by coming later. */
+[data-ui-theme='light'] {
+  color-scheme: light;
+}
+
+[data-ui-theme='dark'] {
+  color-scheme: dark;
+  --ui-tint: 28%;
+}
