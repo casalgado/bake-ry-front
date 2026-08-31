@@ -8,6 +8,11 @@ class Combination {
     this.basePrice = data.basePrice || 0;
     this.currentPrice = data.currentPrice || this.basePrice;
     this.costPrice = data.costPrice || 0;
+    // The combination owns its recipe — there is no fallback to the product's.
+    // Both fields must survive the round trip: the product form rebuilds every
+    // combination through this class, so anything missing here is erased on save.
+    this.recipeId = data.recipeId || null;
+    this.costPriceSource = data.costPriceSource || 'manual';
     this.isWholeGrain = data.isWholeGrain || false;
     this.isActive = data.isActive !== undefined ? data.isActive : true;
     this.accountingCode = data.accountingCode || '';
@@ -23,6 +28,9 @@ class Combination {
       basePrice: basePrice || variation.basePrice || 0,
       currentPrice: currentPrice || variation.currentPrice || variation.basePrice || 0,
       costPrice: variation.costPrice || 0,
+      // Legacy variations carry a recipeId too (see ProductVariation).
+      recipeId: variation.recipeId || null,
+      costPriceSource: variation.costPriceSource || 'manual',
       isWholeGrain: variation.isWholeGrain || false,
       isActive: true,
       accountingCode: variation.accountingCode || '',
@@ -49,6 +57,8 @@ class Combination {
       basePrice: this.basePrice,
       currentPrice: this.currentPrice,
       costPrice: this.costPrice,
+      costPriceSource: this.costPriceSource,
+      recipeId: this.recipeId,
       isWholeGrain: this.isWholeGrain,
       isActive: this.isActive,
       accountingCode: this.accountingCode,
@@ -65,6 +75,8 @@ class Combination {
       basePrice: this.basePrice,
       currentPrice: this.currentPrice,
       costPrice: this.costPrice,
+      costPriceSource: this.costPriceSource,
+      recipeId: this.recipeId,
       isWholeGrain: this.isWholeGrain,
       isActive: this.isActive,
       accountingCode: this.accountingCode,
