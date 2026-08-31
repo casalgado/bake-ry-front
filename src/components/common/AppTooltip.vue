@@ -21,18 +21,10 @@ const PANEL_TRANSFORMS = {
   right: 'translateY(-50%)',
 };
 
-const ARROW_CLASSES = {
-  top: 'top-full left-1/2 -translate-x-1/2 -translate-y-1/2',
-  bottom: 'bottom-full left-1/2 -translate-x-1/2 translate-y-1/2',
-  left: 'left-full top-1/2 -translate-x-1/2 -translate-y-1/2',
-  right: 'right-full top-1/2 translate-x-1/2 -translate-y-1/2',
-};
-
 // A panel carrying markup is a different object from a panel carrying a
-// sentence: it needs the width the dark bubble denies it, and reads as a small
-// card rather than a label. The arrow is dropped there.
+// sentence: it brings its own padding and wants no reading width imposed on it.
+// Everything else — surface, border, shadow, arrow — is the same object.
 const slots = useSlots();
-const rich = computed(() => !!slots.content);
 
 const visible = ref(false);
 const tooltipId = useId();
@@ -59,14 +51,6 @@ const panelStyle = computed(() => ({
   left: `${anchor.value.left}px`,
   transform: PANEL_TRANSFORMS[props.placement],
 }));
-
-// pointer-events-none: the panel sits over the page in a fixed layer, and nothing
-// in it is interactive — it must never swallow a click meant for what's underneath.
-const panelClasses = computed(() =>
-  rich.value
-    ? 'pointer-events-none z-[1000] w-max rounded-md border border-neutral-200 bg-white text-left text-xs text-neutral-800 shadow-lg'
-    : 'pointer-events-none z-[1000] w-max max-w-[220px] whitespace-pre-line break-words rounded-md bg-black px-2.5 py-1.5 text-left text-xs leading-snug text-white shadow-sm',
-);
 
 function show() {
   if (props.disabled) return;
@@ -115,20 +99,19 @@ onUnmounted(() => {
     <slot :described-by="visible ? tooltipId : undefined" />
     <Teleport to="body">
       <!-- div, not span: teleported to <body>, so nothing inline depends on it
-           and rich content nests legally inside. -->
+           and rich content nests legally inside.
+           pointer-events-none: the panel sits over the page in a fixed layer, and
+           nothing in it is interactive — it must never swallow a click meant for
+           what's underneath. -->
       <div
         v-if="visible"
         :id="tooltipId"
         role="tooltip"
-        :class="panelClasses"
+        :class="['pointer-events-none z-[1000] ui-tooltip', { 'ui-tooltip-text': !slots.content }]"
         :style="panelStyle"
+        :data-placement="placement"
       >
         <slot name="content">{{ text }}</slot>
-        <span
-          v-if="!rich"
-          class="absolute h-2 w-2 rotate-45 bg-black"
-          :class="ARROW_CLASSES[placement]"
-        />
       </div>
     </Teleport>
   </span>

@@ -578,6 +578,82 @@
 
 .ui-empty b { display: block; font-weight: 600; margin-bottom: 3px; color: var(--ui-ink); }
 
+/* ---------- 15. tooltip ---------- */
+
+/* The only component that floats, so it is the only one that carries a shadow:
+ * it has no surface beneath it to sit one rung above. Mixed off --ui-ink rather
+ * than a hard black so it survives dark.
+ * Position and visibility belong to AppTooltip.vue; this owns color and shape. */
+.ui-tooltip {
+  /* So the arrow has something to anchor to. AppTooltip.vue overrides it with
+   * an inline `position: fixed`, which is also a containing block; static
+   * examples in the gallery need this. */
+  position: relative;
+  width: max-content;
+  border: 1px solid var(--ui-line-strong);
+  border-radius: 9px;
+  /* Top of the ladder: it floats over whatever it explains, so it must never
+   * read as level with the card underneath it. */
+  background: var(--ui-surface-3);
+  color: var(--ui-ink);
+  font-size: 12px;
+  text-align: left;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--ui-ink) 18%, transparent);
+}
+
+/* A sentence: its own padding and a reading width. Markup passed through the
+ * content slot brings its own padding and gets neither. */
+.ui-tooltip-text {
+  max-width: 220px;
+  padding: 7px 10px;
+  line-height: 1.35;
+  white-space: pre-line;
+  overflow-wrap: break-word;
+}
+
+/* The arrow is a rotated square, not the classic transparent-border triangle:
+ * that trick spends the border property on the shape itself, so the arrow can
+ * never carry a border of its own — and this panel has one.
+ *
+ * Half the square tucks under the panel. Its fill covers the segment of panel
+ * border it sits on (a positioned child paints above its parent's border), and
+ * the two borders left sticking out continue the panel's outline.
+ *
+ * WHICH two borders show never changes — only the angle does. That is the whole
+ * trick: the usual complaint about bordered arrows is having to re-pick borders
+ * per side, which then mismatches. Fix them at right+bottom and spin the square
+ * instead, and four placements collapse into one rule plus four values. */
+/* Gated on the attribute: without it the three variables are undefined, `top`
+ * and `left` fall back to auto, and the arrow parks itself in a corner. */
+.ui-tooltip[data-placement]::after {
+  content: '';
+  position: absolute;
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
+  top: var(--arrow-y);
+  left: var(--arrow-x);
+  /* Must stay identical to the panel's fill — this is what covers the panel
+   * border it sits on. Two different surfaces here and the seam reappears. */
+  background: var(--ui-surface-3);
+  border: 1px solid var(--ui-line-strong);
+  border-top: 0;
+  border-left: 0;
+  /* Uniform for all four: the square always centers on the panel edge it
+   * pokes through. The square is square, so the percentages are the same
+   * number before and after the rotation. */
+  transform: translate(-50%, -50%) rotate(var(--arrow-rot));
+}
+
+/* Rotation reads off the corner: right+bottom borders meet pointing down-right,
+ * so +45° aims them straight down, and each further 90° turns the point a
+ * quarter. The placement names where the PANEL sits, so the arrow points back
+ * the opposite way. */
+.ui-tooltip[data-placement='top']    { --arrow-x: 50%;  --arrow-y: 100%; --arrow-rot: 45deg; }
+.ui-tooltip[data-placement='right']  { --arrow-x: 0;    --arrow-y: 50%;  --arrow-rot: 135deg; }
+.ui-tooltip[data-placement='bottom'] { --arrow-x: 50%;  --arrow-y: 0;    --arrow-rot: 225deg; }
+.ui-tooltip[data-placement='left']   { --arrow-x: 100%; --arrow-y: 50%;  --arrow-rot: 315deg; }
+
 @media (prefers-reduced-motion: reduce) {
   .ui-bar::after { transition: none; }
 }

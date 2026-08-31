@@ -431,6 +431,32 @@ const pips = computed(() => [true, true, true, true, false, false]);
         </div>
       </section>
 
+      <!-- ---------- tooltip ---------- -->
+      <section class="flex flex-col gap-4">
+        <h2 class="ui-sectionhead">15 · Tooltip</h2>
+        <div class="flex flex-wrap items-start gap-x-10 gap-y-8 px-4 py-3">
+          <div
+            v-for="p in ['top', 'right', 'bottom', 'left']" :key="p"
+            class="ui-tooltip ui-tooltip-text" :data-placement="p"
+          >
+            Panel {{ p }}, flecha al lado opuesto.
+          </div>
+          <div class="ui-tooltip p-3" data-placement="top">
+            <div class="ui-card-title">Últimos pedidos</div>
+            <div class="flex flex-col mt-1">
+              <div v-for="o in ['26 ago · $43,400', '12 ago · $18,200']" :key="o" class="ui-item ui-item-divided">
+                <span /><span class="ui-item-title font-normal">{{ o }}</span><span />
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="ui-panehead-sub">
+          Quietos aquí a propósito: flotar y posicionar es de
+          <code>AppTooltip.vue</code>. <code>data-placement</code> dice dónde está
+          el panel, no a dónde apunta la flecha.
+        </p>
+      </section>
+
     </div>
   </div>
 </template>
