@@ -146,13 +146,27 @@ const builder = computed(() => {
             <span class="ui-panehead-sub">{{ products.length }} productos</span>
           </div>
 
-          <input
-            v-model="search"
-            class="ui-input w-full mb-3"
-            type="search"
-            placeholder="Buscar producto…"
-            aria-label="Buscar producto"
-          >
+          <div class="ui-search mb-3">
+            <input
+              v-model="search"
+              class="ui-input"
+              type="text"
+              role="searchbox"
+              enterkeyhint="search"
+              placeholder="Buscar producto…"
+              aria-label="Buscar producto"
+              @keydown.esc="search = ''"
+            >
+            <button
+              v-if="search"
+              class="ui-search-clear"
+              type="button"
+              aria-label="Limpiar búsqueda"
+              @click="search = ''"
+            >
+              <PhX :size="12" weight="bold" />
+            </button>
+          </div>
 
           <div class="mb-4">
             <div

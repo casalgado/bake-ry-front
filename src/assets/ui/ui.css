@@ -41,6 +41,7 @@
 .ui-btn:focus-visible,
 .ui-tab:focus-visible,
 .ui-tab-close:focus-visible,
+.ui-search-clear:focus-visible,
 .ui-item:focus-visible,
 .ui-chip:focus-visible,
 .ui-card-action:focus-visible {
@@ -152,8 +153,11 @@
   width: 18px;
   height: 18px;
   flex: none;
-  /* custom-components.css puts `my-2` on every `button` element. */
+  /* custom-components.css puts `my-2 px-2 py-1` on every `button`. The padding
+   * is the dangerous half: 16px of it inside an 18px box leaves a 2px content
+   * box, and the icon shrinks to a dot. */
   margin: 0;
+  padding: 0;
   border-radius: 5px;
   color: var(--ui-ink-muted);
   cursor: pointer;
@@ -492,6 +496,41 @@
 }
 
 .ui-input::placeholder { color: var(--ui-ink-muted); font-weight: 400; }
+
+/* A search box is `type="text"`, never `type="search"`. The native clear button
+ * is a browser-drawn bitmap in a fixed blue-grey that `color` cannot reach; the
+ * only way to tint it is to redraw it as a webkit-only mask. Own the button
+ * instead. What `type="search"` gave for free is restored at the call site:
+ * `role="searchbox"`, `enterkeyhint="search"`, and Escape to clear — all
+ * behaviour, which is why it lives in the template and not here. */
+.ui-search { position: relative; display: block; }
+
+/* The padding has to clear the button, so the two numbers are one decision.
+ * Keeping them together is why this is a wrapper class and not `pr-7` at the
+ * call site — arrangement, but arrangement the component owns. */
+.ui-search .ui-input { padding-right: 28px; }
+
+.ui-search-clear {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  translate: 0 -50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  /* See .ui-tab-close: `px-2` from the frozen base collapses the icon to a dot. */
+  margin: 0;
+  padding: 0;
+  border-radius: 5px;
+  color: var(--ui-ink-muted);
+  cursor: pointer;
+}
+
+/* Not .ui-btn-icon: its border and solid hover read as a button sitting on top
+ * of the field, rather than a glyph inside it. */
+.ui-search-clear:hover { color: var(--ui-ink); }
 .ui-input:focus { outline: 2px solid var(--ui-brand); outline-offset: 0; background: var(--ui-surface-2); }
 .ui-input-num { text-align: right; }
 

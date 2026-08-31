@@ -13,6 +13,9 @@ const inks = ['ink', 'ink-muted'];
 const brand = ['brand', 'brand-ink', 'brand-soft', 'danger', 'danger-ink', 'danger-soft'];
 const accents = ['berry', 'plum', 'violet', 'sky', 'leaf', 'lime'];
 
+/* Starts non-empty so the clear button is visible in the gallery. */
+const demoSearch = ref('Harina');
+
 const activeTab = ref('bodega');
 const tabs = [
   { id: 'bodega', label: 'Bodega' },
@@ -375,7 +378,29 @@ const pips = computed(() => [true, true, true, true, false, false]);
             </div>
             <div class="flex gap-2">
               <input class="ui-input ui-input-num w-24" value="12.4" >
-              <input class="ui-input w-40" placeholder="Buscar…" >
+              <!-- type="text", not type="search": the native clear button cannot
+                   be tinted. Escape clears, same as the native one did. -->
+              <div class="ui-search w-40">
+                <input
+                  v-model="demoSearch"
+                  class="ui-input"
+                  type="text"
+                  role="searchbox"
+                  enterkeyhint="search"
+                  placeholder="Buscar…"
+                  aria-label="Buscar"
+                  @keydown.esc="demoSearch = ''"
+                >
+                <button
+                  v-if="demoSearch"
+                  class="ui-search-clear"
+                  type="button"
+                  aria-label="Limpiar búsqueda"
+                  @click="demoSearch = ''"
+                >
+                  <PhX :size="12" weight="bold" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

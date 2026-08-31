@@ -35,8 +35,11 @@ from there. The old Tailwind-class system still runs ~95% of the app.
    `style="--panes: 1fr 2fr"`, `style="--fill: 40%"`. Do not add
    `.ui-panes--1-2`.
 9. **CSS classes first; `.vue` components only when there is state or logic.**
-   `src/components/ui/` does not exist yet, on purpose. Extract from three real
-   call sites, never from zero.
+   Extract from real call sites, never from zero. `src/components/ui/` holds
+   exactly one component — `PageHeader.vue` — and stays that small on purpose.
+   Behaviour is the test, not repetition: `.ui-search` is a class because its
+   colors are CSS, while the Escape-to-clear, `role="searchbox"` and
+   `enterkeyhint` around it are template, and a CSS file cannot hold those.
 10. **Add to the gallery in the same commit** as any new class. A class not in
     `/system-admin/ux` does not exist.
 
@@ -59,9 +62,13 @@ Four rungs, `0` furthest from your face:
   `light-dark()` and `var()` inside a custom property resolve on the element
   that **declares** it, so a themed wrapper needs its own declaration or it
   inherits already-resolved light values and does nothing.
-- `custom-components.css` puts `my-2` on every `button` element and styles bare
-  `h1`–`h6` and `header` with fixed light neutrals. `ui.css` undoes this once at
-  the top; expect similar leaks when migrating a new screen.
+- `custom-components.css` puts `rounded-md font-medium text-[13px] my-2 px-2 py-1`
+  on every `button` element, and styles bare `h1`–`h6` and `header` with fixed
+  light neutrals. The headings are undone once at the top of `ui.css`; the button
+  rule **cannot** be, because `[data-ui-theme] button` outranks `.ui-btn` and
+  would eat its padding. Every icon-only button therefore resets `margin` and
+  `padding` itself — skip the padding and `px-2` leaves a 2px content box that
+  squeezes the icon into a dot. Expect similar leaks on any new screen.
 - `tailwind.config.js` omits `neutral-500` and `gray-700/800/900`, so
   `text-neutral-500` and friends generate no CSS anywhere in the app.
 
@@ -76,3 +83,13 @@ Four rungs, `0` furthest from your face:
   does not repeat the hover math.
 - `formatQty` in `src/utils/helpers.js` — number only, max 3 decimals, unit
   rendered as its own `<span class="ui-unit">`.
+- `UiSearchField.vue`. `.ui-search` has one real call site today
+  (`RecipeBookView.vue`; `ProductSearch.vue` is the old system and off-limits),
+  and its ~14 lines of markup plus the Escape handler are copy-pasted at each
+  one. **Extract on the second new screen that needs a search box** — two
+  examples is enough to know whether it needs debounce, a leading icon, or a
+  `clear` event of its own. One is not.
+- `ui-inputs.css`. `ui.css` is one file on purpose: the numbered sections are
+  already the split, and a third file adds an import-order constraint that fails
+  as "this screen looks slightly wrong". Split when the file is genuinely hard to
+  navigate (~900 lines) or when inputs grow tokens of their own.
