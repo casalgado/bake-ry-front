@@ -21,10 +21,15 @@
   color-scheme: light;
 
   /* Surfaces. The number is how close to your face, not how dark:
-   * 0 = the page, 1 = a column or card on it, 2 = a row or well inside that. */
-  --ui-surface-0: light-dark(#f5f0eb, #1a1512);
-  --ui-surface-1: light-dark(#faf8f5, #241d18);
-  --ui-surface-2: light-dark(#fffdfb, #2f2620);
+   * 0 = the ground the app sits on, 1 = the page or the tab strip,
+   * 2 = a column, card or button on it, 3 = a row or well inside that.
+   *
+   * 0 is #ede7e1 because that is what the pre-ui dashboard shell already paints
+   * (neutral-150): a ui-* view can now sit flush on it instead of one step off. */
+  --ui-surface-0: light-dark(#ede7e1, #120e0c);
+  --ui-surface-1: light-dark(#f5f0eb, #1a1512);
+  --ui-surface-2: light-dark(#faf8f5, #241d18);
+  --ui-surface-3: light-dark(#fffdfb, #2f2620);
 
   /* Lines. `line` divides rows, `line-strong` edges a whole section. */
   --ui-line: light-dark(#e6dfd8, #3a3029);
@@ -63,14 +68,14 @@
    * (set on the dark theme below — light-dark() takes colors only, not lengths). */
   --ui-tint: 16%;
 
-  --ui-brand-soft: color-mix(in oklab, var(--ui-brand) var(--ui-tint), var(--ui-surface-1));
-  --ui-danger-soft: color-mix(in oklab, var(--ui-danger) var(--ui-tint), var(--ui-surface-1));
-  --ui-berry-soft: color-mix(in oklab, var(--ui-berry) var(--ui-tint), var(--ui-surface-1));
-  --ui-plum-soft: color-mix(in oklab, var(--ui-plum) var(--ui-tint), var(--ui-surface-1));
-  --ui-violet-soft: color-mix(in oklab, var(--ui-violet) var(--ui-tint), var(--ui-surface-1));
-  --ui-sky-soft: color-mix(in oklab, var(--ui-sky) var(--ui-tint), var(--ui-surface-1));
-  --ui-leaf-soft: color-mix(in oklab, var(--ui-leaf) var(--ui-tint), var(--ui-surface-1));
-  --ui-lime-soft: color-mix(in oklab, var(--ui-lime) var(--ui-tint), var(--ui-surface-1));
+  --ui-brand-soft: color-mix(in oklab, var(--ui-brand) var(--ui-tint), var(--ui-surface-2));
+  --ui-danger-soft: color-mix(in oklab, var(--ui-danger) var(--ui-tint), var(--ui-surface-2));
+  --ui-berry-soft: color-mix(in oklab, var(--ui-berry) var(--ui-tint), var(--ui-surface-2));
+  --ui-plum-soft: color-mix(in oklab, var(--ui-plum) var(--ui-tint), var(--ui-surface-2));
+  --ui-violet-soft: color-mix(in oklab, var(--ui-violet) var(--ui-tint), var(--ui-surface-2));
+  --ui-sky-soft: color-mix(in oklab, var(--ui-sky) var(--ui-tint), var(--ui-surface-2));
+  --ui-leaf-soft: color-mix(in oklab, var(--ui-leaf) var(--ui-tint), var(--ui-surface-2));
+  --ui-lime-soft: color-mix(in oklab, var(--ui-lime) var(--ui-tint), var(--ui-surface-2));
 }
 
 /* Any element can carry a theme, which is what lets the /ux gallery go dark on

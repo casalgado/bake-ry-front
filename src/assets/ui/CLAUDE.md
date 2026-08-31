@@ -28,8 +28,9 @@ from there. The old Tailwind-class system still runs ~95% of the app.
 6. **Hover never moves anything.** No lift, no translate. It steps one rung up
    the surface ladder, or fills with the soft.
 7. **Softs are derived, never picked.**
-   `color-mix(in oklab, <solid> var(--ui-tint), var(--ui-surface-1))`. To change
-   how strong every soft is, change `--ui-tint` (16% light / 28% dark).
+   `color-mix(in oklab, <solid> var(--ui-tint), var(--ui-surface-2))` — mixed
+   into `surface-2` because that is what cards, chips, buttons and items sit on.
+   To change how strong every soft is, change `--ui-tint` (16% light / 28% dark).
 8. **Per-instance values ride on CSS variables, not modifier classes.**
    `style="--panes: 1fr 2fr"`, `style="--fill: 40%"`. Do not add
    `.ui-panes--1-2`.
@@ -38,6 +39,17 @@ from there. The old Tailwind-class system still runs ~95% of the app.
    call sites, never from zero.
 10. **Add to the gallery in the same commit** as any new class. A class not in
     `/system-admin/ux` does not exist.
+
+## The surface ladder
+
+Four rungs, `0` furthest from your face:
+
+| | light | what it is |
+|---|---|---|
+| `surface-0` | `#ede7e1` | the ground the app sits on — same value the pre-ui dashboard shell paints (`neutral-150`), so a `ui-*` view sits flush on it |
+| `surface-1` | `#f5f0eb` | the page, the tab strip, the sunken pane |
+| `surface-2` | `#faf8f5` | a column, card, chip or button on it |
+| `surface-3` | `#fffdfb` | a row or well inside that — hover fills, inputs, bar troughs |
 
 ## Gotchas that already cost time
 

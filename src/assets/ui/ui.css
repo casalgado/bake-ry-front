@@ -24,6 +24,16 @@
 [data-ui-theme] header { background: transparent; border-bottom: 0; }
 [data-ui-theme] :is(h1, h2, h3, h4, h5, h6) { color: var(--ui-ink); }
 
+/* ---------- scrollbars ---------- */
+
+/* The scroll container that matters is the dashboard shell's, an ANCESTOR of
+ * every ui-* view, so this cannot be scoped to [data-ui-theme] — it has to be
+ * global. `scrollbar-color` inherits, `scrollbar-width` does not, hence the
+ * universal selector. Standard properties only: Baseline in every browser we
+ * target, and they override ::-webkit-scrollbar-* anyway. */
+* { scrollbar-width: thin; }
+:root { scrollbar-color: var(--ui-line-strong) transparent; }
+
 /* ---------- focus ---------- */
 
 /* Keyboard focus, once, for everything. The old system has no focus state at
@@ -56,19 +66,22 @@
 
 /* ---------- 1. tabs ---------- */
 
-/* No border-bottom on the strip: the divider between tabs and pane is the
- * surface step (0 → 1), so the selected tab has nothing to cover. The old
- * version drew a line here and pushed the tab 1px down to hide it, which could
- * never work — overflow-x makes this a scroll container, and a scroll container
- * clips at the padding box, so that 1px was always cut off. */
+/* A hairline under the strip, painted as a background layer pinned to the
+ * bottom of the PADDING box — not as border-bottom. overflow-x makes this a
+ * scroll container, and a scroll container clips at its padding box, so a
+ * border, which sits outside that box, can never be covered by a child. That is
+ * what defeated the earlier attempt at this line. Drawn inside the padding box
+ * instead, with 1px of bottom padding for the selected tab to overhang into,
+ * the tab notches straight through it and still reads as the pane's top edge. */
 .ui-tabs {
   display: flex;
   align-items: stretch;
   gap: 4px;
-  padding: 8px 10px 0;
-  background: var(--ui-surface-0);
+  padding: 8px 10px 1px;
+  background:
+    linear-gradient(var(--ui-line), var(--ui-line)) bottom / 100% 1px no-repeat,
+    var(--ui-surface-1);
   overflow-x: auto;
-  scrollbar-width: thin;
 }
 
 /* Bottom border transparent, never `none`: the box keeps its height so tabs
@@ -97,10 +110,15 @@
 
 /* Selected is the top edge of the pane, so it takes the pane's fill. */
 .ui-tab[aria-selected='true'] {
-  background: var(--ui-surface-1);
+  background: var(--ui-surface-2);
   border-color: var(--ui-line-strong);
   border-bottom-color: transparent;
   color: var(--ui-ink);
+  /* Grows one pixel into the strip's bottom padding so the tab's own fill covers
+   * the hairline. align-items: stretch is what turns a negative margin into
+   * height: the flex line is sized by the unselected tabs, so this one stretches
+   * past them by exactly the margin. */
+  margin-bottom: -1px;
 }
 
 .ui-tab-badge {
@@ -146,7 +164,7 @@
 /* ---------- 2. panes ---------- */
 
 .ui-app {
-  background: var(--ui-surface-1);
+  background: var(--ui-surface-2);
   border: 1px solid var(--ui-line);
   border-radius: 14px;
   overflow: hidden;
@@ -162,7 +180,7 @@
 .ui-pane + .ui-pane { border-left: 1px solid var(--ui-line); }
 
 /* The pane you take things from sits one step back. */
-.ui-pane-sunken { background: var(--ui-surface-0); }
+.ui-pane-sunken { background: var(--ui-surface-1); }
 
 @media (max-width: 900px) {
   .ui-panes { grid-template-columns: minmax(0, 1fr); }
@@ -221,7 +239,7 @@
   color: var(--ui-ink);
 }
 
-.ui-item:hover { background: var(--ui-surface-2); }
+.ui-item:hover { background: var(--ui-surface-3); }
 
 /* Selected outranks every other row paint, hover and the negative wash
  * included, so it carries :hover to stay above them. */
@@ -270,7 +288,7 @@
 /* ---------- 6. card ---------- */
 
 .ui-card {
-  background: var(--ui-surface-1);
+  background: var(--ui-surface-2);
   border: 1px solid var(--ui-line);
   border-radius: 12px;
   padding: 14px 16px;
@@ -287,7 +305,7 @@
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
-  background: var(--ui-surface-2);
+  background: var(--ui-surface-3);
 }
 
 .ui-card-media:last-child { border-radius: 0 0 12px 12px; }
@@ -301,7 +319,7 @@
 /* Hover never moves anything. It steps the surface one rung up the ladder,
  * which is the same "closer to your face" idea the surfaces already encode. */
 .ui-card-action { cursor: pointer; transition: background-color 0.12s, border-color 0.12s; }
-.ui-card-action:hover { background: var(--ui-surface-2); border-color: var(--ui-line-strong); }
+.ui-card-action:hover { background: var(--ui-surface-3); border-color: var(--ui-line-strong); }
 
 /* An accent reads as a spine, never a fill. */
 .ui-card[data-accent] { border-left: 3px solid var(--ui-accent); }
@@ -314,7 +332,7 @@
   align-items: baseline;
   gap: 8px;
   padding: 6px 10px;
-  background: var(--ui-surface-1);
+  background: var(--ui-surface-2);
   border: 1px solid var(--ui-line);
   border-radius: 8px;
   font-size: 13.5px;
@@ -340,7 +358,7 @@
   font-weight: 700;
   letter-spacing: 0.03em;
   white-space: nowrap;
-  background: var(--ui-accent-soft, var(--ui-surface-2));
+  background: var(--ui-accent-soft, var(--ui-surface-3));
   color: var(--ui-accent, var(--ui-ink-muted));
 }
 
@@ -373,7 +391,7 @@
 .ui-bar {
   height: 7px;
   border-radius: 99px;
-  background: var(--ui-surface-2);
+  background: var(--ui-surface-3);
   border: 1px solid var(--ui-line);
   overflow: hidden;
 }
@@ -418,7 +436,7 @@
   padding: 7px 13px;
   border: 1px solid var(--ui-line-strong);
   border-radius: 9px;
-  background: var(--ui-surface-1);
+  background: var(--ui-surface-2);
   /* Full ink, not muted: a muted label is how a disabled button reads, and a
    * screen where every secondary action looks disabled has no secondary action. */
   color: var(--ui-ink);
@@ -465,7 +483,7 @@
 .ui-input {
   width: 100%;
   padding: 5px 8px;
-  background: var(--ui-surface-2);
+  background: var(--ui-surface-3);
   border: 1px solid var(--ui-line);
   border-radius: 7px;
   color: var(--ui-ink);
@@ -474,7 +492,7 @@
 }
 
 .ui-input::placeholder { color: var(--ui-ink-muted); font-weight: 400; }
-.ui-input:focus { outline: 2px solid var(--ui-brand); outline-offset: 0; background: var(--ui-surface-1); }
+.ui-input:focus { outline: 2px solid var(--ui-brand); outline-offset: 0; background: var(--ui-surface-2); }
 .ui-input-num { text-align: right; }
 
 /* Label above, so the input keeps its full width for the value. */

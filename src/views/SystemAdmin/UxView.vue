@@ -7,7 +7,7 @@ import { PhFlask, PhPackage, PhX, PhArrowDown } from '@phosphor-icons/vue';
 const theme = ref('light');
 const toggleTheme = () => { theme.value = theme.value === 'light' ? 'dark' : 'light'; };
 
-const surfaces = ['surface-0', 'surface-1', 'surface-2'];
+const surfaces = ['surface-0', 'surface-1', 'surface-2', 'surface-3'];
 const lines = ['line', 'line-strong'];
 const inks = ['ink', 'ink-muted'];
 const brand = ['brand', 'brand-ink', 'brand-soft', 'danger', 'danger-ink', 'danger-soft'];
@@ -396,7 +396,7 @@ const pips = computed(() => [true, true, true, true, false, false]);
           </div>
           <div class="ui-dropzone">
             <div class="flex flex-col gap-1.5">
-              <div v-for="l in ['Harina de trigo', 'Azúcar']" :key="l" class="ui-item" style="background: var(--ui-surface-1); border-color: var(--ui-line)">
+              <div v-for="l in ['Harina de trigo', 'Azúcar']" :key="l" class="ui-item" style="background: var(--ui-surface-2); border-color: var(--ui-line)">
                 <span class="ui-item-icon"><PhPackage :size="16" /></span>
                 <span class="ui-item-title">{{ l }}</span>
                 <span class="ui-item-trail"><span class="ui-item-num">4<span class="ui-unit">kg</span></span></span>
