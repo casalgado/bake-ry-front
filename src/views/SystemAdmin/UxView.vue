@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import { PhFlask, PhPackage, PhX, PhArrowDown } from '@phosphor-icons/vue';
 
 /* The theme lives on this view's wrapper, not on <html>: the rest of the app
@@ -39,6 +39,17 @@ const itemClass = (state) => ({
 });
 
 const pips = computed(() => [true, true, true, true, false, false]);
+
+/* Emptied for a frame so every row counts as new and the entrance replays —
+ * the transition is the thing being documented, so it has to be re-runnable. */
+const CASCADE_ROWS = ['Harina de trigo', 'Azúcar', 'Cacao en polvo', 'Mantequilla', 'Huevo'];
+const cascadeRows = ref([...CASCADE_ROWS]);
+
+const replayCascade = async () => {
+  cascadeRows.value = [];
+  await nextTick();
+  cascadeRows.value = [...CASCADE_ROWS];
+};
 </script>
 
 <template>
@@ -215,6 +226,32 @@ const pips = computed(() => [true, true, true, true, false, false]);
           </div>
 
           <div class="ui-card">
+            <div class="ui-card-title">Rellena, sobre un dropzone</div>
+            <p class="ui-card-body mb-3">
+              <code>ui-item-filled</code> — una fila que pusiste ahí, no una que
+              siempre estuvo en la lista. Trae su propia superficie: sobre un
+              <code>ui-dropzone</code> una fila transparente parece que no cayó
+              nada. Se separan con <code>gap</code>, no con la línea de
+              <code>ui-item-divided</code>.
+            </p>
+            <div class="ui-dropzone flex flex-col gap-1.5">
+              <div
+                v-for="l in [
+                  { n: 'Harina de trigo', q: '180', u: 'g', c: '$630' },
+                  { n: 'Cacao en polvo', q: '45', u: 'g', c: '$1,710' },
+                ]" :key="l.n" class="ui-item ui-item-filled"
+              >
+                <span class="ui-tag">ingr</span>
+                <span class="ui-item-title">{{ l.n }}</span>
+                <span class="ui-item-trail">
+                  <span class="ui-item-meta">{{ l.q }}<span class="ui-unit">{{ l.u }}</span></span>
+                  <span class="ui-item-num ui-num">{{ l.c }}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ui-card">
             <div class="ui-card-title">Como línea editable</div>
             <div class="flex flex-col gap-1 mt-2">
               <div v-for="l in ['Harina de trigo', 'Mantequilla']" :key="l" class="ui-item">
@@ -286,6 +323,23 @@ const pips = computed(() => [true, true, true, true, false, false]);
               </div>
               <div class="ui-chip ui-chip-draggable ui-chip-dragging">
                 <span>Arrastrando</span><span class="ui-chip-meta">0.6 kg</span>
+              </div>
+            </div>
+
+            <p class="ui-card-body mt-4 mb-3">
+              Seleccionado con <code>aria-current="true"</code>. Para una tira de
+              hermanos donde uno es el actual — no para filtros que se apagan y
+              se prenden.
+            </p>
+            <div class="flex flex-wrap gap-1.5">
+              <div class="ui-chip">
+                <i class="ui-pip ui-pip-on" /><span>Porción</span>
+              </div>
+              <div class="ui-chip" aria-current="true">
+                <i class="ui-pip" /><span>Entera</span>
+              </div>
+              <div class="ui-chip">
+                <i class="ui-pip" /><span>Media</span>
               </div>
             </div>
           </div>
@@ -421,7 +475,7 @@ const pips = computed(() => [true, true, true, true, false, false]);
           </div>
           <div class="ui-dropzone">
             <div class="flex flex-col gap-1.5">
-              <div v-for="l in ['Harina de trigo', 'Azúcar']" :key="l" class="ui-item" style="background: var(--ui-surface-2); border-color: var(--ui-line)">
+              <div v-for="l in ['Harina de trigo', 'Azúcar']" :key="l" class="ui-item ui-item-filled">
                 <span class="ui-item-icon"><PhPackage :size="16" /></span>
                 <span class="ui-item-title">{{ l }}</span>
                 <span class="ui-item-trail"><span class="ui-item-num">4<span class="ui-unit">kg</span></span></span>
@@ -455,6 +509,39 @@ const pips = computed(() => [true, true, true, true, false, false]);
           <code>AppTooltip.vue</code>. <code>data-placement</code> dice dónde está
           el panel, no a dónde apunta la flecha.
         </p>
+      </section>
+
+      <!-- ---------- cascade ---------- -->
+      <section class="flex flex-col gap-4">
+        <h2 class="ui-sectionhead">16 · Cascada</h2>
+        <div class="ui-card">
+          <div class="flex items-baseline justify-between gap-4 flex-wrap">
+            <div>
+              <div class="ui-card-title">Filas que llegan juntas</div>
+              <p class="ui-card-body mt-1 max-w-prose">
+                <code>&lt;TransitionGroup name="ui-cascade"&gt;</code> con
+                <code>:style="{ '--i': i }"</code> en cada hijo. El retraso se
+                topa a los ocho, así una receta de veinte líneas termina en
+                ~320&nbsp;ms. Solo entrada: salir de a una, sin animación, es lo
+                que deja ver qué borraste.
+              </p>
+            </div>
+            <button class="ui-btn" @click="replayCascade">Volver a correr</button>
+          </div>
+
+          <TransitionGroup tag="div" name="ui-cascade" class="ui-dropzone flex flex-col gap-1.5 mt-3">
+            <div
+              v-for="(l, i) in cascadeRows" :key="l"
+              class="ui-item ui-item-filled" :style="{ '--i': i }"
+            >
+              <span class="ui-tag">ingr</span>
+              <span class="ui-item-title">{{ l }}</span>
+              <span class="ui-item-trail">
+                <span class="ui-item-meta">180<span class="ui-unit">g</span></span>
+              </span>
+            </div>
+          </TransitionGroup>
+        </div>
       </section>
 
     </div>

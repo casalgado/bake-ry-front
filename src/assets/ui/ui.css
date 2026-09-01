@@ -289,6 +289,20 @@
 .ui-item-divided { border-radius: 0; border-bottom-color: var(--ui-line); }
 .ui-item-divided:last-child { border-bottom-color: transparent; }
 
+/* A row you put there, rather than one that was always in the list. Carries its
+ * own surface so it reads as an object sitting on the well beneath it — a bare
+ * .ui-item is transparent until hover, which on a dropzone looks like nothing
+ * landed. Opposite of -divided: these are separate objects, so space them with
+ * a gap instead of sharing a hairline. */
+.ui-item-filled {
+  background: var(--ui-surface-3);
+  border-color: var(--ui-line);
+}
+
+/* Top rung already, so there is no rung left to step up to — the border does
+ * the hovering instead, the way .ui-chip does. */
+.ui-item-filled:hover { border-color: var(--ui-line-strong); }
+
 /* ---------- 6. card ---------- */
 
 .ui-card {
@@ -345,6 +359,15 @@
 }
 
 .ui-chip:hover { border-color: var(--ui-line-strong); }
+
+/* The one you are on. Same paint as a selected item, and :hover rides along
+ * for the same reason it does there: .ui-chip:hover would otherwise wash the
+ * selection off exactly when you point at it. */
+.ui-chip[aria-current='true'],
+.ui-chip[aria-current='true']:hover {
+  background: var(--ui-brand-soft);
+  border-color: var(--ui-brand);
+}
 .ui-chip-meta { font-size: 11.5px; font-weight: 400; color: var(--ui-ink-muted); font-variant-numeric: tabular-nums; }
 
 .ui-chip-draggable { cursor: grab; }
@@ -552,16 +575,19 @@
 
 /* ---------- 13. dropzone ---------- */
 
-/* Reads as a surface you put things on, not a container that holds them. */
+/* A tray: it sinks one rung so whatever lands on it can rise. Was a 3% hatch on
+ * a transparent ground, which left it the same colour as the pane behind it —
+ * a dropzone you could only find by the dashes. The surface does that work now,
+ * so the hatch is gone; the dashed border stays, because that is the part that
+ * says "put something here".
+ *
+ * `background-color` in -over, not `background`, so the drag state can tint
+ * this without redeclaring it. */
 .ui-dropzone {
   padding: 10px;
   border: 1.5px dashed var(--ui-line-strong);
   border-radius: 12px;
-  background: repeating-linear-gradient(
-    -45deg,
-    transparent 0 11px,
-    color-mix(in srgb, var(--ui-ink) 3%, transparent) 11px 12px
-  );
+  background: var(--ui-surface-1);
   transition: border-color 0.15s, background-color 0.15s;
 }
 
@@ -654,6 +680,41 @@
 .ui-tooltip[data-placement='bottom'] { --arrow-x: 50%;  --arrow-y: 0;    --arrow-rot: 225deg; }
 .ui-tooltip[data-placement='left']   { --arrow-x: 100%; --arrow-y: 50%;  --arrow-rot: 315deg; }
 
+/* ---------- 16. cascade ---------- */
+
+/* Rows arriving together, one after the other instead of all at once. Built for
+ * a recipe dissolving onto the mesa de trabajo: eight lines appearing in a
+ * single frame reads as a jump, the same eight arriving in sequence reads as
+ * them being placed.
+ *
+ * Position in the run rides on a variable at the call site: :style="{ '--i': i }".
+ * `min()` caps the stagger, so a twenty-line recipe finishes in ~320ms rather
+ * than crawling for eight hundred.
+ *
+ * A transition, not an animation: Vue applies -enter-from before the frame
+ * paints, so a row waiting out its delay is already invisible. An animation
+ * would flash the row at full opacity first and need fill-mode to stop it.
+ *
+ * Enter only. Leaving happens one row at a time, by choice, and a row that
+ * fades out on its way is a row you cannot tell you deleted. */
+.ui-cascade-enter-from {
+  opacity: 0;
+  transform: translateX(-6px);
+}
+
+.ui-cascade-enter-active {
+  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: calc(min(var(--i, 0), 8) * 40ms);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ui-bar::after { transition: none; }
+
+  /* Not `transition: none` — Vue waits for transitionend to clean up the enter
+   * classes, and with no transition at all that event never fires. A duration
+   * near zero ends immediately AND still fires. */
+  .ui-cascade-enter-active {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
+  }
 }
