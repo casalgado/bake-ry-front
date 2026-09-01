@@ -1,36 +1,13 @@
 <script setup>
-import { useIngredientStore } from '@/stores/ingredientStore';
-import IngredientForm from '@/components/forms/IngredientForm.vue';
-import { useRouter } from 'vue-router';
-
-const router = useRouter();
-const ingredientStore = useIngredientStore();
-console.log('ingredientStore contents:', ingredientStore);
-
-const handleSubmit = async (formData) => {
-  try {
-    await ingredientStore.create(formData);
-    router.push('/dashboard/ingredients'); // Navigate to ingredients list after creation
-  } catch (error) {
-    console.error('Failed to create ingredient:', error);
-  }
-};
-
-const handleCancel = () => {
-  router.push('/ingredients');
-};
+/* Under construction — deliberately emptied 2026-09-01, not abandoned.
+ *
+ * This was a thin wrapper around IngredientForm.vue, which could never submit
+ * (see the note in that file). The route stays mapped so the link doesn't die.
+ *
+ * Rebuild alongside the new ingredient form. Until then, RecipeBookView.vue's
+ * despensa is where ingredients get created. */
 </script>
 
 <template>
-  <div>
-    <h2>Create New Ingredient</h2>
-    <IngredientForm
-      :loading="ingredientStore.loading"
-      @submit="handleSubmit"
-      @cancel="handleCancel"
-    />
-    <div v-if="ingredientStore.error" class="error">
-      {{ ingredientStore.error }}
-    </div>
-  </div>
+  <div class="p-6">En construcción.</div>
 </template>
