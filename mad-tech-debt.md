@@ -294,3 +294,54 @@ not an edit.
 Before Existencias ships, since stock arithmetic on a unit spelled two ways is a
 wrong number rather than a cosmetic glitch. Scope it by counting affected
 ingredients first.
+
+---
+
+## 5. The order-item label is written out three times
+
+**Where**
+
+- `src/components/DataTable/renderers/ItemsCell.vue:31`
+- `src/components/DataCalendar/renderers/ItemsCell.vue:31`
+- `src/components/orders/ClientHistoryModal.vue:25` — `itemLabel`
+
+**Status:** deferred, not fixed. Documented 2026-09-01.
+
+### The story
+
+"How do you name an order item to a human" is one rule: category, product, and
+the combination if there is one, each capitalized. It is currently three
+hand-written copies of the same expression — two inlined in a template, one
+extracted into a local helper.
+
+The fallback chain is the fiddly part, and it exists because `Combination.name`
+can be empty:
+
+```js
+item.combination?.name || item.combination?.selection?.join(' + ') || item.variation?.name
+```
+
+The backend already owns this rule — `Combination.getDisplayName()` at
+`functions/src/models/Combination.js:44` is exactly `this.name ||
+this.selection.join(' + ')`. But order items are stored as plain objects, so the
+method doesn't survive the round trip, and each frontend caller re-derives it.
+
+The two `ItemsCell.vue` copies still probe for `combination.getDisplayName` before
+falling back — a leftover from when the live model object was in hand.
+
+### What it breaks
+
+Nothing today. The hazard is drift: when the shape gains a field, or the
+separator changes from `+`, the third copy is the one nobody updates, and the
+same order reads differently in the table than in the client history.
+
+### The fix
+
+Move `itemLabel` from `ClientHistoryModal.vue` into `@/utils/helpers` and import
+it in all three. Net deletion — two long template expressions collapse to a call,
+and the dead `getDisplayName` probe goes with them.
+
+### Pay it off when
+
+A fourth caller appears, or either `ItemsCell` is touched for another reason.
+It's a move, not a redesign — worth doing while you're already in the file.
