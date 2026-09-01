@@ -123,7 +123,10 @@ const cleanString = (input) => {
   return cleaned;
 };
 
-const formatMoney = (value, { slim = false } = {}) => {
+/* `maxFractionDigits` is for costs *per unit* — harina at 3.5/g, which the
+ * default 0 rounds to 4. Same locale and currency either way: a screen that
+ * mixes `$1,800` with `$ 1.800` reads as a bug. */
+const formatMoney = (value, { slim = false, maxFractionDigits = 0 } = {}) => {
   if (slim) {
     const absValue = Math.abs(value);
     let shortValue;
@@ -141,9 +144,22 @@ const formatMoney = (value, { slim = false } = {}) => {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    maximumFractionDigits: maxFractionDigits,
   }).format(value);
 };
+
+/* Units are bakery data with no home yet — settings carries no `unitOptions`
+ * and BakerySettings declares no default — so this list is the de-facto
+ * source. Move it onto settings when a bakery needs its own. */
+const UNIT_OPTIONS = [
+  { symbol: 'g', name: 'Gramo' },
+  { symbol: 'kg', name: 'Kilogramo' },
+  { symbol: 'ml', name: 'Mililitro' },
+  { symbol: 'L', name: 'Litro' },
+  { symbol: 'uds', name: 'Unidad' },
+  { symbol: 'dz', name: 'Docena' },
+  { symbol: 'paq', name: 'Paquete' },
+];
 
 function formatTime(time24) {
   const [hours, minutes] = time24.split(':');
@@ -269,6 +285,7 @@ export {
   generateId,
   capitalize,
   formatMoney,
+  UNIT_OPTIONS,
   cleanString,
   categoryOrder,
   formatTime,
