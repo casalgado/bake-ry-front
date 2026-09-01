@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
 import { useOrderStore } from '@/stores/orderStore';
-import { formatMoney } from '@/utils/helpers';
+import { formatMoney, capitalize } from '@/utils/helpers';
 import { formatDateDisplay } from '@/utils/dateUtils';
 
 const props = defineProps({
@@ -20,6 +20,13 @@ const error = ref(null);
 const expandedIds = ref(new Set());
 
 const closeDialog = () => emit('update:isOpen', false);
+
+// category product combination (combination optional)
+const itemLabel = (item) => [
+  item.collectionName,
+  item.productName,
+  item.combination?.name || item.combination?.selection?.join(' + ') || item.variation?.name,
+].filter(Boolean).map(capitalize).join(' ');
 
 const toggleExpand = (id) => {
   const ids = expandedIds.value;
@@ -147,7 +154,7 @@ const contact = computed(() => {
                         >
                           <span>
                             <span class="inline-block w-3 mr-1 invisible">▸</span>
-                            {{ item.quantity }}x {{ item.productName }}
+                            {{ item.quantity }}x {{ itemLabel(item) }}
                           </span>
                           <span class="whitespace-nowrap ml-2">{{ formatMoney(item.subtotal) }}</span>
                         </div>
