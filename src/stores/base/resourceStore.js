@@ -194,7 +194,16 @@ export const createResourceStore = (resourceName, resourceService) => {
       try {
         const response = await resourceService.create(data);
         const newItem = response.data;
-        items.value.push(newItem);
+
+        // The realtime listener may have already inserted this doc while the
+        // create request was in flight — replace instead of pushing a twin.
+        const index = items.value.findIndex((item) => item.id === newItem.id);
+        if (index !== -1) {
+          items.value[index] = newItem;
+        } else {
+          items.value.push(newItem);
+        }
+
         return newItem;
       } catch (err) {
         setError(err);
