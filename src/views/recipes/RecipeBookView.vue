@@ -28,9 +28,9 @@ const tabs = ref([{ id: 'overview', label: 'Recetario' }]);
  * what keeps it from becoming an unhandled rejection. The error is rendered,
  * not swallowed: without it a failed fetch reads as "no tienes productos".
  *
- * Ingredients are fetched for one reason: a component row carries a
- * denormalized name/unit/costPerUnit, but not whether the ingredient it points
- * at is something you make. Only the ingredient document knows that. */
+ * Ingredients are fetched because a component row is pure structure — id,
+ * quantity, unit — and nothing else. The name, the current cost, and whether
+ * this is something you make all live on the ingredient document. */
 onMounted(() => {
   productStore.fetchAll().catch(() => {});
   ingredientStore.fetchAll().catch(() => {});
@@ -192,6 +192,9 @@ const isDirty = computed(() => bench.value?.isDirty.value ?? false);
 const ingredientById = computed(
   () => new Map(ingredientStore.items.map((i) => [i.id, i])),
 );
+const productById = computed(
+  () => new Map(productStore.items.map((p) => [p.id, p])));
+
 const kindOf = (line) =>
   line.type === 'product'
     ? { label: 'prod', title: 'Otro producto' }
@@ -199,10 +202,49 @@ const kindOf = (line) =>
       ? { label: 'prep', title: 'Preparación con receta propia' }
       : { label: 'ingr', title: 'Ingrediente' };
 
+/* A stored line carries no name and no cost — the backend strips both, because
+ * the source document is the only honest place for either (docs/recipe-costing).
+ * So the bench joins them back on for display and for the live total: an
+ * ingredient's costPerUnit, or a product/combination's costPrice.
+ *
+ * A product with no variations stands in for its own combination, same as
+ * combosOf — so a null combinationId resolves to the product itself. */
+const resolveLine = (line) => {
+  if (line.type === 'product') {
+    const p = productById.value.get(line.id);
+    if (!p) return { name: '', costPerUnit: 0 };
+
+    const c = line.combinationId
+      ? combosOf(p).find((x) => x.id === line.combinationId)
+      : p;
+
+    return {
+      name: p.hasVariations ? `${p.name} ${c?.name ?? ''}`.trim() : p.name,
+      costPerUnit: c?.costPrice ?? 0,
+    };
+  }
+
+  const i = ingredientById.value.get(line.id);
+  return { name: i?.name ?? '', costPerUnit: i?.costPerUnit ?? 0 };
+};
+
+/* What the bench RENDERS. `lines` stays the thing that gets saved — joining
+ * name/cost onto the rows the mutations write would put the denormalized fields
+ * straight back into the document the backend just finished removing them from.
+ * A plain map, so an index into `rows` is the same index into `lines`. */
 const lineCost = (line) => (line.quantity || 0) * (line.costPerUnit || 0);
 
+/* `_i` carries the row's real index into `lines`/`bench.copy.value` — sorting
+ * this computed reorders the display, but setQuantity/removeLine still mutate
+ * the underlying array by its original position, not by render order. */
+const rows = computed(() =>
+  lines.value
+    .map((l, i) => ({ ...l, ...resolveLine(l), _i: i }))
+    .sort((a, b) => lineCost(b) - lineCost(a)),
+);
+
 const recipeCost = computed(() =>
-  lines.value.reduce((sum, line) => sum + lineCost(line), 0));
+  rows.value.reduce((sum, line) => sum + lineCost(line), 0));
 const price = computed(() => (builder.value ? priceOf(builder.value.combo) : 0));
 const profit = computed(() => price.value - recipeCost.value);
 
@@ -220,7 +262,7 @@ const marginPct = computed(() =>
  * missing or empty, and then the total below is silently low. */
 const isUnpriced = (line) => !line.costPerUnit && kindOf(line).label !== 'ingr';
 
-const unpricedCount = computed(() => lines.value.filter(isUnpriced).length);
+const unpricedCount = computed(() => rows.value.filter(isUnpriced).length);
 
 /* The backend refuses the whole recipe over one bad line — resolveComponents
  * throws on `!(quantity > 0)` and names the component by id, which is not a
@@ -251,16 +293,14 @@ const sameComponent = (a, b) => lineKey(a) === lineKey(b);
  * defaults are also the normalization for lines read back off a stored recipe,
  * which is the one source that can be missing any of them. */
 /* `??`/`||` rather than destructuring defaults: those only fire on `undefined`,
- * and a stored line can carry a null cost or an empty type. */
-const componentRow = ({
-  type, id, combinationId, name, unit, costPerUnit, quantity, notes,
-}) => ({
+ * and a stored line can carry an empty type. */
+/* Name and cost are deliberately absent: a row is structure only, and
+ * `resolveLine` puts the display values back on at render time. */
+const componentRow = ({ type, id, combinationId, unit, quantity, notes }) => ({
   type: type || 'ingredient',
   id,
   combinationId: combinationId ?? null,
-  name,
   unit,
-  costPerUnit: costPerUnit ?? 0,
   quantity: quantity ?? 0,
   notes: notes || '',
 });
@@ -390,9 +430,10 @@ async function save() {
     if (combo.recipeId) {
       /* `update` (PUT), not `patch`. Sending only `ingredients` is safe because
        * the backend merges onto the stored document — but only the PUT route
-       * runs recipeService.update, which re-denormalizes name/unit/cost from
-       * the source docs, bumps the version and maintains `usedInRecipes`. The
-       * PATCH route writes the field and does none of that. */
+       * runs recipeService.update, which re-derives each line's unit from its
+       * source doc, bumps the version, maintains `usedInRecipes` and runs the
+       * cost propagation walk. The PATCH route writes the field and does none
+       * of that. */
       await recipeStore.update(combo.recipeId, { ingredients: b.copy.value });
     } else {
       /* One call. The backend writes the recipe document and the owner's
@@ -408,10 +449,17 @@ async function save() {
           : product.name,
         ingredients: b.copy.value,
       });
-      // The pointer landed on the product document, so re-read it — the pips
-      // and the "sin receta" tag on the recetario are read from there.
-      await productStore.fetchAll().catch(() => {});
     }
+
+    /* Both paths, not just create. The write lands on the PRODUCT document —
+     * the recipeId pointer on create, and on either the recomputed
+     * combination.costPrice that propagation just pushed. Realtime won't bring
+     * that back: handleRealtimeUpdate only syncs primitive fields, and a
+     * combination's cost lives inside variations.combinations[]. Without this
+     * the pips, the "sin receta" tag and every costo on the recetario stay at
+     * whatever they were before the save. */
+    await productStore.fetchAll().catch(() => {});
+
     // Re-copy from what came back, so the stack starts clean at the saved state.
     b.reset();
   } catch (err) {
@@ -465,9 +513,7 @@ const ingredientChip = (i) => ({
   meta: `${formatUnitCost(i.costPerUnit)}/${i.unit}`,
   rows: [componentRow({
     id: i.id,
-    name: i.name,
     unit: i.unit,
-    costPerUnit: i.costPerUnit,
     quantity: startingQuantity(i.unit),
   })],
 });
@@ -570,9 +616,7 @@ const productChips = computed(() => {
           type: 'product',
           id: p.id,
           combinationId: p.hasVariations ? c.id : null,
-          name,
           unit: 'unidad',
-          costPerUnit: c.costPrice,
           quantity: 1,
         })],
       };
@@ -582,10 +626,8 @@ const productChips = computed(() => {
 /* Recipes are the odd shelf: not a component, a paste. Dropping one merges its
  * lines into the bench and nothing ends up pointing at it. */
 /* A recipe has no collection of its own — it borrows the one from the product
- * it belongs to, and falls back when that product is gone. */
-const productById = computed(
-  () => new Map(productStore.items.map((p) => [p.id, p])));
-
+ * it belongs to, and falls back when that product is gone. `productById` is the
+ * same map `resolveLine` joins against. */
 const recipeChips = computed(() => {
   const currentRecipeId = builder.value?.combo.recipeId;
   const collectionOf = (r) =>
@@ -721,8 +763,7 @@ async function createIngredient() {
       /* `stocked`, not the model's `passThrough` default. passThrough deducts
        * an ingredient's own recipe components instead of its stock — right for
        * something you make, wrong for something you buy, which has no recipe
-       * for deduction to find. `type` is left to default to 'manufactured',
-       * matching every ingredient already in the data. */
+       * for deduction to find. `isResale` is left to default to false. */
       stockBehavior: 'stocked',
     });
 
@@ -999,7 +1040,7 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
             >
               <div v-if="!lines.length" class="ui-empty">
                 <b>La mesa de trabajo está vacía</b>
-                Arrastra un insumo desde la derecha, o haz clic en él, para empezar.
+                Haz clic o arrastra un insumo de la derecha para sumarlo a la receta.
               </div>
 
               <TransitionGroup tag="div" name="ui-cascade" class="flex flex-col gap-1.5">
@@ -1008,9 +1049,9 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                      re-animate as if newly added. `--i` staggers the entrance,
                      which is what makes a dissolved recipe cascade. -->
                 <div
-                  v-for="(line, i) in lines" :key="lineKey(line)"
+                  v-for="(line, i) in rows" :key="lineKey(line)"
                   class="ui-item ui-item-filled"
-                  :class="{ 'ui-item-zero': !line.costPerUnit }"
+                  :class="{ 'ui-item-zero': isUnpriced(line) }"
                   :style="{ '--i': i }"
                 >
                   <span class="ui-tag" :title="kindOf(line).title">{{ kindOf(line).label }}</span>
@@ -1023,6 +1064,16 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                   </span>
 
                   <span class="ui-item-trail">
+                    <!-- Fixed width, not just first in markup: .ui-item-trail is
+                         flex/flex-end with no fixed width of its own, so it packs
+                         tight against the row's right edge. A variable-width price
+                         column shifts every sibling's start position row to row —
+                         this box stays constant so the input after it lands in the
+                         same place every time. -->
+                    <span class="w-20 text-right shrink-0">
+                      <span v-if="isUnpriced(line)" class="ui-tag">sin costo</span>
+                      <span v-else class="ui-item-num ui-num">{{ formatMoney(lineCost(line)) }}</span>
+                    </span>
                     <!-- focus arms, the first keystroke snaps: one undo step per
                          edit, not one per keystroke, and none for a row you only
                          tabbed through. -->
@@ -1032,17 +1083,15 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                       :value="line.quantity"
                       :aria-label="'Cantidad de ' + line.name"
                       :aria-invalid="!(line.quantity > 0)"
-                      @focus="beginQuantityEdit(i)"
-                      @input="setQuantity(i, $event.target.value)"
+                      @focus="beginQuantityEdit(line._i)"
+                      @input="setQuantity(line._i, $event.target.value)"
                     >
-                    <span class="ui-item-meta">{{ line.unit }}</span>
-                    <span v-if="isUnpriced(line)" class="ui-tag">sin costo</span>
-                    <span v-else class="ui-item-num ui-num">{{ formatMoney(lineCost(line)) }}</span>
+                    <span class="ui-item-meta w-8 shrink-0">{{ line.unit }}</span>
                     <button
                       class="ui-btn ui-btn-icon ui-btn-danger"
                       :aria-label="'Quitar ' + line.name"
                       title="Quitar"
-                      @click="removeLine(i)"
+                      @click="removeLine(line._i)"
                     >
                       <PhX :size="13" weight="bold" />
                     </button>
