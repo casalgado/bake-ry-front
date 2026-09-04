@@ -234,14 +234,45 @@ const resolveLine = (line) => {
  * A plain map, so an index into `rows` is the same index into `lines`. */
 const lineCost = (line) => (line.quantity || 0) * (line.costPerUnit || 0);
 
+/* Identity for merging and for the frozen order below. A product used twice at
+ * different sizes is two different lines, so the combination is part of the
+ * key. */
+const lineKey = (l) => `${l.type}:${l.id}:${l.combinationId ?? ''}`;
+
+/* Sorting live by cost yanked the row out from under the cursor on the first
+ * digit typed — `rows` recomputes on every keystroke, so the line you are
+ * editing changes position mid-edit. The order is therefore held as its own
+ * state, a list of keys, rebuilt only when the structure changes (a line added
+ * or removed, a unit cost arriving from the store) or on blur. */
+const sortOrder = ref([]);
+
+const resort = () => {
+  sortOrder.value = lines.value
+    .map((l) => ({ key: lineKey(l), cost: lineCost({ ...l, ...resolveLine(l) }) }))
+    .sort((a, b) => b.cost - a.cost)
+    .map((x) => x.key);
+};
+
+// Keys and unit costs, deliberately NOT quantities — that is the whole point.
+watch(
+  () => lines.value.map((l) => `${lineKey(l)}:${resolveLine(l).costPerUnit}`).join('|'),
+  resort,
+  { immediate: true },
+);
+
 /* `_i` carries the row's real index into `lines`/`bench.copy.value` — sorting
  * this computed reorders the display, but setQuantity/removeLine still mutate
  * the underlying array by its original position, not by render order. */
-const rows = computed(() =>
-  lines.value
+const rows = computed(() => {
+  // A line not in the frozen order yet (just dropped) sits last until a resort.
+  const at = (l) => {
+    const i = sortOrder.value.indexOf(lineKey(l));
+    return i < 0 ? Infinity : i;
+  };
+  return lines.value
     .map((l, i) => ({ ...l, ...resolveLine(l), _i: i }))
-    .sort((a, b) => lineCost(b) - lineCost(a)),
-);
+    .sort((a, b) => at(a) - at(b));
+});
 
 const recipeCost = computed(() =>
   rows.value.reduce((sum, line) => sum + lineCost(line), 0));
@@ -280,10 +311,6 @@ const COUNT_UNITS = new Set([
   'uds', 'dz', 'paq', 'und', 'unidad', 'unidades', 'docena', 'paquete',
 ]);
 const startingQuantity = (unit) => (COUNT_UNITS.has(unit) ? 1 : 100);
-
-/* Identity for merging. A product used twice at different sizes is two
- * different lines, so the combination is part of the key. */
-const lineKey = (l) => `${l.type}:${l.id}:${l.combinationId ?? ''}`;
 
 const sameComponent = (a, b) => lineKey(a) === lineKey(b);
 
@@ -331,6 +358,10 @@ function putOnBench(rows) {
   }
 
   b.copy.value = merged;
+  /* Explicit: a chip already on the bench only bumps a quantity, so the
+   * structure watcher above does not fire — but taking a chip is still an
+   * "added", and the row should find its place. */
+  resort();
 }
 
 /* Focus arms an editing session, the first keystroke takes the snapshot: one
@@ -1085,6 +1116,7 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                       :aria-invalid="!(line.quantity > 0)"
                       @focus="beginQuantityEdit(line._i)"
                       @input="setQuantity(line._i, $event.target.value)"
+                      @blur="resort()"
                     >
                     <span class="ui-item-meta w-8 shrink-0">{{ line.unit }}</span>
                     <button

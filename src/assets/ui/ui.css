@@ -707,8 +707,18 @@
   transition-delay: calc(min(var(--i, 0), 8) * 40ms);
 }
 
+/* Reordering. TransitionGroup measures before and after and animates the
+ * difference itself (FLIP) — the whole feature is this one transition existing.
+ * No delay: a stagger is right for rows arriving one by one, wrong for a list
+ * resettling, where the rows have to move as one thing. */
+.ui-cascade-move {
+  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ui-bar::after { transition: none; }
+
+  .ui-cascade-move { transition-duration: 0.01ms; }
 
   /* Not `transition: none` — Vue waits for transitionend to clean up the enter
    * classes, and with no transition at all that event never fires. A duration

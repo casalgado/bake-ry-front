@@ -50,6 +50,13 @@ const replayCascade = async () => {
   await nextTick();
   cascadeRows.value = [...CASCADE_ROWS];
 };
+
+/* The same rows in a new order — nothing enters or leaves, so what you see is
+ * -move on its own. Rotating rather than randomising: every press moves every
+ * row, and a shuffle that lands on the same order reads as a broken button. */
+const shuffleCascade = () => {
+  cascadeRows.value = [...cascadeRows.value.slice(1), cascadeRows.value[0]];
+};
 </script>
 
 <template>
@@ -525,8 +532,17 @@ const replayCascade = async () => {
                 ~320&nbsp;ms. Solo entrada: salir de a una, sin animación, es lo
                 que deja ver qué borraste.
               </p>
+              <p class="ui-card-body mt-1 max-w-prose">
+                <code>.ui-cascade-move</code> anima el reacomodo: TransitionGroup
+                mide antes y después y mueve las filas él solo. Sin retraso —
+                escalonar sirve para filas que llegan, no para una lista que se
+                reordena.
+              </p>
             </div>
-            <button class="ui-btn" @click="replayCascade">Volver a correr</button>
+            <div class="flex gap-1.5">
+              <button class="ui-btn" @click="replayCascade">Volver a correr</button>
+              <button class="ui-btn" @click="shuffleCascade">Reordenar</button>
+            </div>
           </div>
 
           <TransitionGroup tag="div" name="ui-cascade" class="ui-dropzone flex flex-col gap-1.5 mt-3">
