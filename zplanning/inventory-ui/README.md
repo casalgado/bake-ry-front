@@ -22,7 +22,7 @@ Not "assign recipes" and not "create recipes" — **cover every combination of a
 - Product without variations → the **product** holds `recipeId`. With variations → **each combination** holds its own. Resolution: `hasVariations ? combination.recipeId : product.recipeId`.
 - **No fallback.** A combination with no recipe never borrows the product's. Missing = visible gap, never a guess.
 - **A recipe has exactly one owner.** Two combinations can never point at the same recipe doc (that 1:1 is what lets `totalCost` write back to `costPrice`). "Assigning" an existing recipe is therefore always **copying** it.
-- Recipe components are typed `ingredient` or `product` — **never `recipe`**. Nesting happens because the *item* has a recipe: a manufactured ingredient expands via `qty / yield`, a product component via its own recipe.
+- Recipe components are typed `ingredient` or `product` — **never `recipe`**. Nesting happens because the *item* has a recipe: a production ingredient expands via `qty / yield`, a product component via its own recipe.
 - Scale factors (×2) are **entry-time only**. Nothing stores the multiplier; copies are independent from the moment they exist (icing doesn't scale with sponge).
 
 ### Layout
@@ -47,7 +47,7 @@ The shelves *are* the component types, and the object decides the semantics, so 
 | Shelf | Drop result |
 |---|---|
 | **Ingredientes** | one line |
-| **Preparaciones** (manufactured ingredients) | **one line that stays whole** — keeps its own recipe and cost, expands at deduction time |
+| **Preparaciones** (production ingredients) | **one line that stays whole** — keeps its own recipe and cost, expands at deduction time |
 | **Productos** | one line; choose the combination if the product has variations |
 | **Recetas** (other combinations' recipes) | **dissolves into its lines** — the flatten/accumulate case |
 

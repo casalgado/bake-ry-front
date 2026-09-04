@@ -11,7 +11,7 @@ cobrado como adicional, se activa desde la vista Negocios del system admin).
 - **Tres tipos de ítem, no tres bodegas:**
   1. **Ingredientes** — se compran (harina, azúcar).
   2. **Preparaciones intermedias** — un ingrediente que tiene receta (crema
-     pastelera). Ya existe como `ingredient.type = 'manufactured'`.
+     pastelera). Es un ingrediente con `isResale: false` (el default).
   3. **Productos** — modo por producto: `Compro y vendo` (reventa),
      `Lo produzco` (con receta) o `Sin control de stock` (comportamiento
      actual; default en migración).
@@ -119,10 +119,10 @@ cobrado como adicional, se activa desde la vista Negocios del system admin).
   cuando aplique (`getOrderMovements` ya existe).
 
 #### `ShowIngredients.vue` + `IngredientForm.vue` — EXISTEN, modificar
-- **Hoy:** CRUD con tipo `resale`/`manufactured`, categorías desde settings.
+- **Hoy:** CRUD con flag `isResale`, categorías desde settings.
 - **Agregar:** acción por fila **Registrar compra** (modal: cantidad + costo
   total → movimiento de entrada + actualiza `costPerUnit`; bodega destino si
-  multi). Para `manufactured`: link a su receta en Recipe Manager. Stock
+  multi). Para ingredientes de producción (no reventa): link a su receta en Recipe Manager. Stock
   actual viene de `stockStore`, no editable aquí.
 - **Quitar:** edición directa de `currentStock` en el form.
   `CreateIngredient.vue` sobra si el modal de `ShowIngredients` cubre

@@ -179,7 +179,7 @@ vitrina *and* made to order).
   covered stocked intermediates): one compound `writeMovements` call —
   `+N` of the sellable unit at the destination warehouse, `−` its recipe
   components scaled by N, `type: 'production'`, shared `refs.productionId`.
-  Same flow, two owners (stocked manufactured ingredient | recipe product).
+  Same flow, two owners (stocked production ingredient | recipe product).
 - Frontend: modal from `ShowStock.vue` — pick item with recipe, quantity,
   destination warehouse → preview movements → confirm.
 

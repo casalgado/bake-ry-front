@@ -61,7 +61,7 @@ Puro frontend contra endpoints implementados (plan 1C.1–1C.4).
   (radio-cards, `RadioFeatureCard`); productos `none` no muestran NADA de
   inventario en ninguna parte. Si `recipe`: resumen read-only de recetas por
   combinación + botón al Recipe Manager.
-- [ ] **B2. IngredientForm: extras** — para `manufactured`: receta opcional
+- [ ] **B2. IngredientForm: extras** — para no-reventa (`isResale: false`): receta opcional
   con yield obligatorio, toggle pass-through/stocked en lenguaje plano;
   `preferredSupplier`; sin edición de stock en el form.
 - [ ] **B3. Recipe Manager** (el pedazo grande — `ShowRecipes.vue` rediseñado)

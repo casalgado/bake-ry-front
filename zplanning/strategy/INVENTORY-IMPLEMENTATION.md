@@ -24,7 +24,7 @@ Design decisions for the Inventory epic ([ROADMAP.md](./ROADMAP.md) → Next →
 
 What already exists and is reused:
 
-- **`Ingredient`** — bakery-scoped, single base `unit`, `costPerUnit`, `type` (`manufactured` / `resale`), categories in `BakerySettings.ingredientCategories`, `usedInRecipes` back-references.
+- **`Ingredient`** — bakery-scoped, single base `unit`, `costPerUnit`, `isResale` boolean (default `false`), categories in `BakerySettings.ingredientCategories`, `usedInRecipes` back-references.
 - **`Recipe` + `recipeService`** — `productId` link, components `{ingredientId, quantity, unit, costPerUnit}`, `totalCost` getter, transactional ingredient↔recipe relationship maintenance.
 - **Cost propagation** — changing an ingredient's `costPerUnit` transactionally updates every recipe that uses it (`ingredientService.update`).
 - **Recipe versioning** — composition changes snapshot to a `history` subcollection; `getVersionAtDate()` exists. Enables costing past sales with the recipe as it was then.
@@ -61,7 +61,7 @@ Known defects to fix early (pre-phase-1 hygiene):
 
 - No sub-recipe references, no recursion through recipe entities, no yield concept on product/combination recipes.
 - Recipe **reuse is copy-at-creation**: the editor offers "start from recipe X" / import, then the copy is independent and editable (§10).
-- The shared-preparation use case ("edit crema pastelera once, updates everywhere") is covered by manufactured ingredients (§4), not by recipe nesting.
+- The shared-preparation use case ("edit crema pastelera once, updates everywhere") is covered by production ingredients (§4), not by recipe nesting.
 
 Component shape:
 
@@ -72,18 +72,22 @@ RecipeComponent {
   combinationId?,        // required when type='product' and the target product has variations
   quantity,              // in the component's unit (ingredient base unit / product sellable units)
   unit,                  // denormalized from the component
-  name, costPerUnit,     // denormalized snapshots (existing pattern)
   notes?
 }
 ```
+
+**Pure structure — no `name`, no `costPerUnit`.** A row never carries cost or a
+display name; cost is computed live from each component's own source doc and
+cached only on the recipe's owner (§7, amended in `a905fea`). See the backend
+repo's `docs/recipe-costing.md` for the full mechanism.
 
 `combinationId` matters because "torta" is not a stockable thing — "torta 500g" is. A product component must resolve to a sellable unit.
 
 ---
 
-## 4. Decision: shared preparations are manufactured ingredients with recipes
+## 4. Decision: shared preparations are production ingredients with recipes
 
-The "crema pastelera" problem — an intermediate that is made, consumed by many recipes, never sold — is modeled as a **manufactured ingredient** (`Ingredient.TYPES.MANUFACTURED`, already exists) **optionally carrying a recipe**.
+The "crema pastelera" problem — an intermediate that is made, consumed by many recipes, never sold — is modeled as a **non-resale ingredient** (`isResale: false`, the default) **optionally carrying a recipe**.
 
 Why ingredient and not "product that is not sold":
 
@@ -164,10 +168,18 @@ No burger stock ever exists because the burger's own mode says so. This is a str
 
 ## 7. Decision: costing
 
-- Recipe exists → `costPrice` is **computed** from the recipe (shown as "calculated from recipe", manually overridable), kept fresh by the existing ingredient-cost propagation. This closes defect §1.2: propagation extends one hop further, recipe `totalCost` → owning combination/product `costPrice`.
-- No recipe → `costPrice` stays the manual field it is today.
-- Ingredient-owned recipes derive the ingredient's `costPerUnit` (total component cost ÷ yield); manual when no recipe (e.g., the business buys crema instead of making it — no structural change).
-- The income statement's existing cost waterfall consumes either without changes — reports keep working for everyone regardless of adoption.
+Amended in `a905fea` — cost was originally planned as a stored `Recipe.totalCost`
+propagated one hop to the owner; it shipped as a live compute instead, once it
+was clear the stored total would just be another cache to keep in sync with the
+row data it was summing.
+
+- **Cost is never stored on a recipe row.** `recipeGraph.computeRecipeCost` computes it live: for each component, read the component's own source doc (`ingredient.costPerUnit` / `product.costPrice` / `combination.costPrice`) and sum `quantity × cost`. This closes defect §1.2.
+- **The owner's cache is the only stored cost.** Recipe exists → the owner's `costPrice` (product/combination) or `costPerUnit` (ingredient) is computed and cached, tagged `costPriceSource: 'recipe'`; shown as "calculated from recipe", manually overridable (`costPriceSource: 'manual'`, never silently clobbered). No recipe → `costPrice`/`costPerUnit` stays the manual field it is today.
+- **One propagation walk keeps the cache honest**, entered from either side: a recipe is created or its quantities change → recompute → push to its owner, continuing outward if that owner is itself a manufactured ingredient; or an ingredient's cost changes directly → walk every recipe that uses it (`usedInRecipes`) → recompute → push to its owner, continuing outward. Ingredient-owned recipes derive `costPerUnit` the same way (total component cost ÷ yield).
+- **Two backstops** cover reverse-index drift or missed edges: `GET /ingredients/:id/cost-impact` previews a cost change's fan-out read-only before committing; `POST /recipes/reconcile-costs` (admin) recomputes and corrects one owner on demand, tagged `reason: 'reconciliation'` in its history.
+- **Known, accepted gaps** (ponytail-tagged, backend `tech-debt.md`): a recipe reached twice in the same walk (a "diamond") is only re-costed on the first hit; a product's cost change doesn't yet propagate on to recipes that use that product as a component. Both are rare at bakery scale, backstopped by `reconcileOwnerCost` — not blocking, revisit if they turn out common.
+- The income statement's existing cost waterfall consumes the owner's cached cost unchanged — reports keep working for everyone regardless of adoption.
+- Full mechanism: backend repo `docs/recipe-costing.md`.
 
 ---
 
@@ -284,7 +296,7 @@ Everything else — driver assignment, payment marking on standard orders, notes
 | `Product` | + `inventoryMode: 'none' \| 'unit' \| 'recipe'` (default `'none'`) |
 | `Combination` | + `recipeId` (nullable) |
 | `Recipe` | owner generalized: product \| combination \| ingredient; + `yield` (ingredient-owned only); components become typed (`RecipeComponent`, §3) |
-| `Ingredient` | + optional `recipeId` (manufactured only); + stocked/pass-through flag; `currentStock` retired (§8.1) |
+| `Ingredient` | `type` enum → `isResale` boolean; + optional `recipeId` (non-resale only); + stocked/pass-through flag; `currentStock` retired (§8.1) |
 | New: `stocks` collection | per-item current state + baseline (§8.1) |
 | New: `stockMovements` collection | append-only ledger (§8.2), composite indexes (§8.2) |
 | New: `stockGaps` collection | gap markers: order, item, combination, date, reason (§6) |

@@ -33,13 +33,14 @@ Phases 1–4 map 1:1 to the roadmap sub-phases. Phase 0 is pre-existing-defect h
 5. **`affectsStock(order)` exists exactly once** — one exported helper in `stockService`. Every call site (create, patch, patchAll, remove) imports it. Never inline or re-derive the logic.
 6. **Deterministic IDs are the idempotency mechanism.** Sale movements: `{orderId}_{orderItemId}_{itemKey}`. Never add an "already deducted" flag on the order doc — that's a second source of truth that will drift.
 7. **`itemKey` is built by one function.** Never string-concatenate keys at call sites.
+8. **Recipe rows carry no cost or name.** `RecipeComponent` is pure structure (`type`, `id`, `combinationId?`, `quantity`, `unit`, `notes?`). Cost is always computed live (`recipeGraph.computeRecipeCost`) and cached only on the recipe's owner, refreshed by the propagation walk (IMPLEMENTATION §7) — never stored or defaulted onto a row. The frontend recipe editor (1C.2, still unbuilt) must fetch/compute a display cost, not read one off the row.
 
 **Where the subtle-wrongness risk is concentrated.** Most of this plan is pattern-following inside an established codebase (models, factory services, forms, stores). These steps are not — slow down, write the tests alongside the code, and prefer asking over guessing:
 
 - **1B.1 `writeMovements`** — the primitive everything else trusts. Get invariants 3, 4, 6 exactly right here and every later phase inherits correctness.
 - **2.2–2.4 expansion, deduction hook, compensation** — recursive expansion with pass-through yield scaling, predicate edges threaded through `orderService` (the most business-critical existing service; its current behavior for non-inventory orders must be provably unchanged), and the compensation diff (expand new state, diff against existing movements, write only the delta). The 2.6 test list is the correctness contract for this cluster — implement those tests faithfully from their descriptions, not from what the implementation happens to do.
 - **`patchAll` (2.3)** — one deduction transaction per order. Piggybacking deductions onto the shared 500-op batch is the tempting shortcut that breaks at exactly the wrong scale.
-- **Backward-compat read defaults (1A.4)** — legacy recipe rows must read as `type: 'ingredient'` without any bulk rewrite of stored docs. Test with a real pre-existing recipe doc shape, not just new-format fixtures.
+- **Cost propagation's accepted gaps (1A.8, amended in `a905fea`)** — a recipe reached twice in one walk ("diamond") only re-costs on the first hit; a product's cost change doesn't propagate on to recipes that use that product as a component. Both are deliberate, ponytail-tagged debt (backend `tech-debt.md`) with `reconcileOwnerCost` as the backstop — know they exist before treating a stale cached cost as a bug.
 
 ---
 
@@ -79,14 +80,14 @@ The largest phase. Three tracks: **1A** recipe/model generalization (backend), *
   - Recipe resolution helper (used by costing now, deduction in phase 2): `resolveRecipeId(product, combinationId)` → `product.hasVariations ? combination.recipeId : product.recipeId`. **No fallback** from combination to product (§2).
 - [x] **1A.4 Typed components** (§3)
   - Files: `src/models/Recipe.js` (replace/extend `RecipeIngredient`), `src/services/recipeService.js`.
-  - `RecipeComponent { type: 'ingredient' | 'product', id, combinationId?, quantity, unit, name, costPerUnit, notes? }`.
-  - Backward compatibility on **read**: rows without `type` default to `'ingredient'` with `id = ingredientId` — stored docs are never rewritten in bulk.
+  - `RecipeComponent { type: 'ingredient' | 'product', id, combinationId?, quantity, unit, notes? }` — pure structure, no stored cost or name.
+  - **Amended in `a905fea`**: the original `name, costPerUnit` denormalized snapshots and the legacy `ingredientId` read/write compat shim were both removed outright — no production data ever depended on either, and cost is now always computed live, never defaulted or copied onto the row (IMPLEMENTATION §7).
   - `combinationId` required when `type: 'product'` and the target product has variations (a product component must resolve to a sellable unit).
   - Relationship maintenance: extend the existing ingredient↔recipe bookkeeping (`usedInRecipes`) to also track **product** components (either a `usedInRecipes` array on products or an equivalent reverse index) — the deletion guards in 1A.7 need it.
   - Recipe versioning (`src/services/versioning/recipeVersioning.js`) must snapshot the new component shape unchanged — verify, no redesign expected.
 - [x] **1A.5 Ingredient recipe + stock behavior** (§4)
   - File: `src/models/Ingredient.js`.
-  - Add optional `recipeId` (manufactured type only — reject on `resale`) and `stockBehavior: 'passThrough' | 'stocked'`, default `'passThrough'`.
+  - Add optional `recipeId` (non-resale only — reject when `isResale`) and `stockBehavior: 'passThrough' | 'stocked'`, default `'passThrough'`.
   - Remove `currentStock` from the constructor (completes 0.2).
 - [x] **1A.6 Save-time guardrails in `recipeService`** (§6)
   - **Cycle detection**: on every recipe create/update, walk the full component graph (product→product, product→ingredient-with-recipe, ingredient→ingredient chains are all expressible). Reject with a message naming the cycle path.
@@ -97,10 +98,11 @@ The largest phase. Three tracks: **1A** recipe/model generalization (backend), *
   - Product deletion: block if the product is a component of any recipe (uses the reverse index from 1A.4).
   - Ingredient deletion: already fixed in 0.1.
 - [x] **1A.8 Costing propagation** (§7, closes defect §1.2)
-  - Files: `src/services/recipeService.js`, `src/services/ingredientService.js`, `src/services/productService.js`.
-  - Recipe `totalCost` change → update owning `product.costPrice` or `combination.costPrice`, in the same transaction, **only when** the owner's cost is flagged as computed. Add `costPriceSource: 'manual' | 'recipe'` to product/combination so a manual override is never silently clobbered.
-  - Ingredient-owned recipe → derive `ingredient.costPerUnit = totalCost / yield`, then let the **existing** ingredient→recipe cost propagation carry it into every consuming recipe (crema cost change fans out correctly with no new machinery).
-  - Guard against propagation loops: derivation runs ingredient→recipes one hop at a time and the cycle check (1A.6) guarantees the graph is acyclic.
+  - Files: `src/services/recipeGraph.js` (the walk), `src/services/recipeService.js`, `src/services/ingredientService.js`.
+  - **Amended in `a905fea`**: there is no stored `Recipe.totalCost` to read — `recipeGraph.computeRecipeCost` computes a recipe's cost live from each component's own source doc, then **one propagation walk** pushes it to the owner's cache (`product.costPrice` / `combination.costPrice` / `ingredient.costPerUnit`), **only when** `costPriceSource === 'recipe'` — a manual override is never silently clobbered.
+  - Entered from either side: recipe created/quantities change → recompute → push to owner, continuing outward if the owner is a manufactured ingredient; or an ingredient's cost changes directly → walk every consuming recipe (`usedInRecipes`) → recompute → push, continuing outward. Same mechanism covers both — no separate "ingredient→recipe propagation" machinery.
+  - Guard against propagation loops: the cycle check (1A.6) guarantees the graph is acyclic; `MAX_DEPTH` is a runtime backstop.
+  - **Shipped alongside this step**: `GET /ingredients/:id/cost-impact` (read-only dry-run preview of a cost change's fan-out) and `POST /recipes/reconcile-costs` (admin, on-demand drift correction for one owner).
   - The income statement's costPrice waterfall (`orderService.getIncomeStatement`) consumes the result unchanged — verify, don't modify.
 - [x] **1A.9 Tests for 1A** *(write here; ask before running)*
   - Cycle rejection (direct and 3-hop), depth-cap rejection, exactly-one-owner validation, yield required/forbidden, deletion guards (all three), two-hop cost propagation (ingredient → crema recipe → crema `costPerUnit` → torta recipe → combination `costPrice`), manual `costPriceSource` never overwritten.
@@ -142,14 +144,15 @@ Frontend plumbing first: `src/services/stockService.js` + `src/stores/stockStore
   - Files: `src/components/forms/RecipeForm.vue`, `IngredientSelector.vue` (extend or add a component selector handling both types).
   - Typed component rows: picker searches ingredients **and** products; picking a product with variations requires choosing the combination.
   - Keyboard-first line entry: same save-on-blur / enter-advances pattern as invoice items; running recipe cost and margin-vs-price update live per keystroke (§11.5 — "the margin readout is the reward").
+  - **Amended note (invariant 8):** rows have no stored cost — the live cost/margin readout must call a live-compute path. The backend only ships the ingredient-cost-impact preview (`GET /ingredients/:id/cost-impact`); the matching per-keystroke preview for *recipe-quantity* edits doesn't exist yet (tracked in backend `bake-td.md`, "Later"). Until it ships, this step either computes client-side from already-fetched component costs or blocks on that endpoint — decide when building.
   - Inline ingredient creation (§11.4): unknown name → "crear ingrediente" in place, three fields (name, unit, cost), no navigation.
   - Totals sanity check (§11.6): when adopting a computed cost over a manual one, show both ("tu costo manual dice 3.500, la receta dice 4.200") with an explicit choice; wires to `costPriceSource` (1A.8).
 - [ ] **1C.3 Combination-level recipes: coverage matrix + copy-and-scale** (UX §11.2, §11.3)
   - Coverage matrix on the product detail/edit view: grid of combinations × (has recipe? / cost source / margin). One glance shows what's missing. (Phase 2 adds sale gap markers to this same surface.)
   - Copy-and-scale creation: "Start from: [another combination's recipe / another product's recipe / blank]" with scale factor pre-filled from the dimension option's `value` ratio (500g → 1000g suggests ×2); user adjusts non-linear lines before saving. "Apply to all combinations sharing this option" creates **independent editable copies** — entry-time assist, never a stored link (§2).
-- [ ] **1C.4 Ingredient form: manufactured extras** (§4)
+- [ ] **1C.4 Ingredient form: production extras** (§4)
   - File: `src/components/forms/IngredientForm.vue`.
-  - For `manufactured` ingredients only: optional recipe (opens the same editor from 1C.2, ingredient-owned) with **mandatory yield** ("esta receta produce ___ {unit}"), and the pass-through/stocked toggle explained in plain language ("¿Llevas inventario de esta preparación?" — default no/pass-through).
+  - For non-resale ingredients only: optional recipe (opens the same editor from 1C.2, ingredient-owned) with **mandatory yield** ("esta receta produce ___ {unit}"), and the pass-through/stocked toggle explained in plain language ("¿Llevas inventario de esta preparación?" — default no/pass-through).
   - When a recipe exists, `costPerUnit` displays as computed (derived via yield, 1A.8) with manual override.
 - [x] **1C.5 Stock view** (first visible inventory screen)
   - New: `src/views/inventory/` + route (admin sidebar entry), backed by the `stocks` list endpoint via `stockStore`.
@@ -157,7 +160,7 @@ Frontend plumbing first: `src/services/stockService.js` + `src/stores/stockStore
   - **Per-item movement summary for a date range**: totals grouped by movement `type` — comprado / consumido / ajustes / conteos. This is the "bought vs consumed vs lost" view users actually want (design doc §11.9); it's one `(itemKey, timestamp)` query grouped client-side by type. Ships with the stock view but only becomes fully meaningful once counts (phase 3) and purchases (phase 4) feed it — that's fine, the UI doesn't change.
   - This screen validates the entire ledger end-to-end by hand before any automation exists.
 
-**Done when:** a client can define combination-level recipes with products and ingredients as components; computed costs flow to `costPrice` and the income statement; manufactured ingredients carry recipes with yield; items opt into tracking and their stock is adjustable and auditable by hand. Nothing deducts automatically yet, and clients who ignore all of it see nothing new.
+**Done when:** a client can define combination-level recipes with products and ingredients as components; computed costs flow to `costPrice` and the income statement; production ingredients carry recipes with yield; items opt into tracking and their stock is adjustable and auditable by hand. Nothing deducts automatically yet, and clients who ignore all of it see nothing new.
 
 ---
 
@@ -230,7 +233,7 @@ Frontend plumbing first: `src/services/stockService.js` + `src/stores/stockStore
   - Same keyboard-first line-entry pattern as recipes/invoices: item search → presentation or base qty → cost → next line; live total; per-line presentation multiplier with remembered last presentation per item.
   - IVA/retención entry kept out of the fast path (collapsed section) so day-to-day speed doesn't pay for tax completeness.
 - [ ] **4.5 Production entries for stocked intermediates** (§12.3 — the accepted IOU)
-  - "Registrar producción" for a stocked manufactured ingredient: one compound `writeMovements` call — `+N × yield` of the intermediate, `−` its recipe components scaled by N (`type: 'production'`, shared `refs.productionId`).
+  - "Registrar producción" for a stocked production ingredient: one compound `writeMovements` call — `+N × yield` of the intermediate, `−` its recipe components scaled by N (`type: 'production'`, shared `refs.productionId`).
   - Thin flow: pick ingredient, enter batches, preview movements, confirm. Fits here because it's the same entry-UX family; **can slip to a follow-up without blocking anything** (pass-through default means few clients hit it).
 - [ ] **4.6 Tests for phase 4** *(ask before running)*
   - Purchase → movement per line in base units; presentation math applied at entry only; cost prompt updates propagate to recipes/product costs; production writes the compound movement set atomically.
