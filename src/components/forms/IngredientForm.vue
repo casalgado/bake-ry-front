@@ -11,7 +11,7 @@
  * because its categoryId arrived prefilled.
  *
  * Rebuild from scratch with ui-*, don't repair this. What the old one covered,
- * so a rebuild knows the scope: name, description, type (manufactured/resale),
+ * so a rebuild knows the scope: name, description, isResale flag,
  * category, unit, costPerUnit, storage temperature, a suppliers list with a
  * preferred supplier, and free-form custom attributes.
  *

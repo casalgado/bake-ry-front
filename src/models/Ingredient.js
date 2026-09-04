@@ -1,19 +1,14 @@
 // models/Ingredient.js
 import BaseModel from './base/BaseModel.js';
-import { BadRequestError  } from '../utils/errors.js';
 
 class Ingredient extends BaseModel {
-  static TYPES = {
-    MANUFACTURED: 'manufactured',
-    RESALE: 'resale',
-  };
-
   constructor({
     // Basic Information
     id,
     bakeryId,
     name,
-    type = Ingredient.TYPES.MANUFACTURED,
+    // false: consumed to make your products. true: bought and sold as-is.
+    isResale = false,
     categoryId,
     categoryName,
     createdAt,
@@ -44,18 +39,13 @@ class Ingredient extends BaseModel {
     // Pass common fields to BaseModel
     super({ id, createdAt, updatedAt });
 
-    // Validate type
-    if (!Object.values(Ingredient.TYPES).includes(type)) {
-      throw new BadRequestError('Invalid ingredient type');
-    }
-
     // Basic Information
     this.bakeryId = bakeryId;
     this.name = name;
     this.categoryId = categoryId;
     this.categoryName = categoryName;
 
-    this.type = type;
+    this.isResale = Boolean(isResale);
 
     // Usage and Recipes
     this.usedInRecipes = usedInRecipes;
@@ -81,16 +71,6 @@ class Ingredient extends BaseModel {
     // Custom Attributes
     this.customAttributes = customAttributes;
   }
-
-  // Helper methods
-  isManufactured() {
-    return this.type === Ingredient.TYPES.MANUFACTURED;
-  }
-
-  isResale() {
-    return this.type === Ingredient.TYPES.RESALE;
-  }
-
 }
 
 export default Ingredient;

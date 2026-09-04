@@ -32,7 +32,7 @@ const toastRef = ref(null);
 const processData = (ingredients) =>
   ingredients.map((ingredient) => ({
     ...ingredient,
-    typeLabel: ingredient.type === 'resale' ? 'Reventa' : 'Fabricado',
+    typeLabel: ingredient.isResale ? 'Reventa' : 'Producción',
     recipeCount: ingredient.usedInRecipes?.length || 0,
   }));
 
