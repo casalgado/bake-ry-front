@@ -107,7 +107,7 @@ const toggleDimensionType = (type) => {
     confirmDialog.value = {
       isOpen: true,
       title: 'Eliminar variación',
-      message: '¿Estás seguro de eliminar esta variación? Se perderán todas las opciones y combinaciones asociadas.',
+      message: '¿Estás seguro de eliminar esta variación? Se perderán todas las opciones y combinaciones asociadas, y las recetas vinculadas a esas combinaciones quedarán desvinculadas.',
       onConfirm: () => {
         selectedDimensionTypes.value.splice(index, 1);
         removeDimensionFromVariations(type);
@@ -237,8 +237,6 @@ const regenerateCombinations = () => {
   if (props.isCategoryTemplateMode) {
     return;
   }
-  console.log('XXX - Regenerating combinations...');
-  console.log('existing combinations before regen:', variationGroup.value.combinations);
 
   // Only regenerate if we have valid dimensions with options
   const hasValidDimensions = variationGroup.value.dimensions.every(
@@ -249,9 +247,36 @@ const regenerateCombinations = () => {
     return;
   }
 
+  const existing = variationGroup.value.combinations;
+  const afterIds = variationGroup.value.allOptionIds();
+  const beforeIds = new Set(existing.flatMap(combo => combo.optionIds || []));
+
+  // A combination id is a foreign key: recipes, stock docs, past order items and
+  // sales reports all point at it. So it may only change when the sellable unit
+  // it names genuinely changed.
+  //
+  // Renames, value edits, unit changes and reordering touch no option ids at
+  // all, so every combination is the same unit it was — nothing to regenerate,
+  // only names to refresh.
+  //
+  // The count check is what makes this shortcut equivalent to the long path
+  // rather than merely usually equivalent: a product can mention every option
+  // and still be missing cells of the grid, and those still need generating.
+  const sameOptions = afterIds.size === beforeIds.size &&
+    [...afterIds].every(id => beforeIds.has(id));
+  const expectedCount = variationGroup.value.dimensions.reduce(
+    (count, dimension) => count * dimension.options.length,
+    1,
+  );
+
+  if (sameOptions && afterIds.size > 0 && existing.length === expectedCount) {
+    existing.forEach(combo => variationGroup.value.relabel(combo));
+    return;
+  }
+
   // Preserve existing combination data with more information for smart matching
   const existingCombinations = {};
-  variationGroup.value.combinations.forEach(combo => {
+  existing.forEach(combo => {
     existingCombinations[combo.name] = {
       basePrice: combo.basePrice,
       costPrice: combo.costPrice,
@@ -259,14 +284,40 @@ const regenerateCombinations = () => {
       accountingCode: combo.accountingCode,
     };
   });
-  console.log('Existing combinations map:', existingCombinations);
 
   // Generate new combinations with wholegrain status
   const newCombinations = variationGroup.value.generateCombinationsWithWholeGrainStatus();
 
-  console.log('Generated combinations:', newCombinations);
+  // Options present both before and after the edit are the only evidence of
+  // what maps to what. One old and one new sharing a key is the same unit; any
+  // other count means it was split or merged, and no recipe can follow that.
+  const shared = new Set([...beforeIds].filter(id => afterIds.has(id)));
+  const keyOf = (optionIds = []) =>
+    optionIds.filter(id => shared.has(id)).sort().join('|');
+
+  const countByKey = (combos) => combos.reduce((counts, combo) => {
+    const key = keyOf(combo.optionIds);
+    counts.set(key, (counts.get(key) || 0) + 1);
+    return counts;
+  }, new Map());
+
+  const oldCounts = countByKey(existing);
+  const newCounts = countByKey(newCombinations);
+  const oldByKey = new Map(existing.map(combo => [keyOf(combo.optionIds), combo]));
 
   const updatedCombinations = newCombinations.map(combo => {
+    const key = keyOf(combo.optionIds);
+
+    // An empty key means nothing of this combination survived the edit. It has
+    // no ancestor, and must never be paired with another orphan.
+    if (key && oldCounts.get(key) === 1 && newCounts.get(key) === 1) {
+      // Same unit, new shape: it adopts the candidate's options (it may have
+      // gained or lost one) and keeps everything that identifies it.
+      const kept = oldByKey.get(key);
+      kept.optionIds = combo.optionIds;
+      return variationGroup.value.relabel(kept);
+    }
+
     let matchedCombination = null;
 
     // Try exact name match first (for unchanged combinations)
@@ -277,7 +328,7 @@ const regenerateCombinations = () => {
       let bestMatch = null;
       let bestMatchCount = 0;
 
-      for (const [oldName, oldData] of Object.entries(existingCombinations)) {
+      for (const oldData of Object.values(existingCombinations)) {
         // Count how many primary dimension values match
         const sharedPrimaryValues = oldData.selection.filter(item => {
           // Check if this item is from a primary dimension (WEIGHT, QUANTITY, SIZE)
@@ -289,7 +340,6 @@ const regenerateCombinations = () => {
         if (sharedPrimaryValues.length > bestMatchCount) {
           bestMatch = oldData;
           bestMatchCount = sharedPrimaryValues.length;
-          console.log(`Found better match: "${oldName}" -> "${combo.name}" (${bestMatchCount} shared primary values: ${sharedPrimaryValues.join(', ')})`);
         }
       }
 
@@ -298,16 +348,17 @@ const regenerateCombinations = () => {
       }
     }
 
-    return {
-      ...combo,
-      basePrice: matchedCombination?.basePrice || 0,
-      costPrice: matchedCombination?.costPrice || 0,
-      accountingCode: matchedCombination?.accountingCode || '',
-    };
+    // A genuinely new sellable unit. Prices are seeded from its nearest
+    // relative because a starting number is a convenience; the recipe link is
+    // not seeded, because `combo` is new and no recipe belongs to it yet.
+    combo.basePrice = matchedCombination?.basePrice || 0;
+    combo.currentPrice = combo.basePrice;
+    combo.costPrice = matchedCombination?.costPrice || 0;
+    combo.accountingCode = matchedCombination?.accountingCode || '';
+
+    return combo;
   });
 
-  console.log('Updated combinations with prices:', updatedCombinations);
-  // Apply existing prices to new combinations
   variationGroup.value.combinations = updatedCombinations;
 };
 
@@ -554,7 +605,6 @@ watch(optionPositionDropdowns, (newMap) => {
 watch(
   variationGroup,
   (newVariationGroup) => {
-    console.log('emitting update', newVariationGroup);
     emit('update', newVariationGroup.toPlainObject());
   },
   { deep: true },
@@ -564,7 +614,6 @@ watch(
 watch(
   () => variationGroup.value.dimensions,
   () => {
-    console.log('watched dimensions change');
     // Debounce regeneration to avoid excessive updates
     clearTimeout(window.variationsDebounceTimer);
     window.variationsDebounceTimer = setTimeout(() => {

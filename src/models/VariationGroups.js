@@ -39,11 +39,19 @@ class VariationGroups {
       displayOrder: dim.displayOrder !== undefined ? dim.displayOrder : index,
       options: dim.options?.map((opt, optIndex) => ({
         ...opt,
+        // Identity for an option, so a rename stays a rename. Assigned on load
+        // when missing, which is what lets existing products heal themselves.
+        id: opt.id || generateId(),
         name: capitalize(opt.name),
         displayOrder: opt.displayOrder !== undefined ? opt.displayOrder : this.calculateDisplayOrder(opt),
         isWholeGrain: opt.isWholeGrain || false,
       })) || [],
-    }));
+    }))
+      // Array order is display order from here on. Generation, relabeling and
+      // CombinationGroups all read a selection positionally against this array,
+      // while the form renders getSortedDimensions() — sorting once on load is
+      // what stops those two views from ever disagreeing.
+      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
     // Convert combinations to Combination instances if they aren't already
     this.combinations = combinations.map(combo => {
@@ -56,6 +64,70 @@ class VariationGroups {
         isWholeGrain: combo.isWholeGrain || false,
       });
     });
+
+    // Which options each combination is made of. In-memory only — never
+    // serialized, and rederived here from `selection`, which is safe because
+    // names and options were saved together and still agree.
+    this.combinations.forEach(combo => {
+      combo.optionIds = this.optionIdsForSelection(combo.selection);
+    });
+  }
+
+  /**
+   * Map selected option names to their option ids. A selection is positional —
+   * one slot per dimension, in this order — so each dimension reads its own
+   * slot, falling back to a search for tuples that have drifted. Names are
+   * unique only within a dimension, so the fallback claims each name once;
+   * otherwise two dimensions sharing a name resolve to the same option.
+   * @param {Array} selection - Array of option names
+   * @returns {Array} - Array of option ids
+   */
+  optionIdsForSelection(selection = []) {
+    const claimed = new Set();
+
+    return this.dimensions.flatMap((dim, index) => {
+      const option =
+        dim.options.find(opt => opt.name === selection[index]) ||
+        dim.options.find(
+          opt => selection.includes(opt.name) && !claimed.has(opt.name),
+        );
+
+      if (!option) return [];
+      claimed.add(option.name);
+
+      return [option.id];
+    });
+  }
+
+  /**
+   * Every option id currently in the structure.
+   * @returns {Set} - Set of option ids
+   */
+  allOptionIds() {
+    return new Set(
+      this.dimensions.flatMap(dim => dim.options.map(opt => opt.id)),
+    );
+  }
+
+  /**
+   * Rewrite a combination's display fields from what its options currently say.
+   * Identity (id, recipeId, costPriceSource, prices) is deliberately untouched.
+   * @param {Combination} combination - The combination to relabel
+   * @returns {Combination} - The same instance
+   */
+  relabel(combination) {
+    const optionIds = combination.optionIds || [];
+    const options = this.dimensions.flatMap(dim => {
+      const option = dim.options.find(opt => optionIds.includes(opt.id));
+      return option ? [option] : [];
+    });
+
+    combination.optionIds = options.map(opt => opt.id);
+    combination.selection = options.map(opt => opt.name);
+    combination.name = this.generateCombinationName(combination.selection);
+    combination.isWholeGrain = options.some(opt => opt.isWholeGrain);
+
+    return combination;
   }
 
   /**
@@ -111,6 +183,7 @@ class VariationGroups {
   addDimension(type, label, options = [], unit, displayOrder, id) {
     const processedOptions = options.map((opt, index) => ({
       ...opt,
+      id: opt.id || generateId(),
       name: capitalize(opt.name),
       displayOrder: opt.displayOrder !== undefined ? opt.displayOrder : this.calculateDisplayOrder(opt),
       isWholeGrain: opt.isWholeGrain || false,
@@ -137,6 +210,10 @@ class VariationGroups {
       this.dimensions.push(dimensionData);
     }
 
+    // Selections are read positionally against this array, so keeping it in
+    // display order is the class's job, not the caller's.
+    this.dimensions.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
     return dimensionId;
   }
 
@@ -150,6 +227,7 @@ class VariationGroups {
     if (dimension) {
       const processedOption = {
         ...option,
+        id: option.id || generateId(),
         name: capitalize(option.name),
         displayOrder: option.displayOrder !== undefined ? option.displayOrder : this.calculateDisplayOrder(option),
         isWholeGrain: option.isWholeGrain || false,
@@ -197,40 +275,6 @@ class VariationGroups {
       combination.basePrice = priceData.basePrice;
       combination.costPrice = priceData.costPrice;
     }
-  }
-
-  /**
-   * Add a new combination
-   * @param {Array} selection - Array of option names selected
-   * @param {Object} priceData - {basePrice, costPrice, name?, isActive?, isWholeGrain?}
-   * @returns {string} - The new combination ID
-   */
-  addCombination(selection, priceData) {
-    const combinationId = generateId();
-    const name = priceData.name || this.generateCombinationName(selection);
-
-    // Determine if combination is wholegrain based on any selected option being wholegrain
-    let isWholeGrain = priceData.isWholeGrain;
-    if (isWholeGrain === undefined) {
-      isWholeGrain = selection.some(optName => {
-        const option = this.getOptionFromDimensions(optName);
-        return option?.isWholeGrain || false;
-      });
-    }
-
-    const combination = new Combination({
-      id: combinationId,
-      selection,
-      name,
-      basePrice: priceData.basePrice || 0,
-      currentPrice: priceData.basePrice || 0,
-      isActive: priceData.isActive !== undefined ? priceData.isActive : true,
-      isWholeGrain,
-    });
-
-    this.combinations.push(combination);
-
-    return combinationId;
   }
 
   /**
@@ -752,7 +796,7 @@ class VariationGroups {
         return option?.isWholeGrain || false;
       });
 
-      return new Combination({
+      const combination = new Combination({
         id: generateId(),
         selection,
         name: this.generateCombinationName(selection),
@@ -761,6 +805,12 @@ class VariationGroups {
         isActive: true,
         isWholeGrain,
       });
+
+      // A candidate only. Whether it keeps this fresh id or adopts an existing
+      // combination's is decided by the caller, from these option ids.
+      combination.optionIds = this.optionIdsForSelection(selection);
+
+      return combination;
     });
   }
 }

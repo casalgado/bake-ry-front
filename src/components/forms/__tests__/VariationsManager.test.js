@@ -727,6 +727,119 @@ describe('VariationsManager', () => {
     });
   });
 
+  describe('Combination Identity', () => {
+    // A combination id is a foreign key held by recipes, stock docs, order items
+    // and reports, so these assert when it is allowed to change.
+    const productWithRecipe = () => ({
+      dimensions: [
+        {
+          id: 'dim1',
+          type: 'WEIGHT',
+          label: 'Weight',
+          unit: 'g',
+          options: [
+            { id: 'opt-500', name: '500g', value: 500, displayOrder: 1, isWholeGrain: false },
+            { id: 'opt-1000', name: '1000g', value: 1000, displayOrder: 2, isWholeGrain: false },
+          ],
+        },
+      ],
+      combinations: [
+        {
+          id: 'combo-500',
+          selection: ['500g'],
+          name: '500g',
+          basePrice: 1000,
+          costPrice: 400,
+          recipeId: 'recipe-1',
+          costPriceSource: 'recipe',
+        },
+        {
+          id: 'combo-1000',
+          selection: ['1000g'],
+          name: '1000g',
+          basePrice: 1800,
+          costPrice: 700,
+        },
+      ],
+    });
+
+    it('keeps the id and recipe link when an option is renamed', async () => {
+      wrapper = createWrapper({ initialVariations: productWithRecipe() });
+
+      wrapper.vm.variationGroup.dimensions[0].options[0].name = 'Medio kilo';
+      await wrapper.vm.regenerateCombinations();
+
+      const renamed = wrapper.vm.variationGroup.combinations.find(
+        c => c.name === 'Medio kilo',
+      );
+      expect(renamed).toBeDefined();
+      expect(renamed.id).toBe('combo-500');
+      expect(renamed.recipeId).toBe('recipe-1');
+      expect(renamed.costPriceSource).toBe('recipe');
+      expect(renamed.basePrice).toBe(1000);
+    });
+
+    it('keeps existing ids when an option is added', async () => {
+      wrapper = createWrapper({ initialVariations: productWithRecipe() });
+
+      wrapper.vm.variationGroup.addOptionToDimension('dim1', { name: '1500g', value: 1500 });
+      await wrapper.vm.regenerateCombinations();
+
+      const combinations = wrapper.vm.variationGroup.combinations;
+      expect(combinations).toHaveLength(3);
+
+      const small = combinations.find(c => c.selection.includes('500g'));
+      expect(small.id).toBe('combo-500');
+      expect(small.recipeId).toBe('recipe-1');
+    });
+
+    it('keeps ids when a single-option dimension is added', async () => {
+      wrapper = createWrapper({ initialVariations: productWithRecipe() });
+
+      wrapper.vm.variationGroup.addDimension(
+        'CUSTOM_FLAVOR_TEST',
+        'Sabor',
+        [{ name: 'Chocolate', value: 1, displayOrder: 1 }],
+        '',
+        1,
+        'dim2',
+      );
+      await wrapper.vm.regenerateCombinations();
+
+      const combinations = wrapper.vm.variationGroup.combinations;
+      expect(combinations).toHaveLength(2);
+
+      const small = combinations.find(c => c.selection.includes('500g'));
+      expect(small.id).toBe('combo-500');
+      expect(small.recipeId).toBe('recipe-1');
+      expect(small.name).toBe('500g + Chocolate');
+    });
+
+    it('mints new ids and drops recipe links when a dimension fans out', async () => {
+      wrapper = createWrapper({ initialVariations: productWithRecipe() });
+
+      wrapper.vm.variationGroup.addDimension(
+        'CUSTOM_FLAVOR_TEST',
+        'Sabor',
+        [
+          { name: 'Chocolate', value: 1, displayOrder: 1 },
+          { name: 'Vainilla', value: 2, displayOrder: 2 },
+        ],
+        '',
+        1,
+        'dim2',
+      );
+      await wrapper.vm.regenerateCombinations();
+
+      const combinations = wrapper.vm.variationGroup.combinations;
+      expect(combinations).toHaveLength(4);
+      expect(combinations.some(c => c.id === 'combo-500')).toBe(false);
+      combinations.forEach(combo => {
+        expect(combo.recipeId).toBeNull();
+      });
+    });
+  });
+
   describe('Combination Management', () => {
     beforeEach(async () => {
       wrapper = createWrapper();
