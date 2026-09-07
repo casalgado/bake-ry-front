@@ -148,6 +148,20 @@ const formatMoney = (value, { slim = false, maxFractionDigits = 0 } = {}) => {
   }).format(value);
 };
 
+/* A quantity: the NUMBER only. The unit is rendered beside it as its own
+ * <span class="ui-unit"> and never glued into the string, so a column of
+ * quantities still lines up. Same grouping locale as formatMoney.
+ *
+ * Three decimals because that is where the ledger stops being meaningful —
+ * grams and millilitres — and trailing zeros are dropped, so `12` stays `12`. */
+const formatQty = (value) =>
+  (Number(value) || 0).toLocaleString('en-US', { maximumFractionDigits: 3 });
+
+/* A movement's direction. The sign carries it and nothing else — no red for
+ * out, no green for in (assets/ui/CLAUDE.md rule 5). */
+const formatSignedQty = (value) =>
+  `${value > 0 ? '+' : ''}${formatQty(value)}`;
+
 /* Units are bakery data with no home yet — settings carries no `unitOptions`
  * and BakerySettings declares no default — so this list is the de-facto
  * source. Move it onto settings when a bakery needs its own. */
@@ -285,6 +299,8 @@ export {
   generateId,
   capitalize,
   formatMoney,
+  formatQty,
+  formatSignedQty,
   UNIT_OPTIONS,
   cleanString,
   categoryOrder,

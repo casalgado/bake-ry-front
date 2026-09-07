@@ -68,11 +68,45 @@ const router = createRouter({
       },
       children: [
         {
+          /* Inventario is four screens, not four tabs: Bodega is a place you
+           * look at, the other three are jobs you do, and each is worth its own
+           * URL and its own sidebar link. The layout holds only the chrome and
+           * the catalog fetches — the open documents live in
+           * inventoryDocsStore, so they survive leaving the section entirely.
+           *
+           * `meta` merges across matched records in vue-router 4, so the
+           * feature flag on the parent covers all four children. */
           path: 'inventory',
-          name: 'inventory',
-          component: () => import('../views/inventory/ShowStock.vue'),
+          component: () => import('../views/inventory/InventoryLayout.vue'),
           // Opt-in module: unreachable by URL while the flag is off (§14).
           meta: { requiresFeature: 'inventory' },
+          children: [
+            {
+              path: '',
+              name: 'inventory',
+              component: () => import('../views/inventory/ShowStock.vue'),
+            },
+            {
+              // Two routes, one component: they differ by which shelves they
+              // offer, whether a line carries a unit cost, and what confirms
+              // them — three entries in a map inside EntryDoc, not two files.
+              path: 'ingreso',
+              name: 'inventory-ingreso',
+              component: () => import('../views/inventory/EntryDoc.vue'),
+              props: { kind: 'ingreso' },
+            },
+            {
+              path: 'produccion',
+              name: 'inventory-produccion',
+              component: () => import('../views/inventory/EntryDoc.vue'),
+              props: { kind: 'produccion' },
+            },
+            {
+              path: 'conteo',
+              name: 'inventory-conteo',
+              component: () => import('../views/inventory/CountDoc.vue'),
+            },
+          ],
         },
         {
           path: 'show-bakery',

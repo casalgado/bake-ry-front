@@ -31,6 +31,8 @@ import {
   PhArrowsLeftRight,
   PhBuildings,
   PhWarehouse,
+  PhArrowDown,
+  PhSparkle,
   PhPalette,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
@@ -138,6 +140,26 @@ const navigationSections = computed(() => {
           icon: PhWarehouse,
           text: 'Existencias',
           path: '/dashboard/inventory',
+        },
+        // The three jobs are their own screens, not tabs inside Existencias:
+        // isActive is an exact path match, so each highlights on its own.
+        {
+          id: 'inventario-ingreso',
+          icon: PhArrowDown,
+          text: 'Ingreso',
+          path: '/dashboard/inventory/ingreso',
+        },
+        {
+          id: 'inventario-produccion',
+          icon: PhSparkle,
+          text: 'Producción',
+          path: '/dashboard/inventory/produccion',
+        },
+        {
+          id: 'inventario-conteo',
+          icon: PhListChecks,
+          text: 'Conteo',
+          path: '/dashboard/inventory/conteo',
         },
         {
           id: 'recipe-book',

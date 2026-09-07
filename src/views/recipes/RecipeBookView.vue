@@ -2,12 +2,14 @@
 import { ref, shallowReactive, computed, watch, onMounted, onUnmounted } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import UiSearchField from '@/components/ui/UiSearchField.vue';
 import { useProductStore } from '@/stores/productStore';
 import { useRecipeStore } from '@/stores/recipeStore';
 import { useIngredientStore } from '@/stores/ingredientStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useAuthenticationStore } from '@/stores/authentication';
 import { useUndoSnapshot } from '@/composables/useUndoSnapshot';
+import { useItemCatalog, combosOf } from '@/composables/useItemCatalog';
 import { formatMoney, UNIT_OPTIONS } from '@/utils/helpers';
 import { PhFlask, PhX, PhPlus, PhArrowCounterClockwise } from '@phosphor-icons/vue';
 
@@ -51,10 +53,11 @@ onMounted(() => {
   loadPins();
 });
 
-/* A product without variations is one combination: itself. That keeps every
- * count below a plain sum instead of two branches everywhere. */
-const combosOf = (p) =>
-  p.hasVariations ? (p.variations?.combinations ?? []) : [p];
+/* combosOf, nameOf, costOf and the ingr/prep/prod split all live in
+ * useItemCatalog now — la bodega resolves the same identities off the same two
+ * catalogs, and two copies of that walk is how two screens start disagreeing
+ * about what a thing is called. */
+const catalog = useItemCatalog();
 
 const coveredOf = (p) => combosOf(p).filter((c) => c.recipeId).length;
 
@@ -186,47 +189,29 @@ const lines = computed(() => bench.value?.copy.value ?? []);
 const canUndo = computed(() => bench.value?.canUndo.value ?? false);
 const isDirty = computed(() => bench.value?.isDirty.value ?? false);
 
-/* Which shelf a line came off. `type` is the only thing stored — 'prep' is not
- * a component type, it is an ingredient that carries a recipe of its own, and
- * only the ingredient document says so. */
-const ingredientById = computed(
-  () => new Map(ingredientStore.items.map((i) => [i.id, i])),
-);
-const productById = computed(
-  () => new Map(productStore.items.map((p) => [p.id, p])));
+/* Which shelf a line came off. The split is the catalog's; only the tooltip
+ * wording is this screen's. */
+const { productById } = catalog;
 
-const kindOf = (line) =>
-  line.type === 'product'
-    ? { label: 'prod', title: 'Otro producto' }
-    : ingredientById.value.get(line.id)?.recipeId
-      ? { label: 'prep', title: 'Preparación con receta propia' }
-      : { label: 'ingr', title: 'Ingrediente' };
+const KIND_TITLES = {
+  prod: 'Otro producto',
+  prep: 'Preparación con receta propia',
+  ingr: 'Ingrediente',
+};
+
+const kindOf = (line) => {
+  const label = catalog.kindOf(line);
+  return { label, title: KIND_TITLES[label] };
+};
 
 /* A stored line carries no name and no cost — the backend strips both, because
  * the source document is the only honest place for either (docs/recipe-costing).
- * So the bench joins them back on for display and for the live total: an
- * ingredient's costPerUnit, or a product/combination's costPrice.
- *
- * A product with no variations stands in for its own combination, same as
- * combosOf — so a null combinationId resolves to the product itself. */
-const resolveLine = (line) => {
-  if (line.type === 'product') {
-    const p = productById.value.get(line.id);
-    if (!p) return { name: '', costPerUnit: 0 };
-
-    const c = line.combinationId
-      ? combosOf(p).find((x) => x.id === line.combinationId)
-      : p;
-
-    return {
-      name: p.hasVariations ? `${p.name} ${c?.name ?? ''}`.trim() : p.name,
-      costPerUnit: c?.costPrice ?? 0,
-    };
-  }
-
-  const i = ingredientById.value.get(line.id);
-  return { name: i?.name ?? '', costPerUnit: i?.costPerUnit ?? 0 };
-};
+ * The catalog joins them back on; the mesa only decides what an unresolved cost
+ * means here, and here it is zero, which `isUnpriced` below then flags. */
+const resolveLine = (line) => ({
+  name: catalog.nameOf(line),
+  costPerUnit: catalog.costOf(line) ?? 0,
+});
 
 /* What the bench RENDERS. `lines` stays the thing that gets saved — joining
  * name/cost onto the rows the mutations write would put the denormalized fields
@@ -887,27 +872,12 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
             <span class="ui-panehead-sub">{{ products.length }} productos</span>
           </div>
 
-          <div class="ui-search mb-3">
-            <input
-              v-model="search"
-              class="ui-input"
-              type="text"
-              role="searchbox"
-              enterkeyhint="search"
-              placeholder="Buscar producto…"
-              aria-label="Buscar producto"
-              @keydown.esc="search = ''"
-            >
-            <button
-              v-if="search"
-              class="ui-search-clear"
-              type="button"
-              aria-label="Limpiar búsqueda"
-              @click="search = ''"
-            >
-              <PhX :size="12" weight="bold" />
-            </button>
-          </div>
+          <UiSearchField
+            v-model="search"
+            class="mb-3"
+            placeholder="Buscar producto…"
+            label="Buscar producto"
+          />
 
           <div class="mb-4">
             <div
@@ -1194,27 +1164,12 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
             </span>
           </div>
 
-          <div class="ui-search mb-3">
-            <input
-              v-model="suppliesSearch"
-              class="ui-input"
-              type="text"
-              role="searchbox"
-              enterkeyhint="search"
-              placeholder="Buscar ingrediente, receta o producto…"
-              aria-label="Buscar ingrediente, receta o producto"
-              @keydown.esc="suppliesSearch = ''"
-            >
-            <button
-              v-if="suppliesSearch"
-              class="ui-search-clear"
-              type="button"
-              aria-label="Limpiar búsqueda"
-              @click="suppliesSearch = ''"
-            >
-              <PhX :size="12" weight="bold" />
-            </button>
-          </div>
+          <UiSearchField
+            v-model="suppliesSearch"
+            class="mb-3"
+            placeholder="Buscar ingrediente, receta o producto…"
+            label="Buscar insumo"
+          />
 
           <!-- Only route into the feature for a bakery with an empty shelf,
                so it lives with the search rather than behind a separate form. -->

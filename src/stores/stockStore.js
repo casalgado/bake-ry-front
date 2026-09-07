@@ -17,9 +17,29 @@ const store = useStockStore();
 
 store.getMovements = (itemKey, options) => service.getMovements(itemKey, options);
 store.getOrderMovements = (orderId) => service.getOrderMovements(orderId);
+// Every write refetches: currentStock is a server-side cache, and the screen
+// showing it has no way to recompute the increment itself.
 store.adjust = async (itemKey, payload) => {
   const movement = await service.adjust(itemKey, payload);
-  // The cache moved server-side; re-read so the table reflects it.
   await store.fetchAll();
   return movement;
+};
+
+store.waste = async (itemKey, payload) => {
+  const movement = await service.waste(itemKey, payload);
+  await store.fetchAll();
+  return movement;
+};
+
+store.transfer = async (itemKey, payload) => {
+  const movements = await service.transfer(itemKey, payload);
+  await store.fetchAll();
+  return movements;
+};
+
+store.produce = async (payload) => {
+  const result = await service.produce(payload);
+  // A preview writes nothing, so there is nothing to re-read.
+  if (!payload?.preview) await store.fetchAll();
+  return result;
 };

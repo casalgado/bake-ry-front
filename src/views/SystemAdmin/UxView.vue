@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue';
 import { PhFlask, PhPackage, PhX, PhArrowDown } from '@phosphor-icons/vue';
+import UiSearchField from '@/components/ui/UiSearchField.vue';
 
 /* The theme lives on this view's wrapper, not on <html>: the rest of the app
  * has no dark styles yet, so flipping globally would only half-work. */
@@ -439,29 +440,12 @@ const shuffleCascade = () => {
             </div>
             <div class="flex gap-2">
               <input class="ui-input ui-input-num w-24" value="12.4" >
-              <!-- type="text", not type="search": the native clear button cannot
-                   be tinted. Escape clears, same as the native one did. -->
-              <div class="ui-search w-40">
-                <input
-                  v-model="demoSearch"
-                  class="ui-input"
-                  type="text"
-                  role="searchbox"
-                  enterkeyhint="search"
-                  placeholder="Buscar…"
-                  aria-label="Buscar"
-                  @keydown.esc="demoSearch = ''"
-                >
-                <button
-                  v-if="demoSearch"
-                  class="ui-search-clear"
-                  type="button"
-                  aria-label="Limpiar búsqueda"
-                  @click="demoSearch = ''"
-                >
-                  <PhX :size="12" weight="bold" />
-                </button>
-              </div>
+              <!-- UiSearchField, not the raw markup: `.ui-search` carries an
+                   Escape handler, role="searchbox" and its own clear button, and
+                   a class in the gallery has to be the same thing the app ships.
+                   type="text", not type="search" — the native clear button
+                   cannot be tinted. -->
+              <UiSearchField v-model="demoSearch" class="w-40" />
             </div>
           </div>
         </div>
