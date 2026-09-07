@@ -56,12 +56,14 @@ Todo en `functions/src`. Pequeña y acotada; nada de UX nuevo aquí.
 
 Puro frontend contra endpoints implementados (plan 1C.1–1C.4).
 
-- [ ] **B1. ProductForm: selector de modo** — sección "Inventario" (solo con
-  feature activo): `Sin control` / `Compro y vendo` / `Lo produzco`
-  (radio-cards, `RadioFeatureCard`); productos `none` no muestran NADA de
-  inventario en ninguna parte. Si `recipe`: resumen read-only de recetas por
-  combinación + botón al Recipe Manager.
-- [ ] **B2. IngredientForm: extras** — para no-reventa (`isResale: false`): receta opcional
+- [x] **B1. ProductForm: selector de modo** — sección "Inventario" (solo con
+  feature activo): `Sin control` / `Compro y vendo` / `Lo produzco`. Hecho como
+  tres radios planos en el idioma Tailwind del form, no `RadioFeatureCard` (su
+  grid de 2 columnas y sus etiquetas cortas no encajan con tres opciones
+  descriptivas). Productos `none` no muestran NADA de inventario en ninguna
+  parte. **Falta:** si `recipe`, el resumen read-only de recetas por combinación
+  + botón al Recipe Manager — depende de B3.
+- [ ] **B2. IngredientForm: extras** — receta opcional
   con yield obligatorio, toggle pass-through/stocked en lenguaje plano;
   `preferredSupplier`; sin edición de stock en el form.
 - [ ] **B3. Recipe Manager** (el pedazo grande — `ShowRecipes.vue` rediseñado)

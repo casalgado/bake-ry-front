@@ -1,12 +1,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import YesNoToggle from '@/components/forms/YesNoToggle.vue';
 import VariationsManager from '@/components/forms/VariationsManager.vue';
 import { cleanString } from '@/utils/helpers';
 
 const collectionStore = useProductCollectionStore();
+const settingsStore = useBakerySettingsStore();
 
 const props = defineProps({
   title: {
@@ -31,6 +33,10 @@ const formData = ref(
     ? {
       ...props.initialData,
       variations: props.initialData.variations || { dimensions: [], combinations: [] },
+      // Products created before the inventory module have no mode stored, and
+      // an undefined radio group shows nothing selected. They behave as 'none',
+      // so say so — editing one must not silently change how it deducts.
+      inventoryMode: props.initialData.inventoryMode || 'none',
     }
     : {
       name: '',
@@ -41,6 +47,9 @@ const formData = ref(
       isActive: true,
       basePrice: 0,
       costPrice: 0,
+      // 'none' keeps a new product behaving exactly like every existing one:
+      // selling it moves no stock. Opting in is a deliberate choice below.
+      inventoryMode: 'none',
       hasVariations: false,
       variations: {
         dimensions: [],
@@ -52,6 +61,16 @@ const formData = ref(
 );
 
 const errors = ref({});
+
+/* Reventa vs producción is a product mode, not an ingredient flag: an
+ * ingredient has no price and no collection, and an order line only carries a
+ * productId. Wording per INVENTORY-IMPLEMENTATION.md §11.1 — describe what the
+ * business does, never the enum. */
+const INVENTORY_MODES = [
+  { value: 'none', label: 'No controlo inventario de este producto' },
+  { value: 'unit', label: 'Lo compro y lo vendo tal cual (reventa)' },
+  { value: 'recipe', label: 'Lo preparo con ingredientes (receta)' },
+];
 
 // Confirm dialog state
 const confirmDialog = ref({
@@ -214,6 +233,7 @@ const resetForm = () => {
     isActive: true,
     basePrice: 0,
     costPrice: 0,
+    inventoryMode: 'none',
     hasVariations: false,
     variations: {
       dimensions: [],
@@ -233,6 +253,17 @@ onMounted(async () => {
       await collectionStore.fetchAll();
     } catch (error) {
       console.error('Failed to load product collections:', error);
+    }
+  }
+
+  // The inventory section is gated on settings, which the sidebar loads at
+  // login. Fetch only if this form opened first — a miss would hide the
+  // section, not break the form.
+  if (!settingsStore.items.length) {
+    try {
+      await settingsStore.fetchAll();
+    } catch (error) {
+      console.error('Failed to load bakery settings:', error);
     }
   }
 
@@ -488,6 +519,36 @@ onMounted(async () => {
 
         <p class="text-xs text-neutral-500 mt-4">
           Define los precios de venta y costo para productos sin variaciones. El margen de ganancia se calcula automáticamente.
+        </p>
+      </div>
+
+      <!-- Inventory: only for businesses with the module on (§14). -->
+      <div v-if="settingsStore.isInventoryEnabled" class="base-card">
+        <h4 class="text-lg font-medium text-neutral-800 mb-1">Inventario</h4>
+        <p class="text-sm text-neutral-600 mb-4">
+          ¿Qué pasa con las existencias cuando vendes este producto?
+        </p>
+
+        <div class="space-y-2">
+          <label
+            v-for="mode in INVENTORY_MODES"
+            :key="mode.value"
+            class="flex items-center gap-3 p-3 border border-neutral-300 rounded-md cursor-pointer"
+            :class="{ 'border-neutral-900 bg-neutral-50': formData.inventoryMode === mode.value }"
+          >
+            <input
+              type="radio"
+              name="inventoryMode"
+              :value="mode.value"
+              v-model="formData.inventoryMode"
+            />
+            <span class="text-sm text-neutral-800">{{ mode.label }}</span>
+          </label>
+        </div>
+
+        <p v-if="formData.inventoryMode === 'recipe'" class="text-xs text-neutral-500 mt-4">
+          La receta se arma en el recetario; acá solo se declara que este
+          producto se prepara.
         </p>
       </div>
 

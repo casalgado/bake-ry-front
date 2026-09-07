@@ -115,6 +115,8 @@ The first instinct was that "cargar productos" should create an order so product
 
 First-class, not an afterthought. Some tenants resell as their main business and have no other inventory: for them an **Ingreso** of finished product is the only flow they'll ever use, and Recetas/Producción stay empty and silent.
 
+A resale item is a **product in `inventoryMode: 'unit'`** — never an ingredient. It has a price, a collection and a place on an order line, and an ingredient has none of the three. (`Ingredient.isResale` used to say this and was retired; see `../PLAN-resale-to-product.md`.)
+
 ### Layout
 
 Same shell as Recetas, and one rule carries across both views:

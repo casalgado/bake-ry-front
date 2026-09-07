@@ -32,7 +32,6 @@ const toastRef = ref(null);
 const processData = (ingredients) =>
   ingredients.map((ingredient) => ({
     ...ingredient,
-    typeLabel: ingredient.isResale ? 'Reventa' : 'Producción',
     recipeCount: ingredient.usedInRecipes?.length || 0,
   }));
 
@@ -67,12 +66,6 @@ const columns = computed(() => [
     id: 'categoryName',
     label: 'Categoría',
     field: 'categoryName',
-    sortable: true,
-  },
-  {
-    id: 'type',
-    label: 'Tipo',
-    field: 'typeLabel',
     sortable: true,
   },
   {

@@ -10,10 +10,14 @@
  * that no user could pick. Editing an existing ingredient half-worked only
  * because its categoryId arrived prefilled.
  *
- * Rebuild from scratch with ui-*, don't repair this. What the old one covered,
- * so a rebuild knows the scope: name, description, isResale flag,
- * category, unit, costPerUnit, storage temperature, a suppliers list with a
- * preferred supplier, and free-form custom attributes.
+ * Rebuild from scratch with ui-*, don't repair this. Scope for the rebuild:
+ * name, description, category, unit, costPerUnit, storage temperature,
+ * preferredSupplier, stockBehavior, an optional production recipe (recipeId —
+ * a preparación), and free-form custom attributes.
+ *
+ * NOT `isResale` — that flag is gone. Reventa is a property of a product
+ * (`Product.inventoryMode: 'unit'`), not of an ingredient: an ingredient has no
+ * price and no collection, and an order line only carries a productId.
  *
  * Until then, RecipeBookView.vue's despensa is where ingredients get created.
  * Its inline form is deliberately smaller — name, unit, cost, category — and

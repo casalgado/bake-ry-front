@@ -24,7 +24,7 @@ Design decisions for the Inventory epic ([ROADMAP.md](./ROADMAP.md) → Next →
 
 What already exists and is reused:
 
-- **`Ingredient`** — bakery-scoped, single base `unit`, `costPerUnit`, `isResale` boolean (default `false`), categories in `BakerySettings.ingredientCategories`, `usedInRecipes` back-references.
+- **`Ingredient`** — bakery-scoped, single base `unit`, `costPerUnit`, categories in `BakerySettings.ingredientCategories`, `usedInRecipes` back-references. Never sellable: reventa is a product mode (§5).
 - **`Recipe` + `recipeService`** — `productId` link, components `{ingredientId, quantity, unit, costPerUnit}`, `totalCost` getter, transactional ingredient↔recipe relationship maintenance.
 - **Cost propagation** — changing an ingredient's `costPerUnit` transactionally updates every recipe that uses it (`ingredientService.update`).
 - **Recipe versioning** — composition changes snapshot to a `history` subcollection; `getVersionAtDate()` exists. Enables costing past sales with the recipe as it was then.
@@ -87,7 +87,7 @@ repo's `docs/recipe-costing.md` for the full mechanism.
 
 ## 4. Decision: shared preparations are production ingredients with recipes
 
-The "crema pastelera" problem — an intermediate that is made, consumed by many recipes, never sold — is modeled as a **non-resale ingredient** (`isResale: false`, the default) **optionally carrying a recipe**.
+The "crema pastelera" problem — an intermediate that is made, consumed by many recipes, never sold — is modeled as an **ingredient optionally carrying a recipe** — a preparación.
 
 Why ingredient and not "product that is not sold":
 
@@ -296,14 +296,14 @@ Everything else — driver assignment, payment marking on standard orders, notes
 | `Product` | + `inventoryMode: 'none' \| 'unit' \| 'recipe'` (default `'none'`) |
 | `Combination` | + `recipeId` (nullable) |
 | `Recipe` | owner generalized: product \| combination \| ingredient; + `yield` (ingredient-owned only); components become typed (`RecipeComponent`, §3) |
-| `Ingredient` | `type` enum → `isResale` boolean; + optional `recipeId` (non-resale only); + stocked/pass-through flag; `currentStock` retired (§8.1) |
+| `Ingredient` | `type` enum and the `isResale` boolean that replaced it are both **retired** — reventa is `Product.inventoryMode: 'unit'`, and an ingredient cannot be sold at all (an order line only carries a `productId`); + optional `recipeId` (no longer conditional); + stocked/pass-through flag; `currentStock` retired (§8.1) |
 | New: `stocks` collection | per-item current state + baseline (§8.1) |
 | New: `stockMovements` collection | append-only ledger (§8.2), composite indexes (§8.2) |
 | New: `stockGaps` collection | gap markers: order, item, combination, date, reason (§6) |
 | New: stock counts (phase 3) | count doc: items with counted quantities, draft/completed, `completedAt`; completion baselines each included item (§8.3); partial counts supported (§8.1) |
 | New: purchases / Compras (phase 4) | purchase doc → `purchase` movements + cache increments; presentation multipliers applied at entry time only; optional prompt to update ingredient `costPerUnit` from purchase price; **tax fields from day one in the accounting vocabulary** — `ivaAmount`, `retefuente`, `reteica`, `reteiva`, same names as `AccountingEntry` (§13) |
 
-New backend surface: `stockService` (movements + cache + expansion/deduction + drift verify), `stockCountService` (phase 3), `purchaseService` (phase 4), with routes following the existing factory patterns. All changes are additive; no data migration required (existing products default to `inventoryMode: 'none'`, existing `product.recipeId` untouched, `Ingredient.currentStock` ignored then removed).
+New backend surface: `stockService` (movements + cache + expansion/deduction + drift verify), `stockCountService` (phase 3), `purchaseService` (phase 4), with routes following the existing factory patterns. All changes are additive **except the retirement of `Ingredient.isResale`**; otherwise no data migration required (existing products default to `inventoryMode: 'none'`, existing `product.recipeId` untouched, `Ingredient.currentStock` ignored then removed). Retiring `isResale` is applied forward only: an ingredient that carried it stays an ordinary ingredient, and anything that must actually be sold is created as a product and its balance moved with an explicit adjustment at each end. Nothing rewrites the ledger — an item's `itemKey` changes when it changes entity, and the movements collection is append-only. See `PLAN-resale-to-product.md` §5.
 
 ---
 

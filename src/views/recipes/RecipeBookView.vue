@@ -779,7 +779,7 @@ async function createIngredient() {
       /* `stocked`, not the model's `passThrough` default. passThrough deducts
        * an ingredient's own recipe components instead of its stock — right for
        * something you make, wrong for something you buy, which has no recipe
-       * for deduction to find. `isResale` is left to default to false. */
+       * for deduction to find. */
       stockBehavior: 'stocked',
     });
 

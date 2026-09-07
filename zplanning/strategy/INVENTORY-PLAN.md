@@ -87,7 +87,7 @@ The largest phase. Three tracks: **1A** recipe/model generalization (backend), *
   - Recipe versioning (`src/services/versioning/recipeVersioning.js`) must snapshot the new component shape unchanged — verify, no redesign expected.
 - [x] **1A.5 Ingredient recipe + stock behavior** (§4)
   - File: `src/models/Ingredient.js`.
-  - Add optional `recipeId` (non-resale only — reject when `isResale`) and `stockBehavior: 'passThrough' | 'stocked'`, default `'passThrough'`.
+  - Add optional `recipeId` (any ingredient may have one — `isResale` is retired, reventa is `Product.inventoryMode: 'unit'`) and `stockBehavior: 'passThrough' | 'stocked'`, default `'passThrough'`.
   - Remove `currentStock` from the constructor (completes 0.2).
 - [x] **1A.6 Save-time guardrails in `recipeService`** (§6)
   - **Cycle detection**: on every recipe create/update, walk the full component graph (product→product, product→ingredient-with-recipe, ingredient→ingredient chains are all expressible). Reject with a message naming the cycle path.
@@ -152,7 +152,7 @@ Frontend plumbing first: `src/services/stockService.js` + `src/stores/stockStore
   - Copy-and-scale creation: "Start from: [another combination's recipe / another product's recipe / blank]" with scale factor pre-filled from the dimension option's `value` ratio (500g → 1000g suggests ×2); user adjusts non-linear lines before saving. "Apply to all combinations sharing this option" creates **independent editable copies** — entry-time assist, never a stored link (§2).
 - [ ] **1C.4 Ingredient form: production extras** (§4)
   - File: `src/components/forms/IngredientForm.vue`.
-  - For non-resale ingredients only: optional recipe (opens the same editor from 1C.2, ingredient-owned) with **mandatory yield** ("esta receta produce ___ {unit}"), and the pass-through/stocked toggle explained in plain language ("¿Llevas inventario de esta preparación?" — default no/pass-through).
+  - For any ingredient: optional recipe (opens the same editor from 1C.2, ingredient-owned) with **mandatory yield** ("esta receta produce ___ {unit}"), and the pass-through/stocked toggle explained in plain language ("¿Llevas inventario de esta preparación?" — default no/pass-through).
   - When a recipe exists, `costPerUnit` displays as computed (derived via yield, 1A.8) with manual override.
 - [x] **1C.5 Stock view** (first visible inventory screen)
   - New: `src/views/inventory/` + route (admin sidebar entry), backed by the `stocks` list endpoint via `stockStore`.
