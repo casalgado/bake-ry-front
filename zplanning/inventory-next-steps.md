@@ -63,10 +63,18 @@ Puro frontend contra endpoints implementados (plan 1C.1–1C.4).
   descriptivas). Productos `none` no muestran NADA de inventario en ninguna
   parte. **Falta:** si `recipe`, el resumen read-only de recetas por combinación
   + botón al Recipe Manager — depende de B3.
-- [ ] **B2. IngredientForm: extras** — receta opcional
-  con yield obligatorio, toggle pass-through/stocked en lenguaje plano;
-  `preferredSupplier`; sin edición de stock en el form.
-- [ ] **B3. Recipe Manager** (el pedazo grande — `ShowRecipes.vue` rediseñado)
+- [ ] **B2. IngredientForm: extras** — **parcialmente absorbido** por
+  `inventory-ui/HANDOFF-INVENTARIO-UI.md` fase 1: crear una preparación
+  (ingrediente + receta con yield, en una sola gesto) ya vive en el recetario,
+  y el yield se edita en la mesa de trabajo. Queda por hacer aquí:
+  `preferredSupplier`, el toggle pass-through/stocked en lenguaje plano, y
+  editar un ingrediente que ya existe. Sin edición de stock en el form.
+- [ ] **B3. Recipe Manager** — **re-alcanzar o cerrar.** Se escribió contra
+  `ShowRecipes.vue`, que `RecipeBookView.vue` ya reemplazó; la creación inline
+  de ingredientes, el costo/margen vivo y los componentes tipados están
+  construidos ahí. Lo que sigue vivo de esta tarjeta es el editor de
+  asignación producto→combinaciones y copy-and-scale.
+  (el pedazo grande — `ShowRecipes.vue` rediseñado)
   — directorio de recetas + editor de asignación producto→combinaciones;
   editor de receta keyboard-first con costo/margen vivo, componentes tipados
   (ingrediente y producto), creación inline de ingredientes, matriz de
@@ -106,6 +114,12 @@ Backend primero, frontend después — orden estricto aquí.
 
 ## Fase E — Conteo (fase 3 del plan + rider §1.5)
 
+`CountDoc.vue` ya existe y sostiene las invariantes (escribes lo que hay, la
+esperada solo aparece después, casilla vacía ≠ cero, un conteo por bodega).
+El rediseño de UX pendiente es fase 5 de `inventory-ui/HANDOFF-INVENTARIO-UI.md`,
+y **empieza leyendo E2**: el resumen que separa merma explicada de no
+explicada es anterior a esa conversación y sigue siendo la buena idea.
+
 - [ ] **E1. Backend `stockCountService`** — draft/completed, conteo scoped a
   una bodega, completion baselinea pares (item, bodega), parcial permitido.
 - [ ] **E2. `StockCount.vue`** — flujo guiado por categorías
@@ -115,9 +129,19 @@ Backend primero, frontend después — orden estricto aquí.
 
 ## Fase F — Compras (fase 4 del plan + riders)
 
-- [ ] **F1. Backend `purchaseService`** — doc multi-línea con `supplier` texto
-  libre, bodega destino por línea, presentaciones entry-time, campos IVA,
-  prompt de actualización de costo.
+- [ ] **F1. Backend `purchaseService`** — doc multi-línea, bodega destino por
+  línea, presentaciones entry-time, campos IVA, prompt de actualización de
+  costo. **`supplier` como texto libre queda superado:** el UI de Ingreso
+  (`HANDOFF-INVENTARIO-UI.md` §3.4) está diseñado alrededor de un proveedor como
+  ENTIDAD, porque le compras lo mismo a la misma gente al mismo precio salvo
+  cuando cambia — y sin entidad no hay historial de precio que avisar. Contrato
+  que el UI asume: `{ id, name }` por panadería,
+  `GET .../providers/:id/last-purchase` → `{ itemKey, unitCost, lastPurchasedAt }[]`,
+  y `providerId` en el documento de compra.
+  **Una línea de compra puede llegar sin `itemKey`:** el picker se construye
+  contra el catálogo, así que comprar algo por primera vez es normal, y la línea
+  viaja con su identidad (`{ type, id, combinationId }`). Acuñar el itemKey es
+  trabajo de este endpoint (invariante 5).
 - [ ] **F2. UI de compras** — entrada keyboard-first; `preferredSupplier`
   pre-llena el proveedor.
 - [ ] **F3. Producir para stock** — flujo para producto con receta **y**
@@ -129,4 +153,6 @@ Backend primero, frontend después — orden estricto aquí.
 **Diferidos con trigger** (no construir hasta que duela): página Compras si
 el modal simple alcanza primero, widget de split Bodega/Producir,
 multi-ubicación de ingredientes (unlock solo-UI, el campo ya existe),
-reportes por bodega, entidades proveedor (fase balance-sheet).
+reportes por bodega. ~~entidades proveedor (fase balance-sheet)~~ —
+**adelantado a fase F por decisión explícita del usuario (2026-09-07):** es el
+centro del rediseño de Ingreso, no un adorno contable. Ver F1.

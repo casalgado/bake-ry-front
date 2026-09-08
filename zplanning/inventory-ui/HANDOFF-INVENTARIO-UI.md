@@ -1,7 +1,7 @@
 # Handoff — Preparaciones, Ingreso, Producción, Conteo
 
 **Created:** 2026-09-07
-**Status:** approved, not started
+**Status:** phases 0–4 built 2026-09-07; 3.4 and 4.3 partial (backend), phase 5 not started
 **Scope:** frontend `bake-ry-front` only, except where marked **[BACKEND]**
 
 Written for someone with no context on the conversation that produced it. Read
@@ -88,7 +88,7 @@ These block parts of it. Check status before starting the phase that needs them.
 
 | Needed by | Prerequisite | Where |
 |---|---|---|
-| Phase 3 (Ingreso) | **B1 — `ProductForm` inventory-mode selector.** Without it no product is ever `'unit'`, so Ingreso's product shelf is permanently empty. | `inventory-next-steps.md` B1; `PLAN-resale-to-product.md` §4.5 |
+| ~~Phase 3 (Ingreso)~~ | ~~**B1 — `ProductForm` inventory-mode selector.**~~ **Already built** — `ProductForm.vue:531-577`, three radios behind `settingsStore.isInventoryEnabled`. This plan called it blocking in error; `inventory-next-steps.md` had it ticked all along. | `inventory-next-steps.md` B1 |
 | Phase 3 confirm | **[BACKEND]** `POST /bakeries/:bakeryId/purchases` | `EXISTENCIAS-BUILD.md` §4.2 |
 | Phase 3 providers | **[BACKEND]** provider entity + last-purchase-per-provider query (§5.4) | new — see §9 |
 | Phase 4 confirm | **[BACKEND]** `POST /bakeries/:bakeryId/stocks/produce` with `expandComponents` | `EXISTENCIAS-BUILD.md` §4.1 |
@@ -121,7 +121,7 @@ worse than not having it.
 
 **Verification:** all four screens look unchanged.
 
-- [ ] 0.1 done
+- [x] 0.1 done
 
 ### 0.2 Persist open documents across a reload
 
@@ -146,7 +146,9 @@ walk-around on a phone.
 
 **Verification:** add two lines to Ingreso, hard-refresh, lines are still there.
 
-- [ ] 0.2 done
+- [x] 0.2 done — key is `inventoryDocs.{bakeryId}`, not the bare `inventoryDocs`
+  named above: an unscoped key reopens another bakery's document after a
+  system_admin switches tenant.
 
 ---
 
@@ -225,7 +227,7 @@ Target:
 **Verification:** manually set a `recipeId` on an ingredient in the emulator, open
 it from the overview, add a line, save, reopen — the line persists.
 
-- [ ] 1.2 done
+- [x] 1.2 done
 
 ### 1.3 "Crear preparación" in the ingredient create card
 
@@ -263,7 +265,12 @@ Keep everything about it; add a second path.
   gives a better message.
 - Reuse the duplicate-name guard at `:751` unchanged.
 
-- [ ] 1.3 done
+- [x] 1.3 done — **deviation:** `Costo por unidad` and `Rendimiento` are both
+  visible, each tied to its own button, instead of one field swapping under a
+  mode. A form that changes shape as the mouse moves is worse than one extra
+  box, and hover has no meaning on the phone this screen also runs on. The card
+  now lives in `src/components/recipes/IngredientCreateCard.vue` and owns its
+  own writes, so §5.2 can mount it in Ingreso unchanged.
 
 ### 1.4 Put the create card on the overview tab too
 
@@ -280,7 +287,7 @@ product's recipe. That is backwards.
 - Keep it in the Insumos pane as well. Creating mid-recipe is the reason it exists
   there.
 
-- [ ] 1.4 done
+- [x] 1.4 done
 
 ### 1.5 Overview becomes "Productos y preparaciones"
 
@@ -302,7 +309,7 @@ Left pane, `:869-929`.
 - Empty state: when a bakery has no preparaciones the section is simply absent.
   Do not add an empty-state block for it; the create card is the discovery path.
 
-- [ ] 1.5 done
+- [x] 1.5 done
 
 ### 1.6 Let the yield be edited
 
@@ -314,7 +321,7 @@ every cost that depends on the preparación.
 - It is part of the recipe document, so it saves through the same `save()` —
   include it in the update payload and count it in `isDirty`.
 
-- [ ] 1.6 done
+- [x] 1.6 done
 
 ### 1.7 Regenerate the frontend models
 
@@ -327,7 +334,15 @@ fields silently.
 - Review the diff before committing — the script overwrites `front/src/models/`.
 - Confirm `front/src/models/Product.js` comes back with `inventoryMode`.
 
-- [ ] 1.7 done
+- [x] 1.7 done — **nothing to fix.** `Ingredient.js` already carried `recipeId`,
+  `stockBehavior` and `preferredSupplier`, and `Product.js` already carried
+  `inventoryMode`; the backend `isResale` work brought them into line. The sync
+  DID rewrite seven unrelated models (`Order`, `VariationGroups`, `Combination`,
+  `BakerySettings`, `SystemSettings`, `SalesReport`, `User`) and add three new
+  ones. Reverted: `Order`, `VariationGroups` and `Combination` are imported by
+  `OrderForm.vue`, `VariationsManager.vue` and a DataTable renderer, all with
+  tests, and that drift deserves its own pass rather than riding along inside an
+  inventory feature.
 
 ---
 
@@ -359,7 +374,7 @@ Both document screens need it. There is no combobox in this codebase —
 and a visible focus ring on the active row. Do not skip this — the whole point of
 the component is keyboard entry.
 
-- [ ] 2.1 done
+- [x] 2.1 done
 
 ### 2.2 Inline ingredient creation from the picker
 
@@ -372,7 +387,7 @@ the component is keyboard entry.
   cannot buy one anyway. Offer a quiet link instead: *"¿es una preparación?
   créala en el recetario →"*.
 
-- [ ] 2.2 done
+- [x] 2.2 done
 
 ---
 
@@ -402,7 +417,7 @@ stopped paying for itself.
   - `identityByKey` resolving off **every** stocks doc, not just the destination
     bodega (`:141-143`), so changing the destination does not blank written lines.
 
-- [ ] 3.1 done
+- [x] 3.1 done
 
 ### 3.2 Correct the shelf rule
 
@@ -416,7 +431,7 @@ stopped paying for itself.
   "Productos". In the user's head the Coke *is* a product; calling it an
   ingredient reads as broken.
 
-- [ ] 3.2 done
+- [x] 3.2 done
 
 ### 3.3 Single-column form
 
@@ -431,7 +446,7 @@ stopped paying for itself.
   the trail's grid column never shrinks and eats the name. Respect that.
 - Keep `blankQuantities` and `unpricedCount` notices.
 
-- [ ] 3.3 done
+- [x] 3.3 done
 
 ### 3.4 Providers
 
@@ -466,7 +481,12 @@ Until those exist, prefill from whatever `stockStore` can offer and keep the
 provider list stubbed from bakery settings. **Do not fake a price history** —
 an invented "antes" is worse than no flag.
 
-- [ ] 3.4 done
+- [~] 3.4 **partial — blocked.** El proveedor is now the first and most
+  prominent field on the document, and `blankDoc` carries `provider` for
+  `ingreso` only (Producción has no party field at all, Conteo keeps `party` as
+  el responsable). The list, the basket prefill and the price-change flags need
+  the provider entity; the screen says so on itself rather than faking a
+  history. **Do not build the flags against invented data.**
 
 ### 3.5 Inline ingredient creation
 
@@ -475,7 +495,7 @@ consideration: a resale item is a *product*, not an ingredient, and creating a
 product inline is out of scope (variations, prices, collections). So the card
 creates ingredients only, and offers a link to the product form for resale items.
 
-- [ ] 3.5 done
+- [x] 3.5 done
 
 ### 3.6 Confirm stays disabled
 
@@ -486,7 +506,7 @@ write `adjustment` movements for events that are purchases, and the ledger is
 append-only, so the merma report would be wrong forever. That reasoning is
 recorded at `EntryDoc.vue:56-62`; keep a version of it in the new file.
 
-- [ ] 3.6 done
+- [x] 3.6 done
 
 ---
 
@@ -504,7 +524,7 @@ recorded at `EntryDoc.vue:56-62`; keep a version of it in the new file.
   currently says `Arrastra lo que se hizo`; that wording is wrong and does not
   survive the rewrite.
 
-- [ ] 4.1 done
+- [x] 4.1 done
 
 ### 4.2 The consumption preview — the reason this screen exists
 
@@ -532,7 +552,7 @@ Pan de queso     20 und          Mantequilla  3.2 kg  (hay 2.1)  ⚠ faltan 1.1
 - Until the endpoint exists, the panel shows the placeholder already worded at
   `EntryDoc.vue:400-404`.
 
-- [ ] 4.2 done
+- [x] 4.2 done
 
 ### 4.3 Two multipliers on top
 
@@ -542,13 +562,18 @@ Pan de queso     20 und          Mantequilla  3.2 kg  (hay 2.1)  ⚠ faltan 1.1
   and see 40 units. Bakers think in batches. The recipe's `yield` is what makes
   this computable — which is the same field Phase 1 introduces.
 
-- [ ] 4.3 done
+- [~] 4.3 **partial.** Lotes are built: anything with a rendimiento gets a
+  second input, and typing `2` fills the quantity with `2 × yield`. Products
+  keep counting in units — they have no rendimiento to multiply by.
+  **"Repetir la producción de ayer" is blocked and deliberately not faked:**
+  there are no production movements in the ledger until
+  `POST /stocks/produce` lands, so there is no yesterday to repeat yet.
 
 ### 4.4 Confirm stays disabled
 
 Same rule as 3.6. Missing endpoint named on screen.
 
-- [ ] 4.4 done
+- [x] 4.4 done
 
 ---
 
@@ -585,7 +610,7 @@ that predates this conversation.
 
 ## 9. Reconciliation with `inventory-next-steps.md`
 
-This plan changes that document's shape. Update it when this lands, not before.
+This plan changes that document's shape. **Reconciled 2026-09-07** — B2, B3, F1, E and the deferred list now say so in `inventory-next-steps.md` itself.
 
 | That doc | This plan |
 |---|---|
@@ -622,30 +647,30 @@ This plan changes that document's shape. Update it when this lands, not before.
 
 | # | Task | Phase | Blocked by | Done |
 |---|---|---|---|---|
-| 0.1 | Move section padding out of the layout | 0 | — | ☐ |
-| 0.2 | Persist open documents to localStorage | 0 | — | ☐ |
-| 1.2 | Tab system opens a preparación | 1 | — | ☐ |
-| 1.3 | "Crear preparación" button + rendimiento field | 1 | 1.2 | ☐ |
-| 1.4 | Create card on the overview tab | 1 | 1.3 | ☐ |
-| 1.5 | Overview = "Productos y preparaciones" | 1 | 1.2 | ☐ |
-| 1.6 | Yield editable in the bench | 1 | 1.2 | ☐ |
-| 1.7 | `syncModels.js` — fix model drift | 1 | — | ☐ |
-| 2.1 | `UiItemPicker.vue` | 2 | — | ☐ |
-| 2.2 | Inline ingredient creation in the picker | 2 | 2.1 | ☐ |
-| B1 | ProductForm inventory-mode selector | — | — | ☐ |
-| 3.1 | Split `EntryDoc` into two files | 3 | 2.1 | ☐ |
-| 3.2 | Correct shelf rule + `modeOf` | 3 | 3.1, B1 | ☐ |
-| 3.3 | Single-column purchase form | 3 | 3.1 | ☐ |
-| 3.4 | Providers: list, basket prefill, price flags | 3 | 3.3, **[BACKEND]** | ☐ |
-| 3.5 | Inline creation wired into Ingreso | 3 | 2.2, 3.3 | ☐ |
-| 3.6 | Confirm disabled, endpoint named | 3 | 3.3 | ☐ |
-| 4.1 | `ProductionDoc` shape, copy in future tense | 4 | 3.1 | ☐ |
-| 4.2 | Live consumption preview | 4 | 4.1, **[BACKEND]** | ☐ |
-| 4.3 | Repeat-yesterday + batches | 4 | 4.1 | ☐ |
-| 4.4 | Confirm disabled, endpoint named | 4 | 4.1 | ☐ |
+| 0.1 | Move section padding out of the layout | 0 | — | ☑ |
+| 0.2 | Persist open documents to localStorage | 0 | — | ☑ |
+| 1.2 | Tab system opens a preparación | 1 | — | ☑ |
+| 1.3 | "Crear preparación" button + rendimiento field | 1 | 1.2 | ☑ |
+| 1.4 | Create card on the overview tab | 1 | 1.3 | ☑ |
+| 1.5 | Overview = "Productos y preparaciones" | 1 | 1.2 | ☑ |
+| 1.6 | Yield editable in the bench | 1 | 1.2 | ☑ |
+| 1.7 | `syncModels.js` — fix model drift | 1 | — | ☑ |
+| 2.1 | `UiItemPicker.vue` | 2 | — | ☑ |
+| 2.2 | Inline ingredient creation in the picker | 2 | 2.1 | ☑ |
+| B1 | ProductForm inventory-mode selector | — | — | ☑ already built |
+| 3.1 | Split `EntryDoc` into two files | 3 | 2.1 | ☑ |
+| 3.2 | Correct shelf rule + `modeOf` | 3 | 3.1, B1 | ☑ |
+| 3.3 | Single-column purchase form | 3 | 3.1 | ☑ |
+| 3.4 | Providers: list, basket prefill, price flags | 3 | 3.3, **[BACKEND]** | ◐ field only |
+| 3.5 | Inline creation wired into Ingreso | 3 | 2.2, 3.3 | ☑ |
+| 3.6 | Confirm disabled, endpoint named | 3 | 3.3 | ☑ |
+| 4.1 | `ProductionDoc` shape, copy in future tense | 4 | 3.1 | ☑ |
+| 4.2 | Live consumption preview | 4 | 4.1, **[BACKEND]** | ☑ wired |
+| 4.3 | Repeat-yesterday + batches | 4 | 4.1 | ◐ lotes only |
+| 4.4 | Confirm disabled, endpoint named | 4 | 4.1 | ☑ |
 | 5.0 | Conteo design conversation | 5 | — | ☐ |
 | 5.1 | Conteo build | 5 | 5.0 | ☐ |
-| 9 | Update `inventory-next-steps.md` | — | all above | ☐ |
+| 9 | Update `inventory-next-steps.md` | — | all above | ☑ |
 
 **Marking a task done:** tick the checkbox in its section **and** the row here.
 A task is done when its stated verification passes, not when the code compiles.
