@@ -3,7 +3,9 @@
 Two files. `tokens.css` = colors. `ui.css` = component classes. Both imported
 **last** in `src/assets/main.css`, after the frozen files, so a `ui-*` class
 beats an equal-specificity rule in `custom-components.css`. Live gallery at `/system-admin/ux`
-(`src/views/SystemAdmin/UxView.vue`) — it is the documentation.
+(`src/views/SystemAdmin/UxView.vue`) — it is the documentation. Form fields have
+their own page at `/system-admin/ux/forms` (`UxFormsView.vue`), split off because
+every demo there needs live `v-model` state and the main gallery is static.
 
 Built for the inventory views (`zplanning/inventory-ui/README.md`) and growing
 from there. The old Tailwind-class system still runs ~95% of the app.
@@ -42,6 +44,24 @@ from there. The old Tailwind-class system still runs ~95% of the app.
    `enterkeyhint` around it are template, and a CSS file cannot hold those.
 10. **Add to the gallery in the same commit** as any new class. A class not in
     `/system-admin/ux` does not exist.
+11. **Cursor says what you can do, never what you can't.** Anything clickable is
+    `cursor: pointer` — the hand is the only signal an element responds at all,
+    since rule 6 already rules out hover movement. Disabled is `cursor: default`,
+    not `not-allowed`: the slashed circle reads as an error, and a disabled
+    control is not one. Text inputs keep the browser's own text (I-beam) cursor —
+    that one is not in scope, it already tells you what to do.
+12. **A field is a `<div class="ui-field">`, and the label carries `for`.** Not a
+    wrapping `<label>`. Wrapping buys you the missing `id`, but a label's
+    accessible name is built from **everything** in its subtree, so a hint or an
+    error inside it gets glued onto the name — `"Nombre Nombre debe tener al
+    menos 3 caracteres"`. Hint and error sit outside the label and attach with
+    `aria-describedby`. `required` goes on the input; `data-required` on
+    `.ui-field-k` only paints the asterisk, and an asterisk no screen reader can
+    reach announces the field as optional. In a form component rendered more
+    than once per page, base the ids on `useId()` (Vue 3.5). The one exception is
+    a control that already names itself — `UiSearchField` has its own
+    `aria-label`, so its key is a `<span>` and not a second name competing with
+    the first.
 
 ## The surface ladder
 
@@ -74,13 +94,18 @@ Four rungs, `0` furthest from your face:
 
 ## Not built yet
 
-- Button toggle/selected variant the 2026-08-28 audit called for (~126 sites,
-  must work as a class on `<label>` with `peer-checked:`). Icon-only and danger
-  are built: `ui-btn-icon`, `ui-btn-danger`. There is no quiet/ghost button —
-  outline is already quiet enough, and a borderless button next to a bordered
-  one just reads as broken. Variants compose because `.ui-btn`
-  reads `--btn` / `--btn-soft` / `--btn-ink`; a new intent swaps those three, it
-  does not repeat the hover math.
+- There is no quiet/ghost button — outline is already quiet enough, and a
+  borderless button next to a bordered one just reads as broken. Variants compose
+  because `.ui-btn` reads `--btn` / `--btn-soft` / `--btn-ink`; a new intent swaps
+  those three, it does not repeat the hover math. Built: `ui-btn-icon`,
+  `ui-btn-danger`, and the selected state (`aria-pressed` / `aria-current` /
+  `:checked +` on a `<label class="ui-btn">` — **not** Tailwind `peer-checked:`,
+  which can only apply single classes).
+- No form components. `ui-field` + `ui-input` and friends are classes only;
+  `RadioButtonGroup.vue` and `YesNoToggle.vue` belong to the old system and stay
+  untouched (restyling them would hit ~126 un-migrated sites). Extract a
+  `Ui*` equivalent from the second migrated form, not before — that is when you
+  learn whether the number-key shortcuts and custom-option slot survive.
 - `formatQty` in `src/utils/helpers.js` — number only, max 3 decimals, unit
   rendered as its own `<span class="ui-unit">`.
 - `UiSearchField.vue`. `.ui-search` has one real call site today
@@ -91,5 +116,7 @@ Four rungs, `0` furthest from your face:
   `clear` event of its own. One is not.
 - `ui-inputs.css`. `ui.css` is one file on purpose: the numbered sections are
   already the split, and a third file adds an import-order constraint that fails
-  as "this screen looks slightly wrong". Split when the file is genuinely hard to
-  navigate (~900 lines) or when inputs grow tokens of their own.
+  as "this screen looks slightly wrong". The form pass took it past the ~900-line
+  mark that was the old trigger, and it is still navigable — the sections held.
+  The real trigger now is inputs growing tokens of their own, or §12 needing
+  sub-sub-sections.

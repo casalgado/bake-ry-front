@@ -423,6 +423,11 @@ const router = createRouter({
           name: 'system-admin-ux',
           component: () => import('../views/SystemAdmin/UxView.vue'),
         },
+        {
+          path: 'ux/forms',
+          name: 'system-admin-ux-forms',
+          component: () => import('../views/SystemAdmin/UxFormsView.vue'),
+        },
       ],
     },
   ],

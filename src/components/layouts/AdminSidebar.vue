@@ -34,6 +34,7 @@ import {
   PhArrowDown,
   PhSparkle,
   PhPalette,
+  PhTextbox,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -276,6 +277,11 @@ const navigationSections = computed(() => {
           icon: PhPalette,
           text: 'UX',
           path: '/system-admin/ux',
+        }, {
+          id: 'ux-forms',
+          icon: PhTextbox,
+          text: 'UX Formularios',
+          path: '/system-admin/ux/forms',
         }] : []),
       ],
     },

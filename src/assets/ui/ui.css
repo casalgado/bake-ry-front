@@ -582,7 +582,7 @@ input:disabled+.ui-btn {
  * while an <input> honours it — so the two came out ~4px apart on any row that
  * had one of each (the create card: Unidad, Cantidad, Categoría). 32 = 20 line +
  * 10 padding + 2 border, so the box is exact rather than approximately right.
- * A textarea would need its own variant; there is none today. */
+ * A textarea opts out of the fixed height through .ui-input-area, below. */
 .ui-input {
   width: 100%;
   height: 32px;
@@ -636,7 +636,83 @@ input:disabled+.ui-btn {
 .ui-input:focus { outline: 2px solid var(--ui-brand); outline-offset: 0; background: var(--ui-surface-2); }
 .ui-input-num { text-align: right; }
 
-/* Label above, so the input keeps its full width for the value. */
+/* Prose, so it drops the fixed height and the tabular 600 weight that suit a
+ * short value in a column. Vertical resize only: horizontal drags the field out
+ * of whatever grid the call site put it in. */
+.ui-input-area {
+  height: auto;
+  min-height: 68px;
+  padding: 6px 8px;
+  line-height: 1.45;
+  font-weight: 400;
+  font-variant-numeric: normal;
+  resize: vertical;
+}
+
+/* Two different things that look alike and must not read alike.
+ *
+ * readonly = someone else owns this number (a cost computed from a recipe). It
+ * is real, current, and worth reading, so it keeps full ink and only steps back
+ * a rung of surface to say you cannot type here.
+ *
+ * disabled = not applicable right now (Razón Social on a person, not a company).
+ * Nothing to read, so it mutes. This replaces the scoped `input[readonly]` patch
+ * ProductForm.vue carries, which existed only because .form-container's
+ * bg-gray-50 outranked a utility class. */
+.ui-input[readonly] {
+  background: var(--ui-surface-2);
+  cursor: default;
+}
+
+.ui-input:disabled {
+  background: var(--ui-surface-2);
+  color: var(--ui-ink-muted);
+  cursor: default;
+}
+
+/* Failed validation. Border only — the message underneath says what is wrong,
+ * and a field that also turns its text red shouts the same thing twice.
+ * aria-invalid rather than a class: the attribute is what a screen reader reads,
+ * so styling off it means the two can never fall out of step. */
+.ui-input[aria-invalid='true'] {
+  border-color: var(--ui-danger);
+}
+
+.ui-input[aria-invalid='true']:focus {
+  outline-color: var(--ui-danger);
+}
+
+/* $ or % or kg, sitting inside the box. Suffix on the right, matching the
+ * frozen `.input-with-unit` it replaces, so migrating a form is a class swap
+ * and not a re-layout. ::after and pointer-events: none — the unit is
+ * decoration, the value is the number, and clicking it should land in the field.
+ * Set it per instance: <div class="ui-field-unit" data-unit="$">. */
+.ui-field-unit {
+  position: relative;
+  display: block;
+}
+
+.ui-field-unit::after {
+  content: attr(data-unit);
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  translate: 0 -50%;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--ui-ink-muted);
+  pointer-events: none;
+}
+
+/* Same single decision as .ui-search: the glyph's room and the input's padding
+ * are one number, so they live together. */
+.ui-field-unit .ui-input {
+  padding-right: 26px;
+}
+
+/* Label above, so the input keeps its full width for the value. A <div>, not a
+ * wrapping <label> — hint and error live in here too, and inside a label they
+ * would be read as part of the field's name (CLAUDE.md rule 12). */
 .ui-field {
   display: flex;
   flex-direction: column;
@@ -650,6 +726,97 @@ input:disabled+.ui-btn {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ui-ink-muted);
+}
+
+/* Brand, not danger: danger in this system means "this deletes something", and
+ * a required field is not a destructive one. Marking what is required is also
+ * the wrong job for the token that has to still mean danger further down the
+ * same form. */
+.ui-field-k[data-required]::after {
+  content: '*';
+  margin-left: 0.25em;
+  color: var(--ui-brand);
+}
+
+/* Under the input. Two lines that look alike and never appear together: the
+ * hint is what to type, the error is why what you typed is wrong.
+ *
+ * The error is the one place a color carries meaning on its own, which rule 5
+ * otherwise forbids. It earns the exception because the alternative is a muted
+ * grey error, which reads as help text and gets skipped — and unlike a red
+ * number, this text says what is wrong in words too, so the color is
+ * reinforcement rather than the whole message. */
+.ui-field-hint {
+  font-size: 11.5px;
+  color: var(--ui-ink-muted);
+}
+
+.ui-field-error {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--ui-danger);
+}
+
+/* A real square checkbox, for a list of independent options where a row of
+ * button-pills would read as one choice among many rather than several.
+ * accent-color is the whole styling budget here on purpose: a redrawn checkbox
+ * costs an appearance: none plus a checkmark mask, and buys nothing the native
+ * one does not already do correctly in both themes. */
+.ui-check {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  flex: none;
+  accent-color: var(--ui-brand);
+  cursor: pointer;
+}
+
+.ui-check:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* The label beside a checkbox, not above a field: sentence case at reading
+ * size, where .ui-field-k is an uppercase micro-label for a column heading.
+ * Different job, different class. */
+.ui-check-k {
+  font-size: 13.5px;
+  color: var(--ui-ink);
+  cursor: pointer;
+}
+
+/* A whole card as one choice — the feature pickers in settings. Paint only:
+ * background and border, never `color`, or every line of text inside the card
+ * turns brand. See §11 for the button-shaped and toggle forms of the same idea. */
+input:checked+.ui-card {
+  background: var(--ui-brand-soft);
+  border-color: var(--ui-brand);
+}
+
+/* <input type="color"> is a native box no border-radius can reach from outside;
+ * the swatch inside it is a shadow-DOM part with its own hard border. Style the
+ * frame here and flatten that part below.
+ * The two vendor rules cannot be grouped: one selector a browser does not know
+ * invalidates the whole list, and each browser knows only its own. */
+.ui-swatch {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  padding: 2px;
+  background: var(--ui-surface-3);
+  border: 1px solid var(--ui-line);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.ui-swatch::-webkit-color-swatch {
+  border: 0;
+  border-radius: 5px;
+}
+
+.ui-swatch::-moz-color-swatch {
+  border: 0;
+  border-radius: 5px;
 }
 
 /* ---------- 13. dropzone ---------- */
