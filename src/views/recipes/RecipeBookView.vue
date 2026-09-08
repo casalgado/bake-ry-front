@@ -3,6 +3,8 @@ import { ref, shallowReactive, computed, watch, onMounted, onUnmounted } from 'v
 import { onBeforeRouteLeave } from 'vue-router';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import UiSearchField from '@/components/ui/UiSearchField.vue';
+import IngredientCreateCard from '@/components/recipes/IngredientCreateCard.vue';
+import AppTooltip from '@/components/common/AppTooltip.vue';
 import { useProductStore } from '@/stores/productStore';
 import { useRecipeStore } from '@/stores/recipeStore';
 import { useIngredientStore } from '@/stores/ingredientStore';
@@ -10,8 +12,10 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useAuthenticationStore } from '@/stores/authentication';
 import { useUndoSnapshot } from '@/composables/useUndoSnapshot';
 import { useItemCatalog, combosOf } from '@/composables/useItemCatalog';
-import { formatMoney, UNIT_OPTIONS } from '@/utils/helpers';
-import { PhFlask, PhX, PhPlus, PhArrowCounterClockwise } from '@phosphor-icons/vue';
+import { formatMoney, formatUnitCost } from '@/utils/helpers';
+import {
+  PhFlask, PhX, PhArrowCounterClockwise, PhArrowsLeftRight, PhCheckFat,
+} from '@phosphor-icons/vue';
 
 const productStore = useProductStore();
 const recipeStore = useRecipeStore();
@@ -20,9 +24,17 @@ const bakerySettingsStore = useBakerySettingsStore();
 const search = ref('');
 const selectedId = ref(null);
 
-/* Tab ids are plain strings: 'overview' plus one combination id each. A tab
- * carries productId/comboId rather than the objects themselves, so it survives
- * a refetch and doesn't pin a stale copy of the product. */
+/* Tab ids are plain strings: 'overview', plus one per open recipe. A tab carries
+ * ids rather than the objects themselves, so it survives a refetch and doesn't
+ * pin a stale copy of the product.
+ *
+ * Two kinds of recipe can be open, and they have different owners:
+ *
+ *   { kind: 'combo', productId, comboId }  — a product combination's recipe.
+ *   { kind: 'prep',  ingredientId }        — a preparación's own recipe.
+ *
+ * `kind` is what everything downstream branches on. Its absence is what marks
+ * the overview tab, so `!tab.kind` still means "no recipe open". */
 const activeTab = ref('overview');
 const tabs = ref([{ id: 'overview', label: 'Recetario' }]);
 
@@ -79,7 +91,9 @@ const marginOf = (c) => {
 const products = computed(() => {
   const q = search.value.trim().toLowerCase();
   return productStore.items
-    .filter((p) => !q || p.name.includes(q))
+    // Lowercased on both sides: `q` already is, and without this "Croissant"
+    // matched nothing you could actually type.
+    .filter((p) => !q || p.name.toLowerCase().includes(q))
     .sort((a, b) =>
       (a.collectionName || '').localeCompare(b.collectionName || '') ||
       a.name.localeCompare(b.name),
@@ -98,6 +112,24 @@ const groups = computed(() =>
   }, []),
 );
 
+/* Preparaciones sit under the products in the same pane and answer the same
+ * question — "what do I have a recipe for?" — so the overview lists both. They
+ * are ingredients, not products: an ingredient that carries a recipe of its
+ * own, which is the only place that fact is recorded. */
+const preparations = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  return ingredientStore.items
+    .filter((i) => !i.isDeleted && i.recipeId &&
+      (!q || (i.name || '').toLowerCase().includes(q)))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+});
+
+/* The rendimiento lives on the recipe, not on the ingredient, so a preparación
+ * whose recipe has not arrived yet simply shows no line rather than "rinde
+ * undefined". */
+const yieldOfIngredient = (i) =>
+  recipeStore.items.find((r) => r.id === i.recipeId)?.yield ?? null;
+
 const totalCombos = computed(() =>
   products.value.reduce((n, p) => n + combosOf(p).length, 0));
 const totalCovered = computed(() =>
@@ -114,6 +146,7 @@ function openCombination(product, combo) {
       id: combo.id,
       label: comboName(combo, product),
       closable: true,
+      kind: 'combo',
       productId: product.id,
       comboId: combo.id,
     });
@@ -121,22 +154,79 @@ function openCombination(product, combo) {
   activeTab.value = combo.id;
 }
 
-/* Resolved off productStore.items, not the filtered list: typing in the search
- * box must not blank an open builder. */
+/* An ingredient id makes as good a tab id as a combination id: both are plain
+ * Firestore ids and neither can collide with the other's collection. */
+function openPreparacion(ingredient) {
+  if (!tabs.value.some((t) => t.id === ingredient.id)) {
+    tabs.value.push({
+      id: ingredient.id,
+      label: ingredient.name,
+      closable: true,
+      kind: 'prep',
+      ingredientId: ingredient.id,
+    });
+  }
+  activeTab.value = ingredient.id;
+}
+
+const tabOf = (id) => tabs.value.find((t) => t.id === id) ?? null;
+
+/* Resolved off the stores, never off a filtered list: typing in a search box
+ * must not blank an open builder. Taken by tab rather than read off `builder`,
+ * because a bench outlives the tab being active — the bench for a background
+ * tab still has to resolve its source. */
+const comboOfTab = (tab) => {
+  const product = productStore.items.find((p) => p.id === tab.productId);
+  return product ? combosOf(product).find((c) => c.id === tab.comboId) ?? null : null;
+};
+
+const recipeIdOfTab = (tab) => (tab.kind === 'prep'
+  ? ingredientStore.items.find((i) => i.id === tab.ingredientId)?.recipeId ?? null
+  : comboOfTab(tab)?.recipeId ?? null);
+
+/* Normalised: everything below reads `kind`, `recipeId` and `ownerName` without
+ * knowing which of the two owners it got. `product`/`combo`/`ingredient` are
+ * there for the parts that genuinely differ — a price and a sibling strip only
+ * exist for a combination, a rendimiento only for a preparación.
+ *
+ * `recipeId` is null for a combination with no recipe yet — that is the empty
+ * mesa every new bakery starts on. It is never null for a preparación: the
+ * recipe is created in the same gesture as the ingredient. */
 const builder = computed(() => {
-  const tab = tabs.value.find((t) => t.id === activeTab.value);
-  if (!tab?.comboId) return null;
+  const tab = tabOf(activeTab.value);
+  if (!tab?.kind) return null;
+
+  if (tab.kind === 'prep') {
+    const ingredient = ingredientStore.items.find((i) => i.id === tab.ingredientId);
+    return ingredient
+      ? {
+        kind: 'prep',
+        recipeId: ingredient.recipeId ?? null,
+        ownerName: ingredient.name,
+        ingredient,
+      }
+      : null;
+  }
 
   const product = productStore.items.find((p) => p.id === tab.productId);
-  const combo = product && combosOf(product).find((c) => c.id === tab.comboId);
-  return combo ? { product, combo } : null;
+  const combo = comboOfTab(tab);
+  return combo
+    ? {
+      kind: 'combo',
+      recipeId: combo.recipeId ?? null,
+      ownerName: `${product.name} · ${comboName(combo, product)}`,
+      product,
+      combo,
+    }
+    : null;
 });
 
 /* ---------------- the bench ---------------- */
 
-/* One editable copy per COMBINATION, not per recipe. A combination with no
- * recipe still needs a bench to build on — that is the state every new bakery
- * is in, and keying by recipe id meant it got nothing at all. */
+/* One editable copy per TAB, not per recipe. A combination with no recipe still
+ * needs a bench to build on — that is the state every new bakery is in, and
+ * keying by recipe id meant it got nothing at all. Keying by tab also means the
+ * two kinds of owner need no separate bookkeeping. */
 /* shallowReactive, NOT reactive. A deep-reactive Map wraps every value it
  * hands back, and a reactive object UNWRAPS the refs inside it — so
  * `bench.copy` came back as the bare array and `bench.copy.value` was
@@ -145,49 +235,140 @@ const builder = computed(() => {
  * handing the composable's refs back untouched. */
 const benches = shallowReactive(new Map());
 
-function benchFor(comboId, productId) {
-  if (!benches.has(comboId)) {
+function benchFor(tab) {
+  if (!benches.has(tab.id)) {
     /* A computed over the store, not a plain array: after a save the store
      * swaps in the server's copy and isDirty has to compare against that one.
      * Resolves to [] until a recipe exists, which is the empty mesa. */
     const source = computed(() => {
-      const product = productStore.items.find((p) => p.id === productId);
-      const combo = product && combosOf(product).find((c) => c.id === comboId);
-      const recipe =
-        combo?.recipeId &&
-        recipeStore.items.find((r) => r.id === combo.recipeId);
+      const recipeId = recipeIdOfTab(tab);
+      const recipe = recipeId && recipeStore.items.find((r) => r.id === recipeId);
       return recipe ? recipe.ingredients ?? [] : [];
     });
-    benches.set(comboId, useUndoSnapshot(source));
+    benches.set(tab.id, useUndoSnapshot(source));
   }
-  return benches.get(comboId);
+  return benches.get(tab.id);
 }
 
 /* Fetch the recipe if there is one, then make sure the tab has a bench either
- * way. Keyed on the combination id so reopening a tab re-reads the store rather
- * than the network. */
+ * way.
+ *
+ * Keyed on the tab id but ONLY once `builder` resolves, which is the part that
+ * matters: useUndoSnapshot copies its source once, at construction. Build the
+ * bench before the catalogs have loaded and it copies the empty array, then the
+ * real lines arrive on the source alone — the mesa renders empty and reads as
+ * dirty against a recipe it never showed you. */
 watch(
-  () => builder.value?.combo.id,
-  async (comboId) => {
-    if (!comboId || !builder.value) return;
-    const { product, combo } = builder.value;
+  () => (builder.value ? activeTab.value : null),
+  async (id) => {
+    const tab = id && tabOf(id);
+    if (!tab) return;
 
-    if (combo.recipeId && !recipeStore.items.some((r) => r.id === combo.recipeId)) {
-      await recipeStore.fetchById(combo.recipeId).catch(() => {});
+    const recipeId = recipeIdOfTab(tab);
+    if (recipeId && !recipeStore.items.some((r) => r.id === recipeId)) {
+      await recipeStore.fetchById(recipeId).catch(() => {});
     }
-    benchFor(comboId, product.id);
+    benchFor(tab);
   },
   { immediate: true },
 );
 
 /* Unwrapped once here so `.value` stays out of the template. */
-const bench = computed(() => {
-  const comboId = builder.value?.combo.id;
-  return comboId ? benches.get(comboId) ?? null : null;
-});
+const bench = computed(() =>
+  (builder.value ? benches.get(activeTab.value) ?? null : null));
 const lines = computed(() => bench.value?.copy.value ?? []);
 const canUndo = computed(() => bench.value?.canUndo.value ?? false);
-const isDirty = computed(() => bench.value?.isDirty.value ?? false);
+
+/* ---------------- modo reemplazo ---------------- */
+
+/* El índice REAL en `lines`, no la posición renderizada: `rows` va ordenado por
+ * costo y `_i` es lo único que apunta al array que se guarda. `null` es el
+ * estado normal de la pantalla — no estamos reemplazando nada.
+ *
+ * Armado desde una fila, consumido por el siguiente chip de la estantería. Es
+ * el único modo de esta pantalla, y por eso la cabecera de Insumos lo anuncia:
+ * un clic que hace algo distinto sin decirlo es una trampa. */
+const replacingIndex = ref(null);
+
+/* Resuelto contra `lines`, no copiado al armar el modo: la línea puede cambiar
+ * de cantidad mientras el modo está activo, y el reemplazo tiene que conservar
+ * la cantidad que hay AHORA, no la que había al pulsar ⇄. */
+const replacingLine = computed(() =>
+  (replacingIndex.value === null ? null : lines.value[replacingIndex.value] ?? null));
+
+const cancelReplace = () => { replacingIndex.value = null; };
+
+/* Un modo que sobrevive al cambio de pestaña apuntaría a la línea de otra
+ * receta — el índice sigue siendo válido, que es lo que lo hace peligroso. */
+watch(activeTab, cancelReplace);
+
+/* ---------------- rendimiento (preparaciones only) ---------------- */
+
+/* The yield lives on the RECIPE document, not on the bench: useUndoSnapshot
+ * copies the ingredients array and nothing else. Rather than reshape the bench
+ * into an object — which every mutation, every snapshot and every save would
+ * have to learn — the draft is held beside it, keyed by tab, and folded into
+ * isDirty. Undo does not cover it, which is the honest trade: it is one number
+ * you can retype, not eight lines you would have to rebuild.
+ *
+ * A tab with no entry here is showing the stored value, so "not present" is how
+ * a clean field is represented. */
+const yieldDrafts = ref({});
+
+const yieldOfTab = (tab) => {
+  const recipeId = recipeIdOfTab(tab);
+  return recipeId
+    ? recipeStore.items.find((r) => r.id === recipeId)?.yield ?? null
+    : null;
+};
+
+const yieldDirtyOf = (tab) =>
+  tab.kind === 'prep' &&
+  tab.id in yieldDrafts.value &&
+  Number(yieldDrafts.value[tab.id]) !== Number(yieldOfTab(tab) ?? 0);
+
+const storedYield = computed(() => {
+  const tab = tabOf(activeTab.value);
+  return tab?.kind === 'prep' ? yieldOfTab(tab) : null;
+});
+
+const yieldDraft = computed({
+  get: () => yieldDrafts.value[activeTab.value] ?? storedYield.value ?? '',
+  set: (v) => {
+    yieldDrafts.value = { ...yieldDrafts.value, [activeTab.value]: v };
+  },
+});
+
+const yieldDirty = computed(() => {
+  const tab = tabOf(activeTab.value);
+  return tab ? yieldDirtyOf(tab) : false;
+});
+
+/* The backend refuses `yield <= 0` on an ingredient-owned recipe, and refuses
+ * the whole save with it — so Guardar stays off rather than round-tripping to
+ * find out. */
+const yieldValid = computed(() =>
+  builder.value?.kind !== 'prep' || Number(yieldDraft.value) > 0);
+
+const isDirty = computed(
+  () => (bench.value?.isDirty.value ?? false) || yieldDirty.value);
+
+/* Dropping the draft is how the field goes back to showing the stored value —
+ * there is no "clean" entry, only the absence of one. */
+function clearYieldDraft(id) {
+  if (!(id in yieldDrafts.value)) return;
+  const next = { ...yieldDrafts.value };
+  delete next[id];
+  yieldDrafts.value = next;
+}
+
+/* Both halves of a tab's edits, dropped together: bench.reset() alone would
+ * leave a typed rendimiento sitting there looking saved. */
+function resetBench() {
+  bench.value?.reset();
+  clearYieldDraft(activeTab.value);
+  cancelReplace();
+}
 
 /* Which shelf a line came off. The split is the catalog's; only the tooltip
  * wording is this screen's. */
@@ -261,8 +442,18 @@ const rows = computed(() => {
 
 const recipeCost = computed(() =>
   rows.value.reduce((sum, line) => sum + lineCost(line), 0));
-const price = computed(() => (builder.value ? priceOf(builder.value.combo) : 0));
+/* A preparación has no price: it is never sold, it is consumed by the recipes
+ * above it. What it has instead is a cost per unit — the recipe total divided
+ * by the rendimiento, exactly the number the backend derives on save. Showing a
+ * margin here would be inventing a sale that does not happen. */
+const price = computed(() =>
+  (builder.value?.combo ? priceOf(builder.value.combo) : 0));
 const profit = computed(() => price.value - recipeCost.value);
+
+const prepUnitCost = computed(() => {
+  const amount = Number(yieldDraft.value);
+  return amount > 0 ? recipeCost.value / amount : null;
+});
 
 /* Both stay blank until there is something to divide. An empty recipe costs
  * nothing, which arithmetically means a 100% margin — a number that flatters a
@@ -349,6 +540,30 @@ function putOnBench(rows) {
   resort();
 }
 
+/* Una combinación hermana con receta es el arranque más común: la misma receta
+ * en otro tamaño, y después ×1.5. Copia, no vínculo — sus líneas se disuelven
+ * en la mesa igual que una receta de la estantería, y nada queda apuntando a
+ * ella.
+ *
+ * Se resuelve contra recipeStore, que ya trae todas las recetas en el
+ * onMounted. Una hermana cuya receta no haya llegado simplemente no aparece,
+ * en vez de ofrecer una pill que no pega nada. */
+const starterCombos = computed(() => {
+  const b = builder.value;
+  if (b?.kind !== 'combo') return [];
+
+  return combosOf(b.product)
+    .filter((c) => c.id !== b.combo.id && c.recipeId)
+    .map((c) => ({ c, r: recipeStore.items.find((x) => x.id === c.recipeId) }))
+    .filter(({ r }) => r?.ingredients?.length)
+    .map(({ c, r }) => ({
+      id: c.id,
+      name: comboName(c, b.product),
+      count: r.ingredients.length,
+      rows: r.ingredients.map(componentRow),
+    }));
+});
+
 /* Focus arms an editing session, the first keystroke takes the snapshot: one
  * undo entry per editing session instead of one per keystroke, and none at all
  * for an input you merely tabbed through. Snapping on focus itself left a dead
@@ -378,6 +593,38 @@ function removeLine(index) {
   if (!b) return;
   b.snap();
   b.copy.value = b.copy.value.filter((_, i) => i !== index);
+  // Los índices de abajo se corren al quitar una fila, así que un modo armado
+  // sobre otra línea ahora apunta a la equivocada. Cancelar es lo honesto.
+  cancelReplace();
+}
+
+/* Cambia la identidad, conserva cantidad y notas. La unidad SÍ viaja con el
+ * insumo nuevo: el backend la re-deriva del documento origen al guardar
+ * (resolveComponents), así que dejar la vieja solo mentiría en pantalla hasta
+ * el siguiente refetch.
+ *
+ * Colisión: si el insumo elegido ya está en la mesa se FUNDE sumando, igual que
+ * putOnBench. Dejar dos filas con el mismo lineKey duplicaría la `:key` del
+ * TransitionGroup — un aviso de Vue y un render roto, no un detalle cosmético. */
+function replaceLine(index, row) {
+  const b = bench.value;
+  const old = b?.copy.value[index];
+  if (!old) return;
+
+  b.snap();
+  const next = { ...row, quantity: old.quantity, notes: old.notes };
+  const dup = b.copy.value.findIndex((l, i) => i !== index && sameComponent(l, next));
+
+  b.copy.value = dup >= 0
+    ? b.copy.value
+      .map((l, i) => (i === dup
+        ? { ...l, quantity: (l.quantity || 0) + (next.quantity || 0) }
+        : l))
+      .filter((_, i) => i !== index)
+    : b.copy.value.map((l, i) => (i === index ? next : l));
+
+  cancelReplace();
+  resort();
 }
 
 function scale(factor) {
@@ -408,6 +655,18 @@ function chipPayload(shelf, chip) {
 
 function applyChip(payload) {
   if (!payload?.rows?.length) return;
+
+  /* Con el modo armado, TODO chip reemplaza: el clic y el arrastre entran los
+   * dos por aquí, y esa es la razón de que este desvío viva en un solo sitio.
+   * Sin pin — fijar en la estantería es una decisión sobre lo que quieres a
+   * mano, no un efecto secundario de corregir una línea. */
+  if (replacingIndex.value !== null) {
+    // Solo chips de una línea. Una receta trae varias y no puede reemplazar a
+    // una sola conservando su cantidad — por eso su repisa no se ofrece aquí.
+    if (payload.rows.length === 1) replaceLine(replacingIndex.value, payload.rows[0]);
+    return;
+  }
+
   putOnBench(payload.rows);
   if (payload.pin) pin(payload.pin.shelf, payload.pin.id);
 }
@@ -433,24 +692,47 @@ const saving = ref(false);
 const saveError = ref('');
 
 const canSave = computed(
-  () => isDirty.value && lines.value.length > 0 && !blankQuantities.value);
+  () => isDirty.value && lines.value.length > 0 && !blankQuantities.value &&
+    yieldValid.value);
 
 async function save() {
   const b = bench.value;
   if (!b || !canSave.value || !builder.value) return;
-  const { product, combo } = builder.value;
+  const { kind, recipeId, product, combo } = builder.value;
+  const tabId = activeTab.value;
+  // Read now, not after the await: yieldDraft follows the ACTIVE tab, and this
+  // save belongs to the tab it started on.
+  const yieldValue = Number(yieldDraft.value);
 
   saving.value = true;
   saveError.value = '';
   try {
-    if (combo.recipeId) {
+    /* A preparación's recipe is created in the same gesture as the ingredient,
+     * so there is nothing here that could create one — and the create branch
+     * below would reach for a product that does not exist. If the pointer is
+     * gone the ingredient document has drifted, and that is not something this
+     * screen can repair by writing a second recipe. */
+    if (kind === 'prep' && !recipeId) {
+      throw new Error(
+        'Esta preparación perdió el vínculo con su receta. Revísala en los ingredientes.',
+      );
+    }
+
+    if (recipeId) {
       /* `update` (PUT), not `patch`. Sending only `ingredients` is safe because
        * the backend merges onto the stored document — but only the PUT route
        * runs recipeService.update, which re-derives each line's unit from its
        * source doc, bumps the version, maintains `usedInRecipes` and runs the
        * cost propagation walk. The PATCH route writes the field and does none
-       * of that. */
-      await recipeStore.update(combo.recipeId, { ingredients: b.copy.value });
+       * of that.
+       *
+       * `yield` only on a preparación: validateOwner refuses it on any other
+       * owner, and update merges onto the stored document, so sending it on a
+       * combination would fail the whole save. */
+      await recipeStore.update(recipeId, {
+        ingredients: b.copy.value,
+        ...(kind === 'prep' ? { yield: yieldValue } : {}),
+      });
     } else {
       /* One call. The backend writes the recipe document and the owner's
        * recipeId in the same Firestore transaction (recipeService.create), so
@@ -473,11 +755,22 @@ async function save() {
      * that back: handleRealtimeUpdate only syncs primitive fields, and a
      * combination's cost lives inside variations.combinations[]. Without this
      * the pips, the "sin receta" tag and every costo on the recetario stay at
-     * whatever they were before the save. */
-    await productStore.fetchAll().catch(() => {});
+     * whatever they were before the save.
+     *
+     * A preparación's rollup lands on the INGREDIENT instead — the cost
+     * propagation writes costPerUnit there — so that is the catalog to re-read.
+     * Refetching the wrong one leaves the chip on the shelf quoting the old
+     * price of something you just changed. */
+    if (kind === 'prep') await ingredientStore.fetchAll().catch(() => {});
+    else await productStore.fetchAll().catch(() => {});
 
-    // Re-copy from what came back, so the stack starts clean at the saved state.
+    /* Re-copy from what came back, so the stack starts clean at the saved
+     * state. `b`, not bench.value: the refetch above swaps the store's array,
+     * and reading the bench back through the active tab would miss it if the
+     * user switched tabs while the request was in flight. */
     b.reset();
+    clearYieldDraft(tabId);
+    cancelReplace();
   } catch (err) {
     saveError.value = err?.message || 'No se pudo guardar la receta.';
   } finally {
@@ -486,12 +779,6 @@ async function save() {
 }
 
 /* ---------------- insumos (the supplies shelf) ---------------- */
-
-/* A cost *per unit* is often a fraction of a peso — harina at 3.5/g — and the
- * default rounds that to 4. One decimal only when there is one, so whole
- * numbers stay clean. */
-const formatUnitCost = (value) =>
-  formatMoney(Number(value) || 0, { maxFractionDigits: 1 });
 
 /* Stored as a flat array — every seed and every backup has it that way, and
  * `BakerySettings` maps it as one. `IngredientForm.vue` reads it keyed by
@@ -523,9 +810,12 @@ const byUse = (a, b) =>
 
 /* Every chip is the same shape whatever shelf it came off: a label, a bit of
  * metadata, and the rows it puts on the bench. The template loops once. */
+/* `unit` suelto además de dentro de `meta`: el modo reemplazo particiona por
+ * unidad y no va a volver a parsear la cadena que acaba de componer. */
 const ingredientChip = (i) => ({
   key: `i:${i.id}`,
   name: i.name,
+  unit: i.unit,
   meta: `${formatUnitCost(i.costPerUnit)}/${i.unit}`,
   rows: [componentRow({
     id: i.id,
@@ -543,8 +833,17 @@ const liveIngredients = computed(() =>
 const shelfIngredients = computed(() =>
   [...liveIngredients.value].filter((i) => !i.recipeId).sort(byUse).map(ingredientChip));
 
-const shelfPreparations = computed(() =>
-  [...liveIngredients.value].filter((i) => i.recipeId).sort(byUse).map(ingredientChip));
+/* Minus the one you are standing in: a preparación cannot be an ingredient of
+ * itself. Same rule the Productos shelf applies to the open combination — the
+ * server catches deeper cycles on save, this catches the one-step case before
+ * you can make it. */
+const shelfPreparations = computed(() => {
+  const selfId = builder.value?.ingredient?.id;
+  return [...liveIngredients.value]
+    .filter((i) => i.recipeId && i.id !== selfId)
+    .sort(byUse)
+    .map(ingredientChip);
+});
 
 /* ---------------- pinned shelves ---------------- */
 
@@ -608,7 +907,7 @@ function unpin(shelfKey, id) {
  * its cost is the COMBINATION's costPrice, which is 0 until that combination
  * has a recipe of its own. That zero is exactly what `sin costo` flags. */
 const productChips = computed(() => {
-  const currentComboId = builder.value?.combo.id;
+  const currentComboId = builder.value?.combo?.id;
 
   return productStore.items
     .flatMap((p) => combosOf(p).map((c) => ({ p, c })))
@@ -627,6 +926,7 @@ const productChips = computed(() => {
         pinId: `${p.id}:${c.id}`,
         collection: p.collectionName,
         name,
+        unit: 'unidad',
         meta: 'unidad',
         rows: [componentRow({
           type: 'product',
@@ -645,7 +945,7 @@ const productChips = computed(() => {
  * it belongs to, and falls back when that product is gone. `productById` is the
  * same map `resolveLine` joins against. */
 const recipeChips = computed(() => {
-  const currentRecipeId = builder.value?.combo.recipeId;
+  const currentRecipeId = builder.value?.recipeId;
   const collectionOf = (r) =>
     productById.value.get(r.productId)?.collectionName || '';
 
@@ -685,31 +985,75 @@ const expandedShelves = ref({});
 
 /* `pinnable` marks the two shelves whose chips carry an × and whose contents
  * come from a pin list rather than the whole collection. */
-const shelves = computed(() => [
-  { key: 'ing', title: 'Ingredientes', hint: '', items: shelfIngredients.value },
-  {
-    key: 'prep',
-    title: 'Preparaciones',
-    hint: 'Entran como una sola línea y conservan su receta.',
-    items: shelfPreparations.value,
-  },
-  {
-    key: 'rec',
-    title: 'Recetas',
-    hint: 'Se disuelven en sus líneas al soltarlas. Puedes escalarlas después.',
-    items: shelfRecipes.value,
-    pinnable: true,
-    grouped: true,
-  },
-  {
-    key: 'prod',
-    title: 'Productos',
-    hint: 'Otro producto vendible, contado en unidades.',
-    items: shelfProducts.value,
-    pinnable: true,
-    grouped: true,
-  },
-].filter((s) => s.items.length));
+/* Reemplazar algo por sí mismo no es un reemplazo. Ofrecerlo solo invita a un
+ * clic que no hace nada y deja al usuario dudando de si el modo funcionó. */
+const notSelf = (chips) =>
+  chips.filter((c) => !sameComponent(c.rows[0], replacingLine.value));
+
+const shelves = computed(() => {
+  const target = replacingLine.value;
+
+  /* En modo reemplazo la estantería cambia de pregunta: ya no es "qué le añado
+   * a esta receta" sino "por qué cambio ESTA línea". El corte es `type`, no la
+   * insignia: `ingr` y `prep` son los dos type 'ingredient', y cambiar la salsa
+   * comprada por la de la casa es justo el caso que motiva la función.
+   *
+   * Recetas no aparece: se disuelve en N líneas, y "reemplaza esta línea por
+   * ocho conservando su cantidad" no significa nada. */
+  if (target) {
+    /* Un producto solo se reemplaza por otro producto, y todos se cuentan en
+     * `unidad` — particionar por unidad daría "Misma unidad (unidad)" y una
+     * repisa vacía al lado. Una sola repisa dice lo mismo mejor. */
+    if (target.type === 'product') {
+      return [{
+        key: 'prod',
+        title: 'Productos',
+        items: notSelf(shelfProducts.value),
+      }].filter((s) => s.items.length);
+    }
+
+    const pool = notSelf([...shelfIngredients.value, ...shelfPreparations.value]);
+    return [
+      {
+        key: 'same',
+        title: `Misma unidad (${target.unit})`,
+        items: pool.filter((c) => c.unit === target.unit),
+      },
+      {
+        key: 'other',
+        title: 'Otras unidades',
+        hint: 'La cantidad se conserva tal cual, así que revísala después.',
+        items: pool.filter((c) => c.unit !== target.unit),
+      },
+    ].filter((s) => s.items.length);
+  }
+
+  return [
+    { key: 'ing', title: 'Ingredientes', hint: '', items: shelfIngredients.value },
+    {
+      key: 'prep',
+      title: 'Preparaciones',
+      hint: 'Entran como una sola línea y conservan su receta.',
+      items: shelfPreparations.value,
+    },
+    {
+      key: 'rec',
+      title: 'Recetas',
+      hint: 'Se disuelven en sus líneas al soltarlas. Puedes escalarlas después.',
+      items: shelfRecipes.value,
+      pinnable: true,
+      grouped: true,
+    },
+    {
+      key: 'prod',
+      title: 'Productos',
+      hint: 'Otro producto vendible, contado en unidades.',
+      items: shelfProducts.value,
+      pinnable: true,
+      grouped: true,
+    },
+  ].filter((s) => s.items.length);
+});
 
 /* Products and recipes are grouped by collection — the same way the recetario's
  * left pane groups products, so the screen states one idea once. The category
@@ -743,78 +1087,95 @@ const visibleChips = (shelf) =>
     ? shelf.items
     : shelf.items.slice(0, SHELF_CAP);
 
-const newName = computed(() => suppliesSearch.value.trim());
-
-/* The create row hides on an exact name match. Duplicate ingredients are what
- * makes the shelf unusable, and the search is the only thing standing between
- * you and three kinds of "Harina". */
-const nameTaken = computed(() => {
-  const n = newName.value.toLowerCase();
+/* The card hides on an exact name match. Duplicate ingredients are what makes
+ * the shelf unusable, and the search is the only thing standing between you and
+ * three kinds of "Harina".
+ *
+ * Takes the name rather than reading a fixed ref: the same card hangs off two
+ * different search boxes — the Insumos one inside a recipe, and the overview's
+ * own, because creating a preparación should not require first opening somebody
+ * else's recipe to reach the form. */
+const nameTaken = (name) => {
+  const n = name.trim().toLowerCase();
   return !!n && ingredientStore.items.some((i) => i.name?.toLowerCase() === n);
+};
+
+/* Refs alimentados por un watcher, y NO computeds, aunque el valor se derive de
+ * la búsqueda. Un computed también depende de `ingredientStore.items` a través
+ * de `nameTaken`, y crear el ingrediente es justo lo que cambia esa lista: el
+ * `v-if` se volvía falso y Vue desmontaba la tarjeta durante el `await` del
+ * create — antes de que corriera su propio `emit`, que en un componente
+ * desmontado es un no-op (`runtime-core`, `emit()`: `if (instance.isUnmounted)
+ * return`). El ingrediente se creaba y el recetario nunca se enteraba.
+ *
+ * Con el watcher, la tarjeta solo desaparece cuando cambia el texto de la
+ * búsqueda: al escribir, o cuando el handler lo limpia — después de haber hecho
+ * su trabajo. */
+const suppliesNewName = ref('');
+watch(suppliesSearch, (v) => {
+  const n = v.trim();
+  suppliesNewName.value = n && !nameTaken(n) ? n : '';
 });
 
-const newIngredient = ref({ unit: '', costPerUnit: '', categoryId: '' });
-const creating = ref(false);
-const createError = ref('');
+/* On the overview the bar is higher: the query has to match no product either,
+ * or the card offers to create an ingredient while the thing you were looking
+ * for is listed right underneath it. */
+const overviewNewName = ref('');
+watch(search, (v) => {
+  const n = v.trim();
+  overviewNewName.value =
+    !n || nameTaken(n) || products.value.length || preparations.value.length ? '' : n;
+});
 
-async function createIngredient() {
-  const { unit, costPerUnit, categoryId } = newIngredient.value;
-  const category = categories.value.find((c) => c.id === categoryId);
+/* Straight onto the mesa. You only created it because you wanted it in this
+ * recipe, and a new ingredient has no uses yet — so on the shelf it sorts last,
+ * past the cap, invisible. Same rows as its chip, so a created ingredient and a
+ * dragged one land identically.
+ *
+ * From the overview there is no bench, and putOnBench returns early — creating
+ * from there is a catalog gesture, not a recipe one. */
+function onIngredientCreated(created) {
+  putOnBench(ingredientChip(created).rows);
+  suppliesSearch.value = '';
+  search.value = '';
+}
 
-  createError.value = '';
-  if (!unit || !category) {
-    createError.value = 'Elige una unidad y una categoría.';
-    return;
-  }
-
-  creating.value = true;
-  try {
-    const created = await ingredientStore.create({
-      name: newName.value,
-      unit,
-      costPerUnit: Number(costPerUnit) || 0,
-      // The backend requires both, and stores the name denormalized.
-      categoryId: category.id,
-      categoryName: category.name,
-      /* `stocked`, not the model's `passThrough` default. passThrough deducts
-       * an ingredient's own recipe components instead of its stock — right for
-       * something you make, wrong for something you buy, which has no recipe
-       * for deduction to find. */
-      stockBehavior: 'stocked',
-    });
-
-    /* Straight onto the mesa. You only created it because you wanted it in this
-     * recipe, and a new ingredient has no uses yet — so on the shelf it sorts
-     * last, past the cap, invisible. Same rows as its chip, so a created
-     * ingredient and a dragged one land identically. */
-    putOnBench(ingredientChip(created).rows);
-
-    suppliesSearch.value = '';
-    newIngredient.value = { unit: '', costPerUnit: '', categoryId: '' };
-  } catch (err) {
-    createError.value = err?.message || 'No se pudo crear el ingrediente.';
-  } finally {
-    creating.value = false;
-  }
+/* A preparación opens instead of landing on a bench: it was created with an
+ * empty recipe, and that recipe is the thing you actually came to fill in. */
+async function onPreparacionCreated(created) {
+  suppliesSearch.value = '';
+  search.value = '';
+  /* La pestaña resuelve su receta por el recipeId recién escrito, así que el
+   * refetch va aquí y no en la tarjeta: la tarjeta ya se desmontó —su `v-if`
+   * deja de cumplirse en cuanto la preparación existe— y nadie habría esperado
+   * este await. */
+  await ingredientStore.fetchAll().catch(() => {});
+  openPreparacion(created);
 }
 
 /* ---------------- losing work ---------------- */
 
+/* Both halves of every tab, not only the active one — a rendimiento typed on a
+ * tab you navigated away from is still work a reload would destroy. */
 const anyDirty = computed(() =>
-  [...benches.values()].some((b) => b.isDirty.value));
+  [...benches.values()].some((b) => b.isDirty.value) ||
+  tabs.value.some(yieldDirtyOf));
 
 // ponytail: native confirm(). Swap for a dialog when ui.css grows one — there
 // is no ui-modal today and one guard does not earn the first.
 function closeTab(id) {
-  // A tab id IS its combination id, which is what benches are keyed by.
+  // Benches and yield drafts are both keyed by tab id, whichever kind of owner
+  // the tab has.
   const b = benches.get(id);
+  const tab = tabOf(id);
 
-  if (b?.isDirty.value &&
+  if ((b?.isDirty.value || (tab && yieldDirtyOf(tab))) &&
       !confirm('Esta receta tiene cambios sin guardar. ¿Cerrar de todos modos?')) {
     return;
   }
 
   benches.delete(id);
+  clearYieldDraft(id);
   tabs.value = tabs.value.filter((t) => t.id !== id);
   if (activeTab.value === id) activeTab.value = 'overview';
 }
@@ -868,15 +1229,30 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
       >
         <div class="ui-pane">
           <div class="ui-panehead">
-            <span class="ui-panehead-title">Productos</span>
-            <span class="ui-panehead-sub">{{ products.length }} productos</span>
+            <span class="ui-panehead-title">Productos y preparaciones</span>
+            <span class="ui-panehead-sub">
+              {{ products.length }} {{ products.length === 1 ? 'producto' : 'productos' }} ·
+              {{ preparations.length }} {{ preparations.length === 1 ? 'preparación' : 'preparaciones' }}
+            </span>
           </div>
 
           <UiSearchField
             v-model="search"
             class="mb-3"
-            placeholder="Buscar producto…"
-            label="Buscar producto"
+            placeholder="Buscar producto o preparación…"
+            label="Buscar producto o preparación"
+          />
+
+          <!-- The discovery path for a preparación: nothing matched what you
+               typed, so the card offers to make it. Same component the Insumos
+               pane uses — creating one should not require first opening
+               somebody else's recipe to find the form. -->
+          <IngredientCreateCard
+            v-if="overviewNewName"
+            :name="overviewNewName"
+            :categories="categories"
+            @created="onIngredientCreated"
+            @created-preparacion="onPreparacionCreated"
           />
 
           <div class="mb-4">
@@ -895,7 +1271,7 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
             <b>No se pudieron cargar los productos</b>
             {{ productStore.error }}
           </div>
-          <div v-else-if="!products.length" class="ui-empty">
+          <div v-else-if="!products.length && !preparations.length" class="ui-empty">
             <b>Sin productos</b>
             {{ search ? 'Nada coincide con la búsqueda.' : 'Crea un producto para empezar.' }}
           </div>
@@ -926,6 +1302,30 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
               </span>
             </button>
           </div>
+
+          <!-- No pips, no n/m: those count how many of a product's combinations
+               have a recipe, and a preparación has exactly one. It also opens
+               its tab directly rather than filling the right pane, which would
+               be a click to show a list of one. -->
+          <div v-if="preparations.length" class="mb-3">
+            <div class="ui-sectionhead">Preparaciones</div>
+            <button
+              v-for="i in preparations" :key="i.id"
+              class="ui-item"
+              @click="openPreparacion(i)"
+            >
+              <span class="ui-item-icon"><PhFlask :size="16" /></span>
+              <span class="min-w-0">
+                <span class="ui-item-title block capitalize">{{ i.name }}</span>
+                <span v-if="yieldOfIngredient(i)" class="ui-item-desc">
+                  rinde {{ yieldOfIngredient(i) }} {{ i.unit }}
+                </span>
+              </span>
+              <span class="ui-item-trail">
+                <span class="ui-item-meta">{{ formatUnitCost(i.costPerUnit) }}/{{ i.unit }}</span>
+              </span>
+            </button>
+          </div>
         </div>
 
         <div class="ui-pane ui-pane-sunken">
@@ -951,7 +1351,15 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
             >
               <div class="flex items-start justify-between gap-3">
                 <span class="ui-card-title capitalize">{{ comboName(c, selected) }}</span>
-                <span class="ui-tag">{{ c.recipeId ? 'con receta' : 'sin receta' }}</span>
+                <span
+                  v-if="c.recipeId"
+                  class="ui-tag inline-flex items-center justify-center !p-1"
+                  data-accent="brand"
+                  aria-label="con receta"
+                >
+                  <PhCheckFat :size="12" weight="fill" />
+                </span>
+                <span v-else class="ui-tag" data-accent="brand">sin receta</span>
               </div>
 
               <div class="ui-card-sub flex flex-wrap gap-x-4 gap-y-1">
@@ -975,18 +1383,36 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
       >
         <div class="ui-pane">
           <div class="ui-panehead">
-            <span class="ui-panehead-title capitalize">
-              {{ builder.product.name }} · {{ comboName(builder.combo, builder.product) }}
-            </span>
-            <span class="ui-panehead-sub">
+            <span class="ui-panehead-title capitalize">{{ builder.ownerName }}</span>
+            <span v-if="builder.kind === 'combo'" class="ui-panehead-sub">
               precio {{ formatMoney(price) }}
             </span>
           </div>
 
+          <!-- Editable, and deliberately so: a rendimiento typed wrong at
+               creation is otherwise permanent, and it silently scales the cost
+               of everything this preparación goes into. It is part of the
+               recipe document, so it saves through the same Guardar. -->
+          <label
+            v-if="builder.kind === 'prep'"
+            class="ui-field max-w-[14rem] mb-4"
+          >
+            <span class="ui-field-k">Rendimiento</span>
+            <span class="flex items-center gap-1.5">
+              <input
+                v-model="yieldDraft"
+                class="ui-input ui-input-num flex-1"
+                type="number" min="0" step="any" placeholder="0"
+                :aria-invalid="!yieldValid"
+              >
+              <span class="ui-item-meta w-8 shrink-0">{{ builder.ingredient.unit }}</span>
+            </span>
+          </label>
+
           <!-- Every sibling, the current one selected — the strip doubles as
                "where am I" and "go next". -->
           <div
-            v-if="combosOf(builder.product).length > 1"
+            v-if="builder.kind === 'combo' && combosOf(builder.product).length > 1"
             class="flex flex-wrap gap-1.5 mb-4"
           >
             <button
@@ -1016,15 +1442,16 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
 
               <span class="flex-1" />
 
-              <button
-                class="ui-btn ui-btn-icon"
-                :disabled="!canUndo"
-                aria-label="Deshacer"
-                title="Deshacer"
-                @click="bench.undo()"
-              >
-                <PhArrowCounterClockwise :size="15" />
-              </button>
+              <AppTooltip text="Deshacer">
+                <button
+                  class="ui-btn ui-btn-icon"
+                  :disabled="!canUndo"
+                  aria-label="Deshacer"
+                  @click="bench.undo()"
+                >
+                  <PhArrowCounterClockwise :size="15" />
+                </button>
+              </AppTooltip>
             </div>
 
             <!-- The drop handlers stay on a plain element. Putting them on the
@@ -1041,7 +1468,27 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
             >
               <div v-if="!lines.length" class="ui-empty">
                 <b>La mesa de trabajo está vacía</b>
-                Haz clic o arrastra un insumo de la derecha para sumarlo a la receta.
+                Haz clic o arrastra insumos de la derecha:
+                ingredientes, preparaciones, otros productos o sus recetas.
+
+                <template v-if="starterCombos.length">
+                  <span class="block mt-3">
+                    O comienza desde una combinación de este producto.
+                  </span>
+                  <!-- Copian, no navegan. La tira de hermanas de arriba hace lo
+                       contrario con el mismo chip, y el conteo de líneas es lo
+                       que separa a las dos. -->
+                  <span class="flex flex-wrap justify-center gap-1.5 mt-2">
+                    <button
+                      v-for="s in starterCombos" :key="s.id"
+                      class="ui-chip"
+                      @click="putOnBench(s.rows)"
+                    >
+                      <span class="capitalize">{{ s.name }}</span>
+                      <span class="ui-chip-meta">{{ s.count }} líneas</span>
+                    </button>
+                  </span>
+                </template>
               </div>
 
               <TransitionGroup tag="div" name="ui-cascade" class="flex flex-col gap-1.5">
@@ -1053,6 +1500,7 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                   v-for="(line, i) in rows" :key="lineKey(line)"
                   class="ui-item ui-item-filled"
                   :class="{ 'ui-item-zero': isUnpriced(line) }"
+                  :aria-current="replacingIndex === line._i"
                   :style="{ '--i': i }"
                 >
                   <span class="ui-tag" :title="kindOf(line).title">{{ kindOf(line).label }}</span>
@@ -1089,14 +1537,27 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                       @blur="resort()"
                     >
                     <span class="ui-item-meta w-8 shrink-0">{{ line.unit }}</span>
-                    <button
-                      class="ui-btn ui-btn-icon ui-btn-danger"
-                      :aria-label="'Quitar ' + line.name"
-                      title="Quitar"
-                      @click="removeLine(line._i)"
-                    >
-                      <PhX :size="13" weight="bold" />
-                    </button>
+                    <!-- Alterna: pulsarlo en la fila ya armada cancela, que es
+                         lo que espera quien lo pulsó por error. -->
+                    <AppTooltip text="Reemplazar por otro insumo">
+                      <button
+                        class="ui-btn ui-btn-icon"
+                        :aria-label="'Reemplazar ' + line.name"
+                        :aria-pressed="replacingIndex === line._i"
+                        @click="replacingIndex = replacingIndex === line._i ? null : line._i"
+                      >
+                        <PhArrowsLeftRight :size="13" />
+                      </button>
+                    </AppTooltip>
+                    <AppTooltip text="Quitar">
+                      <button
+                        class="ui-btn ui-btn-icon ui-btn-danger"
+                        :aria-label="'Quitar ' + line.name"
+                        @click="removeLine(line._i)"
+                      >
+                        <PhX :size="13" weight="bold" />
+                      </button>
+                    </AppTooltip>
                   </span>
                 </div>
               </TransitionGroup>
@@ -1122,20 +1583,34 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                 <span class="ui-stat-k">Costo receta</span>
                 <span class="ui-stat-v">{{ formatMoney(recipeCost) }}</span>
               </span>
-              <span class="ui-stat">
-                <span class="ui-stat-k">Precio</span>
-                <span class="ui-stat-v">{{ formatMoney(price) }}</span>
-              </span>
-              <span class="ui-stat">
-                <span class="ui-stat-k">Utilidad</span>
+
+              <!-- A preparación is never sold, so precio, utilidad y margen
+                   would be a sale that does not happen. What it has instead is
+                   the number the backend derives on save: the total divided by
+                   el rendimiento. -->
+              <span v-if="builder.kind === 'prep'" class="ui-stat">
+                <span class="ui-stat-k">Costo por {{ builder.ingredient.unit }}</span>
                 <span class="ui-stat-v">
-                  {{ lines.length ? formatMoney(profit) : '—' }}
+                  {{ prepUnitCost === null ? '—' : formatUnitCost(prepUnitCost) }}
                 </span>
               </span>
-              <span class="ui-stat">
-                <span class="ui-stat-k">Margen</span>
-                <span class="ui-stat-v">{{ marginPct === null ? '—' : marginPct + '%' }}</span>
-              </span>
+
+              <template v-else>
+                <span class="ui-stat">
+                  <span class="ui-stat-k">Precio</span>
+                  <span class="ui-stat-v">{{ formatMoney(price) }}</span>
+                </span>
+                <span class="ui-stat">
+                  <span class="ui-stat-k">Utilidad</span>
+                  <span class="ui-stat-v">
+                    {{ lines.length ? formatMoney(profit) : '—' }}
+                  </span>
+                </span>
+                <span class="ui-stat">
+                  <span class="ui-stat-k">Margen</span>
+                  <span class="ui-stat-v">{{ marginPct === null ? '—' : marginPct + '%' }}</span>
+                </span>
+              </template>
             </div>
 
             <!-- Actions after the summary: the totals row stays numbers only,
@@ -1146,20 +1621,37 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                 :disabled="!canSave || saving"
                 :title="!lines.length
                   ? 'Una receta necesita al menos un componente'
-                  : blankQuantities ? 'Hay líneas sin cantidad' : ''"
+                  : blankQuantities ? 'Hay líneas sin cantidad'
+                    : !yieldValid ? 'Una preparación necesita un rendimiento mayor que cero' : ''"
                 @click="save"
               >{{ saving ? 'Guardando…' : 'Guardar' }}</button>
-              <button class="ui-btn" :disabled="!isDirty || saving" @click="bench.reset()">
+              <button class="ui-btn" :disabled="!isDirty || saving" @click="resetBench()">
                 Descartar
               </button>
             </div>
           </template>
         </div>
 
-        <div class="ui-pane ui-pane-sunken">
+        <!-- Escape cancela desde cualquier parte del panel, incluida la caja de
+             búsqueda: es la salida que la mano ya busca. `tabindex="-1"` para
+             que el keydown llegue aunque el foco esté en el panel y no en un
+             control. -->
+        <div
+          class="ui-pane ui-pane-sunken"
+          tabindex="-1"
+          @keydown.esc="cancelReplace"
+        >
           <div class="ui-panehead">
             <span class="ui-panehead-title">Insumos</span>
-            <span class="ui-panehead-sub">
+            <span v-if="replacingLine" class="ui-panehead-sub flex items-center gap-2">
+              <!-- resolveLine, no `.name`: una línea guardada no lleva nombre,
+                   el backend lo quita y el catálogo lo vuelve a unir. -->
+              <span>
+                Reemplazando «<span class="capitalize">{{ resolveLine(replacingLine).name }}</span>»
+              </span>
+              <button class="ui-btn" @click="cancelReplace">Cancelar</button>
+            </span>
+            <span v-else class="ui-panehead-sub">
               {{ ingredientStore.items.length }} ingredientes
             </span>
           </div>
@@ -1173,66 +1665,13 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
 
           <!-- Only route into the feature for a bakery with an empty shelf,
                so it lives with the search rather than behind a separate form. -->
-          <form
-            v-if="newName && !nameTaken"
-            class="ui-card mb-4 flex flex-col gap-2"
-            @submit.prevent="createIngredient"
-          >
-            <!-- The colon does the work the quotes were doing: it separates the
-                 verb from the name without asking you to parse punctuation
-                 around the thing you just typed. -->
-            <span class="ui-card-title">
-              Crear: <span class="capitalize">{{ newName }}</span>
-            </span>
-
-            <div class="flex flex-wrap gap-2">
-              <label class="ui-field flex-1 min-w-[7rem]">
-                <span class="ui-field-k">Unidad</span>
-                <select v-model="newIngredient.unit" class="ui-input" required>
-                  <option value="" disabled>Elige…</option>
-                  <option v-for="u in UNIT_OPTIONS" :key="u.symbol" :value="u.symbol">
-                    {{ u.symbol }} · {{ u.name }}
-                  </option>
-                </select>
-              </label>
-
-              <label class="ui-field flex-1 min-w-[7rem]">
-                <span class="ui-field-k">Costo por unidad</span>
-                <input
-                  v-model="newIngredient.costPerUnit"
-                  class="ui-input ui-input-num"
-                  type="number" min="0" step="any" placeholder="0"
-                >
-              </label>
-            </div>
-
-            <label class="ui-field">
-              <span class="ui-field-k">Categoría</span>
-              <select v-model="newIngredient.categoryId" class="ui-input" required>
-                <option value="" disabled>Elige…</option>
-                <option v-for="c in categories" :key="c.id" :value="c.id">
-                  {{ c.name }}
-                </option>
-              </select>
-            </label>
-
-            <p v-if="!categories.length" class="ui-item-desc">
-              Esta panadería no tiene categorías de ingredientes configuradas, y
-              el backend las exige. Agrégalas en los ajustes antes de crear.
-            </p>
-            <p v-if="createError" class="ui-item-desc">{{ createError }}</p>
-
-            <div class="flex justify-end">
-              <button
-                class="ui-btn ui-btn-solid"
-                type="submit"
-                :disabled="creating || !categories.length"
-              >
-                <PhPlus :size="14" weight="bold" />
-                {{ creating ? 'Creando…' : 'Crear ingrediente' }}
-              </button>
-            </div>
-          </form>
+          <IngredientCreateCard
+            v-if="suppliesNewName"
+            :name="suppliesNewName"
+            :categories="categories"
+            @created="onIngredientCreated"
+            @created-preparacion="onPreparacionCreated"
+          />
 
           <div v-if="ingredientStore.loading && !shelves.length" class="ui-empty">
             Cargando insumos…
@@ -1287,15 +1726,18 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                   <span class="ui-chip-meta">{{ chip.meta }}</span>
                   <!-- Reuses .ui-tab-close: already a small × that fills danger
                        on hover. Rename it if a third call site shows up. -->
-                  <button
+                  <AppTooltip
                     v-if="shelf.pinnable && !suppliesSearch.trim()"
-                    class="ui-tab-close"
-                    :aria-label="'Quitar ' + chip.name + ' de la estantería'"
-                    title="Quitar de la estantería"
-                    @click.stop="unpin(shelf.key, chip.pinId)"
+                    text="Quitar de la estantería"
                   >
-                    <PhX :size="11" weight="bold" />
-                  </button>
+                    <button
+                      class="ui-tab-close"
+                      :aria-label="'Quitar ' + chip.name + ' de la estantería'"
+                      @click.stop="unpin(shelf.key, chip.pinId)"
+                    >
+                      <PhX :size="11" weight="bold" />
+                    </button>
+                  </AppTooltip>
                 </div>
               </div>
             </div>
