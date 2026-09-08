@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue';
+import { RouterLink } from 'vue-router';
 import { PhFlask, PhPackage, PhX, PhArrowDown } from '@phosphor-icons/vue';
 import UiSearchField from '@/components/ui/UiSearchField.vue';
 
@@ -16,6 +17,10 @@ const accents = ['berry', 'plum', 'violet', 'sky', 'leaf', 'lime'];
 
 /* Starts non-empty so the clear button is visible in the gallery. */
 const demoSearch = ref('Harina');
+
+/* The two shapes of "selected": a toggle that is on, and one of a strip. */
+const pressed = ref(true);
+const picked = ref('semana');
 
 const activeTab = ref('bodega');
 const tabs = [
@@ -75,6 +80,10 @@ const shuffleCascade = () => {
             Tokens en <code>assets/ui/tokens.css</code>, clases en <code>assets/ui/ui.css</code>.
             Tailwind sigue mandando en el acomodo (flex, gap, padding); estas clases solo mandan
             en el color y la forma.
+          </p>
+          <p class="ui-panehead-sub mt-1">
+            Los campos de formulario viven aparte, en
+            <RouterLink class="underline" :to="{ name: 'system-admin-ux-forms' }">Formularios</RouterLink>.
           </p>
         </div>
         <button class="ui-btn" @click="toggleTheme">
@@ -423,6 +432,26 @@ const shuffleCascade = () => {
               <button class="ui-btn ui-btn-danger">Eliminar</button>
               <button class="ui-btn ui-btn-danger ui-btn-solid">Eliminar bodega</button>
               <button class="ui-btn ui-btn-danger ui-btn-icon"><PhX :size="14" weight="bold" /></button>
+            </div>
+
+            <p class="ui-card-body mt-4 mb-3">
+              Seleccionado toma la misma pintura que un item o un chip actual.
+              Se prende de tres maneras: <code>aria-pressed</code> para un
+              interruptor suelto, <code>aria-current</code> para uno de una tira,
+              y <code>:checked +</code> para un <code>&lt;label&gt;</code> con su
+              radio escondido — ese último está en
+              <RouterLink class="underline" :to="{ name: 'system-admin-ux-forms' }">Formularios</RouterLink>.
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <button class="ui-btn" :aria-pressed="pressed" @click="pressed = !pressed">
+                Mostrar agotados
+              </button>
+              <button
+                v-for="p in ['hoy', 'semana', 'mes']" :key="p"
+                class="ui-btn" :aria-current="picked === p" @click="picked = p"
+              >
+                {{ p }}
+              </button>
             </div>
           </div>
           <div class="ui-card">

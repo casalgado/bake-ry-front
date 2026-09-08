@@ -71,11 +71,7 @@
   --ui-brand-soft: color-mix(in oklab, var(--ui-brand) var(--ui-tint), var(--ui-surface-2));
   --ui-danger-soft: color-mix(in oklab, var(--ui-danger) var(--ui-tint), var(--ui-surface-2));
   --ui-berry-soft: color-mix(in oklab, var(--ui-berry) var(--ui-tint), var(--ui-surface-2));
-  --ui-plum-soft: color-mix(in oklab, var(--ui-plum) var(--ui-tint), var(--ui-surface-2));
-  --ui-violet-soft: color-mix(in oklab, var(--ui-violet) var(--ui-tint), var(--ui-surface-2));
-  --ui-sky-soft: color-mix(in oklab, var(--ui-sky) var(--ui-tint), var(--ui-surface-2));
-  --ui-leaf-soft: color-mix(in oklab, var(--ui-leaf) var(--ui-tint), var(--ui-surface-2));
-  --ui-lime-soft: color-mix(in oklab, var(--ui-lime) var(--ui-tint), var(--ui-surface-2));
+  /* Accent softs are derived in ui.css §1 from their solids and --ui-tint. */
 }
 
 /* Any element can carry a theme, which is what lets the /ux gallery go dark on

@@ -9,14 +9,43 @@
  */
 
 /* Opt in accent. Put data-accent="plum" on a chip, card or section head and the
- * component picks it up. Without it, components are neutral. */
-[data-accent='brand']  { --ui-accent: var(--ui-brand);  --ui-accent-soft: var(--ui-brand-soft); }
-[data-accent='berry']  { --ui-accent: var(--ui-berry);  --ui-accent-soft: var(--ui-berry-soft); }
-[data-accent='plum']   { --ui-accent: var(--ui-plum);   --ui-accent-soft: var(--ui-plum-soft); }
-[data-accent='violet'] { --ui-accent: var(--ui-violet); --ui-accent-soft: var(--ui-violet-soft); }
-[data-accent='sky']    { --ui-accent: var(--ui-sky);    --ui-accent-soft: var(--ui-sky-soft); }
-[data-accent='leaf']   { --ui-accent: var(--ui-leaf);   --ui-accent-soft: var(--ui-leaf-soft); }
-[data-accent='lime']   { --ui-accent: var(--ui-lime);   --ui-accent-soft: var(--ui-lime-soft); }
+ * component picks it up. Without it, components are neutral.
+ *
+ * --ui-accent-soft is derived from --ui-accent: the solid and the mix are one,
+ * so a new accent only needs one token, and they cannot drift. Custom properties
+ * resolve at use time on the element, so the specific rule setting --ui-accent
+ * comes after the generic rule reading it. */
+[data-accent] {
+  --ui-accent-soft: color-mix(in oklab, var(--ui-accent) var(--ui-tint), var(--ui-surface-2));
+}
+
+[data-accent='brand'] {
+  --ui-accent: var(--ui-brand);
+}
+
+[data-accent='berry'] {
+  --ui-accent: var(--ui-berry);
+}
+
+[data-accent='plum'] {
+  --ui-accent: var(--ui-plum);
+}
+
+[data-accent='violet'] {
+  --ui-accent: var(--ui-violet);
+}
+
+[data-accent='sky'] {
+  --ui-accent: var(--ui-sky);
+}
+
+[data-accent='leaf'] {
+  --ui-accent: var(--ui-leaf);
+}
+
+[data-accent='lime'] {
+  --ui-accent: var(--ui-lime);
+}
 
 /* The pre-ui base layer styles bare elements (header, h1-h6) with fixed light
  * neutrals, and a rule on the element beats the ink inherited from the themed
@@ -37,14 +66,16 @@
 /* ---------- focus ---------- */
 
 /* Keyboard focus, once, for everything. The old system has no focus state at
- * all, so this is the one place the new one is not just a restyle. */
+ * all, so this is the one place the new one is not just a restyle.
+ * input:focus-visible+.ui-btn covers a hidden input feeding a label button. */
 .ui-btn:focus-visible,
 .ui-tab:focus-visible,
 .ui-tab-close:focus-visible,
 .ui-search-clear:focus-visible,
 .ui-item:focus-visible,
 .ui-chip:focus-visible,
-.ui-card-action:focus-visible {
+.ui-card-action:focus-visible,
+input:focus-visible+.ui-btn {
   outline: 2px solid var(--ui-brand);
   outline-offset: 2px;
 }
@@ -394,7 +425,9 @@ button.ui-item,
   letter-spacing: 0.03em;
   white-space: nowrap;
   background: var(--ui-accent-soft, var(--ui-surface-3));
-  color: var(--ui-accent, var(--ui-ink-muted));
+  /* Same fix as .ui-btn's --btn-text: the raw accent is tuned against
+   * surface-2, not against its own soft, and reads thin there. */
+  color: color-mix(in oklab, var(--ui-accent, var(--ui-ink-muted)) 75%, var(--ui-ink));
 }
 
 /* ---------- 9. stat ---------- */
@@ -462,6 +495,11 @@ button.ui-item,
   --btn: var(--ui-brand);
   --btn-soft: var(--ui-brand-soft);
   --btn-ink: var(--ui-brand-ink);
+  /* Text sitting on --btn-soft, not on --btn itself: the raw solid is tuned for
+   * contrast against surface-2, not against its own soft, and reads thin there.
+   * Mixed into ink rather than picked by hand so it stays one swap away — set
+   * --btn and this follows, same as -soft and -ink already do. */
+  --btn-text: color-mix(in oklab, var(--btn) 98%, black);
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -481,8 +519,16 @@ button.ui-item,
   transition: background-color 0.1s, border-color 0.1s, color 0.1s;
 }
 
-/* Fills with its own soft, so the button lights up instead of jumping. */
-.ui-btn:hover { background: var(--btn-soft); border-color: var(--btn); color: var(--btn); }
+/* Fills with its own soft, so the button lights up instead of jumping.
+ * Same paint for hover and selected, so one selector list. */
+.ui-btn:hover,
+.ui-btn[aria-pressed='true'],
+.ui-btn[aria-current='true'],
+input:checked+.ui-btn {
+  background: var(--btn-soft);
+  border-color: var(--btn-text);
+  color: var(--btn-text);
+}
 
 /* One per group: the thing you actually came to do. */
 .ui-btn-solid { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); }
@@ -508,9 +554,24 @@ button.ui-item,
  * so the danger icon lands on red without a rule of its own. */
 .ui-btn-icon:hover { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); }
 
+/* Selected wins over hover, which paints the same thing anyway — this is only
+ * here so a solid variant doesn't get washed back to soft on the way past. */
+.ui-btn-solid[aria-pressed='true'],
+.ui-btn-solid[aria-current='true'],
+input:checked+.ui-btn-solid {
+  background: var(--btn);
+  border-color: var(--btn);
+  color: var(--btn-ink);
+}
+
 /* pointer-events, not a pile of :disabled:hover overrides: CSS hover still fires
  * on a disabled button, and one line kills it for every variant at once. */
-.ui-btn:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+.ui-btn:disabled,
+input:disabled+.ui-btn {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
 
 /* ---------- 12. input and field ---------- */
 
