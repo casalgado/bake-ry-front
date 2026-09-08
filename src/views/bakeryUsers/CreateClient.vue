@@ -22,14 +22,19 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <BakeryUserForm
-    title="Crear Nuevo Cliente"
-    :loading="bakeryUserStore.loading"
-    :allowedUserTypes="['client', 'company']"
-    @submit="handleSubmit"
-    @cancel="handleCancel"
-  />
-  <div v-if="bakeryUserStore.error">
-    {{ bakeryUserStore.error }}
+  <!-- The form declares no width — the host does. w-full is needed because the
+       dashboard shell is `grid justify-items-center`, which sizes children to
+       their content instead of stretching them. -->
+  <div class="p-4 lg:p-6 w-full max-w-[48rem]">
+    <BakeryUserForm
+      title="Crear Nuevo Cliente"
+      :loading="bakeryUserStore.loading"
+      :allowedUserTypes="['client', 'company']"
+      @submit="handleSubmit"
+      @cancel="handleCancel"
+    />
+    <div v-if="bakeryUserStore.error">
+      {{ bakeryUserStore.error }}
+    </div>
   </div>
 </template>

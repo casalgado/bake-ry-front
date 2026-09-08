@@ -206,16 +206,16 @@ const navigateToCreate = () => {
     <Dialog :open="isFormOpen" @close="closeForm" class="relative z-50">
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel
-          class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        >
+        <!-- No surface of its own: the form is a ui-card and paints itself, so a
+             second box here just nests an 8px radius inside a 12px one. dvh, not
+             vh — iOS Safari's collapsing toolbar makes vh taller than the screen. -->
+        <DialogPanel class="w-full max-w-[48rem] max-h-[90dvh] overflow-y-auto">
           <BakeryUserForm
             v-if="selectedItems[0]"
             :title="'Editar Usuario'"
             :key="selectedItems[0].id"
             :initial-data="selectedItems[0]"
             :loading="bakeryUserStore.loading"
-            class="w-full"
             @submit="handleSubmit"
             @cancel="closeForm"
           />

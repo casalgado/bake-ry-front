@@ -91,6 +91,10 @@ Four rungs, `0` furthest from your face:
   squeezes the icon into a dot. Expect similar leaks on any new screen.
 - `tailwind.config.js` omits `neutral-500` and `gray-700/800/900`, so
   `text-neutral-500` and friends generate no CSS anywhere in the app.
+- **iOS Safari zooms on focus for any input under 16px**, with no CSS opt-out.
+  §12 ends with the one breakpoint in this file: 16px and 38px tall under 768px.
+  Desktop stays 13.5px — the inventory grids need the density. Any new input-like
+  class needs the same bump, or it jerks the viewport on an iPhone.
 
 ## Not built yet
 

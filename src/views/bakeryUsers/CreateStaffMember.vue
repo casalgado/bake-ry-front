@@ -22,15 +22,18 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <BakeryUserForm
-    title="Crear Nuevo Miembro del Equipo"
-    formUserType="staff"
-    :loading="bakeryUserStore.loading"
-    :allowedUserTypes="['staff', 'delivery', 'production', 'accounting']"
-    @submit="handleSubmit"
-    @cancel="handleCancel"
-  />
-  <div v-if="bakeryUserStore.error">
-    {{ bakeryUserStore.error }}
+  <!-- Width lives on the host, not the form. See CreateClient.vue. -->
+  <div class="p-4 lg:p-6 w-full max-w-[48rem]">
+    <BakeryUserForm
+      title="Crear Nuevo Miembro del Equipo"
+      formUserType="staff"
+      :loading="bakeryUserStore.loading"
+      :allowedUserTypes="['staff', 'delivery', 'production', 'accounting']"
+      @submit="handleSubmit"
+      @cancel="handleCancel"
+    />
+    <div v-if="bakeryUserStore.error">
+      {{ bakeryUserStore.error }}
+    </div>
   </div>
 </template>

@@ -499,7 +499,7 @@ button.ui-item,
    * contrast against surface-2, not against its own soft, and reads thin there.
    * Mixed into ink rather than picked by hand so it stays one swap away — set
    * --btn and this follows, same as -soft and -ink already do. */
-  --btn-text: color-mix(in oklab, var(--btn) 98%, black);
+  --btn-text: color-mix(in oklab, var(--btn) 94%, black);
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -817,6 +817,20 @@ input:checked+.ui-card {
 .ui-swatch::-moz-color-swatch {
   border: 0;
   border-radius: 5px;
+}
+
+/* iOS Safari zooms the viewport on focus below 16px and there is no CSS opt-out
+ * (see CLAUDE.md). Desktop keeps 13.5px — the inventory grids need the density.
+ * 38px is the smallest height 16px text is not cramped in. */
+@media (max-width: 768px) {
+  .ui-input {
+    font-size: 16px;
+    height: 38px;
+  }
+
+  /* A textarea carries both classes, and .ui-input's height above is the later
+   * rule at equal specificity, so it would win. Opt out again here. */
+  .ui-input-area { height: auto; }
 }
 
 /* ---------- 13. dropzone ---------- */
