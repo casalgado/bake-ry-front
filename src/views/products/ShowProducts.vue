@@ -72,7 +72,7 @@ const columns = [
   },
   {
     id: 'variations',
-    label: 'Variaciones',
+    label: 'Combinaciones',
     field: 'variations',
     sortable: false,
     component: VariationsCell,
@@ -85,7 +85,7 @@ const columns = [
 
   {
     id: 'prices',
-    label: 'Costo / Venta',
+    label: 'Venta / Costo',
     field: 'basePrice',
     sortable: true,
     component: VariationsCell,
@@ -96,8 +96,8 @@ const columns = [
       };
       return {
         variations: row.variations,
-        formatter: (item) => `${formatMoney(item.costPrice || 0)} / ${formatMoney(item.basePrice)}  | ${calcMargin(item.costPrice, item.basePrice)}`,
-        fallbackValue: `${formatMoney(row.costPrice || 0)} / ${formatMoney(row.basePrice)}  | ${calcMargin(row.costPrice, row.basePrice)}`,
+        formatter: (item) => `${formatMoney(item.basePrice)} / ${formatMoney(item.costPrice || 0)}  | ${calcMargin(item.costPrice, item.basePrice)}`,
+        fallbackValue: `${formatMoney(row.basePrice)} / ${formatMoney(row.costPrice || 0)}  | ${calcMargin(row.costPrice, row.basePrice)}`,
         expanded: expandedRows.value.has(row.id),
         onToggle: () => toggleRowExpanded(row.id),
       };

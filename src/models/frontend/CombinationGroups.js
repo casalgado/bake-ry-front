@@ -190,7 +190,7 @@ export default class CombinationGroups {
    * @param {number} value
    * @returns {Array} Array of combination IDs that were updated
    */
-  updateGroupPrice(groupKey, field, value) {
+  updateGroupPrice(groupKey, field, value, skipIds = null) {
     const group = this.groups.get(groupKey);
     if (!group) return [];
 
@@ -198,6 +198,11 @@ export default class CombinationGroups {
 
     // Update all variants in the group
     group.variants.forEach(variant => {
+      // Rows the caller says are locked — a cost the recipe owns, or one the user
+      // hasn't unlocked — are left alone by a bulk edit, and left out of
+      // updatedIds so no stray emit reaches the parent either.
+      if (skipIds?.has(variant.id)) return;
+
       variant[field] = value;
       updatedIds.push(variant.id);
 

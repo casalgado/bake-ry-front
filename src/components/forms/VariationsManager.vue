@@ -25,6 +25,13 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Forwarded to the combinations grid so it can grey out the cost of a
+  // variation whose price is about to come from a recipe. Display only —
+  // nothing here writes costPriceSource, that stays the recipe link's job.
+  inventoryMode: {
+    type: String,
+    default: 'none',
+  },
 });
 
 const emit = defineEmits(['update']);
@@ -953,6 +960,7 @@ watch(
     <VariationCombinationManager
       v-if="!props.isCategoryTemplateMode"
       :variation-group="variationGroup"
+      :inventory-mode="inventoryMode"
       @update-combination-price="handleUpdateCombinationPrice"
     />
 

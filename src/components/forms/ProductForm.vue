@@ -5,6 +5,9 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import YesNoToggle from '@/components/forms/YesNoToggle.vue';
 import VariationsManager from '@/components/forms/VariationsManager.vue';
+import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
+import AppTooltip from '@/components/common/AppTooltip.vue';
+import { PhInfo } from '@phosphor-icons/vue';
 import { cleanString } from '@/utils/helpers';
 
 const collectionStore = useProductCollectionStore();
@@ -67,10 +70,40 @@ const errors = ref({});
  * productId. Wording per INVENTORY-IMPLEMENTATION.md §11.1 — describe what the
  * business does, never the enum. */
 const INVENTORY_MODES = [
-  { value: 'none', label: 'No controlo inventario de este producto' },
-  { value: 'unit', label: 'Lo compro y lo vendo tal cual (reventa)' },
-  { value: 'recipe', label: 'Lo preparo con ingredientes (receta)' },
+  { value: 'none', label: 'Sin control' },
+  { value: 'unit', label: 'Reventa' },
+  { value: 'recipe', label: 'Receta' },
 ];
+
+// The pills are short on purpose; the consequence of the selected one is spelled
+// out here, one line at a time, instead of three sentences competing at once.
+const INVENTORY_MODE_HINTS = {
+  none: 'Vender este producto no mueve existencias.',
+  unit: 'Se compra y se vende. Al vender se descuenta una unidad del stock.',
+  recipe: 'Lo preparas con ingredientes. Al vender se descuentan los ingredientes; la receta se arma en el recetario.',
+};
+
+const inventoryModeHint = computed(() => INVENTORY_MODE_HINTS[formData.value.inventoryMode]);
+
+/* recipeGraph gates cost propagation on this exact flag (recipeGraph.js:353), so
+ * it is also the honest gate for the input: the field is read-only precisely
+ * when something else owns the number. */
+const isCostFromRecipe = computed(() => formData.value.costPriceSource === 'recipe');
+
+const COST_TOOLTIP = 'El costo se calcula con los ingredientes de la receta y se actualiza solo cuando cambian sus precios. Si necesitas otro costo, edítalo manualmente y la receta dejará de actualizarlo.';
+
+// Picking "Receta" on a product that owns no recipe yet declares the intent, so
+// stop inviting a manual number. Leaving the mode takes it back — free to undo,
+// since with no recipe there is no computed value to go stale. Once recipeId
+// exists the flag belongs to the recipe link, and this never touches it.
+const handleInventoryModeChange = (mode) => {
+  if (formData.value.recipeId) return;
+  formData.value.costPriceSource = mode === 'recipe' ? 'recipe' : 'manual';
+};
+
+const unlockCost = () => {
+  formData.value.costPriceSource = 'manual';
+};
 
 // Confirm dialog state
 const confirmDialog = ref({
@@ -221,28 +254,6 @@ const handleSubmit = () => {
   formData.value.description = cleanString(formData.value.description);
   console.log('Submitting form data:', formData.value);
   emit('submit', formData.value);
-};
-
-const resetForm = () => {
-  formData.value = {
-    name: '',
-    description: '',
-    collectionId: '',
-    collectionName: '',
-    taxPercentage: 0,
-    isActive: true,
-    basePrice: 0,
-    costPrice: 0,
-    inventoryMode: 'none',
-    hasVariations: false,
-    variations: {
-      dimensions: [],
-      combinations: [],
-    },
-    customAttributes: {},
-    accountingCode: '',
-  };
-  errors.value = {};
 };
 
 // Load data on mount
@@ -420,12 +431,29 @@ onMounted(async () => {
         </div>
       </div>
 
+      <!-- Inventory: only for businesses with the module on (§14). -->
+      <div v-if="settingsStore.isInventoryEnabled" class="base-card">
+        <h4 class="text-lg font-medium text-neutral-800 mb-3">Inventario</h4>
+
+        <RadioButtonGroup
+          v-model="formData.inventoryMode"
+          :options="INVENTORY_MODES"
+          name="inventory-mode"
+          @option-selected="handleInventoryModeChange"
+          label="¿Qué pasa con las existencias al vender este producto?"
+          class="inventory-modes"
+        />
+
+        <p class="text-sm text-neutral-500 mt-3">{{ inventoryModeHint }}</p>
+      </div>
+
       <!-- Variations Manager -->
       <div v-if="hasVariations">
         <VariationsManager
           :initial-variations="formData.variations"
           :category-templates="selectedCategory?.variationTemplates"
           :product-name="formData.name"
+          :inventory-mode="formData.inventoryMode"
           @update="handleVariationUpdate"
         />
 
@@ -474,15 +502,23 @@ onMounted(async () => {
           <div>
             <label
               for="costPrice"
-              class="block text-sm font-medium text-neutral-700 mb-1"
+              class="flex items-center gap-1 text-sm font-medium text-neutral-700 mb-1"
             >
               Precio de Costo
+              <!-- tabindex: the tooltip wraps static content, so it needs its own
+                   tab stop to be reachable without a mouse. -->
+              <AppTooltip v-if="isCostFromRecipe" :text="COST_TOOLTIP" tabindex="0">
+                <PhInfo class="w-4 h-4 text-neutral-400" />
+              </AppTooltip>
             </label>
             <div class="input-with-unit" data-unit="$">
+              <!-- readonly, not disabled: the value stays selectable and in the
+                   tab order — a disabled number input reads as broken, not derived. -->
               <input
                 id="costPrice"
                 type="number"
                 v-model="formData.costPrice"
+                :readonly="isCostFromRecipe"
                 class="w-full px-3 py-2 border border-neutral-300 rounded-md"
                 :class="{ 'border-danger': errors.costPrice }"
                 min="0"
@@ -490,6 +526,16 @@ onMounted(async () => {
                 placeholder="0"
               />
             </div>
+            <p v-if="isCostFromRecipe" class="text-xs text-neutral-500 mt-1">
+              {{ formData.recipeId ? 'Calculado desde la receta.' : 'Se calculará cuando armes la receta en el recetario.' }}
+              <button
+                type="button"
+                @click="unlockCost"
+                class="underline hover:text-neutral-700"
+              >
+                Editar manualmente
+              </button>
+            </p>
             <span
               v-if="errors.costPrice"
               class="text-sm text-danger mt-1 block"
@@ -519,36 +565,6 @@ onMounted(async () => {
 
         <p class="text-xs text-neutral-500 mt-4">
           Define los precios de venta y costo para productos sin variaciones. El margen de ganancia se calcula automáticamente.
-        </p>
-      </div>
-
-      <!-- Inventory: only for businesses with the module on (§14). -->
-      <div v-if="settingsStore.isInventoryEnabled" class="base-card">
-        <h4 class="text-lg font-medium text-neutral-800 mb-1">Inventario</h4>
-        <p class="text-sm text-neutral-600 mb-4">
-          ¿Qué pasa con las existencias cuando vendes este producto?
-        </p>
-
-        <div class="space-y-2">
-          <label
-            v-for="mode in INVENTORY_MODES"
-            :key="mode.value"
-            class="flex items-center gap-3 p-3 border border-neutral-300 rounded-md cursor-pointer"
-            :class="{ 'border-neutral-900 bg-neutral-50': formData.inventoryMode === mode.value }"
-          >
-            <input
-              type="radio"
-              name="inventoryMode"
-              :value="mode.value"
-              v-model="formData.inventoryMode"
-            />
-            <span class="text-sm text-neutral-800">{{ mode.label }}</span>
-          </label>
-        </div>
-
-        <p v-if="formData.inventoryMode === 'recipe'" class="text-xs text-neutral-500 mt-4">
-          La receta se arma en el recetario; acá solo se declara que este
-          producto se prepara.
         </p>
       </div>
 
@@ -584,6 +600,29 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+/* Three equal, full-width pills instead of the shared group's tight inline row.
+ * The class lands on RadioButtonGroup's root, which is the radiogroup itself. */
+.inventory-modes :deep(> div) {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.inventory-modes :deep(label[for]) {
+  display: block;
+  text-align: center;
+  padding: 0.625rem 0.75rem;
+}
+
+/* A bg utility class can't grey this out: .form-container input
+ * (custom-components.css:89) sets bg-gray-50 at (0,1,1), which outranks any
+ * single-class utility. The scoped attribute takes this rule to (0,2,1). */
+input[readonly] {
+  background-color: #E6DFD8; /* neutral-200 */
+  color: #725F46; /* neutral-600 */
+}
+
 /* Remove browser default outlines from all form elements */
 select {
   outline: none !important;

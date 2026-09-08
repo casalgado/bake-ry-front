@@ -1,12 +1,17 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import CombinationGroups from '@/models/frontend/CombinationGroups.js';
-import { PhCaretDown, PhCaretUp, PhCaretRight } from '@phosphor-icons/vue';
+import { PhCaretDown, PhCaretUp, PhCaretRight, PhLock, PhInfo, PhArrowCounterClockwise } from '@phosphor-icons/vue';
+import AppTooltip from '@/components/common/AppTooltip.vue';
 
 const props = defineProps({
   variationGroup: {
     type: Object,
     required: true,
+  },
+  inventoryMode: {
+    type: String,
+    default: 'none',
   },
 });
 
@@ -15,9 +20,23 @@ const emit = defineEmits(['update-combination-price']);
 // Reactive state for groups
 const combinationGroups = ref(null);
 
+/* The cost each row arrived with, so a typed-over recipe cost can be put back.
+ * First snapshot per id wins: adding an option re-initializes the groups, and a
+ * second pass would record the edited value as the original. */
+const originalCosts = ref(new Map());
+
+const snapshotCosts = (combinations) => {
+  combinations.forEach(c => {
+    if (!originalCosts.value.has(c.id)) {
+      originalCosts.value.set(c.id, { costPrice: c.costPrice, costPriceSource: c.costPriceSource });
+    }
+  });
+};
+
 // Initialize groups when variationGroup changes
 const initializeGroups = () => {
   if (props.variationGroup?.combinations && props.variationGroup?.dimensions) {
+    snapshotCosts(props.variationGroup.combinations);
     combinationGroups.value = new CombinationGroups(
       props.variationGroup.combinations,
       props.variationGroup.dimensions,
@@ -78,15 +97,83 @@ const updateCombinationPrice = (combinationId, field, value) => {
   emit('update-combination-price', { combinationId, field, value });
 };
 
-const updateGroupPrice = (groupKey, field, value) => {
+const updateGroupPrice = (groupKey, field, value, skipIds = null) => {
   // Update all variants in the group
-  const updatedIds = combinationGroups.value?.updateGroupPrice(groupKey, field, value) || [];
+  const updatedIds = combinationGroups.value?.updateGroupPrice(groupKey, field, value, skipIds) || [];
 
   // Emit events for all updated combinations
   updatedIds.forEach(combinationId => {
     emit('update-combination-price', { combinationId, field, value });
   });
 };
+
+/* Two reasons a cost isn't yours to type. The stored flag: a recipe is linked and
+ * the backend's propagation walk owns the number (recipeGraph.js:329). The mode:
+ * the product was just declared recipe-costed, so the cost is coming, it just has
+ * no recipe yet — a hint, never written to costPriceSource, because stamping
+ * 'recipe' on a row with no recipeId would be a lie the backend has to undo.
+ *
+ * A row that already carries a cost is never re-locked: the number is the
+ * evidence that someone claimed it, which is what survives closing the form. */
+const manuallyUnlocked = ref(new Set());
+
+const isCostLocked = (variant) =>
+  variant.costPriceSource === 'recipe' ||
+  (props.inventoryMode === 'recipe' && !manuallyUnlocked.value.has(variant.id) && !variant.costPrice);
+
+const isGroupCostLocked = (group) => group.variants.every(isCostLocked);
+
+const hasLockedCosts = computed(() =>
+  groupsArray.value.some(group => group.variants.some(isCostLocked)),
+);
+
+/* Unlocking is permission to type, nothing more: it never writes
+ * costPriceSource. Detaching every recipe-owned row from propagation because the
+ * user wanted to edit one of them would silently freeze costs they never looked
+ * at. The flag flips in claimCost, on the row that actually receives a number. */
+const unlockAllCosts = () => {
+  groupsArray.value.forEach(group => group.variants.forEach(v => manuallyUnlocked.value.add(v.id)));
+  manuallyUnlocked.value = new Set(manuallyUnlocked.value);
+};
+
+// Typing a cost is what takes ownership from the recipe (recipeGraph.js:329 then
+// skips this row for good). A row nobody typed into keeps its source untouched.
+const claimCost = (variant) => {
+  if (variant.costPriceSource === 'recipe') {
+    updateCombinationPrice(variant.id, 'costPriceSource', 'manual');
+  }
+};
+
+const setCombinationCost = (variant, value) => {
+  claimCost(variant);
+  updateCombinationPrice(variant.id, 'costPrice', value);
+};
+
+/* Typing takes ownership on the first keystroke, so the way back can't be "type
+ * the old number again" — it may be long gone from the screen. These two are the
+ * undo: which rows were taken from their recipe, and putting them back. */
+const claimedFromRecipe = computed(() =>
+  groupsArray.value
+    .flatMap(group => group.variants)
+    .filter(v => v.costPriceSource === 'manual' && originalCosts.value.get(v.id)?.costPriceSource === 'recipe'),
+);
+
+const restoreRecipeCosts = () => {
+  claimedFromRecipe.value.forEach(variant => {
+    const original = originalCosts.value.get(variant.id);
+    updateCombinationPrice(variant.id, 'costPrice', original.costPrice);
+    updateCombinationPrice(variant.id, 'costPriceSource', 'recipe');
+  });
+};
+
+const setGroupCost = (group, value) => {
+  // Snapshot before claiming: claimCost mutates the flag isCostLocked reads.
+  const lockedIds = new Set(group.variants.filter(isCostLocked).map(v => v.id));
+  group.variants.forEach(v => !lockedIds.has(v.id) && claimCost(v));
+  updateGroupPrice(group.key, 'costPrice', value, lockedIds);
+};
+
+const COST_TOOLTIP = 'El costo se calcula con los ingredientes de la receta y se actualiza solo cuando cambian sus precios. Si necesitas otro costo, usa el candado para editarlo manualmente y la receta dejará de actualizarlo.';
 
 const getGroupPriceValue = (groupKey, field) => {
   return combinationGroups.value?.getGroupPriceValue(groupKey, field) || '';
@@ -149,6 +236,29 @@ const formatPriceRange = (group) => {
             </option>
           </select>
         </div>
+
+        <!-- Here rather than beside the "P. Costo" column header: that header row
+             is `hidden sm:grid`, and a control that disappears on mobile is a
+             lock with no key. -->
+        <button
+          v-if="hasLockedCosts"
+          type="button"
+          @click="unlockAllCosts"
+          class="text-sm flex items-center gap-1 utility-btn"
+        >
+          <PhLock class="w-4 h-4" />
+          Editar costos manualmente
+        </button>
+
+        <button
+          v-if="claimedFromRecipe.length"
+          type="button"
+          @click="restoreRecipeCosts"
+          class="text-sm flex items-center gap-1 utility-btn"
+        >
+          <PhArrowCounterClockwise class="w-4 h-4" />
+          Restaurar costos de receta
+        </button>
       </div>
 
       <!-- Expand/Collapse All -->
@@ -168,7 +278,12 @@ const formatPriceRange = (group) => {
     <div class="hidden sm:grid grid-cols-14 gap-3 mb-2 px-4 py-2 text-xs font-medium text-neutral-600 uppercase tracking-wide">
       <div class="col-span-6">Variante</div>
       <div class="col-span-3">P. Venta</div>
-      <div class="col-span-3">P. Costo</div>
+      <div class="col-span-3 flex items-center gap-1">
+        P. Costo
+        <AppTooltip :text="COST_TOOLTIP" tabindex="0">
+          <PhInfo class="w-3.5 h-3.5 text-neutral-400" />
+        </AppTooltip>
+      </div>
       <div class="col-span-2">Código</div>
     </div>
 
@@ -221,11 +336,14 @@ const formatPriceRange = (group) => {
             <div class="flex-1 sm:col-span-3" @click.stop>
               <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">P. Costo</label>
               <div class="input-with-unit compact" data-unit="$">
+                <!-- Live while any row in the group is still manual; the locked
+                     rows are skipped by CombinationGroups.updateGroupPrice. -->
                 <input
                   type="number"
                   :value="getGroupPriceValue(group.key, 'costPrice')"
                   :placeholder="getGroupPriceDisplay(group.key, 'costPrice')"
-                  @input.stop="updateGroupPrice(group.key, 'costPrice', parseFloat($event.target.value) || 0)"
+                  :readonly="isGroupCostLocked(group)"
+                  @input.stop="setGroupCost(group, parseFloat($event.target.value) || 0)"
                   @click.stop
                   @focus.stop
                   class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
@@ -308,13 +426,8 @@ const formatPriceRange = (group) => {
                     <input
                       type="number"
                       :value="variant.costPrice"
-                      @input.stop="
-                        updateCombinationPrice(
-                          variant.id,
-                          'costPrice',
-                          parseFloat($event.target.value) || 0
-                        )
-                      "
+                      :readonly="isCostLocked(variant)"
+                      @input.stop="setCombinationCost(variant, parseFloat($event.target.value) || 0)"
                       @click.stop
                       @focus.stop
                       placeholder="0"
@@ -392,6 +505,14 @@ const formatPriceRange = (group) => {
 </template>
 
 <style scoped>
+/* A bg utility class can't grey these out: .form-container input
+ * (custom-components.css:89) sets bg-gray-50 at (0,1,1), which outranks any
+ * single-class utility. The scoped attribute takes this rule to (0,2,1). */
+input[readonly] {
+  background-color: #E6DFD8; /* neutral-200 */
+  color: #725F46; /* neutral-600 */
+}
+
 /* Custom 14-column grid (Tailwind only goes up to 12) */
 .grid-cols-14 {
   grid-template-columns: repeat(14, minmax(0, 1fr));

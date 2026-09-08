@@ -27,6 +27,10 @@ const props = defineProps({
     type: Function,
     default: null,
   },
+  isSelected: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const localExpanded = ref(false);
@@ -59,19 +63,21 @@ const toggleExpanded = () => {
 <template>
   <div class="flex flex-col gap-0 leading-tight">
     <template v-if="totalCount === 0">
-      <span v-if="fallbackValue" class="text-xs text-neutral-700">{{ fallbackValue }}</span>
-      <span v-else class="text-neutral-400 text-xs">Sin variaciones</span>
+      <span v-if="fallbackValue" class="text-xs" :class="isSelected ? 'text-white' : 'text-neutral-700'">{{ fallbackValue }}</span>
+      <span v-else class="text-xs" :class="isSelected ? 'text-white/70' : 'text-neutral-400'">Sin variaciones</span>
     </template>
     <template v-else>
       <span
         v-for="item in visibleCombinations"
         :key="item.id"
-        class="text-xs text-neutral-700"
+        class="text-xs"
+        :class="isSelected ? 'text-white' : 'text-neutral-700'"
       >{{ formatter(item) }}</span>
       <button
         v-if="hasMore"
         @click.stop="toggleExpanded"
-        class="text-xs text-primary-600 hover:text-primary-800 font-medium text-left m-0 p-0"
+        class="text-xs font-medium text-left m-0 p-0"
+        :class="isSelected ? 'text-white underline' : 'text-primary-600 hover:text-primary-800'"
       >{{ isExpanded ? 'menos' : `+${remainingCount} más` }}</button>
     </template>
   </div>
