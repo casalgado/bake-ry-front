@@ -2,14 +2,17 @@
 import { ref, computed, onMounted } from 'vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useOrderStore } from '@/stores/orderStore';
+import { useAuthenticationStore } from '@/stores/authentication';
 import { formatMoney } from '@/utils/helpers';
 import { formatDateDisplay } from '@/utils/dateUtils';
-import { PhSpinner, PhInfo } from '@phosphor-icons/vue';
+import { exportClientList, clientExportPreset } from '@/utils/exportOrders';
+import { PhSpinner, PhInfo, PhDownloadSimple } from '@phosphor-icons/vue';
 import ClientHistoryModal from '@/components/orders/ClientHistoryModal.vue';
 import AppTooltip from '@/components/common/AppTooltip.vue';
 
 const bakerySettingsStore = useBakerySettingsStore();
 const orderStore = useOrderStore();
+const authStore = useAuthenticationStore();
 
 const filters = ref({
   period: 'monthly',
@@ -177,11 +180,8 @@ const nuevosClients = computed(() => {
   if (!report.value) return [];
   const partial = report.value.nuevosPorPeriodo[report.value.nuevosPorPeriodo.length - 1];
   return (partial?.clients || []).map(c => ({
-    userId: c.userId,
-    name: c.name,
+    ...c,
     rangeTotal: c.total,
-    orderCount: c.orderCount,
-    lastOrderDate: c.lastOrderDate,
     vector: '',
     orderedInPartial: true,
   }));
@@ -294,6 +294,34 @@ const openHistory = (client) => {
 const closeHistory = () => {
   historyClient.value = null;
 };
+
+const exportPreset = computed(() => clientExportPreset(authStore.getBakeryId));
+
+const exportOpts = () => ({
+  bakeryId: authStore.getBakeryId,
+  segment: report.value.meta.segment,
+  period: report.value.meta.period,
+  count: report.value.meta.count,
+});
+
+const exportNuevos = (preset = false) => {
+  const rows = report.value.periods.flatMap((period, i) =>
+    (report.value.nuevosPorPeriodo[i]?.clients || []).map(c => ({ ...c, group: period.label })),
+  );
+  exportClientList(rows, { ...exportOpts(), preset, groupHeader: 'Período', filenameStem: 'clientes-nuevos' });
+};
+
+const exportBucket = (preset = false) => {
+  const label = selectedBucket.value === 'nuevos' ? 'Recién Llegados' : bucketLabels[selectedBucket.value];
+  const rows = sortedBucketClients.value.map(c => ({ ...c, total: c.rangeTotal, group: label }));
+  exportClientList(rows, {
+    ...exportOpts(),
+    preset,
+    groupHeader: 'Grupo',
+    filenameStem: `clientes-${selectedBucket.value}`,
+    periodColumns: report.value.periods.map(p => p.label),
+  });
+};
 </script>
 
 <template>
@@ -388,34 +416,51 @@ const closeHistory = () => {
         </button>
       </div>
 
-      <div v-if="activeTab === 'nuevos'" class="flex gap-3 overflow-x-auto pb-2">
-        <div
-          v-for="{ period, entry } in nuevosPeriodsReversed"
-          :key="period.key"
-          class="base-card flex-shrink-0 w-64"
-        >
-          <div class="flex items-center justify-between">
-            <div class="font-semibold text-neutral-800">{{ period.label }}</div>
-            <div class="text-xs font-semibold text-neutral-500">{{ entry.clients.length }} nuevos</div>
-          </div>
-          <div class="text-xs text-neutral-400 mb-2">{{ formatPeriodRange(period) }}</div>
+      <div v-if="activeTab === 'nuevos'">
+        <div class="flex justify-end gap-2 mb-2">
+          <button type="button" class="utility-btn-inactive flex items-center gap-1" @click="exportNuevos()">
+            <PhDownloadSimple :size="16" />
+            Exportar
+          </button>
+          <button
+            v-if="exportPreset"
+            type="button"
+            class="utility-btn-inactive flex items-center gap-1"
+            @click="exportNuevos(true)"
+          >
+            <PhDownloadSimple :size="16" />
+            {{ exportPreset.label }}
+          </button>
+        </div>
+        <div class="flex gap-3 overflow-x-auto pb-2">
+          <div
+            v-for="{ period, entry } in nuevosPeriodsReversed"
+            :key="period.key"
+            class="base-card flex-shrink-0 w-64"
+          >
+            <div class="flex items-center justify-between">
+              <div class="font-semibold text-neutral-800">{{ period.label }}</div>
+              <div class="text-xs font-semibold text-neutral-500">{{ entry.clients.length }} nuevos</div>
+            </div>
+            <div class="text-xs text-neutral-400 mb-2">{{ formatPeriodRange(period) }}</div>
 
-          <div v-if="entry.clients.length === 0" class="text-sm text-neutral-400">
-            -
+            <div v-if="entry.clients.length === 0" class="text-sm text-neutral-400">
+              -
+            </div>
+            <ul v-else class="space-y-1">
+              <li
+                v-for="client in entry.clients"
+                :key="client.userId"
+                class="flex justify-between items-baseline text-sm cursor-pointer hover:text-primary-600"
+                tabindex="0"
+                @click="openHistory(client)"
+                @keydown.enter="openHistory(client)"
+              >
+                <span class="truncate">{{ client.name }}</span>
+                <span class="text-neutral-500 whitespace-nowrap ml-2">{{ formatMoney(client.total, { slim: true }) }} · {{ client.orderCount }}p</span>
+              </li>
+            </ul>
           </div>
-          <ul v-else class="space-y-1">
-            <li
-              v-for="client in entry.clients"
-              :key="client.userId"
-              class="flex justify-between items-baseline text-sm cursor-pointer hover:text-primary-600"
-              tabindex="0"
-              @click="openHistory(client)"
-              @keydown.enter="openHistory(client)"
-            >
-              <span class="truncate">{{ client.name }}</span>
-              <span class="text-neutral-500 whitespace-nowrap ml-2">{{ formatMoney(client.total, { slim: true }) }} · {{ client.orderCount }}p</span>
-            </li>
-          </ul>
         </div>
       </div>
 
@@ -444,6 +489,28 @@ const closeHistory = () => {
               </button>
             </template>
           </AppTooltip>
+        </div>
+
+        <div class="flex justify-end gap-2 mb-2">
+          <button
+            type="button"
+            class="utility-btn-inactive flex items-center gap-1 disabled:opacity-50"
+            :disabled="selectedBucketClients.length === 0"
+            @click="exportBucket()"
+          >
+            <PhDownloadSimple :size="16" />
+            Exportar
+          </button>
+          <button
+            v-if="exportPreset"
+            type="button"
+            class="utility-btn-inactive flex items-center gap-1 disabled:opacity-50"
+            :disabled="selectedBucketClients.length === 0"
+            @click="exportBucket(true)"
+          >
+            <PhDownloadSimple :size="16" />
+            {{ exportPreset.label }}
+          </button>
         </div>
 
         <div v-if="selectedBucketClients.length === 0" class="base-card p-8 text-center text-neutral-500">

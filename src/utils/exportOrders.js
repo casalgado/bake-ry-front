@@ -202,7 +202,6 @@ const aggregateProductSales = (orders) => {
 
   orders.forEach((order) => {
     // Only process paid orders
-    console.log(order);
     if (!order.isPaid) return;
 
     // Process each order item
@@ -337,7 +336,6 @@ const addSummaryStats = (productSales) => {
 const exportProducts = (orders, options = {}) => {
   // Ensure orders is an array
   const ordersArray = Array.isArray(orders) ? orders : [];
-  console.log(ordersArray.map((o) => [o.isPaid, o.userName]));
   // Filter orders by date range if provided
   let filteredOrders = ordersArray;
   if (options.startDate || options.endDate) {
@@ -1160,4 +1158,90 @@ const formatMonthLabel = (monthStr) => {
   return `${months[parseInt(month) - 1]} ${year}`;
 };
 
-export { exportOrders, exportProducts, exportPaymentReport, exportProductReport, exportIncomeStatement };
+// EXPORT CLIENT LIST (from ClientPersistencyReport)
+// `clients` are normalised rows:
+//   { group, name, email, phone, legalName, nationalId, address, total,
+//     lastOrderDate, periodTotals? }
+// `periodColumns` (bucket export only): period labels; each client carries a
+// `periodTotals` array aligned to them, and the money column becomes one column
+// per period plus a range total.
+
+const dateOnly = (v) => {
+  if (!v) return '';
+  const d = new Date(v);
+  return isNaN(d) ? '' : d.toISOString().split('T')[0];
+};
+
+const buildStandardClientSheet = (clients, { groupHeader, segment, periodColumns }) => {
+  const idHeader = segment === 'b2b' ? 'Razón social' : 'Cédula';
+  const idField = segment === 'b2b' ? 'legalName' : 'nationalId';
+  const lead = [groupHeader, 'Nombre', 'Email', 'Teléfono', idHeader, 'Dirección'];
+  const money = periodColumns?.length ? [...periodColumns, 'Total del rango'] : ['Total del período'];
+  const headers = [...lead, ...money, 'Última orden'];
+  const rows = clients.map((c) => [
+    c.group || '',
+    c.name || '',
+    c.email || '',
+    c.phone || '',
+    c[idField] || '',
+    c.address || '',
+    ...(periodColumns?.length
+      ? [...(c.periodTotals || periodColumns.map(() => 0)), c.total || 0]
+      : [c.total || 0]),
+    dateOnly(c.lastOrderDate),
+  ]);
+  const cols = [22, 24, 26, 15, 22, 30, ...money.map(() => 13), 12];
+  return { headers, rows, cols };
+};
+
+const UNIT_PLURAL = { weekly: 'semanas', biweekly: 'quincenas', monthly: 'meses' };
+
+// WhatsApp Business bulk-broadcast contact-import template. Columns are fixed by
+// WhatsApp, not by us.
+const whatsappBroadcastSheet = (clients) => {
+  const headers = [
+    'Identificador del contacto (Número de teléfono/Username)',
+    'Tipo de identificador',
+    'Argumentos del mensaje',
+    'URL del Header (Opcional)',
+    'Sufijo de la URL dinámica del Botón (Opcional)',
+  ];
+  const rows = clients.map((c) => {
+    const d = String(c.phone || '').replace(/\D/g, '');
+    // ponytail: 10-digit == CO mobile heuristic; revisit if they onboard bulk foreign numbers
+    const id = !d ? '' : d.length === 10 ? `+57${d}` : `+${d}`;
+    return [id, d ? 'TELEFONO' : 'USERNAME', c.name || '', '', ''];
+  });
+  return { headers, rows, cols: [50, 20, 24, 20, 36] };
+};
+
+const CLIENT_EXPORT_PRESETS = {
+  // ponytail: hardcoded per-bakery custom export shapes. Move to bakery settings
+  // (features.reports.clientExport) only if a 3rd bakery needs one.
+  'es-alimento': { label: 'B2Chat', build: whatsappBroadcastSheet },
+};
+
+// Non-null when this bakery has an extra export shape; drives the second export
+// button in ClientPersistencyReport. Standard export stays available regardless.
+const clientExportPreset = (bakeryId) => CLIENT_EXPORT_PRESETS[bakeryId] || null;
+
+const exportClientList = (clients, { bakeryId, preset, groupHeader, segment, filenameStem, period, count, periodColumns }) => {
+  const presetDef = preset ? CLIENT_EXPORT_PRESETS[bakeryId] : null;
+  const { headers, rows, cols } = presetDef
+    ? presetDef.build(clients)
+    : buildStandardClientSheet(clients, { groupHeader, segment, periodColumns });
+
+  const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  worksheet['!cols'] = cols.map((width) => ({ width }));
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Clientes');
+
+  const unit = UNIT_PLURAL[period] || period;
+  const today = new Date().toISOString().split('T')[0];
+  const stem = presetDef ? `${filenameStem}-b2chat` : filenameStem;
+  const filename = `${stem}_${segment}_ultimos-${count}-${unit}_${today}.xlsx`;
+  XLSX.writeFile(workbook, filename);
+};
+
+export { exportOrders, exportProducts, exportPaymentReport, exportProductReport, exportIncomeStatement, exportClientList, clientExportPreset };
