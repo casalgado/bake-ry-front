@@ -148,6 +148,13 @@ const formatMoney = (value, { slim = false, maxFractionDigits = 0 } = {}) => {
   }).format(value);
 };
 
+/* A cost *per unit*, which is often a fraction of a peso — harina at 3.5/g. One
+ * decimal only when there is one, so whole numbers stay clean. Lives here rather
+ * than beside each caller: the recetario and la bodega both render one, and two
+ * definitions is how two screens start quoting the same ingredient differently. */
+const formatUnitCost = (value) =>
+  formatMoney(Number(value) || 0, { maxFractionDigits: 1 });
+
 /* A quantity: the NUMBER only. The unit is rendered beside it as its own
  * <span class="ui-unit"> and never glued into the string, so a column of
  * quantities still lines up. Same grouping locale as formatMoney.
@@ -285,6 +292,35 @@ const sortVariations = (variations) => {
   });
 };
 
+/**
+ * What a `<input type="number">` actually typed, for a field that is allowed to
+ * be empty. Returns `null` for "nothing here", a number otherwise, and refuses
+ * negatives.
+ *
+ * Two failure modes, one line apart, and this has been wrong in both directions
+ * on the inventory documents.
+ *
+ * Coercing '' to 0 snaps the box shut the moment you select the old value to
+ * type a new one. Rejecting 0 is worse: every keystroke of `0.5` starts with a
+ * `0`, which mapped to null and blanked the field before you could reach the
+ * decimal point, so no quantity below one could ever be typed — and a unit cost
+ * of exactly zero (agua) was unreachable full stop.
+ *
+ * What makes the decimal survive is that patchDOMProp compares against
+ * el.value rather than the previous bound value — mid-decimal Chrome's getter
+ * returns '' (a trailing dot is not a valid floating-point number), null
+ * stringifies to '' too, they match, and no DOM write happens.
+ *
+ * Callers treat 0 as "not filled in yet" themselves where that is the rule; it
+ * is not this function's job to conflate the two.
+ */
+const parseNumericInput = (value) => {
+  const raw = String(value).trim();
+  if (raw === '') return null;
+  const n = Number(value);
+  return !Number.isFinite(n) || n < 0 ? null : n;
+};
+
 const generateId = (length = 16) => {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   return Array.from(
@@ -299,8 +335,10 @@ export {
   generateId,
   capitalize,
   formatMoney,
+  formatUnitCost,
   formatQty,
   formatSignedQty,
+  parseNumericInput,
   UNIT_OPTIONS,
   cleanString,
   categoryOrder,

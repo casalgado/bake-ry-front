@@ -67,9 +67,13 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
 
 <template>
   <!-- The dashboard shell paints neutral-150; this section paints its own ground
-       so the ui-* surface ladder starts where the tokens expect it to. -->
+       so the ui-* surface ladder starts where the tokens expect it to.
+
+       No padding here: each screen owns its own gutter. Conteo is a phone-in-hand
+       screen that wants to go edge to edge, and fighting a parent's padding with
+       a negative margin is worse than never having it. -->
   <div
-    class="w-full self-start min-h-full p-4 lg:p-6"
+    class="w-full self-start min-h-full"
     data-ui-theme="light"
     style="background: var(--ui-surface-0); color: var(--ui-ink)"
   >
@@ -83,7 +87,10 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
          remounting it — `kind` would change under a screen that already opened
          the other document. It also keeps each screen's search box and
          selection to itself. -->
-    <p v-if="catalogError" class="ui-empty" style="padding-block: 12px">
+    <!-- Carries its own gutter now that the ground has none: this banner sits
+         above the screen's own wrapper, so without it it would run edge to edge
+         while everything under it is inset. -->
+    <p v-if="catalogError" class="ui-empty mx-4 lg:mx-6 mt-4 lg:mt-6" style="padding-block: 12px">
       <b>No se pudieron cargar los catálogos</b>
       Los nombres y los costos de esta pantalla van a salir incompletos.
       {{ catalogError }}

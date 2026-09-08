@@ -144,140 +144,142 @@ function discard() {
 </script>
 
 <template>
-  <PageHeader title="Conteo" subtitle="Escribe lo que hay, no la diferencia." />
+  <div class="p-4 lg:p-6">
+    <PageHeader title="Conteo" subtitle="Escribe lo que hay, no la diferencia." />
 
-  <div class="ui-app">
-    <!-- One column: there is nothing to take from, the bodega IS the document.
-         Capped and centred so a row's name and its input stay in one glance
-         instead of at opposite ends of a wide screen. -->
-    <div class="ui-panes" style="--panes: minmax(0, 1fr)">
-      <div class="ui-pane max-w-3xl w-full mx-auto">
-        <div class="flex flex-wrap items-end gap-2 mb-4">
-          <label v-if="multiWarehouse" class="ui-field min-w-[10rem]">
-            <span class="ui-field-k">Bodega</span>
-            <select
-              class="ui-input"
-              :value="doc.warehouseId"
-              @change="changeWarehouse($event)"
-            >
-              <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
-            </select>
-          </label>
+    <div class="ui-app">
+      <!-- One column: there is nothing to take from, the bodega IS the document.
+           Capped and centred so a row's name and its input stay in one glance
+           instead of at opposite ends of a wide screen. -->
+      <div class="ui-panes" style="--panes: minmax(0, 1fr)">
+        <div class="ui-pane max-w-3xl w-full mx-auto">
+          <div class="flex flex-wrap items-end gap-2 mb-4">
+            <label v-if="multiWarehouse" class="ui-field min-w-[10rem]">
+              <span class="ui-field-k">Bodega</span>
+              <select
+                class="ui-input"
+                :value="doc.warehouseId"
+                @change="changeWarehouse($event)"
+              >
+                <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
+              </select>
+            </label>
 
-          <label class="ui-field min-w-[9rem]">
-            <span class="ui-field-k">Fecha</span>
-            <input
-              class="ui-input"
-              type="date"
-              :value="doc.date"
-              @input="doc.date = $event.target.value"
-            >
-          </label>
+            <label class="ui-field min-w-[9rem]">
+              <span class="ui-field-k">Fecha</span>
+              <input
+                class="ui-input"
+                type="date"
+                :value="doc.date"
+                @input="doc.date = $event.target.value"
+              >
+            </label>
 
-          <label class="ui-field flex-1 min-w-[10rem]">
-            <span class="ui-field-k">Responsable</span>
-            <input
-              class="ui-input"
-              type="text"
-              :value="doc.party"
-              @input="doc.party = $event.target.value"
-            >
-          </label>
-        </div>
-
-        <div class="mb-5">
-          <div class="ui-bar" :style="{ '--fill': fill + '%' }" />
-          <div class="flex items-baseline justify-between gap-3 mt-1.5 ui-panehead-sub">
-            <span>Artículos contados</span>
-            <b class="ui-num">{{ done }} / {{ total }}</b>
+            <label class="ui-field flex-1 min-w-[10rem]">
+              <span class="ui-field-k">Responsable</span>
+              <input
+                class="ui-input"
+                type="text"
+                :value="doc.party"
+                @input="doc.party = $event.target.value"
+              >
+            </label>
           </div>
-        </div>
 
-        <UiSearchField
-          v-model="search"
-          class="mb-4"
-          placeholder="Buscar artículo…"
-          label="Buscar artículo"
-        />
+          <div class="mb-5">
+            <div class="ui-bar" :style="{ '--fill': fill + '%' }" />
+            <div class="flex items-baseline justify-between gap-3 mt-1.5 ui-panehead-sub">
+              <span>Artículos contados</span>
+              <b class="ui-num">{{ done }} / {{ total }}</b>
+            </div>
+          </div>
 
-        <div v-if="!total" class="ui-empty">
-          <b>Esta bodega está vacía</b>
-          No hay nada que contar todavía.
-        </div>
-        <div v-else-if="!items.length" class="ui-empty">
-          Nada coincide con esa búsqueda.
-        </div>
+          <UiSearchField
+            v-model="search"
+            class="mb-4"
+            placeholder="Buscar artículo…"
+            label="Buscar artículo"
+          />
 
-        <div v-for="shelf in shelves" :key="shelf.key" class="mb-4">
-          <div class="ui-sectionhead">{{ shelf.title }}</div>
+          <div v-if="!total" class="ui-empty">
+            <b>Esta bodega está vacía</b>
+            No hay nada que contar todavía.
+          </div>
+          <div v-else-if="!items.length" class="ui-empty">
+            Nada coincide con esa búsqueda.
+          </div>
+
+          <div v-for="shelf in shelves" :key="shelf.key" class="mb-4">
+            <div class="ui-sectionhead">{{ shelf.title }}</div>
+
+            <div
+              v-for="row in shelf.items" :key="row.itemKey"
+              class="ui-item ui-item-divided"
+            >
+              <span />
+              <span class="min-w-0">
+                <span class="ui-item-title block capitalize">{{ row.name }}</span>
+                <!-- Only after entry: the expected number before it would anchor
+                     the count to what the system already believes. -->
+                <!-- The reassuring case is the common one, so it gets words
+                     rather than a zero you have to read as "fine". Same thing
+                     `changes` says by excluding it. -->
+                <span v-if="isCounted(row.itemKey)" class="ui-item-desc">
+                  el sistema decía {{ formatQty(row.expected) }} {{ row.unit }}
+                  ·
+                  <template v-if="differenceOf(row) === 0">sin diferencia</template>
+                  <template v-else>diferencia {{ formatSignedQty(differenceOf(row)) }}</template>
+                </span>
+                <span v-else class="ui-item-desc">sin contar</span>
+              </span>
+
+              <span class="ui-item-trail">
+                <input
+                  class="ui-input ui-input-num w-[6rem]"
+                  type="number" min="0" step="any"
+                  placeholder="—"
+                  :value="countedOf(row.itemKey) ?? ''"
+                  :aria-label="'Cantidad contada de ' + row.name"
+                  @input="setCounted(row.itemKey, $event.target.value)"
+                >
+                <span class="ui-item-meta w-8 shrink-0">{{ row.unit }}</span>
+              </span>
+            </div>
+          </div>
 
           <div
-            v-for="row in shelf.items" :key="row.itemKey"
-            class="ui-item ui-item-divided"
+            class="flex flex-wrap items-baseline justify-between gap-x-7 gap-y-3 mt-4 pt-3.5"
+            style="border-top: 1px solid var(--ui-line)"
           >
-            <span />
-            <span class="min-w-0">
-              <span class="ui-item-title block capitalize">{{ row.name }}</span>
-              <!-- Only after entry: the expected number before it would anchor
-                   the count to what the system already believes. -->
-              <!-- The reassuring case is the common one, so it gets words
-                   rather than a zero you have to read as "fine". Same thing
-                   `changes` says by excluding it. -->
-              <span v-if="isCounted(row.itemKey)" class="ui-item-desc">
-                el sistema decía {{ formatQty(row.expected) }} {{ row.unit }}
-                ·
-                <template v-if="differenceOf(row) === 0">sin diferencia</template>
-                <template v-else>diferencia {{ formatSignedQty(differenceOf(row)) }}</template>
-              </span>
-              <span v-else class="ui-item-desc">sin contar</span>
-            </span>
-
-            <span class="ui-item-trail">
-              <input
-                class="ui-input ui-input-num w-[6rem]"
-                type="number" min="0" step="any"
-                placeholder="—"
-                :value="countedOf(row.itemKey) ?? ''"
-                :aria-label="'Cantidad contada de ' + row.name"
-                @input="setCounted(row.itemKey, $event.target.value)"
-              >
-              <span class="ui-item-meta w-8 shrink-0">{{ row.unit }}</span>
+            <span class="ui-stat">
+              <span class="ui-stat-k">Artículos que se moverán</span>
+              <span class="ui-stat-v">{{ changes }}</span>
             </span>
           </div>
-        </div>
 
-        <div
-          class="flex flex-wrap items-baseline justify-between gap-x-7 gap-y-3 mt-4 pt-3.5"
-          style="border-top: 1px solid var(--ui-line)"
-        >
-          <span class="ui-stat">
-            <span class="ui-stat-k">Artículos que se moverán</span>
-            <span class="ui-stat-v">{{ changes }}</span>
-          </span>
-        </div>
+          <p class="ui-item-desc mt-2">
+            Contaste {{ done }} de {{ total }} artículos — los demás se quedan como
+            están.
+          </p>
 
-        <p class="ui-item-desc mt-2">
-          Contaste {{ done }} de {{ total }} artículos — los demás se quedan como
-          están.
-        </p>
-
-        <!-- ponytail: Confirmar stays disabled — el borrador y el cierre viven en
-             el servidor y llegan en el commit 4 (EXISTENCIAS-BUILD.md §4.3) como
-             POST /stockCounts. Cerrar un conteo pone baselineQty y un movimiento
-             `count` por artículo en una sola transacción; no hay forma honesta de
-             imitar eso desde aquí, y un ajuste por diferencia escribiría el tipo
-             de movimiento equivocado en un libro que no se puede reescribir. -->
-        <div class="flex flex-wrap items-center gap-1.5 mt-4">
-          <button class="ui-btn ui-btn-solid" disabled>Cerrar conteo</button>
-          <button class="ui-btn ui-btn-danger" :disabled="!done" @click="discard">
-            Descartar
-          </button>
+          <!-- ponytail: Confirmar stays disabled — el borrador y el cierre viven en
+               el servidor y llegan en el commit 4 (EXISTENCIAS-BUILD.md §4.3) como
+               POST /stockCounts. Cerrar un conteo pone baselineQty y un movimiento
+               `count` por artículo en una sola transacción; no hay forma honesta de
+               imitar eso desde aquí, y un ajuste por diferencia escribiría el tipo
+               de movimiento equivocado en un libro que no se puede reescribir. -->
+          <div class="flex flex-wrap items-center gap-1.5 mt-4">
+            <button class="ui-btn ui-btn-solid" disabled>Cerrar conteo</button>
+            <button class="ui-btn ui-btn-danger" :disabled="!done" @click="discard">
+              Descartar
+            </button>
+          </div>
+          <p class="ui-item-desc mt-2">
+            Todavía no se puede cerrar: falta <code>POST /stockCounts</code> en el
+            servidor. Mientras tanto el conteo se guarda solo en este navegador:
+            aguanta una recarga, pero no lo vas a ver en otro dispositivo.
+          </p>
         </div>
-        <p class="ui-item-desc mt-2">
-          Todavía no se puede cerrar: falta <code>POST /stockCounts</code> en el
-          servidor. Mientras tanto el conteo vive solo en esta pestaña — recargar
-          la página lo borra.
-        </p>
       </div>
     </div>
   </div>

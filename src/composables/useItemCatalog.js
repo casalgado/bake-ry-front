@@ -86,8 +86,22 @@ export function useItemCatalog() {
     return ingredientById.value.get(id)?.recipeId ? 'prep' : 'ingr';
   };
 
+  /* What a PRODUCT is for, straight off the document: 'unit' is bought and
+   * resold as it comes (una Coca-Cola), 'recipe' is made here, 'none' is not
+   * tracked in the bodega at all. It is the marker that decides whether a
+   * product belongs on Ingreso or on Producción, and there is deliberately no
+   * second `isResale` flag — see zplanning/PLAN-resale-to-product.md §0.
+   *
+   * `null` for an ingredient, because the question does not apply to one:
+   * ingredients split on `recipeId`, which is what `kindOf` above already
+   * reads. Keeping the two questions separate is why 'prod' stays ONE shelf —
+   * splitting it would fork SHELF_TITLES, which the recetario and Existencias
+   * also render. */
+  const modeOf = ({ type, id }) =>
+    (type === 'product' ? productById.value.get(id)?.inventoryMode ?? 'none' : null);
+
   /* productById is here because the recetario groups recipes by the collection
    * of the product that owns them. combosOf stays a named export, not a member:
    * it needs no store. */
-  return { productById, nameOf, costOf, kindOf };
+  return { productById, nameOf, costOf, kindOf, modeOf };
 }

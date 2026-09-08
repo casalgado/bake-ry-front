@@ -87,19 +87,19 @@ const router = createRouter({
               component: () => import('../views/inventory/ShowStock.vue'),
             },
             {
-              // Two routes, one component: they differ by which shelves they
-              // offer, whether a line carries a unit cost, and what confirms
-              // them — three entries in a map inside EntryDoc, not two files.
+              // Two components, not one behind a `kind` prop. They used to
+              // share EntryDoc; five things now separate them — the shelves,
+              // el proveedor, whether a line carries a unit cost, creating an
+              // ingredient inline, and the consumption preview — and the map
+              // that held them together had stopped paying for itself.
               path: 'ingreso',
               name: 'inventory-ingreso',
-              component: () => import('../views/inventory/EntryDoc.vue'),
-              props: { kind: 'ingreso' },
+              component: () => import('../views/inventory/PurchaseDoc.vue'),
             },
             {
               path: 'produccion',
               name: 'inventory-produccion',
-              component: () => import('../views/inventory/EntryDoc.vue'),
-              props: { kind: 'produccion' },
+              component: () => import('../views/inventory/ProductionDoc.vue'),
             },
             {
               path: 'conteo',
