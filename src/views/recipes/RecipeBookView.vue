@@ -1,5 +1,5 @@
 <script setup>
-import { ref, shallowReactive, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, shallowReactive, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import UiSearchField from '@/components/ui/UiSearchField.vue';
@@ -245,7 +245,9 @@ function benchFor(tab) {
       const recipe = recipeId && recipeStore.items.find((r) => r.id === recipeId);
       return recipe ? recipe.ingredients ?? [] : [];
     });
-    benches.set(tab.id, useUndoSnapshot(source));
+    /* `order` rides on the bench rather than in a parallel map: created with it,
+     * discarded with it when the tab closes. See `resort`. */
+    benches.set(tab.id, { ...useUndoSnapshot(source), order: ref([]) });
   }
   return benches.get(tab.id);
 }
@@ -405,23 +407,34 @@ const lineCost = (line) => (line.quantity || 0) * (line.costPerUnit || 0);
  * key. */
 const lineKey = (l) => `${l.type}:${l.id}:${l.combinationId ?? ''}`;
 
-/* Sorting live by cost yanked the row out from under the cursor on the first
- * digit typed — `rows` recomputes on every keystroke, so the line you are
- * editing changes position mid-edit. The order is therefore held as its own
- * state, a list of keys, rebuilt only when the structure changes (a line added
- * or removed, a unit cost arriving from the store) or on blur. */
-const sortOrder = ref([]);
+/* The order is state of its own, a list of keys, recomputed ONLY while the bench
+ * is untouched: on opening the recipe, on switching tab, and when a cost arrives
+ * late from the catalog. The first edit freezes it until the recipe is reopened
+ * — a row that moves out from under the cursor on the first digit typed makes
+ * the numbers impossible to follow.
+ *
+ * It lives on the bench (`bench.order`), one list per tab, created and discarded
+ * with the bench it orders. One shared list would drop a frozen tab back to the
+ * raw array order on return. */
+const sortOrder = computed(() => bench.value?.order.value ?? []);
 
 const resort = () => {
-  sortOrder.value = lines.value
+  const b = bench.value;
+  if (!b || b.isDirty.value) return;
+  b.order.value = lines.value
     .map((l) => ({ key: lineKey(l), cost: lineCost({ ...l, ...resolveLine(l) }) }))
-    .sort((a, b) => b.cost - a.cost)
+    .sort((a, b2) => b2.cost - a.cost)
     .map((x) => x.key);
 };
 
-// Keys and unit costs, deliberately NOT quantities — that is the whole point.
+/* Keys and unit costs, deliberately NOT quantities — that is the whole point.
+ * The tab is part of the key so opening another one always sorts, even when it
+ * carries the same lines at the same costs as the last. */
 watch(
-  () => lines.value.map((l) => `${lineKey(l)}:${resolveLine(l).costPerUnit}`).join('|'),
+  () => [
+    activeTab.value,
+    ...lines.value.map((l) => `${lineKey(l)}:${resolveLine(l).costPerUnit}`),
+  ].join('|'),
   resort,
   { immediate: true },
 );
@@ -430,7 +443,8 @@ watch(
  * this computed reorders the display, but setQuantity/removeLine still mutate
  * the underlying array by its original position, not by render order. */
 const rows = computed(() => {
-  // A line not in the frozen order yet (just dropped) sits last until a resort.
+  // A line not in the frozen order yet (just dropped) sits last, which is
+  // exactly where you put it.
   const at = (l) => {
     const i = sortOrder.value.indexOf(lineKey(l));
     return i < 0 ? Infinity : i;
@@ -480,14 +494,6 @@ const blankQuantities = computed(
 
 /* ---------------- putting things on the bench ---------------- */
 
-/* Counted things start at one, measured things at a round hundred. Includes the
- * older stored spellings as well as the current symbols, since existing
- * ingredients carry whatever unit they were saved with. */
-const COUNT_UNITS = new Set([
-  'uds', 'dz', 'paq', 'und', 'unidad', 'unidades', 'docena', 'paquete',
-]);
-const startingQuantity = (unit) => (COUNT_UNITS.has(unit) ? 1 : 100);
-
 const sameComponent = (a, b) => lineKey(a) === lineKey(b);
 
 /* The shape of a line on the bench, in one place. Every shelf builds rows
@@ -518,26 +524,45 @@ function putOnBench(rows) {
   const b = bench.value;
   if (!b || !rows?.length) return;
 
-  b.snap();
   const merged = [...b.copy.value];
+  let changed = false;
+  let focusAt = null;
 
   for (const row of rows) {
     const at = merged.findIndex((l) => sameComponent(l, row));
-    if (at >= 0) {
+    if (at < 0) {
+      merged.push(row);
+      changed = true;
+    } else if (row.quantity) {
+      /* Dissolving a recipe does carry quantities, and those add onto a line
+       * already on the bench. */
       merged[at] = {
         ...merged[at],
-        quantity: (merged[at].quantity || 0) + (row.quantity || 0),
+        quantity: (merged[at].quantity || 0) + row.quantity,
       };
+      changed = true;
     } else {
-      merged.push(row);
+      /* A loose chip arrives with no quantity. When the line is already there,
+       * adding zero would change nothing and the gesture would look broken, so
+       * the cursor goes to the quantity it already has — the only thing left to
+       * do with it. No snap, because nothing moved. */
+      focusAt = at;
     }
   }
 
-  b.copy.value = merged;
-  /* Explicit: a chip already on the bench only bumps a quantity, so the
-   * structure watcher above does not fire — but taking a chip is still an
-   * "added", and the row should find its place. */
-  resort();
+  /* The snap sits here rather than at the top: `merged` is a copy, so
+   * `copy.value` is still untouched — and a gesture that changes nothing must
+   * leave no undo step and must not mark the bench dirty. */
+  if (changed) {
+    b.snap();
+    b.copy.value = merged;
+  }
+
+  /* The index into `merged` is the index into `lines`, which is the `_i` each
+   * row carries into the DOM. */
+  if (focusAt !== null) {
+    nextTick(() => document.querySelector(`[data-qty="${focusAt}"]`)?.focus());
+  }
 }
 
 /* Una combinación hermana con receta es el arranque más común: la misma receta
@@ -624,7 +649,6 @@ function replaceLine(index, row) {
     : b.copy.value.map((l, i) => (i === index ? next : l));
 
   cancelReplace();
-  resort();
 }
 
 function scale(factor) {
@@ -817,11 +841,9 @@ const ingredientChip = (i) => ({
   name: i.name,
   unit: i.unit,
   meta: `${formatUnitCost(i.costPerUnit)}/${i.unit}`,
-  rows: [componentRow({
-    id: i.id,
-    unit: i.unit,
-    quantity: startingQuantity(i.unit),
-  })],
+  // No quantity: the line arrives empty and the first number typed is the only
+  // one. `blankQuantities` is what keeps it from being saved that way.
+  rows: [componentRow({ id: i.id, unit: i.unit })],
 });
 
 const liveIngredients = computed(() =>
@@ -1127,17 +1149,17 @@ watch(search, (v) => {
     !n || nameTaken(n) || products.value.length || preparations.value.length ? '' : n;
 });
 
-/* Straight onto the mesa. You only created it because you wanted it in this
- * recipe, and a new ingredient has no uses yet — so on the shelf it sorts last,
- * past the cap, invisible. Same rows as its chip, so a created ingredient and a
- * dragged one land identically.
+/* Creating is a catalog gesture: the supply goes onto the shelf and no further.
+ * Putting it on the bench would be guessing why it was created, and dragging it
+ * costs one click.
  *
- * From the overview there is no bench, and putOnBench returns early — creating
- * from there is a catalog gesture, not a recipe one. */
-function onIngredientCreated(created) {
-  putOnBench(ingredientChip(created).rows);
-  suppliesSearch.value = '';
-  search.value = '';
+ * The search is NOT cleared: `liveIngredients` filters by it, so the new chip is
+ * exactly what stays in view under the text that created it. What is withdrawn
+ * is the card, and since its `v-if` hangs off these refs (see the comment
+ * above), they are switched off here by hand. */
+function onIngredientCreated() {
+  suppliesNewName.value = '';
+  overviewNewName.value = '';
 }
 
 /* A preparación opens instead of landing on a bench: it was created with an
@@ -1498,7 +1520,7 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                      which is what makes a dissolved recipe cascade. -->
                 <div
                   v-for="(line, i) in rows" :key="lineKey(line)"
-                  class="ui-item ui-item-filled"
+                  class="ui-item ui-item-filled ui-item-split"
                   :class="{ 'ui-item-zero': isUnpriced(line) }"
                   :aria-current="replacingIndex === line._i"
                   :style="{ '--i': i }"
@@ -1512,29 +1534,29 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                     </span>
                   </span>
 
+                  <!-- Its own grid cell, not part of the trail: in a narrow pane
+                       the controls drop to their own line and the cost stays up
+                       beside the name that gives it meaning (.ui-item-split).
+                       Fixed width so the figure lands in the same place on
+                       every row. -->
+                  <span class="w-20 text-right shrink-0">
+                    <span v-if="isUnpriced(line)" class="ui-tag">sin costo</span>
+                    <span v-else class="ui-item-num ui-num">{{ formatMoney(lineCost(line)) }}</span>
+                  </span>
+
                   <span class="ui-item-trail">
-                    <!-- Fixed width, not just first in markup: .ui-item-trail is
-                         flex/flex-end with no fixed width of its own, so it packs
-                         tight against the row's right edge. A variable-width price
-                         column shifts every sibling's start position row to row —
-                         this box stays constant so the input after it lands in the
-                         same place every time. -->
-                    <span class="w-20 text-right shrink-0">
-                      <span v-if="isUnpriced(line)" class="ui-tag">sin costo</span>
-                      <span v-else class="ui-item-num ui-num">{{ formatMoney(lineCost(line)) }}</span>
-                    </span>
                     <!-- focus arms, the first keystroke snaps: one undo step per
                          edit, not one per keystroke, and none for a row you only
                          tabbed through. -->
                     <input
                       class="ui-input ui-input-num w-[5.5rem]"
                       type="number" min="0" step="any"
-                      :value="line.quantity"
+                      :data-qty="line._i"
+                      :value="line.quantity || ''"
                       :aria-label="'Cantidad de ' + line.name"
                       :aria-invalid="!(line.quantity > 0)"
                       @focus="beginQuantityEdit(line._i)"
                       @input="setQuantity(line._i, $event.target.value)"
-                      @blur="resort()"
                     >
                     <span class="ui-item-meta w-8 shrink-0">{{ line.unit }}</span>
                     <!-- Alterna: pulsarlo en la fila ya armada cancela, que es
@@ -1625,7 +1647,7 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                     : !yieldValid ? 'Una preparación necesita un rendimiento mayor que cero' : ''"
                 @click="save"
               >{{ saving ? 'Guardando…' : 'Guardar' }}</button>
-              <button class="ui-btn" :disabled="!isDirty || saving" @click="resetBench()">
+              <button class="ui-btn ui-btn-danger" :disabled="!isDirty || saving" @click="resetBench()">
                 Descartar
               </button>
             </div>
@@ -1649,7 +1671,7 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
               <span>
                 Reemplazando «<span class="capitalize">{{ resolveLine(replacingLine).name }}</span>»
               </span>
-              <button class="ui-btn" @click="cancelReplace">Cancelar</button>
+              <button class="ui-btn ui-btn-danger" @click="cancelReplace">Cancelar</button>
             </span>
             <span v-else class="ui-panehead-sub">
               {{ ingredientStore.items.length }} ingredientes

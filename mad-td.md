@@ -73,3 +73,19 @@ what changed: recipe component rows are pure structure now — { type, id, combi
 - new endpoint, unused: POST /bakeries/:bakeryId/recipes/reconcile-costs body { owner: { type: 'product'|'ingredient', id, combinationId? } } → recomputes one owner's cached cost from its recipe and corrects it if it drifted; returns { changed, corrections }. admin only. natural home: a "recalcular costo" button on the product/combination cost cell (ShowProducts column, RecipeBookView combo cards) or ingredient row. after it runs, realtime won't repaint nested arrays / combination costPrice (resourceStore.handleRealtimeUpdate skips non-primitives) — the caller must recipeStore.fetchById / productStore.fetchAll.
 
 - stale-cache note for the whole recipe/product UI: after any backend cost recompute (an ingredient edit elsewhere, a reconcile, another user), handleRealtimeUpdate only syncs primitive fields — a product's combinations[].costPrice and a recipe's ingredients[] do NOT live-update. B3 needs an explicit refresh affordance or a refetch on view focus.
+
+
+con picho
+
+que se puedan cambiar de categorias los ingredientes
+importar desde xlsx los ingredientes, (dar una plantilla?)
+comenzar en correo
+
+toast guardado con exito
+se me esta demorando al crear ingredientes
+
+
+se ve raro en med screens, el card no cabe, se come el nombre.
+meter costo por unidad en existencias y mas claras las tarjetas.
+
+use confirm dialogs instead of window alers in new inventory tabs.

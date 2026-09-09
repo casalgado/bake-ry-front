@@ -404,7 +404,7 @@ function discard() {
           <TransitionGroup tag="div" name="ui-cascade" class="flex flex-col gap-1.5">
             <div
               v-for="(row, i) in rows" :key="row.key"
-              class="ui-item ui-item-filled"
+              class="ui-item ui-item-filled ui-item-split"
               :style="{ '--i': i }"
             >
               <span class="ui-tag">{{ row.kind }}</span>

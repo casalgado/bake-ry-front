@@ -69,7 +69,7 @@ const uid = useId();
 const userTypeOptions = [
   {
     value: 'client',
-    label: 'Cliente',
+    label: 'Persona',
     role: 'bakery_customer',
     category: 'B2C',
   },
@@ -364,10 +364,11 @@ const handleSubmit = () => {
       ></textarea>
     </div>
 
-    <!-- Cancelar is not destructive, so it is not danger. Danger stays spent on
-         deletes, and the order reads left to right: leave, then commit. -->
+    <!-- Cancelar backs out of the form, so it is ui-btn-danger outline. Guardar
+         (solid) is the only non-danger button; the row reads left to right:
+         leave, then commit. -->
     <div class="flex gap-2 justify-end">
-      <button type="button" class="ui-btn" :disabled="loading" @click="emit('cancel')">
+      <button type="button" class="ui-btn ui-btn-danger" :disabled="loading" @click="emit('cancel')">
         Cancelar
       </button>
       <button type="submit" class="ui-btn ui-btn-solid" :disabled="loading">

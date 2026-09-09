@@ -24,11 +24,14 @@ from there. The old Tailwind-class system still runs ~95% of the app.
    add the token; never fall back to a Tailwind color class because it is
    faster. That fallback is what leaves a light-mode patch in a dark screen.
 4. **Colors sparingly.** Components are neutral by default. An accent appears
-   only where someone writes `data-accent="plum"` by hand.
+   only where someone writes `data-accent="plum"` by hand. Button intent color
+   (§13) is not an accent and is not covered by this.
 5. **No state colors.** No red numbers. Zero is muted (`ui-item-zero`), negative
    gets a soft row wash (`ui-item-negative`), digits stay readable.
 6. **Hover never moves anything.** No lift, no translate. It steps one rung up
-   the surface ladder, or fills with the soft.
+   the surface ladder, or fills with the soft. A selected control
+   (`aria-pressed` / `aria-current` / `:checked`) fills solid — that is a
+   persistent state, not motion.
 7. **Softs are derived, never picked.**
    `color-mix(in oklab, <solid> var(--ui-tint), var(--ui-surface-2))` — mixed
    into `surface-2` because that is what cards, chips, buttons and items sit on.
@@ -62,6 +65,13 @@ from there. The old Tailwind-class system still runs ~95% of the app.
     a control that already names itself — `UiSearchField` has its own
     `aria-label`, so its key is a `<span>` and not a second name competing with
     the first.
+13. **Button intent goes by role, not by loudness.** A form or task footer has
+    exactly one `ui-btn-solid` — the thing you came to do. Every other button that
+    leaves, abandons, or wipes the work in progress is `ui-btn-danger` outline
+    (Cancelar, Descartar, Limpiar). Plain `ui-btn` is only for neutral peers that
+    neither commit nor abandon — a mode switch, Deshacer, "run again". `Eliminar`
+    of a saved record is `ui-btn-danger ui-btn-solid`: outline vs solid is "back
+    out" vs "destroy", same color.
 
 ## The surface ladder
 
@@ -102,9 +112,12 @@ Four rungs, `0` furthest from your face:
   borderless button next to a bordered one just reads as broken. Variants compose
   because `.ui-btn` reads `--btn` / `--btn-soft` / `--btn-ink`; a new intent swaps
   those three, it does not repeat the hover math. Built: `ui-btn-icon`,
-  `ui-btn-danger`, and the selected state (`aria-pressed` / `aria-current` /
+  `ui-btn-danger` (every back-out action, not just deletes — §13), and the
+  selected state (`aria-pressed` / `aria-current` /
   `:checked +` on a `<label class="ui-btn">` — **not** Tailwind `peer-checked:`,
-  which can only apply single classes).
+  which can only apply single classes). Hover fills with the soft; selected
+  fills solid, and `ui-btn-solid` / the `danger` vars ride along so there is no
+  per-variant selected rule.
 - No form components. `ui-field` + `ui-input` and friends are classes only;
   `RadioButtonGroup.vue` and `YesNoToggle.vue` belong to the old system and stay
   untouched (restyling them would hit ~126 un-migrated sites). Extract a

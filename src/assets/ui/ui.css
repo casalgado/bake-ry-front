@@ -211,7 +211,19 @@ input:focus-visible+.ui-btn {
   grid-template-columns: var(--panes, minmax(0, 1fr) minmax(0, 1fr));
 }
 
-.ui-pane { padding: 20px 22px; min-width: 0; }
+/* Rows inside a pane size themselves against the pane, not the window: two
+ * panes at 1100px are as narrow as one pane on a phone, and only the pane knows
+ * that. Named so a container added further in can never capture the query.
+ *
+ * The cost of `container-type: inline-size`: a pane is now the containing block
+ * for any `position: fixed` descendant, so one would anchor to the pane instead
+ * of the viewport. Nothing inside a pane is fixed today — an overlay that needs
+ * to escape belongs in a <Teleport>, which is where the dialogs already are. */
+.ui-pane {
+  padding: 20px 22px;
+  min-width: 0;
+  container: ui-pane / inline-size;
+}
 .ui-pane + .ui-pane { border-left: 1px solid var(--ui-line); }
 
 /* The pane you take things from sits one step back. */
@@ -224,8 +236,11 @@ input:focus-visible+.ui-btn {
 
 /* ---------- 3. pane head ---------- */
 
+/* Wraps: in a narrow pane a long title and its sub would otherwise squeeze each
+ * other, and the sub is the half that loses. */
 .ui-panehead {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
@@ -341,6 +356,40 @@ button.ui-item,
 /* Top rung already, so there is no rung left to step up to — the border does
  * the hovering instead, the way .ui-chip does. */
 .ui-item-filled:hover { border-color: var(--ui-line-strong); }
+
+/* For a row whose trailing controls — inputs, a unit, a button or two — are wide
+ * enough to crowd the name out of a narrow pane. Four columns while there is
+ * room: tag, name, number, controls. Below 38rem of PANE the controls take a
+ * line of their own and the number stays up beside the name, which is the pair
+ * you read together. The query is on the pane and not the window because two
+ * panes at 1100px are as narrow as one pane on a phone.
+ *
+ * 38rem is where the name column drops under ~140px — about twelve characters,
+ * which is where an ingredient name stops being one.
+ *
+ * A row with no number cell just leaves the third column empty: `auto` collapses
+ * to zero, so three children lay out exactly as they do without the class and
+ * the whole trail is what drops. */
+.ui-item-split { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+
+@container ui-pane (max-width: 38rem) {
+  .ui-item-split {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    row-gap: 8px;
+  }
+
+  /* Stretched, not justify-self: end — a cell sized to max-content has no slack
+   * to hand its children, and a trail carrying two inputs still overflows a
+   * phone once it has a line to itself. .ui-item-trail already right-aligns its
+   * contents, so stretching moves nothing that fits. */
+  .ui-item-split > :last-child { grid-column: 1 / -1; }
+
+  /* The floor that lets it give. A flex item's automatic minimum size pins an
+   * input at its own `width`, which is why a trail cannot shrink by default;
+   * with a floor the inputs squeeze only when the line would otherwise hang off
+   * the pane, and keep their set width whenever there is room. */
+  .ui-item-split > :last-child .ui-input { min-width: 3.5rem; }
+}
 
 /* ---------- 6. card ---------- */
 
@@ -489,16 +538,20 @@ button.ui-item,
 
 /* ---------- 11. button ---------- */
 
-/* Every variant hangs off three per-button variables, so a new intent is one
- * rule that swaps them instead of four rules that repeat the hover math. */
+/* One button, three orthogonal switches, each just swaps the same three vars:
+ *   fill    .ui-btn-solid   filled instead of outline
+ *   intent  .ui-btn-danger  red instead of brand
+ *   shape   .ui-btn-icon    square, the glyph is the whole label
+ * Nothing below repeats the hover/selected math; variants only move the vars. */
 .ui-btn {
   --btn: var(--ui-brand);
   --btn-soft: var(--ui-brand-soft);
   --btn-ink: var(--ui-brand-ink);
-  /* Text sitting on --btn-soft, not on --btn itself: the raw solid is tuned for
-   * contrast against surface-2, not against its own soft, and reads thin there.
-   * Mixed into ink rather than picked by hand so it stays one swap away — set
-   * --btn and this follows, same as -soft and -ink already do. */
+  /* Hover border color (the label keeps its rest color, so hover never tints
+   * text). Not --btn itself: the raw solid is tuned for contrast against
+   * surface-2, not against its own soft, and reads thin there. Mixed into ink
+   * rather than picked by hand so it stays one swap away — set --btn and this
+   * follows, same as -soft and -ink already do. */
   --btn-text: color-mix(in oklab, var(--btn) 94%, black);
   display: inline-flex;
   align-items: center;
@@ -519,28 +572,12 @@ button.ui-item,
   transition: background-color 0.1s, border-color 0.1s, color 0.1s;
 }
 
-/* Fills with its own soft, so the button lights up instead of jumping.
- * Same paint for hover and selected, so one selector list. */
-.ui-btn:hover,
-.ui-btn[aria-pressed='true'],
-.ui-btn[aria-current='true'],
-input:checked+.ui-btn {
-  background: var(--btn-soft);
-  border-color: var(--btn-text);
-  color: var(--btn-text);
-}
+/* --- fill / intent / shape: swap the vars, that's all --- */
 
 /* One per group: the thing you actually came to do. */
 .ui-btn-solid { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); }
 
-/* Already filled, so it deepens rather than lights up. */
-.ui-btn-solid:hover {
-  background: color-mix(in oklab, var(--btn) 86%, var(--ui-ink));
-  border-color: color-mix(in oklab, var(--btn) 86%, var(--ui-ink));
-  color: var(--btn-ink);
-}
-
-/* Destructive. Swaps the three variables, so it composes with solid and quiet. */
+/* Destructive. Swaps the three variables, so it composes with solid and icon. */
 .ui-btn-danger { --btn: var(--ui-danger); --btn-soft: var(--ui-danger-soft); --btn-ink: var(--ui-danger-ink); }
 .ui-btn-danger:not(.ui-btn-solid) { color: var(--ui-danger); }
 
@@ -549,16 +586,27 @@ input:checked+.ui-btn {
  * Phosphor stroke disappears against the border. */
 .ui-btn-icon { padding: 7px; gap: 0; }
 
-/* There is no label to tint, so a soft fill barely registers. It goes solid
- * instead — same colors as .ui-btn-solid, picked up from the same variables,
- * so the danger icon lands on red without a rule of its own. */
-.ui-btn-icon:hover { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); }
+/* --- HOVER: soft wash, momentary. Only background and border react — the label
+ *     keeps its rest color (ink for neutral, red for danger), so hover never
+ *     recolors text. Icon included: a lone glyph makes the fill faint, but the
+ *     border shifting to --btn-text still carries it. --- */
+.ui-btn:hover { background: var(--btn-soft); border-color: var(--btn-text); }
 
-/* Selected wins over hover, which paints the same thing anyway — this is only
- * here so a solid variant doesn't get washed back to soft on the way past. */
-.ui-btn-solid[aria-pressed='true'],
-.ui-btn-solid[aria-current='true'],
-input:checked+.ui-btn-solid {
+/* Solid has no soft resting state to wash, so it deepens instead. */
+.ui-btn-solid:hover {
+  background: color-mix(in oklab, var(--btn) 86%, var(--ui-ink));
+  border-color: color-mix(in oklab, var(--btn) 86%, var(--ui-ink));
+  color: var(--btn-ink);
+}
+
+/* --- SELECTED: a persistent state, so it goes solid — the standard segmented /
+ *     toggle idiom, unambiguous next to outline siblings. Fires on aria-pressed
+ *     (toggle), aria-current (segmented / nav), or :checked on a hidden input
+ *     feeding a <label class="ui-btn">. Already solid for .ui-btn-solid, and the
+ *     danger vars ride along, so no per-variant rule. --- */
+.ui-btn[aria-pressed='true'],
+.ui-btn[aria-current='true'],
+input:checked+.ui-btn {
   background: var(--btn);
   border-color: var(--btn);
   color: var(--btn-ink);

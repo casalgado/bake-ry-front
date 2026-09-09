@@ -285,6 +285,37 @@ const shuffleCascade = () => {
             </div>
           </div>
 
+          <!-- Full width: the demo pane has to be able to exceed 38rem, or only
+               the narrow half of the behaviour is ever visible. -->
+          <div class="ui-card md:col-span-2">
+            <div class="ui-card-title">Cuando la cola no cabe</div>
+            <p class="ui-card-body mb-3">
+              <code>ui-item-split</code> — el número se separa de la cola y toma
+              su propia columna. Bajo 38rem <b>de panel</b> los controles bajan a
+              su renglón y el número se queda arriba, junto al nombre. Mide el
+              <code>ui-pane</code>, no la ventana: dos paneles en 1100px son tan
+              angostos como uno en un teléfono. Arrastra la esquina del panel
+              para verlo cambiar.
+            </p>
+            <div class="ui-pane ui-pane-sunken !p-3 rounded-xl border-l-0 resize-x overflow-auto w-80 max-w-full">
+              <div class="ui-item ui-item-filled ui-item-split">
+                <span class="ui-tag">ingr</span>
+                <span class="min-w-0">
+                  <span class="ui-item-title block">Chocolate semiamargo</span>
+                  <span class="ui-item-desc">$40/g</span>
+                </span>
+                <span class="w-20 text-right shrink-0">
+                  <span class="ui-item-num ui-num">$7,200</span>
+                </span>
+                <span class="ui-item-trail">
+                  <input class="ui-input ui-input-num w-[5.5rem]" value="180" >
+                  <span class="ui-item-meta w-8 shrink-0">g</span>
+                  <button class="ui-btn ui-btn-icon ui-btn-danger"><PhX :size="12" weight="bold" /></button>
+                </span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -415,12 +446,16 @@ const shuffleCascade = () => {
         <div class="grid md:grid-cols-2 gap-6">
           <div class="ui-card">
             <div class="ui-card-title">Botones</div>
-            <p class="ui-card-body mb-3">Uno sólido por grupo: lo que viniste a hacer.</p>
+            <p class="ui-card-body mb-3">
+              Uno sólido por grupo: lo que viniste a hacer. El resto de la fila es
+              <code>ui-btn-danger</code> en contorno cuando abandona lo que hiciste,
+              y <code>ui-btn</code> a secas cuando solo cambia de modo.
+            </p>
             <div class="flex flex-wrap gap-2">
               <button class="ui-btn ui-btn-solid"><PhArrowDown :size="14" /> Ingreso</button>
               <button class="ui-btn">Producción</button>
               <button class="ui-btn">Conteo</button>
-              <button class="ui-btn">Cancelar</button>
+              <button class="ui-btn ui-btn-danger">Cancelar</button>
               <button class="ui-btn ui-btn-icon"><PhX :size="14" weight="bold" /></button>
               <button class="ui-btn" disabled>Confirmar</button>
             </div>
@@ -435,7 +470,8 @@ const shuffleCascade = () => {
             </div>
 
             <p class="ui-card-body mt-4 mb-3">
-              Seleccionado toma la misma pintura que un item o un chip actual.
+              Hover pinta con el suave; seleccionado se rellena sólido — es un
+              estado, no un movimiento.
               Se prende de tres maneras: <code>aria-pressed</code> para un
               interruptor suelto, <code>aria-current</code> para uno de una tira,
               y <code>:checked +</code> para un <code>&lt;label&gt;</code> con su

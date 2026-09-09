@@ -380,10 +380,11 @@ const reset = () => { form.value = { ...BLANK }; saved.value = ''; };
             único sólido: es a lo que viniste.
             <b class="font-semibold" style="color: var(--ui-ink)">Cancelar</b> y
             <b class="font-semibold" style="color: var(--ui-ink)">Limpiar</b> son
-            <code>ui-btn</code> a secas — cancelar no destruye nada, y pintarlo de
-            rojo gasta el color que después hace falta para
-            <b class="font-semibold" style="color: var(--ui-ink)">Eliminar</b>, que
-            sí borra el producto.
+            <code>ui-btn-danger</code> en contorno: te vas del formulario o borras
+            lo que escribiste.
+            <b class="font-semibold" style="color: var(--ui-ink)">Eliminar</b> es
+            <code>ui-btn-danger ui-btn-solid</code> — contorno contra sólido separa
+            «salir» de «borrar el producto guardado», el color es el mismo.
           </p>
 
           <form class="flex flex-col gap-3" @submit.prevent="submit">
@@ -410,8 +411,8 @@ const reset = () => { form.value = { ...BLANK }; saved.value = ''; };
                 <button class="ui-btn ui-btn-danger ui-btn-icon" type="button" aria-label="Eliminar">
                   <PhTrash :size="14" weight="bold" />
                 </button>
-                <button class="ui-btn" type="button" @click="reset">Limpiar</button>
-                <button class="ui-btn" type="button">Cancelar</button>
+                <button class="ui-btn ui-btn-danger" type="button" @click="reset">Limpiar</button>
+                <button class="ui-btn ui-btn-danger" type="button">Cancelar</button>
                 <button class="ui-btn ui-btn-solid" type="submit">Guardar</button>
               </div>
             </div>

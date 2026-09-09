@@ -725,7 +725,7 @@ async function submitForm() {
               <p v-if="formError" class="ui-item-desc">{{ formError }}</p>
 
               <div class="flex justify-end gap-1.5">
-                <button class="ui-btn" type="button" :disabled="submitting" @click="form = null">
+                <button class="ui-btn ui-btn-danger" type="button" :disabled="submitting" @click="form = null">
                   Cancelar
                 </button>
                 <button class="ui-btn ui-btn-solid" type="submit" :disabled="submitting">
