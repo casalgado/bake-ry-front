@@ -177,8 +177,17 @@ const shuffleCascade = () => {
         <div class="grid md:grid-cols-2 gap-6">
 
           <div class="ui-card">
-            <div class="ui-card-title">Con número y valor</div>
-            <div class="flex flex-col gap-1 mt-2">
+            <div class="ui-card-title">Con número y valor, bajo un ui-listhead</div>
+            <!-- El encabezado hereda el padding y el gap de .ui-item: "Valor"
+                 cae sobre la columna de pesos y "En bodega" termina donde
+                 terminan los .ui-item-num. Es la excepción — el resto de las
+                 listas nombra sus números en la línea de descripción. -->
+            <div class="ui-listhead mt-2">
+              <span class="ui-sectionhead">Ingredientes</span>
+              <span class="ui-listhead-col">En bodega</span>
+              <span class="ui-listhead-col w-20">Valor</span>
+            </div>
+            <div class="flex flex-col gap-1">
               <button
                 v-for="it in stock" :key="it.id"
                 class="ui-item" :class="itemClass(it.state)"

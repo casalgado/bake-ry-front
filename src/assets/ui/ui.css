@@ -252,16 +252,22 @@ input:focus-visible+.ui-btn {
 
 /* ---------- 4. section head ---------- */
 
-/* Small label with a hairline running to the edge. Groups rows without a box. */
-.ui-sectionhead {
+/* Small label with a hairline running to the edge. Groups rows without a box.
+ * Shares its typography with the column labels below — one set of values, or
+ * the two heads drift apart the first time someone nudges the tracking. */
+.ui-sectionhead,
+.ui-listhead-col {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+
+.ui-sectionhead {
+  margin-bottom: 8px;
   color: var(--ui-accent, var(--ui-ink-muted));
 }
 
@@ -269,6 +275,56 @@ input:focus-visible+.ui-btn {
   content: '';
   flex: 1;
   height: 1px;
+  background: var(--ui-line);
+}
+
+/* A section head that also names the trailing columns of the rows under it.
+ * The hairline runs from the shelf name to the labels.
+ *
+ * The padding is .ui-item's, the gap is .ui-item-trail's, so a label lands ON
+ * its column and not near it: the last one matches the trailing span's width,
+ * and the one before it ends where every .ui-item-num ends.
+ *
+ * That last width is the CALLER's — this class cannot see the `w-20` on the
+ * row's trailing span, so the two are matched by hand at each call site. Change
+ * either §5 number, or one of that pair without the other, and the head drifts
+ * off the numbers. */
+.ui-listhead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-inline: 12px;
+  margin-bottom: 8px;
+}
+
+/* The descendant selector is what kills the nested head's own margin: ui.css
+ * loads after Tailwind, so an `mb-0` utility at the call site would lose. */
+.ui-listhead > .ui-sectionhead { flex: 1; margin-bottom: 0; }
+
+.ui-listhead-col {
+  justify-content: flex-end;
+  color: var(--ui-ink-muted);
+}
+
+/* The hairline keeps running between the labels, not just up to the first one.
+ * It cannot be its own flex item: the gap above is exactly what holds a label
+ * over its column, so anything laid out in between would push the labels off
+ * the numbers. Instead it takes the slack INSIDE a fixed-width label's box —
+ * the same flex:1 trick as .ui-sectionhead::after — and the negative margin
+ * pulls it back across the gap so the run is continuous.
+ *
+ * It pulls back 6 of the 14, not all of it: the 8 left over are the same 8 the
+ * section head leaves between its label and its hairline, and without them the
+ * line touches the last letter of the label before it.
+ *
+ * Only on a label that follows another, and only useful on one wide enough to
+ * have slack. On an auto-width label it collapses to nothing and the margin
+ * would drag the text off its column. */
+.ui-listhead-col + .ui-listhead-col::before {
+  content: '';
+  flex: 1;
+  height: 1px;
+  margin-left: -6px;
   background: var(--ui-line);
 }
 
