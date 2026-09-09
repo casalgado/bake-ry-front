@@ -122,7 +122,7 @@ const catalogItems = computed(() => {
         combinationId: p.hasVariations ? c.id : null,
       };
       const name = p.hasVariations ? `${p.name} ${c.name}`.trim() : p.name;
-      return entryOf(item, name, 'unidad');
+      return entryOf(item, name, 'uds');
     }));
 
   return [...ingredients, ...resale].sort((a, b) => a.name.localeCompare(b.name));
@@ -436,7 +436,7 @@ function discard() {
                   :aria-invalid="!(row.qty > 0)"
                   @input="setField(row._i, 'qty', $event.target.value)"
                 >
-                <span class="ui-item-meta w-8 shrink-0">{{ row.unit }}</span>
+                <span class="ui-item-meta w-6 shrink-0">{{ row.unit }}</span>
 
                 <!-- La unidad después del primero y el $ antes del segundo: dos
                      cajas de números seguidas necesitan decir cuál es cuál sin

@@ -318,7 +318,7 @@ const shuffleCascade = () => {
                 </span>
                 <span class="ui-item-trail">
                   <input class="ui-input ui-input-num w-[5.5rem]" value="180" >
-                  <span class="ui-item-meta w-8 shrink-0">g</span>
+                  <span class="ui-item-meta w-6 shrink-0">g</span>
                   <button class="ui-btn ui-btn-icon ui-btn-danger"><PhX :size="12" weight="bold" /></button>
                 </span>
               </div>

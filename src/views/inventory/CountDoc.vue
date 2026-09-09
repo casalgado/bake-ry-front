@@ -242,7 +242,7 @@ function discard() {
                   :aria-label="'Cantidad contada de ' + row.name"
                   @input="setCounted(row.itemKey, $event.target.value)"
                 >
-                <span class="ui-item-meta w-8 shrink-0">{{ row.unit }}</span>
+                <span class="ui-item-meta w-6 shrink-0">{{ row.unit }}</span>
               </span>
             </div>
           </div>

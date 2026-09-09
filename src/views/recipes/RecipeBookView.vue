@@ -925,7 +925,7 @@ function unpin(shelfKey, id) {
 }
 
 /* A product component always resolves to a sellable unit and is always counted
- * in `unidad` — the backend re-derives both on save (resolveComponents), and
+ * in `uds` — the backend re-derives both on save (resolveComponents), and
  * its cost is the COMBINATION's costPrice, which is 0 until that combination
  * has a recipe of its own. That zero is exactly what `sin costo` flags. */
 const productChips = computed(() => {
@@ -948,13 +948,13 @@ const productChips = computed(() => {
         pinId: `${p.id}:${c.id}`,
         collection: p.collectionName,
         name,
-        unit: 'unidad',
-        meta: 'unidad',
+        unit: 'uds',
+        meta: 'uds',
         rows: [componentRow({
           type: 'product',
           id: p.id,
           combinationId: p.hasVariations ? c.id : null,
-          unit: 'unidad',
+          unit: 'uds',
           quantity: 1,
         })],
       };
@@ -1024,8 +1024,8 @@ const shelves = computed(() => {
    * ocho conservando su cantidad" no significa nada. */
   if (target) {
     /* Un producto solo se reemplaza por otro producto, y todos se cuentan en
-     * `unidad` — particionar por unidad daría "Misma unidad (unidad)" y una
-     * repisa vacía al lado. Una sola repisa dice lo mismo mejor. */
+     * `uds` — particionar por unidad daría "Misma unidad (uds)" y una repisa
+     * vacía al lado. Una sola repisa dice lo mismo mejor. */
     if (target.type === 'product') {
       return [{
         key: 'prod',
@@ -1427,7 +1427,7 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                 type="number" min="0" step="any" placeholder="0"
                 :aria-invalid="!yieldValid"
               >
-              <span class="ui-item-meta w-8 shrink-0">{{ builder.ingredient.unit }}</span>
+              <span class="ui-item-meta w-6 shrink-0">{{ builder.ingredient.unit }}</span>
             </span>
           </label>
 
@@ -1558,7 +1558,7 @@ onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
                       @focus="beginQuantityEdit(line._i)"
                       @input="setQuantity(line._i, $event.target.value)"
                     >
-                    <span class="ui-item-meta w-8 shrink-0">{{ line.unit }}</span>
+                    <span class="ui-item-meta w-6 shrink-0">{{ line.unit }}</span>
                     <!-- Alterna: pulsarlo en la fila ya armada cancela, que es
                          lo que espera quien lo pulsó por error. -->
                     <AppTooltip text="Reemplazar por otro insumo">

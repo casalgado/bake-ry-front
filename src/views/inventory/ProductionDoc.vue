@@ -110,7 +110,7 @@ const catalogItems = computed(() => {
       };
       const name = p.hasVariations ? `${p.name} ${c.name}`.trim() : p.name;
       // A product is counted in sellable units; there is no batch size to read.
-      return entryOf(item, name, 'unidad', { group: p.collectionName || 'Sin colección' });
+      return entryOf(item, name, 'uds', { group: p.collectionName || 'Sin colección' });
     }));
 
   return [...preparations, ...made].sort((a, b) => a.name.localeCompare(b.name));
@@ -401,7 +401,7 @@ function discard() {
                   :aria-invalid="!(row.qty > 0)"
                   @input="setField(row._i, 'qty', $event.target.value)"
                 >
-                <span class="ui-item-meta w-8 shrink-0">{{ row.unit }}</span>
+                <span class="ui-item-meta w-6 shrink-0">{{ row.unit }}</span>
 
                 <button
                   class="ui-btn ui-btn-icon ui-btn-danger"
