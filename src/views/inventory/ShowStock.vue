@@ -27,7 +27,7 @@ import { useIngredientStore } from '@/stores/ingredientStore';
 import { useInventoryDocsStore } from '@/stores/inventoryDocsStore';
 import { useItemCatalog, itemOfStock, SHELF_TITLES } from '@/composables/useItemCatalog';
 import { useWarehouses } from '@/composables/useWarehouses';
-import { formatMoney, formatQty, formatSignedQty } from '@/utils/helpers';
+import { formatMoney, formatUnitCost, formatQty, formatSignedQty } from '@/utils/helpers';
 import { formatDateDisplay } from '@/utils/dateUtils';
 
 const router = useRouter();
@@ -490,7 +490,15 @@ async function submitForm() {
           </div>
 
           <div v-for="shelf in shelves" :key="shelf.key" class="mb-4">
-            <div class="ui-sectionhead">{{ shelf.title }}</div>
+            <!-- Two numbers end every row here and one of them is money either
+                 way, so the shelf name shares its line with the column names.
+                 The widths come from .ui-listhead — the labels sit on the
+                 columns, not near them. -->
+            <div class="ui-listhead">
+              <span class="ui-sectionhead">{{ shelf.title }}</span>
+              <span class="ui-listhead-col">En bodega</span>
+              <span class="ui-listhead-col w-20">Valor</span>
+            </div>
 
             <TransitionGroup tag="div" name="ui-cascade" class="flex flex-col">
               <div v-for="(g, i) in shelf.items" :key="g.itemKey" :style="{ '--i': i }">
@@ -506,12 +514,21 @@ async function submitForm() {
                   <span class="ui-item-icon"><PhPackage :size="16" /></span>
                   <span class="min-w-0">
                     <span class="ui-item-title block capitalize">{{ g.name }}</span>
-                    <!-- Only with more than one bodega, and only when it says
-                         something: one holding is what the row already shows. -->
-                    <span
-                      v-if="multiWarehouse && g.rows.length > 1"
-                      class="ui-item-desc"
-                    >en {{ g.rows.length }} bodegas</span>
+                    <!-- El costo por unidad debajo del nombre, mismo lugar que
+                         en el ingreso y en el recetario. Es lo que hace legible
+                         la columna Valor: sin la tarifa, ese peso podría ser
+                         cualquiera de los dos números. -->
+                    <span class="ui-item-desc">
+                      <template v-if="g.cost === null">sin costo</template>
+                      <template v-else>
+                        <b class="ui-num">{{ formatUnitCost(g.cost) }}</b>/{{ g.unit }}
+                      </template>
+                      <!-- Only with more than one bodega, and only when it says
+                           something: one holding is what the row already shows. -->
+                      <template v-if="multiWarehouse && g.rows.length > 1">
+                        · en {{ g.rows.length }} bodegas
+                      </template>
+                    </span>
                   </span>
                   <span class="ui-item-trail">
                     <span class="ui-item-num ui-num">
@@ -573,7 +590,7 @@ async function submitForm() {
                 · costo
                 {{ selected.cost === null
                   ? '—'
-                  : formatMoney(selected.cost, { maxFractionDigits: 1 }) + '/' + selected.unit }}
+                  : formatUnitCost(selected.cost) + '/' + selected.unit }}
               </span>
             </div>
 
