@@ -27,11 +27,11 @@ import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import { usePeriodStore } from '@/stores/periodStore';
+import { useAuthenticationStore } from '@/stores/authentication';
 
 // Icons
 import {
   PhPen,
-  PhExport,
   PhTrash,
   PhMoney,
   PhClockCounterClockwise,
@@ -39,12 +39,13 @@ import {
   PhStorefront,
   PhPrinter,
   PhCopy,
+  PhDownloadSimple,
 } from '@phosphor-icons/vue';
 import { paymentIconMap } from '@/utils/paymentIcons';
 
 // Utils
 import { formatMoney } from '@/utils/helpers';
-import { exportOrders } from '@/utils/exportOrders';
+import { exportOrders, exportOrderClientsPreset, clientExportPreset } from '@/utils/exportOrders';
 
 // Router
 const router = useRouter();
@@ -53,7 +54,11 @@ const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const settingsStore = useBakerySettingsStore();
 const systemSettingsStore = useSystemSettingsStore();
+const authStore = useAuthenticationStore();
 const b2bClients = ref([]);
+
+// Non-null only for bakeries listed in CLIENT_EXPORT_PRESETS (es-alimento → B2Chat).
+const exportPreset = computed(() => clientExportPreset(authStore.getBakeryId));
 
 // Dialog state
 const isFormOpen = ref(false);
@@ -179,6 +184,11 @@ const {
       // Export selected orders if any, otherwise export all visible orders
       const ordersToExport = selectedItems.length > 0 ? selectedItems : tableData.value;
       exportOrders(ordersToExport);
+      break;
+    }
+    case 'export-preset': {
+      const ordersToExport = selectedItems.length > 0 ? selectedItems : tableData.value;
+      exportOrderClientsPreset(ordersToExport, authStore.getBakeryId);
       break;
     }
     }
@@ -341,7 +351,7 @@ const tableFilters = computed(() => [
   },
 ]);
 
-const tableActions = [
+const tableActions = computed(() => [
   {
     id: 'edit',
     label: 'Editar',
@@ -384,11 +394,20 @@ const tableActions = [
   {
     id: 'export',
     label: 'Exportar',
-    icon: PhExport,
+    icon: PhDownloadSimple,
     minSelected: 0,
     variant: 'primary',
   },
-];
+  ...(exportPreset.value
+    ? [{
+      id: 'export-preset',
+      label: exportPreset.value.label,
+      icon: PhDownloadSimple,
+      minSelected: 0,
+      variant: 'primary',
+    }]
+    : []),
+]);
 
 const handleSubmit = async (formData) => {
   try {

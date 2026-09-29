@@ -1225,23 +1225,33 @@ const CLIENT_EXPORT_PRESETS = {
 // button in ClientPersistencyReport. Standard export stays available regardless.
 const clientExportPreset = (bakeryId) => CLIENT_EXPORT_PRESETS[bakeryId] || null;
 
-const exportClientList = (clients, { bakeryId, preset, groupHeader, segment, filenameStem, period, count, periodColumns }) => {
-  const presetDef = preset ? CLIENT_EXPORT_PRESETS[bakeryId] : null;
-  const { headers, rows, cols } = presetDef
-    ? presetDef.build(clients)
-    : buildStandardClientSheet(clients, { groupHeader, segment, periodColumns });
-
+const writeClientSheet = ({ headers, rows, cols }, filename) => {
   const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   worksheet['!cols'] = cols.map((width) => ({ width }));
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Clientes');
+  XLSX.writeFile(workbook, filename);
+};
+
+const exportClientList = (clients, { bakeryId, preset, groupHeader, segment, filenameStem, period, count, periodColumns }) => {
+  const presetDef = preset ? CLIENT_EXPORT_PRESETS[bakeryId] : null;
+  const sheet = presetDef
+    ? presetDef.build(clients)
+    : buildStandardClientSheet(clients, { groupHeader, segment, periodColumns });
 
   const unit = UNIT_PLURAL[period] || period;
   const today = new Date().toISOString().split('T')[0];
   const stem = presetDef ? `${filenameStem}-b2chat` : filenameStem;
-  const filename = `${stem}_${segment}_ultimos-${count}-${unit}_${today}.xlsx`;
-  XLSX.writeFile(workbook, filename);
+  writeClientSheet(sheet, `${stem}_${segment}_ultimos-${count}-${unit}_${today}.xlsx`);
 };
 
-export { exportOrders, exportProducts, exportPaymentReport, exportProductReport, exportIncomeStatement, exportClientList, clientExportPreset };
+// One contact per client: a period repeats the same user across many orders.
+const exportOrderClientsPreset = (orders, bakeryId) => {
+  const presetDef = CLIENT_EXPORT_PRESETS[bakeryId];
+  const clients = [...new Map(orders.map((o) => [o.userId, { name: o.userName, phone: o.userPhone }])).values()];
+  const today = new Date().toISOString().split('T')[0];
+  writeClientSheet(presetDef.build(clients), `pedidos-${presetDef.label.toLowerCase()}_${today}.xlsx`);
+};
+
+export { exportOrders, exportProducts, exportPaymentReport, exportProductReport, exportIncomeStatement, exportClientList, exportOrderClientsPreset, clientExportPreset };
