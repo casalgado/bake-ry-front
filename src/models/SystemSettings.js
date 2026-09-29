@@ -18,16 +18,28 @@ class SystemSettings extends BaseModel {
     { key: 'refrigerated', value: 'Refrigerated' },  // or 'chilled'
     { key: 'frozen', value: 'Frozen' },
   ];
+  /* El vocabulario de unidades del front, espejo del de
+   * `bake-ry/functions/src/models/SystemSettings.js`. Los dos tienen que decir
+   * lo mismo: este es el default local y aquel es el que llega en
+   * settings.unitOptions, y un símbolo que solo exista en uno se guarda en
+   * documentos que el otro no sabe leer.
+   *
+   * Todo consumidor del front sale de aquí — `UNIT_OPTIONS` en utils/helpers.js
+   * es esta misma lista reexportada, no una copia.
+   *
+   * Sigue siendo global: cuando una panadería necesite sus propias unidades,
+   * esto pasa a su documento de settings y esta lista queda de default. */
   static UNIT_OPTIONS = [
-
     { symbol: 'g', name: 'Gramo', type: 'weight', template: 'WEIGHT' },
+    { symbol: 'kg', name: 'Kilogramo', type: 'weight', template: 'WEIGHT' },
     { symbol: 'lb', name: 'Libra', type: 'weight', template: 'WEIGHT' },
 
     { symbol: 'ml', name: 'Mililitro', type: 'volume', template: 'WEIGHT' },
+    { symbol: 'L', name: 'Litro', type: 'volume', template: 'WEIGHT' },
+
     { symbol: 'uds', name: 'Unidades', type: 'count', template: 'QUANTITY' },
     { symbol: 'dz', name: 'Docena', type: 'count', template: 'QUANTITY' },
-    { symbol: 'pkt', name: 'Paquete', type: 'count', template: 'QUANTITY' },
-
+    { symbol: 'paq', name: 'Paquete', type: 'count', template: 'QUANTITY' },
   ];
 
   static AVAILABLE_PAYMENT_METHODS = [

@@ -164,16 +164,27 @@ the position menu), static elsewhere.
   says what you *can* do).
 - Reset `margin`/`padding` for the same `custom-components.css` leak.
 
-### `.ui-menu` — the small floating panel
+### `.ui-popover` — the small floating panel
 For the "move to position" dropdown. Nothing covers this today: §15 states the tooltip is
 the only component that floats and therefore the only one carrying a shadow. This is its
-interactive sibling.
+interactive sibling, and the name says so — a tooltip passively describes and cannot be
+clicked (`pointer-events: none`, an arrow), a popover holds content you use.
+
+Deliberately **not** `ui-menu`: in ARIA a menu is `role="menu"` with `role="menuitem"`
+children, arrow-key navigation and a roving tabindex. This panel holds a `<select>` and
+never will be that, and a class name promising semantics the markup does not have is how
+a wrong `role` gets added later. Also not `ui-panel` — `ui-pane` / `ui-panehead` already
+exist and mean a column of the `ui-panes` grid.
 
 - `background: var(--ui-surface-3)`, `border: 1px solid var(--ui-line-strong)`,
   `border-radius: 9px`, the same shadow as `.ui-tooltip`
   (`0 6px 20px color-mix(in srgb, var(--ui-ink) 18%, transparent)`), `padding: 8px`.
 - **No `position`, no `z-index`.** That is arrangement and belongs to the call site in
   Tailwind (`absolute z-10 mt-1 w-36`), the same way `AppTooltip` sets its own inline.
+- **The name is not the native `popover` attribute**, and this must not be "upgraded" to
+  it. A native popover renders in the top layer, which breaks `position: absolute` against
+  an ancestor, and CSS anchor positioning is not universally supported yet. Say so in the
+  class comment.
 - **Click-outside does not change.** It is JavaScript (`VariationsManager.vue:581-609` —
   the `Map`, the `watch`, the `document` listener), not CSS. This class only paints the
   panel; the listener stays verbatim.
@@ -181,8 +192,8 @@ interactive sibling.
 ### Gallery (rule 10 — a class not in `/system-admin/ux` does not exist)
 New section in `UxView.vue`, after "11—12 · Botones y campos". One `ui-card` containing: a
 `ui-item` row showing badge + nudge + name (the real use — reordering a list), an open,
-static `ui-menu` beside it, and one line stating that click-outside belongs to the call site
-and not to the class. Wire minimal reactive state so the arrows actually move rows —
+static `ui-popover` beside it, and one line stating that click-outside belongs to the call
+site and not to the class. Wire minimal reactive state so the arrows actually move rows —
 `UxView` already does this with `counted` and `cascadeRows`.
 
 **Verify:** open `/system-admin/ux`, toggle light/dark, Tab through to confirm the focus
@@ -336,7 +347,7 @@ collapse its group.
 | `YesNoToggle` (whole grain) | yes/no pills; keep the `(value) => toggleWholeGrainForDimension(dim.id, value)` handler, now fired from `@change` |
 | option row `bg-neutral-50` / `bg-neutral-150` (whole grain) | `div.ui-item.ui-item-filled`; mark whole-grain with a `span.ui-tag` (rule 5), not an amber fill |
 | option position badge (a button) | `button.ui-badge-num` (**Phase 1**) |
-| dropdown panel `bg-white border shadow-lg` | `div.ui-menu` (**Phase 1**) + the Tailwind positioning it already has |
+| dropdown panel `bg-white border shadow-lg` | `div.ui-popover` (**Phase 1**) + the Tailwind positioning it already has |
 | `select` inside the dropdown | `select.ui-input` |
 | X button removing an option | `button.ui-btn.ui-btn-icon.ui-btn-danger` with an `aria-label` |
 | `.utility-btn` "Agregar Opción" | `button.ui-btn` |
@@ -345,7 +356,7 @@ collapse its group.
 **Click-outside does not change.** `handleClickOutside`, the `watch` on
 `optionPositionDropdowns` and the `document` listener stay verbatim; the
 `.position-dropdown-container` selector stays in the markup as the JS hook, sitting
-alongside `ui-menu`.
+alongside `ui-popover`.
 
 `<style scoped>` ends up nearly empty: drop `.position-badge`, `.arrow-button`,
 `.option-item`, `.reordering`, `.position-badge-wrapper`, `.dimension-card` and

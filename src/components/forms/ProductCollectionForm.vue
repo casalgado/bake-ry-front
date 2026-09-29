@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { cleanString, getVariationTypeLabel, capitalize } from '@/utils/helpers';
+import SystemSettings from '@/models/SystemSettings';
 import { useRouter } from 'vue-router';
 import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import TemplateVariation from '@/components/TemplateVariation.vue';
@@ -100,15 +101,10 @@ const systemDefaultTemplates = computed(() => {
 
 // Get available unit options from system settings, filtered by template
 const unitPillOptions = computed(() => {
-  const fallbackOptions = [
-    { symbol: 'Kg', name: 'Kilogram', type: 'weight', template: 'WEIGHT' },
-    { symbol: 'g', name: 'Gram', type: 'weight', template: 'WEIGHT' },
-    { symbol: 'L', name: 'Liter', type: 'volume', template: 'WEIGHT' },
-    { symbol: 'ml', name: 'Milliliter', type: 'volume', template: 'WEIGHT' },
-    { symbol: 'uds', name: 'Units', type: 'count', template: 'QUANTITY' },
-    { symbol: 'docena', name: 'Dozen', type: 'count', template: 'QUANTITY' },
-    { symbol: 'paquete', name: 'Package', type: 'count', template: 'QUANTITY' },
-  ];
+  /* El mismo vocabulario que sirve el servidor, no una copia con otros
+   * símbolos: el símbolo que elijas aquí se GUARDA en la colección, así que una
+   * lista propia hacía que el valor dependiera de si settings había cargado. */
+  const fallbackOptions = SystemSettings.UNIT_OPTIONS;
 
   const allOptions = systemSettingsStore.isLoaded
     ? (systemSettingsStore.unitOptions || fallbackOptions)

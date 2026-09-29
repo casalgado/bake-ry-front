@@ -1,3 +1,5 @@
+import SystemSettings from '@/models/SystemSettings';
+
 const abbreviateText = (text, options = {}) => {
   const defaultOptions = {
     singleWordLength: 4,
@@ -169,18 +171,8 @@ const formatQty = (value) =>
 const formatSignedQty = (value) =>
   `${value > 0 ? '+' : ''}${formatQty(value)}`;
 
-/* Units are bakery data with no home yet — settings carries no `unitOptions`
- * and BakerySettings declares no default — so this list is the de-facto
- * source. Move it onto settings when a bakery needs its own. */
-const UNIT_OPTIONS = [
-  { symbol: 'g', name: 'Gramo' },
-  { symbol: 'kg', name: 'Kilogramo' },
-  { symbol: 'ml', name: 'Mililitro' },
-  { symbol: 'L', name: 'Litro' },
-  { symbol: 'uds', name: 'Unidad' },
-  { symbol: 'dz', name: 'Docena' },
-  { symbol: 'paq', name: 'Paquete' },
-];
+// Reexportado, nunca copiado — el porqué está en SystemSettings.UNIT_OPTIONS.
+const UNIT_OPTIONS = SystemSettings.UNIT_OPTIONS;
 
 function formatTime(time24) {
   const [hours, minutes] = time24.split(':');

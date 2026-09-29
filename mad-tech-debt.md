@@ -345,3 +345,99 @@ and the dead `getDisplayName` probe goes with them.
 
 A fourth caller appears, or either `ItemsCell` is touched for another reason.
 It's a move, not a redesign — worth doing while you're already in the file.
+
+---
+
+## 6. `utils/helpers.js` imports from `models`
+
+**Where**
+
+- `src/utils/helpers.js:1` — `import SystemSettings from '@/models/SystemSettings'`
+- `src/utils/helpers.js:175` — `const UNIT_OPTIONS = SystemSettings.UNIT_OPTIONS`
+
+**Status:** deferred, not fixed. Documented 2026-09-29.
+
+### The story
+
+Units now have one source, `SystemSettings.UNIT_OPTIONS`, and `helpers.js`
+re-exports it so `IngredientCreateCard.vue` keeps its import. That points a util
+at a model, while `BakerySettings`, `Combination`, `Order`, `ProductCollection`,
+`ProductVariation`, `User` and `VariationGroups` all point the other way.
+
+### What it breaks
+
+Nothing today: `SystemSettings` and `BaseModel` import nothing from `helpers`, so
+there is no cycle. The day `SystemSettings` needs `generateId` or `capitalize`,
+`UNIT_OPTIONS` evaluates to `undefined` at load time, with no error.
+
+### The fix
+
+Drop the `UNIT_OPTIONS` export from `helpers.js` and have
+`IngredientCreateCard.vue:13` import `SystemSettings.UNIT_OPTIONS` directly.
+
+### Pay it off when
+
+`SystemSettings` needs anything from `helpers`, or `IngredientCreateCard.vue` is
+touched for another reason.
+
+---
+
+## 7. The ingredient dropdown gained `lb` without anyone deciding it
+
+**Where**
+
+- `src/components/recipes/IngredientCreateCard.vue:295`
+- `src/models/SystemSettings.js:32` — `UNIT_OPTIONS`
+
+**Status:** deferred, not verified. Documented 2026-09-29.
+
+### The story
+
+Unifying the unit lists made `UNIT_OPTIONS` the union of the front and the
+backend. The old `helpers.js` list had no `lb`; the backend one does. So the
+ingredient create dropdown now offers Libra as a side effect of a refactor.
+
+### What it breaks
+
+Unknown. If recipe or ingredient cost math assumes only `g`, `kg`, `ml`, `L`,
+`uds`, `dz` and `paq`, an ingredient saved as `lb` prices wrong.
+
+### The fix
+
+Check how `formatUnitCost` and the recipe cost code treat `lb`. Either support it
+or filter it out of this dropdown.
+
+### Pay it off when
+
+Before Existencias ships, same reason as #4: stock arithmetic on an unhandled
+unit is a wrong number.
+
+---
+
+## 8. Collections saved with the old unit symbols match no pill
+
+**Where**
+
+- `src/components/forms/ProductCollectionForm.vue:101` — `unitPillOptions`
+- stored `defaultUnit` on product collections
+
+**Status:** deferred, count unknown. Documented 2026-09-29.
+
+### The story
+
+The form's fallback list used `Kg`, `docena`, `paquete`, and the front
+`UNIT_OPTIONS` used `pkt`. The unified list uses `kg`, `dz` and `paq`. A
+collection saved with an old spelling has a `defaultUnit` that no pill carries,
+so it opens with nothing selected.
+
+Same family as #4: one unit, several spellings in stored data.
+
+### The fix
+
+Count collections whose `defaultUnit` is not in `UNIT_OPTIONS`, then migrate:
+`Kg → kg`, `docena → dz`, `paquete → paq`, `pkt → paq`. Fold it into the #4
+migration so the data is touched once.
+
+### Pay it off when
+
+Together with #4, before Existencias ships.
