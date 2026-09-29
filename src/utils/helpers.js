@@ -211,6 +211,13 @@ const capitalize = (str) => {
     .join(' ');
 };
 
+// An order item as a human reads it: category, product, combination.
+const itemLabel = (item) => [
+  item.collectionName,
+  item.productName,
+  item.combination?.name || item.combination?.selection?.join(' + ') || item.variation?.name,
+].filter(Boolean).map(capitalize).join(' ');
+
 // Keep the categoryOrder map
 const categoryOrder = {
   'sourdough': 1,
@@ -326,6 +333,7 @@ export {
   parseSpanishName,
   generateId,
   capitalize,
+  itemLabel,
   formatMoney,
   formatUnitCost,
   formatQty,

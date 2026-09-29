@@ -58,6 +58,14 @@ const router = createRouter({
       },
     },
     {
+      path: '/print-delivery',
+      name: 'print-delivery',
+      component: () => import('../views/orders/PrintDeliverySheet.vue'),
+      meta: {
+        requiresAuth: true,
+      },
+    },
+    {
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('../views/dashboard/AdminDashboard.vue'),

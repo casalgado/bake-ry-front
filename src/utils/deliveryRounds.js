@@ -5,10 +5,13 @@ const DELIVERY_ROUNDS_BY_BAKERY = {
   'es-alimento-dev': ES_ALIMENTO_ROUNDS,
 };
 
+// Round n (1-based) is labels[n - 1]; undefined for bakeries without rounds.
+export const deliveryRoundLabels = (bakeryId) => DELIVERY_ROUNDS_BY_BAKERY[bakeryId];
+
 // Spread into a DataTable's columns: [] for bakeries without rounds.
 // 0 (unassigned) is last so an order with no value moves to round 1 on first click.
 export const deliveryRoundColumns = (bakeryId) => {
-  const labels = DELIVERY_ROUNDS_BY_BAKERY[bakeryId];
+  const labels = deliveryRoundLabels(bakeryId);
   if (!labels) return [];
 
   return [{
@@ -26,7 +29,7 @@ export const deliveryRoundColumns = (bakeryId) => {
 
 // Spread into a DataTable's filters: [] for bakeries without rounds.
 export const deliveryRoundFilters = (bakeryId) => {
-  const labels = DELIVERY_ROUNDS_BY_BAKERY[bakeryId];
+  const labels = deliveryRoundLabels(bakeryId);
   if (!labels) return [];
 
   return [{

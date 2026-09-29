@@ -2,6 +2,7 @@
 // Vue and Headless UI
 import { ref, watch } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
+import { useRouter } from 'vue-router';
 
 // DataTable Core
 import DataTable from '@/components/DataTable/index.vue';
@@ -26,7 +27,7 @@ import { usePeriodStore } from '@/stores/periodStore';
 import { useAuthenticationStore } from '@/stores/authentication';
 
 // Utils
-import { deliveryRoundColumns, deliveryRoundFilters } from '@/utils/deliveryRounds';
+import { deliveryRoundColumns, deliveryRoundFilters, deliveryRoundLabels } from '@/utils/deliveryRounds';
 
 // Icons
 import {
@@ -41,8 +42,10 @@ import {
   PhMopedFront,
   PhBuilding,
   PhOven,
+  PhPrinter,
 } from '@phosphor-icons/vue';
 
+const router = useRouter();
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const settingsStore = useBakerySettingsStore();
@@ -139,6 +142,11 @@ const {
       editingAddress.value = items[0].deliveryAddress || '';
       isAddressDialogOpen.value = true;
       break;
+    case 'print_route': {
+      const orderIds = items.map((order) => order.id).join(',');
+      window.open(router.resolve({ name: 'print-delivery', query: { orderIds } }).href, '_blank');
+      break;
+    }
     }
   },
 });
@@ -307,6 +315,13 @@ const tableActions = [
     maxSelected: 1,
     variant: 'primary',
   },
+  ...(deliveryRoundLabels(authStore.getBakeryId) ? [{
+    id: 'print_route',
+    label: 'Imprimir Ruta',
+    icon: PhPrinter,
+    minSelected: 1,
+    variant: 'primary',
+  }] : []),
 ];
 // Dialog handlers
 const handleDeliveryPriceSubmit = async () => {

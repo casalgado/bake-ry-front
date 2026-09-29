@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/vue';
 import { useOrderStore } from '@/stores/orderStore';
-import { formatMoney, capitalize } from '@/utils/helpers';
+import { formatMoney, itemLabel } from '@/utils/helpers';
 import { formatDateDisplay } from '@/utils/dateUtils';
 
 const props = defineProps({
@@ -20,13 +20,6 @@ const error = ref(null);
 const expandedIds = ref(new Set());
 
 const closeDialog = () => emit('update:isOpen', false);
-
-// category product combination (combination optional)
-const itemLabel = (item) => [
-  item.collectionName,
-  item.productName,
-  item.combination?.name || item.combination?.selection?.join(' + ') || item.variation?.name,
-].filter(Boolean).map(capitalize).join(' ');
 
 const toggleExpand = (id) => {
   const ids = expandedIds.value;

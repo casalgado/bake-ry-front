@@ -297,15 +297,16 @@ ingredients first.
 
 ---
 
-## 5. The order-item label is written out three times
+## 5. The order-item label is still written out in both ItemsCells
 
 **Where**
 
 - `src/components/DataTable/renderers/ItemsCell.vue:31`
 - `src/components/DataCalendar/renderers/ItemsCell.vue:31`
-- `src/components/orders/ClientHistoryModal.vue:25` — `itemLabel`
 
-**Status:** deferred, not fixed. Documented 2026-09-01.
+**Status:** half paid. `itemLabel` lives in `src/utils/helpers.js`, used by
+`ClientHistoryModal.vue` and `PrintDeliverySheet.vue` (2026-09-29). The two
+`ItemsCell.vue` copies remain. Documented 2026-09-01.
 
 ### The story
 
@@ -337,13 +338,13 @@ same order reads differently in the table than in the client history.
 
 ### The fix
 
-Move `itemLabel` from `ClientHistoryModal.vue` into `@/utils/helpers` and import
-it in all three. Net deletion — two long template expressions collapse to a call,
-and the dead `getDisplayName` probe goes with them.
+Import `itemLabel` from `@/utils/helpers` in both `ItemsCell.vue`. Net deletion —
+two long template expressions collapse to a call, and the dead `getDisplayName`
+probe goes with them.
 
 ### Pay it off when
 
-A fourth caller appears, or either `ItemsCell` is touched for another reason.
+Either `ItemsCell` is touched for another reason.
 It's a move, not a redesign — worth doing while you're already in the file.
 
 ---
@@ -450,6 +451,8 @@ Together with #4, before Existencias ships.
 
 - `src/utils/deliveryRounds.js` — `DELIVERY_ROUNDS_BY_BAKERY`
 - used by `ShowDelivery.vue` and `ShowOrders.vue`
+- also gates the "Imprimir Ruta" action in `ShowDelivery.vue` and labels the
+  groups in `src/views/orders/PrintDeliverySheet.vue`
 - *(backend)* `functions/src/models/Order.js` — `deliveryRound`
 - sibling hardcode for the same client: `src/utils/exportOrders.js` — `CLIENT_EXPORT_PRESETS`
 
