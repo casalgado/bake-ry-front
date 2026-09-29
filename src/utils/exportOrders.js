@@ -466,7 +466,7 @@ const createPaymentEntries = (orders) => {
 };
 
 // Function to transform payment entry into rows (similar to the original order export)
-const transformPaymentEntryToRows = (entry, entryIndex) => {
+const transformPaymentEntryToRows = (entry, entryIndex, b2bClientIds) => {
   const order = entry.order;
 
   const baseRow = {
@@ -477,6 +477,7 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
       : '',
     tipo_pago: entry.paymentType,
     cliente: order.userName || '',
+    segmento: b2bClientIds.has(order.userId) ? 'B2B' : 'B2C',
     razon_social: order.userLegalName || '',
     correo: order.userEmail || '',
     nationalId: order.userNationalId || '',
@@ -503,6 +504,7 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
         fecha_pedido: '',
         tipo_pago: '',
         cliente: '',
+        segmento: '',
         razon_social: '',
         correo: '',
         nationalId: '',
@@ -576,13 +578,14 @@ const transformPaymentEntryToRows = (entry, entryIndex) => {
 const exportPaymentReport = (orders, options = {}) => {
   // Ensure orders is an array
   const ordersArray = Array.isArray(orders) ? orders : [];
+  const b2bClientIds = new Set((options.b2bClients || []).map(client => client.id));
 
   // Create payment entries following the same logic as the Vue component
   const paymentEntries = createPaymentEntries(ordersArray);
 
   // Transform all payment entries into rows
   const allRows = paymentEntries.flatMap((entry, entryIndex) =>
-    transformPaymentEntryToRows(entry, entryIndex),
+    transformPaymentEntryToRows(entry, entryIndex, b2bClientIds),
   );
 
   // Add a global index to each row
@@ -602,6 +605,7 @@ const exportPaymentReport = (orders, options = {}) => {
     { width: 12 }, // fecha_pedido
     { width: 12 }, // tipo_pago
     { width: 20 }, // cliente
+    { width: 8 }, // segmento
     { width: 25 }, // razon_social
     { width: 25 }, // correo
     { width: 15 }, // nationalId

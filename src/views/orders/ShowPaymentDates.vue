@@ -267,7 +267,7 @@ onMounted(async () => {
 });
 
 const handleExportWithClients = () => {
-  exportPaymentReport(orderStore.items);
+  exportPaymentReport(orderStore.items, { b2bClients: b2bClients.value });
 };
 
 const handleExportProducts = () => {
