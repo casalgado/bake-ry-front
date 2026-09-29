@@ -46,6 +46,7 @@ import { paymentIconMap } from '@/utils/paymentIcons';
 // Utils
 import { formatMoney } from '@/utils/helpers';
 import { exportOrders, exportOrderClientsPreset, clientExportPreset } from '@/utils/exportOrders';
+import { deliveryRoundColumns, deliveryRoundFilters } from '@/utils/deliveryRounds';
 
 // Router
 const router = useRouter();
@@ -332,6 +333,7 @@ const columns = computed(() => [
       { value: 'delivery', displayText: 'D', icon: PhMopedFront },
     ],
   },
+  ...deliveryRoundColumns(authStore.getBakeryId),
 ]);
 
 const tableFilters = computed(() => [
@@ -349,6 +351,7 @@ const tableFilters = computed(() => [
       value: method.value,
     })),
   },
+  ...deliveryRoundFilters(authStore.getBakeryId),
 ]);
 
 const tableActions = computed(() => [

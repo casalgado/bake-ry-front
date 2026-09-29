@@ -441,3 +441,42 @@ migration so the data is touched once.
 ### Pay it off when
 
 Together with #4, before Existencias ships.
+
+---
+
+## 9. Delivery rounds are hardcoded for one client
+
+**Where**
+
+- `src/utils/deliveryRounds.js` — `DELIVERY_ROUNDS_BY_BAKERY`
+- used by `ShowDelivery.vue` and `ShowOrders.vue`
+- *(backend)* `functions/src/models/Order.js` — `deliveryRound`
+- sibling hardcode for the same client: `src/utils/exportOrders.js` — `CLIENT_EXPORT_PRESETS`
+
+**Status:** deliberate. Documented 2026-09-29.
+
+### The story
+
+One client sends drivers out three times a day and wants a "Ruta" column on
+Entrega and Pedidos saying which run each order leaves on. Only they need it, so
+their bakeryIds (prod and dev) and three labels live in a const in
+`deliveryRounds.js`. Any other bakery misses the lookup and gets the table
+unchanged.
+
+The order stores the round number (`deliveryRound`: 0 unassigned, 1–3), never
+the time. Labels can change without touching data, and sorting follows the round.
+
+### What it breaks
+
+Nothing. A second client, or this one changing their times, needs a code deploy
+instead of a settings edit.
+
+### The fix
+
+Move the labels into `BakerySettings` (backend model whitelists fields, so add
+it there), have `deliveryRoundColumns` read them, delete the const. Stored
+`deliveryRound` values stay as they are.
+
+### Pay it off when
+
+A second client asks, or this one wants to change their times themselves.

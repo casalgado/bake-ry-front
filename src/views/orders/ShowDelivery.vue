@@ -23,6 +23,10 @@ import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { usePeriodStore } from '@/stores/periodStore';
+import { useAuthenticationStore } from '@/stores/authentication';
+
+// Utils
+import { deliveryRoundColumns, deliveryRoundFilters } from '@/utils/deliveryRounds';
 
 // Icons
 import {
@@ -42,6 +46,7 @@ import {
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const settingsStore = useBakerySettingsStore();
+const authStore = useAuthenticationStore();
 
 // Dialog states
 const isFormOpen = ref(false);
@@ -225,6 +230,7 @@ const columns = [
       { value: 'delivery', displayText: 'D', icon: PhMopedFront },
     ],
   },
+  ...deliveryRoundColumns(authStore.getBakeryId),
   {
     id: 'isDeliveryPaid',
     label: 'Domi',
@@ -251,6 +257,8 @@ const columns = [
     ],
   },
 ];
+
+const tableFilters = deliveryRoundFilters(authStore.getBakeryId);
 
 // Table actions
 const tableActions = [
@@ -652,6 +660,7 @@ watch(
         :key="deliveryDrivers.length"
         :data="tableData"
         :columns="columns"
+        :filters="tableFilters"
         :actions="tableActions"
         :action-loading="actionLoading"
         :toggle-loading="toggleLoading"
