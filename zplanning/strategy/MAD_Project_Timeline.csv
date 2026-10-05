@@ -1,0 +1,48 @@
+MAD — Project Timeline & Task Tracker,,,,,,,,,,,
+Documento compartido con socio  ·  Última actualización: Junio 2026,,,,,,,,,,,
+ESTADO:,✅ Listo,⏳ En progreso,❌ Pendiente,🔵 Beto,🟠 Laura,🟢 Ambos,,,,,
+⚡ ÁREA TÉCNICA / PRODUCTO — Responsable principal: Beto,,,,,,,,,,,
+Tarea / Módulo,Categoría,Responsable,Estado,Fecha inicio,Fecha límite,% Avance,Prioridad,Dependencias,Notas / Comentarios,Mes target,Semana
+Módulo Caja diaria — desarrollo,Producto,🔵 Beto,❌ Pendiente,,,0,🔴 Alta,—,"Ingresos, egresos, cierre diario y mensual",2,S1–S2
+Módulo Inventarios — desarrollo,Producto,🔵 Beto,⏳ En progreso,Jun 2026,,75%,🔴 Alta,Módulo Caja,"Stock ingredientes, compras, descuento automático",2,S2–S3
+Módulo Recetas — desarrollo,Producto,🔵 Beto,⏳ En progreso,Jun 2026,,75%,🔴 Alta,Inventarios,"Vinculadas a productos, costo producción automático",3,S1–S2
+IA Chatbot WhatsApp — investigación,IA / Integración,🔵 Beto,⏳ En progreso,Jun 2026,,90%,🔴 Alta,—,"Revisar APIs: WhatsApp Business, Twilio, Meta Cloud API",2,S1
+IA Chatbot WhatsApp — arquitectura,IA / Integración,🔵 Beto,⏳ En progreso,Jun 2026,,50%,🔴 Alta,Investigación IA,"Definir LLM, flujo de pedido por chat, manejo de errores",3,S1–S2
+IA Chatbot WhatsApp — desarrollo MVP,IA / Integración,🔵 Beto,⏳ En progreso,Jun 2026,,10%,🔴 Alta,Arquitectura IA,Recibir pedido en lenguaje natural y crear en MAD,4,S1–S3
+IA Chatbot WhatsApp — pruebas piloto,IA / Integración,🟢 Ambos,❌ Pendiente,Jun 2026,,0%,🟡 Media,Dev MVP IA,Pruebas con 2–3 negocios reales antes de lanzar,5,S1–S2
+PayU suscripción automática — integración,Producto,🔵 Beto,❌ Pendiente,,,0%,🔴 Alta,—,"Cobros automáticos mensuales, tokenización tarjetas",3,S2–S3
+Sistema de suscripción y planes — backend,Producto,🔵 Beto,❌ Pendiente,Jul 2026,Ago 2026,0%,🔴 Alta,PayU integración,Activar/desactivar módulos según plan del cliente,3,S3–S4
+Onboarding flow simplificado,Producto,🟢 Ambos,❌ Pendiente,Ago 2026,Sep 2026,0%,🔴 Alta,Planes backend,"Registro, configuración inicial, carga de catálogo",4,S1–S2
+Reporte ejecutivo multi-sede (Enterprise),Producto,🔵 Beto,❌ Pendiente,Sep 2026,Oct 2026,0%,🟡 Media,—,Dashboards comparativos entre negocios,5,S2–S3
+API pública — diseño y documentación,Producto,🔵 Beto,❌ Pendiente,Oct 2026,Nov 2026,0%,🟡 Media,—,Para integraciones externas Enterprise,6,S1–S2
+Integración contable Siigo/Alegra,Integración,🔵 Beto,❌ Pendiente,Ene 2027,Mar 2027,0%,🟢 Baja,API pública,Roadmap 2027 — sincronizar facturas y pagos,9,S1–S3
+QA y testing módulos nuevos,QA,🔵 Beto,❌ Pendiente,Ago 2026,Sep 2026,0%,🔴 Alta,"Caja, Inventarios, Recetas",Pruebas funcionales antes de entregar a clientes piloto,4,S3–S4
+Optimización performance y bugs,Producto,🔵 Beto,⏳ En progreso,Jun 2026,Permanente,—,🟡 Media,—,Revisión continua de estabilidad y velocidad,Continuo,—
+,,,,,,,,,,,
+⚖️  ÁREA JURÍDICA / ADMINISTRATIVA — Responsable principal: Tú,,,,,,,,,,,
+Tarea / Módulo,Categoría,Responsable,Estado,Fecha inicio,Fecha límite,% Avance,Prioridad,Dependencias,Notas / Comentarios,Mes target,Semana
+Acuerdo de socios — redacción,Legal,🟢 Ambos,❌ Pendiente,Jun 2026,Jun 2026,0%,🔴 Alta,—,"Participación 50/50, vesting, salida, decisiones clave",1,S2
+Respuesta del contador,Tributario,🟠 Tú,⏳ En progreso,Jun 2026,Jun 2026,50%,🔴 Alta,—,"Estructura legal, IVA, honorarios, gastos tributarios",1,S2
+Constitución SAS — Cámara de Comercio,Legal,🟠 Tú,❌ Pendiente,Jun 2026,Jul 2026,0%,🔴 Alta,Acuerdo socios + Contador,"Registro online, capital mínimo recomendado por contador",1–2,S3–S4
+Obtención NIT — DIAN,Tributario,🟠 Tú,❌ Pendiente,Jul 2026,Jul 2026,0%,🔴 Alta,Constitución SAS,Registro como responsable de IVA desde el inicio,2,S1
+Apertura cuenta bancaria empresarial,Financiero,🟠 Tú,❌ Pendiente,Jul 2026,Jul 2026,0%,🔴 Alta,NIT,"Bancolombia, Nequi Empresas o Davivienda digital",2,S1–S2
+Habilitación facturación electrónica — DIAN,Tributario,🟠 Tú,❌ Pendiente,Jul 2026,Jul 2026,0%,🔴 Alta,NIT + Cuenta bancaria,Registro proveedor tecnológico (Alegra o Siigo),2,S2
+Setup software facturación (Alegra o Siigo),Tributario,🟠 Tú,❌ Pendiente,Jul 2026,Jul 2026,0%,🔴 Alta,Habilitación DIAN,Configurar para cobros recurrentes SaaS,2,S2–S3
+Definir pasarela de pagos (PayU o Wompi),Financiero,🟢 Ambos,❌ Pendiente,Jul 2026,Ago 2026,0%,🔴 Alta,Cuenta bancaria,"Evaluar tarifas, integración con el sistema de suscripción",2–3,S3
+Contratar contador externo,Tributario,🟠 Tú,❌ Pendiente,Jun 2026,Jul 2026,50%,🔴 Alta,Respuesta contador actual,~$400.000–$600.000 COP/mes — llevar contabilidad mensual,1–2,S2–S3
+Proyección financiera definitiva,Financiero,🟠 Tú,⏳ En progreso,Jun 2026,Jul 2026,20%,🔴 Alta,Respuesta contador,Pendiente gastos tributarios exactos del contador,2,S1
+Definir pricing final y comunicación IVA,Comercial,🟢 Ambos,⏳ En progreso,Jun 2026,Jun 2026,60%,🔴 Alta,Respuesta contador,¿Precio + IVA o IVA incluido? Definir para B2B y B2C,1,S2
+Seguridad social socios — setup pagos mensuales,Tributario,🟢 Ambos,❌ Pendiente,Jul 2026,Ago 2026,0%,🔴 Alta,NIT + Constitución SAS,Salud + pensión como independientes cada mes,2–3,S3
+,,,,,,,,,,,
+🚀  ÁREA COMERCIAL / GTM — Responsable: Ambos,,,,,,,,,,,
+Tarea / Módulo,Categoría,Responsable,Estado,Fecha inicio,Fecha límite,% Avance,Prioridad,Dependencias,Notas / Comentarios,Mes target,Semana
+Definir primeros 10 clientes piloto objetivo,Comercial,🟢 Ambos,❌ Pendiente,Jun 2026,Jul 2026,0%,🔴 Alta,Proyección financiera,"Negocios conocidos, dispuestos a dar feedback real",1–2,S3
+Propuesta comercial lista para enviar,Comercial,🟠 Tú,⏳ En progreso,Jun 2026,Jun 2026,80%,🔴 Alta,—,"Documento Word con 3 planes, roles y proyección",1,S2
+Landing page o presentación de ventas,Comercial,🟢 Ambos,❌ Pendiente,Jul 2026,Ago 2026,0%,🟡 Media,Planes definidos,Página simple o deck para mostrar a prospectos,2–3,S1–S2
+Primeros 3 pilotos activos (con descuento),Comercial,🟢 Ambos,❌ Pendiente,Jul 2026,Ago 2026,0%,🔴 Alta,Onboarding listo,"Sin setup fee, descuento 50% 3 meses — a cambio de feedback",2–3,S2–S3
+Feedback y ajuste post-piloto,Comercial,🟢 Ambos,❌ Pendiente,Ago 2026,Sep 2026,0%,🔴 Alta,Pilotos activos,"Entrevistas, NPS, ajustes de producto y pricing",4,S1–S2
+Lanzamiento comercial oficial,Comercial,🟢 Ambos,❌ Pendiente,Sep 2026,Oct 2026,0%,🔴 Alta,Feedback piloto + Módulos completos,"Precio full, facturación electrónica activa, PayU",4–5,S3
+Estrategia GTM — canales y contenido,Marketing,🟠 Tú,❌ Pendiente,Ago 2026,Sep 2026,0%,🟡 Media,—,"LinkedIn, Instagram, referidos, agencias de ventas",3–4,S1–S2
+Meta: primeros 10 clientes pagos,Comercial,🟢 Ambos,❌ Pendiente,Sep 2026,Oct 2026,0%,🔴 Alta,Lanzamiento comercial,Hito clave para validar producto-market fit,5,S4
+Meta: 25 clientes activos,Comercial,🟢 Ambos,❌ Pendiente,Nov 2026,Dic 2026,0%,🔴 Alta,10 clientes pagos,Inicio de ingresos suficientes para cubrir operación,7,S2
+Meta: 39 clientes activos — cierre año 1,Comercial,🟢 Ambos,❌ Pendiente,Dic 2026,Dic 2026,0%,🔴 Alta,25 clientes,Objetivo proyección año 1 para meta socios,12,S4
