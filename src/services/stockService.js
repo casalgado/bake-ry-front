@@ -2,7 +2,7 @@
 import { BaseService } from './base/resourceService';
 
 /**
- * The stock ledger (see zplanning/strategy/INVENTORY-IMPLEMENTATION.md §8).
+ * The stock ledger (see zplanning/inventory/INVENTORY-IMPLEMENTATION.md §8).
  *
  * Reads plus four appends, on purpose: movements are append-only, so there is
  * no update or delete endpoint to call anywhere. Corrections are new

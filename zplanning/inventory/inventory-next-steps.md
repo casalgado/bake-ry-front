@@ -4,9 +4,9 @@ Orden acordado (2026-08-26). Decisión: **correcciones de esquema primero, UX
 después** — el ledger está vacío en prod y el endpoint de ajuste ya está vivo;
 la ventana barata para cambiar el esquema de movimientos se cierra con el
 primer dato real. Detalle de cada cambio en
-[strategy/INVENTORY-CORRECTIONS.md](./strategy/INVENTORY-CORRECTIONS.md) (§N);
+[INVENTORY-CORRECTIONS.md](./INVENTORY-CORRECTIONS.md) (§N);
 UX en [inventory-ux-plan.md](./inventory-ux-plan.md); secuencia original en
-[strategy/INVENTORY-PLAN.md](./strategy/INVENTORY-PLAN.md).
+[INVENTORY-PLAN.md](./INVENTORY-PLAN.md).
 
 Regla heredada del plan: cada fase termina con la app funcionando y shippable.
 Tests se escriben donde se indica; **siempre preguntar antes de correrlos**.
@@ -64,7 +64,7 @@ Puro frontend contra endpoints implementados (plan 1C.1–1C.4).
   parte. **Falta:** si `recipe`, el resumen read-only de recetas por combinación
   + botón al Recipe Manager — depende de B3.
 - [ ] **B2. IngredientForm: extras** — **parcialmente absorbido** por
-  `inventory-ui/HANDOFF-INVENTARIO-UI.md` fase 1: crear una preparación
+  `ui/HANDOFF-INVENTARIO-UI.md` fase 1: crear una preparación
   (ingrediente + receta con yield, en una sola gesto) ya vive en el recetario,
   y el yield se edita en la mesa de trabajo. Queda por hacer aquí:
   `preferredSupplier`, el toggle pass-through/stocked en lenguaje plano, y
@@ -116,7 +116,7 @@ Backend primero, frontend después — orden estricto aquí.
 
 `CountDoc.vue` ya existe y sostiene las invariantes (escribes lo que hay, la
 esperada solo aparece después, casilla vacía ≠ cero, un conteo por bodega).
-El rediseño de UX pendiente es fase 5 de `inventory-ui/HANDOFF-INVENTARIO-UI.md`,
+El rediseño de UX pendiente es fase 5 de `ui/HANDOFF-INVENTARIO-UI.md`,
 y **empieza leyendo E2**: el resumen que separa merma explicada de no
 explicada es anterior a esa conversación y sigue siendo la buena idea.
 

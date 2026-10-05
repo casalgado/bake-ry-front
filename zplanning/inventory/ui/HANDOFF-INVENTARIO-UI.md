@@ -15,7 +15,7 @@ Written for someone with no context on the conversation that produced it. Read
    list (A–F). This plan reorders and expands parts of B and F; §9 reconciles them.
 3. [`EXISTENCIAS-BUILD.md`](./EXISTENCIAS-BUILD.md) — the already-built
    Existencias screen. Its §4.1–4.3 name the endpoints this plan waits on.
-4. [`../strategy/INVENTORY-IMPLEMENTATION.md`](../strategy/INVENTORY-IMPLEMENTATION.md)
+4. [`../INVENTORY-IMPLEMENTATION.md`](../INVENTORY-IMPLEMENTATION.md)
    — the *why* of the data model.
 
 **House rules that apply to every task here** (from `CLAUDE.md`):

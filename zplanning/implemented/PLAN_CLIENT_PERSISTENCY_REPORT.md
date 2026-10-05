@@ -1,5 +1,7 @@
 # Client Persistency Report — implementation plan
 
+> **Status:** superseded by `CLIENT_PERSISTENCY_REDESIGN.md`; kept for the build order and file list.
+
 Build a new report answering two questions: **how many new clients are we getting**, and **which clients keep ordering vs. quietly stopped**. One view does both.
 
 All design decisions below are final. Do not re-open them, do not add features not listed here.

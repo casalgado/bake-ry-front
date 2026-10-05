@@ -2,7 +2,7 @@
 
 Amendments to [INVENTORY-IMPLEMENTATION.md](./INVENTORY-IMPLEMENTATION.md) and
 [INVENTORY-PLAN.md](./INVENTORY-PLAN.md), decided after the UX pass
-(`zplanning/inventory-ux-plan.md`) and **after phases 0 / 1A / 1B (+ the 1C.5
+(`zplanning/inventory/inventory-ux-plan.md`) and **after phases 0 / 1A / 1B (+ the 1C.5
 stock view) were already implemented in the backend**. This doc therefore
 speaks in terms of changes to existing files, not greenfield design.
 

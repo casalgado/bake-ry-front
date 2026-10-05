@@ -2,9 +2,12 @@
 
 ## Now
 
-## Next
-
 ### Inventory
+**Status (2026-10-05):** in progress. Checklist in [inventory/inventory-next-steps.md](../inventory/inventory-next-steps.md).
+- Done: stock ledger, warehouses, adjust / transfer / waste (backend); Existencias, Ingreso, Producción and Conteo screens (frontend).
+- Blocked: Ingreso and Producción can't save yet (Confirmar disabled, see [inventory/ui/HANDOFF-SAVING-INGRESO-PRODUCCION.md](../inventory/ui/HANDOFF-SAVING-INGRESO-PRODUCCION.md)).
+- Not built: sub-phase 2 (deduction on sale), the count backend (3) and the Compras backend (4).
+
 Unified inventory system supporting both restaurant-style (recipe-based) and store-style (buy/sell) operations, since a business may need either or both depending on how it sells.
 
 Sub-phases (sequenced by dependency):
@@ -18,6 +21,8 @@ Resolved decisions:
 - **Stock corrections** — deductions are immutable ledger entries; edits to a completed order write compensating movements (deltas), never rewrite originals. Counts absorb all prior movements; only movements after a count apply to the new baseline.
 - **Units** — one base unit per ingredient; recipes, stock, and counts all use it. Purchase presentations ("bulto = 25000 g") are entry-time multipliers in the Compras flow, not model-level conversions. No cross-dimension conversions (cups→grams).
 - **Combos** — no stock entity; purely computed from components. Pre-assembled bundles are modeled as a product whose recipe contains other products.
+
+## Next
 
 ### Accounting
 Builds on the existing gross-profit report (`IncomeStatement.vue` + `/orders/income_statement`), which was deliberately scoped down because operating expenses weren't tracked yet. Goal: turn it into a full income statement, then later add the statements that require asset/liability tracking.

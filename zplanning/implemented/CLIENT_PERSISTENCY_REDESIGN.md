@@ -1,5 +1,7 @@
 # Client Persistency Report — Redesign
 
+> **Status:** implemented. The "Deferred" items at the bottom are still open.
+
 Replaces the current report (tiles + period-grid table) entirely. Goal: less data, more story.
 
 ## Files

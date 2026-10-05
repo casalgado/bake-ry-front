@@ -7,7 +7,7 @@ beats an equal-specificity rule in `custom-components.css`. Live gallery at `/sy
 their own page at `/system-admin/ux/forms` (`UxFormsView.vue`), split off because
 every demo there needs live `v-model` state and the main gallery is static.
 
-Built for the inventory views (`zplanning/inventory-ui/README.md`) and growing
+Built for the inventory views (`zplanning/inventory/ui/README.md`) and growing
 from there. The old Tailwind-class system still runs ~95% of the app.
 
 ## Rules

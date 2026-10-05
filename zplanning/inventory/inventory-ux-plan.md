@@ -178,7 +178,7 @@ cobrado como adicional, se activa desde la vista Negocios del system admin).
 
 1. **Diseño del editor de asignación receta↔combinación** (el usuario tiene
    una idea propia por discutir).
-2. Contrastar este UX contra `zplanning/strategy/INVENTORY-PLAN.md` y decidir
+2. Contrastar este UX contra `zplanning/inventory/INVENTORY-PLAN.md` y decidir
    qué data structures sobreviven.
 3. Diferidos con trigger: página Compras multi-línea, widget de split
    Bodega/Producir, multi-ubicación de ingredientes, reportes por bodega.

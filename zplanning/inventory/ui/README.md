@@ -1,6 +1,6 @@
 # Inventory UI — design decisions
 
-Working notes for the two inventory front-end views. Design decisions only; the *why* of the data model lives in [../strategy/INVENTORY-IMPLEMENTATION.md](../strategy/INVENTORY-IMPLEMENTATION.md) and the sequence in [../strategy/INVENTORY-PLAN.md](../strategy/INVENTORY-PLAN.md) (this covers plan items 1C.2 and 1C.3).
+Working notes for the two inventory front-end views. Design decisions only; the *why* of the data model lives in [../INVENTORY-IMPLEMENTATION.md](../INVENTORY-IMPLEMENTATION.md) and the sequence in [../INVENTORY-PLAN.md](../INVENTORY-PLAN.md) (this covers plan items 1C.2 and 1C.3).
 
 - `recetas-prototype.html` — clickable layout prototype for the recipes view. Open it in a browser; it has no dependencies. It is a **layout and interaction** prototype, not the styling target and not component-accurate.
 - `existencias-prototype.html` — same, for the stock view. Same rules: no dependencies, layout and interaction only.

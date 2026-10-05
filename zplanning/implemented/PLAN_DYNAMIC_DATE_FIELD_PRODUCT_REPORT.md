@@ -1,5 +1,7 @@
 # PLAN: Make Date Field Dynamic in ProductReportCard
 
+> **Status:** obsolete. `ProductReportCard` was replaced by `views/reports/ProductReport.vue`, which already reads the setting.
+
 ## Problem Analysis
 The ProductReportCard component currently hardcodes the `date_field` to `'dueDate'` in the form data initialization (line 35). However, the app has a bakery settings feature that allows configuring the default report filter via `bakerySettings.features.reports.defaultReportFilter`.
 

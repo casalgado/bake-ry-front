@@ -2,7 +2,7 @@
 
 Builds `existencias-prototype.html` in this folder. Design decisions live in
 [README.md](./README.md) §"View 2"; the data model's *why* is in
-[../strategy/INVENTORY-IMPLEMENTATION.md](../strategy/INVENTORY-IMPLEMENTATION.md)
+[../INVENTORY-IMPLEMENTATION.md](../INVENTORY-IMPLEMENTATION.md)
 and the epic sequence in [../inventory-next-steps.md](../inventory-next-steps.md)
 (this covers Fase C, plus E and F brought forward).
 
@@ -16,7 +16,7 @@ this and building something that looks like it.
 
 Replace `src/views/inventory/ShowStock.vue` — today a `DataTable` of stock rows
 with a Headless UI adjustment dialog — with the full Existencias screen from
-`zplanning/inventory-ui/existencias-prototype.html`.
+`zplanning/inventory/ui/existencias-prototype.html`.
 
 The screen answers two questions and refuses the rest: **what do we have right
 now, and is that number true?** Not planning, not purchasing decisions, not
@@ -43,13 +43,13 @@ Layout rule locked across both inventory views (Recetario does the same):
 
 ### Required reading before you write code
 
-1. `zplanning/inventory-ui/README.md` §"View 2" — the design decisions, the
+1. `zplanning/inventory/ui/README.md` §"View 2" — the design decisions, the
    locked vocabulary, and what was deliberately skipped.
-2. `zplanning/inventory-ui/existencias-prototype.html` — open it in a browser.
+2. `zplanning/inventory/ui/existencias-prototype.html` — open it in a browser.
    It is a **layout and interaction** prototype, not the styling target.
-3. `zplanning/strategy/INVENTORY-PLAN.md` — "Notes for the implementer", and
+3. `zplanning/inventory/INVENTORY-PLAN.md` — "Notes for the implementer", and
    phases 3 and 4.
-4. `zplanning/strategy/INVENTORY-CORRECTIONS.md` §1 (bodegas), §2.3
+4. `zplanning/inventory/INVENTORY-CORRECTIONS.md` §1 (bodegas), §2.3
    (producir para stock), §3 (bajas).
 5. `src/assets/ui/CLAUDE.md` — the design system's rules. Non-negotiable.
 6. `src/views/recipes/RecipeBookView.vue` — the sibling screen. Its shell, its

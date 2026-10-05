@@ -413,20 +413,20 @@ Esta consulta es el primer paso ejecutable del plan.
 
 | Archivo | Línea | Cambio |
 |---|---|---|
-| `strategy/INVENTORY-IMPLEMENTATION.md` | 27 | Quitar `isResale` de la descripción de `Ingredient` |
-| `strategy/INVENTORY-IMPLEMENTATION.md` | 90 | §4: *"non-resale ingredient (`isResale: false`, the default)"* → *"ingrediente de producción"*. El argumento de identidad no cambia |
-| `strategy/INVENTORY-IMPLEMENTATION.md` | 299 | Tabla §10: la fila `Ingredient` dice `type` enum → `isResale` boolean. Reescribir: el flag se retira; `recipeId` deja de ser "non-resale only" |
-| `strategy/INVENTORY-IMPLEMENTATION.md` | ~305 | La frase *"All changes are additive; no data migration required"* **deja de ser cierta**. Anotar §5 de este plan |
-| `strategy/INVENTORY-PLAN.md` | 90 | *"optional `recipeId` (non-resale only — reject when `isResale`)"* → simplemente opcional |
-| `strategy/INVENTORY-PLAN.md` | 155 | *"For non-resale ingredients only"* → para todos los ingredientes |
+| `INVENTORY-IMPLEMENTATION.md` | 27 | Quitar `isResale` de la descripción de `Ingredient` |
+| `INVENTORY-IMPLEMENTATION.md` | 90 | §4: *"non-resale ingredient (`isResale: false`, the default)"* → *"ingrediente de producción"*. El argumento de identidad no cambia |
+| `INVENTORY-IMPLEMENTATION.md` | 299 | Tabla §10: la fila `Ingredient` dice `type` enum → `isResale` boolean. Reescribir: el flag se retira; `recipeId` deja de ser "non-resale only" |
+| `INVENTORY-IMPLEMENTATION.md` | ~305 | La frase *"All changes are additive; no data migration required"* **deja de ser cierta**. Anotar §5 de este plan |
+| `INVENTORY-PLAN.md` | 90 | *"optional `recipeId` (non-resale only — reject when `isResale`)"* → simplemente opcional |
+| `INVENTORY-PLAN.md` | 155 | *"For non-resale ingredients only"* → para todos los ingredientes |
 | `inventory-ux-plan.md` | 14 | *"Es un ingrediente con `isResale: false` (el default)"* → *"un ingrediente con receta"* |
 | `inventory-ux-plan.md` | 122 | *"Hoy: CRUD con flag `isResale`"* → actualizar |
 | `inventory-ux-plan.md` | 125 | *"Para ingredientes de producción (no reventa)"* → quitar el paréntesis |
 | `inventory-next-steps.md` | 64 | B2: *"para no-reventa (`isResale: false`)"* → quitar la condición |
-| `inventory-ui/README.md` | 99, 114, 153 | Sección "Reventa" y las menciones en la tabla de documentos: reventa pasa a ser un **modo de producto**, no un tipo de ingrediente |
-| `inventory-ui/existencias-prototype.html` | 318, 336, 429 | Prototipo con `resale:true` en un ítem de shelf `prod`. **Ya es correcto conceptualmente** (lo modela como producto). Dejar como está o anotar |
+| `ui/README.md` | 99, 114, 153 | Sección "Reventa" y las menciones en la tabla de documentos: reventa pasa a ser un **modo de producto**, no un tipo de ingrediente |
+| `ui/existencias-prototype.html` | 318, 336, 429 | Prototipo con `resale:true` en un ítem de shelf `prod`. **Ya es correcto conceptualmente** (lo modela como producto). Dejar como está o anotar |
 
-`inventory-ui/EXISTENCIAS-BUILD.md:96` ya habla de `inventoryMode: 'none'` — es
+`ui/EXISTENCIAS-BUILD.md:96` ya habla de `inventoryMode: 'none'` — es
 consistente con el modelo destino, no requiere cambios.
 
 ---
@@ -501,27 +501,3 @@ Cada fase deja el sistema funcionando. Ninguna depende de una fase posterior.
 4. **`seedIngredients.js:19` fuerza `stockBehavior: STOCKED` para todo.**
    Probablemente incorrecto (el default de diseño es `passThrough`), pero es un
    problema aparte. ¿Se arregla acá o se abre suelto?
-
-
-
-## Comments
-
-One finding reshapes the plan, so it's §0 of the doc: the "resale product" field already exists and is already implemented in the backend — it's Product.inventoryMode: 'unit' (back/src/models/Product.js:39, validated in productService.js:13, used in stockService.js:362). Your strategy doc §5 also explicitly rejects a separate flag: "Not two product types — one behavior field."
-
-So I wrote the plan as remove Ingredient.isResale, don't add Product.isResale. If you want the explicit flag anyway, say so and I'll rewrite — but then we need a rule for isResale: true + inventoryMode: 'recipe'.
-
-What the plan covers:
-
-- Full audit — every isResale site, front and back, with line numbers. It's 4 frontend spots (one is a real UI column, three are comments) and one real backend rule (recipeService.js:241).
-- What the frontend is missing — inventoryMode has zero occurrences in src/. Every product created from the UI is born 'none'. Nothing is tracked because there's no way to say it should be.
-- Backend / frontend / seeds / tests / docs changes, itemized.
-- Data migration, which is the hard part and which your INVENTORY-IMPLEMENTATION.md §10 currently claims isn't needed.
-- Six phases, each leaving a working system.
-
-Two things I'd flag out of the doc:
-
-The itemKey problem is the real risk. buildItemKey produces ingredient_{id} vs product_{id}. Moving an item between entities changes its key, and the ledger is append-only. History orphans, stock reads zero, bodega value drops. But — the inventory module is behind a feature flag and the write screens don't exist yet, so there are probably zero movements on any resale ingredient. That makes it free. Measuring that is Phase 0 and it's the first thing to do.
-
-ProductForm's mode selector is now on the critical path. It was task B1 in inventory-next-steps.md; without it nothing can be marked resale, so Ingreso has an empty catalog.
-
-Also worth knowing: back/functions/scripts/syncModels.js generates the frontend models from the backend ones. It hasn't been run in a while — front/src/models/Ingredient.js is missing recipeId, stockBehavior and preferredSupplier. Running it is Phase 2 and fixes the drift and the removal in one step.
