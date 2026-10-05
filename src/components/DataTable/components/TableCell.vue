@@ -1,8 +1,9 @@
 <!-- components/DataTable/components/TableCell.vue -->
 <script setup>
-import { computed, ref, onUnmounted } from 'vue';
+import { computed, onUnmounted } from 'vue';
 import { PhArrowRight } from '@phosphor-icons/vue';
 import { capitalize } from '@/utils/helpers';
+import AppTooltip from '@/components/common/AppTooltip.vue';
 
 const props = defineProps({
   column: {
@@ -83,7 +84,6 @@ const tooltipContent = computed(() => {
   };
 });
 
-const showTooltip = ref(false);
 let touchTimeout = null;
 
 // Handle mouse events for desktop
@@ -97,7 +97,6 @@ const handleMouseEnter = () => {
         columnId: props.column.id,
       });
     }
-    showTooltip.value = true;
   }
 };
 
@@ -109,15 +108,12 @@ const handleMouseLeave = () => {
       columnId: props.column.id,
     });
   }
-  showTooltip.value = false;
 };
 
 // Handle touch events for mobile
 const handleTouchStart = () => {
 
   if (props.column.type === 'toggle' && isClickEnabled.value) {
-    showTooltip.value = true;
-
     emit('hover-change', {
       hovering: true,  // Changed to true since this is when interaction starts
       rowId: props.row.id,
@@ -130,7 +126,6 @@ const handleTouchEnd = () => {
 
   if (touchTimeout) clearTimeout(touchTimeout);
   touchTimeout = setTimeout(() => {
-    showTooltip.value = false;
     // Try emitting immediately without the timeout
     emit('hover-change', {
       hovering: false,
@@ -161,78 +156,64 @@ onUnmounted(() => {
       'cursor-not-allowed': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id)
     }"
   >
-    <div
-      class="inline-block px-1 rounded-2xl transition-colors"
-      :class="{
-        'lg:hover:bg-neutral-800 lg:hover:text-white': isClickEnabled && !isLoading,
-        'bg-neutral-800 text-white': (props.column.type === 'toggle' && props.hovering) || isLoading,
-        'opacity-50': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id),
-        '!text-neutral-800': isLoading && props.column.type,
-      }"
+    <!-- AppTooltip only on toggle cells: each instance adds window scroll/resize listeners. -->
+    <component
+      :is="column.type === 'toggle' ? AppTooltip : 'span'"
+      v-bind="column.type === 'toggle' ? { placement: 'right', disabled: !tooltipContent || isLoading } : {}"
     >
-      <!-- Cell Content -->
-      <template v-if="column.type === 'toggle' && currentOption">
+      <div
+        class="inline-block px-1 rounded-2xl transition-colors"
+        :class="{
+          'lg:hover:bg-neutral-800 lg:hover:text-white': isClickEnabled && !isLoading,
+          'bg-neutral-800 text-white': (props.column.type === 'toggle' && props.hovering) || isLoading,
+          'opacity-50': props.column.type === 'toggle' && props.selectedRows.size > 0 && !props.selectedRows.has(props.row.id),
+          '!text-neutral-800': isLoading && props.column.type,
+        }"
+      >
+        <!-- Cell Content -->
+        <template v-if="column.type === 'toggle' && currentOption">
+          <component
+            v-if="column.component"
+            :is="column.component"
+            v-bind="column.getProps(row)"
+          />
+          <div v-else class="flex items-center gap-2">
+            <component
+              v-if="currentOption.icon"
+              :is="currentOption.icon"
+              class="w-5 h-5"
+            />
+            <span v-if="currentOption.displayText">{{ capitalize(currentOption.displayText) }}</span>
+          </div>
+        </template>
         <component
-          v-if="column.component"
+          v-else-if="column.component"
           :is="column.component"
           v-bind="column.getProps(row)"
+          :is-selected="isRowSelected"
         />
-        <div v-else class="flex items-center gap-2">
-          <component
-            v-if="currentOption.icon"
-            :is="currentOption.icon"
-            class="w-5 h-5"
-          />
-          <span v-if="currentOption.displayText">{{ capitalize(currentOption.displayText) }}</span>
-        </div>
-      </template>
-      <component
-        v-else-if="column.component"
-        :is="column.component"
-        v-bind="column.getProps(row)"
-        :is-selected="isRowSelected"
-      />
-      <template v-else>
-        <template v-if="column.displayText">
-
-          {{ capitalize(column.displayText[row[column.field]]) }}
-        </template>
         <template v-else>
-          {{ capitalize(row[column.field]) }}
-        </template>
-      </template>
+          <template v-if="column.displayText">
 
-      <!-- Responsive Tooltip -->
-      <div
-        v-if="tooltipContent && showTooltip && !isLoading"
-        class="pointer-events-none absolute z-50 px-2 py-1 text-xs text-white bg-primary rounded shadow-lg whitespace-nowrap
-               left-1/2 -translate-x-1/2 -top-16
-               lg:left-full lg:ml-2 lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0 z-99999"
-      >
-        <div class="flex items-center gap-1">
+            {{ capitalize(column.displayText[row[column.field]]) }}
+          </template>
+          <template v-else>
+            {{ capitalize(row[column.field]) }}
+          </template>
+        </template>
+      </div>
+      <template #content>
+        <div v-if="tooltipContent" class="flex items-center gap-1 px-2 py-1 text-xs whitespace-nowrap">
           {{ tooltipContent.prefix }}
           <PhArrowRight weight="bold" class="w-3 h-3" />
-          <div class="flex items-center gap-1">
-            <component
-              v-if="tooltipContent.icon"
-              :is="tooltipContent.icon"
-              class="w-3 h-3"
-            />
-            <span>{{ capitalize(tooltipContent.value) }}</span>
-          </div>
+          <component
+            v-if="tooltipContent.icon"
+            :is="tooltipContent.icon"
+            class="w-3 h-3"
+          />
+          <span>{{ capitalize(tooltipContent.value) }}</span>
         </div>
-
-        <!-- Responsive triangle pointer -->
-        <div
-          class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full
-                 lg:bottom-auto lg:right-full lg:left-auto lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0"
-        >
-          <div
-            class="border-4 border-transparent border-t-primary
-                   lg:border-t-transparent lg:border-r-primary"
-          ></div>
-        </div>
-      </div>
-    </div>
+      </template>
+    </component>
   </td>
 </template>

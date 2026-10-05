@@ -7,6 +7,7 @@ import { useAuthenticationStore } from '@/stores/authentication';
 import { deliveryRoundLabels } from '@/utils/deliveryRounds';
 import { formatMoney, itemLabel } from '@/utils/helpers';
 import { formatDateDisplay } from '@/utils/dateUtils';
+import SystemSettings from '@/models/SystemSettings';
 
 const route = useRoute();
 const router = useRouter();
@@ -29,19 +30,14 @@ const toCollect = (order) => (order.isPaid ? 0 : Math.max(0, order.total - (orde
 
 const notes = (order) => [order.internalNotes, order.deliveryNotes].filter(Boolean).join('. ');
 
+const paymentCode = (method) =>
+  SystemSettings.AVAILABLE_PAYMENT_METHODS.find((m) => m.value === method)?.displayText || '-';
+
 const sheetDate = computed(() => formatDateDisplay(orders.value[0]?.dueDate));
 
 const groups = computed(() =>
   [...labels.map((label, i) => ({ label, round: i + 1 })), { label: 'Sin ruta', round: 0 }]
-    .map((group) => {
-      const groupOrders = orders.value.filter((order) => roundOf(order) === group.round);
-      return {
-        ...group,
-        orders: groupOrders,
-        bags: groupOrders.reduce((sum, order) => sum + (Number(order.numberOfBags) || 0), 0),
-        collect: groupOrders.reduce((sum, order) => sum + toCollect(order), 0),
-      };
-    })
+    .map((group) => ({ ...group, orders: orders.value.filter((order) => roundOf(order) === group.round) }))
     .filter((group) => group.orders.length),
 );
 
@@ -49,7 +45,10 @@ const documentTitle = computed(() => {
   const date = new Date(orders.value[0]?.dueDate || new Date());
   const dd = String(date.getDate()).padStart(2, '0');
   const mm = String(date.getMonth() + 1).padStart(2, '0');
-  return `Ruta_${dd}_${mm}_${date.getFullYear()}`;
+  const routes = groups.value
+    .map((group) => group.label.toLowerCase().replace(/[^a-z0-9]+/g, '-'))
+    .join('-');
+  return `Ruta_${routes}_${dd}_${mm}_${date.getFullYear()}`;
 });
 
 onMounted(async () => {
@@ -135,6 +134,7 @@ const handleClose = () => {
               <th>Dirección</th>
               <th>Items</th>
               <th class="num">Bol</th>
+              <th>Pago</th>
               <th class="num">Cobrar</th>
             </tr>
           </thead>
@@ -155,18 +155,12 @@ const handleClose = () => {
                 </div>
               </td>
               <td class="num">{{ order.numberOfBags }}</td>
+              <td>{{ paymentCode(order.paymentMethod) }}</td>
               <td class="num strong">
                 {{ order.isPaid ? 'pagado' : formatMoney(toCollect(order)) }}
               </td>
             </tr>
           </tbody>
-          <tfoot>
-            <tr>
-              <td colspan="4" class="strong">Total</td>
-              <td class="num strong">{{ group.bags }}</td>
-              <td class="num strong">{{ formatMoney(group.collect) }}</td>
-            </tr>
-          </tfoot>
         </table>
       </section>
     </div>
@@ -209,11 +203,6 @@ td {
 th {
   border-bottom: 2px solid #000;
   font-weight: 700;
-}
-
-tfoot td {
-  border-top: 2px solid #000;
-  border-bottom: 0;
 }
 
 .num {

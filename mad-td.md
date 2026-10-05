@@ -89,3 +89,23 @@ se ve raro en med screens, el card no cabe, se come el nombre.
 meter costo por unidad en existencias y mas claras las tarjetas.
 
 use confirm dialogs instead of window alers in new inventory tabs.
+
+
+# reu fitbar 
+
+que cuando haga la produccion le aparezca lo que ya hay para producir ese dia y lo que hay en inventario. 
+subir ingresos por xml
+auto-reenvio MAD facturacion. 
+
+meter un nuevo exportar en reporte clientes, que tambien tenga el historial de cada cliente. 
+
+# proveedores
+
+- dispropan
+- quesera la bendicion, sonia delgado
+- ara
+- sion graphics
+- david badran
+- countryplas
+- fresalas
+- electronica
