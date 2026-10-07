@@ -12,7 +12,7 @@
  *
  * Rebuild from scratch with ui-*, don't repair this. Scope for the rebuild:
  * name, description, category, unit, costPerUnit, storage temperature,
- * preferredSupplier, stockBehavior, an optional production recipe (recipeId —
+ * stockBehavior, an optional production recipe (recipeId —
  * a preparación), and free-form custom attributes.
  *
  * NOT `isResale` — that flag is gone. Reventa is a property of a product

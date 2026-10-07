@@ -24,6 +24,7 @@ import PageHeader from '@/components/ui/PageHeader.vue';
 import UiSearchField from '@/components/ui/UiSearchField.vue';
 import { useStockStore } from '@/stores/stockStore';
 import { useIngredientStore } from '@/stores/ingredientStore';
+import { useProductStore } from '@/stores/productStore';
 import { useInventoryDocsStore } from '@/stores/inventoryDocsStore';
 import { useItemCatalog, itemOfStock, SHELF_TITLES } from '@/composables/useItemCatalog';
 import { useWarehouses } from '@/composables/useWarehouses';
@@ -33,6 +34,7 @@ import { formatDateDisplay } from '@/utils/dateUtils';
 const router = useRouter();
 const stockStore = useStockStore();
 const ingredientStore = useIngredientStore();
+const productStore = useProductStore();
 const docsStore = useInventoryDocsStore();
 const catalog = useItemCatalog();
 const { warehouses, multiWarehouse, warehouseName } = useWarehouses();
@@ -105,11 +107,30 @@ const groups = computed(() => {
       ...group,
       cost: catalog.costOf(group.item),
       kind: catalog.kindOf(group.item),
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    }));
 });
 
 const valueOf = (group) => (group.cost === null ? null : group.qty * group.cost);
+
+/* Clicking a column head sorts every shelf by it. Numbers go high to low, an
+ * unresolved value sinks to the bottom, and ties fall back to the name. */
+const sortBy = ref('name'); // 'name' | 'qty' | 'value'
+
+const SORT_KEYS = { qty: (g) => g.qty, value: valueOf };
+
+function compareGroups(a, b) {
+  const key = SORT_KEYS[sortBy.value];
+  if (key) {
+    const x = key(a);
+    const y = key(b);
+    if (x !== y) {
+      if (x === null) return 1;
+      if (y === null) return -1;
+      return y - x;
+    }
+  }
+  return a.name.localeCompare(b.name);
+}
 
 /* The hero ignores the search box on purpose: filtering the list is looking,
  * not changing what the bodega is worth. The bodega chips do narrow it —
@@ -135,8 +156,9 @@ const shelves = computed(() =>
     .map(([key, title]) => ({
       key,
       title,
-      items: groups.value.filter(
-        (g) => g.kind === key && matchesSearch(g.name)),
+      items: groups.value
+        .filter((g) => g.kind === key && matchesSearch(g.name))
+        .sort(compareGroups),
     }))
     .filter((shelf) => shelf.items.length));
 
@@ -263,6 +285,25 @@ function openForm(kind) {
   form.value = kind;
 }
 
+/* Editable when the cost is typed by hand: a plain ingredient, or a resale
+ * product (or combination) whose cost isn't computed from a recipe. A
+ * preparación's or a recipe product's cost comes from its recipe, and
+ * propagation would overwrite a typed number. */
+const productOf = (item) => productStore.items.find((p) => p.id === item.id);
+
+const canEditCost = computed(() => {
+  const s = selected.value;
+  if (!s) return false;
+  if (s.kind === 'ingr') return true;
+  if (catalog.modeOf(s.item) !== 'unit') return false;
+
+  const product = productOf(s.item);
+  const source = s.item.combinationId
+    ? product?.variations?.combinations?.find((c) => c.id === s.item.combinationId)?.costPriceSource
+    : product?.costPriceSource;
+  return (source || 'manual') === 'manual';
+});
+
 const stockIn = (warehouseId) =>
   selected.value?.rows.find((r) => r.warehouseId === warehouseId)?.currentStock ?? 0;
 
@@ -303,6 +344,8 @@ watchDebounced(
     // costo que ya tiene, la caminata no mueve nada y preguntar es un viaje.
     if (form.value !== 'cost' || !Number.isFinite(cost) || cost < 0) return;
     if (cost === selected.value?.cost) return;
+    // Only an ingredient's cost feeds recipes; the walk stops at products.
+    if (selected.value?.kind !== 'ingr') return;
 
     try {
       const rows = await ingredientStore.costImpact(selected.value.item.id, cost);
@@ -330,6 +373,39 @@ async function submitForm() {
     const cost = Number(d.costPerUnit);
     if (!Number.isFinite(cost) || cost < 0) {
       formError.value = 'Escribe un costo válido.';
+      return;
+    }
+
+    /* A resale product: PUT merges what's sent into the stored product, so only
+     * the cost goes — the product's own `costPrice`, or that combination's
+     * inside `variations`. */
+    if (item.item.type === 'product') {
+      const product = productOf(item.item);
+      if (!product) {
+        formError.value = 'No se encontró el producto en el catálogo.';
+        return;
+      }
+
+      const payload = item.item.combinationId
+        ? {
+          variations: {
+            ...product.variations,
+            combinations: product.variations.combinations.map((c) =>
+              (c.id === item.item.combinationId ? { ...c, costPrice: cost } : c)),
+          },
+        }
+        : { costPrice: cost };
+
+      submitting.value = true;
+      try {
+        await productStore.update(product.id, payload);
+        await productStore.fetchAll().catch(() => {});
+        form.value = null;
+      } catch (err) {
+        formError.value = err?.message || 'No se pudo guardar el costo.';
+      } finally {
+        submitting.value = false;
+      }
       return;
     }
 
@@ -495,9 +571,15 @@ async function submitForm() {
                  The widths come from .ui-listhead — the labels sit on the
                  columns, not near them. -->
             <div class="ui-listhead">
-              <span class="ui-sectionhead">{{ shelf.title }}</span>
-              <span class="ui-listhead-col">En bodega</span>
-              <span class="ui-listhead-col w-20">Valor</span>
+              <button type="button" class="ui-sectionhead cursor-pointer" @click="sortBy = 'name'">
+                {{ shelf.title }}
+              </button>
+              <button type="button" class="ui-listhead-col cursor-pointer" @click="sortBy = 'qty'">
+                En bodega
+              </button>
+              <button type="button" class="ui-listhead-col w-20 cursor-pointer" @click="sortBy = 'value'">
+                Valor
+              </button>
             </div>
 
             <TransitionGroup tag="div" name="ui-cascade" class="flex flex-col">
@@ -611,10 +693,10 @@ async function submitForm() {
               <button v-if="multiWarehouse" class="ui-btn" @click="openForm('transfer')">
                 <PhArrowsLeftRight :size="14" weight="bold" /> Transferir
               </button>
-              <!-- Solo para un ingrediente simple: el costo de una preparación y
-                   el de un producto se derivan de su receta, y la propagación
-                   del backend sobrescribiría cualquier número escrito a mano. -->
-              <button v-if="selected.kind === 'ingr'" class="ui-btn" @click="openForm('cost')">
+              <!-- Editable cuando el costo se escribe a mano: un insumo o un
+                   producto de reventa. El de una preparación o un producto con
+                   receta lo calcula su receta. -->
+              <button v-if="canEditCost" class="ui-btn" @click="openForm('cost')">
                 <PhCurrencyDollar :size="14" weight="bold" /> Editar costo
               </button>
             </div>
@@ -634,7 +716,8 @@ async function submitForm() {
               </p>
               <p v-else-if="form === 'cost'" class="ui-card-body">
                 El costo no es un movimiento: no cambia la existencia, revalúa lo
-                que ya hay y se propaga a las recetas que usan este ingrediente.
+                que ya hay<template v-if="selected.kind === 'ingr'"> y se propaga
+                  a las recetas que usan este ingrediente</template>.
               </p>
 
               <div class="flex flex-wrap gap-2">

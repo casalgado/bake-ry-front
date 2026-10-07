@@ -56,7 +56,7 @@ onMounted(() => {
 
   // The feature guard already read settings to get here, so this is a no-op.
   if (!bakerySettingsStore.items.length) {
-    bakerySettingsStore.fetchAll().catch(() => {});
+    bakerySettingsStore.fetchById('default').catch(() => {});
   }
 
   window.addEventListener('beforeunload', warnOnUnload);

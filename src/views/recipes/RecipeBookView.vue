@@ -60,7 +60,7 @@ onMounted(() => {
   recipeStore.fetchAll().catch(() => {});
   // The route guard already reads settings, so this is usually a no-op.
   if (!bakerySettingsStore.items.length) {
-    bakerySettingsStore.fetchAll().catch(() => {});
+    bakerySettingsStore.fetchById('default').catch(() => {});
   }
   loadPins();
 });

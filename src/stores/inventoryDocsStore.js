@@ -30,8 +30,10 @@ const DOC_KINDS = ['ingreso', 'produccion', 'conteo'];
 /* The three documents share a date and a bodega and nothing else, so the rest
  * is per kind rather than a union of every field with most of them dead:
  *
- *   ingreso    — `provider`. One delivery, one proveedor; it belongs to the
- *                document, never to a line.
+ *   ingreso    — `providerId`. One delivery, one proveedor; it belongs to the
+ *                document, never to a line. `idempotencyKey` is minted when
+ *                the document opens, so a resent Confirmar lands on the same
+ *                purchase (backend `retryId`).
  *   produccion — nobody. The ledger records who confirmed the movement
  *                server-side, which beats a free-text box you can type anything
  *                into.
@@ -43,7 +45,7 @@ const blankDoc = (kind, warehouseId) => ({
   kind,
   date: new Date().toISOString().slice(0, 10),
   warehouseId,
-  ...(kind === 'ingreso' ? { provider: '' } : {}),
+  ...(kind === 'ingreso' ? { providerId: null, idempotencyKey: crypto.randomUUID() } : {}),
   ...(kind === 'conteo' ? { party: '', counted: {} } : { lines: [] }),
 });
 
@@ -88,6 +90,10 @@ export const useInventoryDocsStore = defineStore('inventoryDocs', () => {
    * Safe to call on every mount, which is what the views do. */
   function open(kind, warehouseId) {
     if (!docs.value[kind]) docs.value[kind] = blankDoc(kind, warehouseId);
+    // A draft restored from before ingreso carried a key gets one now.
+    if (kind === 'ingreso' && !docs.value.ingreso.idempotencyKey) {
+      docs.value.ingreso.idempotencyKey = crypto.randomUUID();
+    }
     return docs.value[kind];
   }
 

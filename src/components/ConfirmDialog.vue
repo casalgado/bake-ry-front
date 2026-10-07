@@ -56,9 +56,11 @@ const handleCancel = () => {
           <h3 class="text-lg font-semibold text-gray-800 mb-2">
             {{ title }}
           </h3>
-          <p class="text-sm text-gray-700 mb-6">
-            {{ message }}
-          </p>
+          <slot>
+            <p class="text-sm text-gray-700 mb-6">
+              {{ message }}
+            </p>
+          </slot>
         </div>
 
         <div class="flex space-x-3">
