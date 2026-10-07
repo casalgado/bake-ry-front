@@ -3,10 +3,9 @@ import BaseModel from './base/BaseModel.js';
 class SystemSettings extends BaseModel {
   static ORDER_STATUSES = [
     'Recibida',
-    'En Produccion',
-    'Preparada',
-    'En Camino',
-    'Completada',
+    'Producida',
+    'Enviada',
+    'Entregada',
   ];
 
   static FULFILLMENT_TYPES = [

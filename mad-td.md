@@ -97,6 +97,10 @@ que cuando haga la produccion le aparezca lo que ya hay para producir ese dia y 
 subir ingresos por xml
 auto-reenvio MAD facturacion. 
 
+POS: los pedidos en modo POS deben quedar automaticamente en estado Entregada (3) al crearse. El inventario descuenta cuando un pedido llega a Enviada o Entregada, asi que sin esto una venta de mostrador nunca descuenta.
+
+Pedidos legacy con `status: 4` (Completada) siguen en Firestore. ShowOrderHistory mantiene la key 4 solo para el historial. Correr un script que remapee 4→3 en órdenes y luego borrar la key.
+
 meter un nuevo exportar en reporte clientes, que tambien tenga el historial de cada cliente. 
 
 # proveedores

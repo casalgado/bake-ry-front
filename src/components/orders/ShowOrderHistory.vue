@@ -86,8 +86,8 @@ const orderItemStatus = {
 
 const status = {
   0: 'Recibida',
-  1: 'En Producción',
-  2: 'En Camino',
+  1: 'Producida',
+  2: 'Enviada',
   3: 'Entregada',
   4: 'Completada',
 };
