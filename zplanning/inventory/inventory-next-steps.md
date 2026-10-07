@@ -1,158 +1,225 @@
-# Inventario — Pasos de implementación
+# Inventory — state and decisions
 
-Orden acordado (2026-08-26). Decisión: **correcciones de esquema primero, UX
-después** — el ledger está vacío en prod y el endpoint de ajuste ya está vivo;
-la ventana barata para cambiar el esquema de movimientos se cierra con el
-primer dato real. Detalle de cada cambio en
-[INVENTORY-CORRECTIONS.md](./INVENTORY-CORRECTIONS.md) (§N);
-UX en [inventory-ux-plan.md](./inventory-ux-plan.md); secuencia original en
-[INVENTORY-PLAN.md](./INVENTORY-PLAN.md).
+The source of truth for what the inventory epic does next. Decided 2026-10-07.
+Where an older doc disagrees with this one, this one wins.
 
-Regla heredada del plan: cada fase termina con la app funcionando y shippable.
-Tests se escriben donde se indica; **siempre preguntar antes de correrlos**.
+- The *why* of the data model: [INVENTORY-IMPLEMENTATION.md](./INVENTORY-IMPLEMENTATION.md)
+- Screen design: [ui/README.md](./ui/README.md), [ui/HANDOFF-INVENTARIO-UI.md](./ui/HANDOFF-INVENTARIO-UI.md), [ui/EXISTENCIAS-BUILD.md](./ui/EXISTENCIAS-BUILD.md)
+- Client-facing explanation (Spanish): the Claude doc "Inventario — Cómo funciona"
+- Step-by-step build: [INVENTORY-BUILD-PLAN.md](./INVENTORY-BUILD-PLAN.md)
 
----
-
-## Fase A — Correcciones backend (§1–§3) — LA VENTANA
-
-Todo en `functions/src`. Pequeña y acotada; nada de UX nuevo aquí.
-
-- [x] **A1. Bodegas en settings** (§1.1) — `features.inventory.warehouses`
-  `[{ id, name, isDefault }]`, auto-provisión de `{ id: 'main', name:
-  'Principal', isDefault: true }`. Modelo `BakerySettings` + defaults.
-- [x] **A2. `stockService.js`: dimensión bodega** (§1.2) — `buildStockDocId(itemKey,
-  warehouseId)`; `warehouseId` obligatorio en `validateMovement`; delta map de
-  `writeMovements` por stock-doc-id; `stockDocSeed` y `StockDoc` con
-  `warehouseId`; los `sync*` crean solo el doc de la bodega default; `adjust`,
-  `getStock`, `getStocks`, `getItemMovements` aceptan/filtran bodega.
-- [x] **A3. Transferencias** (§1.2) — `MOVEMENT_TYPES.TRANSFER` +
-  `transfer()` (dos movimientos ±qty, `refs.transferId` compartido) + ruta
-  `POST /stocks/:itemKey/transfer`.
-- [x] **A4. Bajas** (§3) — `MOVEMENT_TYPES.WASTE`, endpoint hermano del
-  adjust (qty negativa, `reason: dañado|vencido|perdido|otro` + nota).
-- [x] **A5. Modelos orden/producto/ingrediente** (§2.1, §2.3, §4) —
-  `OrderItem.fulfillmentSource: 'produce'|'stock'` + `sourceWarehouseId`
-  (default `'produce'`, sin migración); setting
-  `features.inventory.orderDefault: 'smart'|'produce'|'stock'` (default
-  `'produce'`); `syncProductStockDocs` de `!== 'unit'` a `=== 'none'`;
-  `Ingredient.preferredSupplier` (texto libre). Solo modelo+validación —
-  ningún comportamiento se engancha todavía (la deducción es Fase D).
-- [x] **A6. Tests de la fase** — bodega en cada movimiento, idempotencia con
-  el nuevo doc-id, transfer atómico, waste rechaza qty positiva, sync default
-  bodega. *(`__tests__/services/stockService.test.js`, 31 en verde)*
-- [x] **A7. Limpieza dev** — no aplica: no hay stocks/movimientos que borrar
-  (prod vacío, dev sin datos). Los docs viejos con id sin `__warehouse`, si
-  aparecieran, son caché desechable y se ignoran.
-- [x] **A8. Adaptación mínima frontend** — `services/stockService.js` y
-  `ShowStock.vue` mandan el `warehouseId` **de la fila** en el ajuste (el doc de
-  stock ya lo trae: cero plomería de settings). `stockStore.js` no cambia —
-  solo reenvía el payload; `StockMovementsModal.vue` tampoco: el historial se
-  lee por `itemKey`, o sea de todas las bodegas, que es lo correcto con una y
-  con varias (la columna es C3). `BakerySettings` (front) suma `warehouses` y
-  `orderDefault` a sus defaults, y `systemAdminStore` deja de pisar
-  `features.inventory` al guardar. Con una bodega no cambia nada visual.
-
-## Fase B — UX con backend ya listo
-
-Puro frontend contra endpoints implementados (plan 1C.1–1C.4).
-
-- [x] **B1. ProductForm: selector de modo** — sección "Inventario" (solo con
-  feature activo): `Sin control` / `Compro y vendo` / `Lo produzco`. Hecho como
-  tres radios planos en el idioma Tailwind del form, no `RadioFeatureCard` (su
-  grid de 2 columnas y sus etiquetas cortas no encajan con tres opciones
-  descriptivas). Productos `none` no muestran NADA de inventario en ninguna
-  parte. **Falta:** si `recipe`, el resumen read-only de recetas por combinación
-  + botón al Recipe Manager — depende de B3.
-- [ ] **B2. IngredientForm: extras** — **parcialmente absorbido** por
-  `ui/HANDOFF-INVENTARIO-UI.md` fase 1: crear una preparación
-  (ingrediente + receta con yield, en una sola gesto) ya vive en el recetario,
-  y el yield se edita en la mesa de trabajo. Queda por hacer aquí:
-  `preferredSupplier`, el toggle pass-through/stocked en lenguaje plano, y
-  editar un ingrediente que ya existe. Sin edición de stock en el form.
-- [ ] **B3. Recipe Manager** — **re-alcanzar o cerrar.** Se escribió contra
-  `ShowRecipes.vue`, que `RecipeBookView.vue` ya reemplazó; la creación inline
-  de ingredientes, el costo/margen vivo y los componentes tipados están
-  construidos ahí. Lo que sigue vivo de esta tarjeta es el editor de
-  asignación producto→combinaciones y copy-and-scale.
-  (el pedazo grande — `ShowRecipes.vue` rediseñado)
-  — directorio de recetas + editor de asignación producto→combinaciones;
-  editor de receta keyboard-first con costo/margen vivo, componentes tipados
-  (ingrediente y producto), creación inline de ingredientes, matriz de
-  cobertura, copy-and-scale como camino principal de creación.
-  **Antes de construir: discutir la idea propia de asignación por combinación
-  contra la decisión copy-and-scale (IMPLEMENTATION §2, §11.3).**
-  `CreateRecipe.vue` / `CreateIngredient.vue` probablemente se eliminan.
-
-## Fase C — Correcciones frontend completas
-
-- [ ] **C1. Editor de bodegas** en `BakeryFeaturesForm.vue` (crear, renombrar,
-  default; borrar solo sin stock) + setting `orderDefault`.
-- [ ] **C2. `ShowStock.vue` multi-bodega** — filas agrupadas por item con
-  desglose por bodega (solo si >1), filtro por tipo y bodega, valor a costo,
-  acción **Transferir** (solo multi-bodega), acción **Registrar baja**.
-- [ ] **C3. `StockMovementsModal.vue`** — columna bodega (solo si >1), tipos
-  waste/transfer/production renderizados.
-
-## Fase D — Deducción (fase 2 del plan, con enmiendas §2.2)
-
-Backend primero, frontend después — orden estricto aquí.
-
-- [ ] **D1. Backend**: predicado `affectsStock` + `Order.salesChannel`;
-  `expandOrderItem` **source-aware y bodega-aware** (línea `stock` → −qty en
-  su bodega y STOP; línea `produce` → expansión de receta; gaps nunca
-  bloquean); hooks en `orderService` (edges del predicado, compensación,
-  patchAll una transacción por orden); drift verify. Tests de 2.6 — el
-  contrato de correctitud del epic. *(preguntar antes de correr)*
-- [ ] **D2. OrderForm**: toggle por línea `Bodega/Producir` con default
-  resuelto y siempre visible, hint de stock, picker de bodega origen (solo
-  multi), advertencia de stock insuficiente (nunca bloquea). Caso mixto = dos
-  líneas.
-- [ ] **D3. Vistas de producción**: filtrar fuera líneas `stock`. Marcar
-  producido sigue sin tocar stock (manda el predicado).
-- [ ] **D4. Gaps + stock negativo visibles** (plan 2.7) en matriz de cobertura
-  y ShowStock.
-
-## Fase E — Conteo (fase 3 del plan + rider §1.5)
-
-`CountDoc.vue` ya existe y sostiene las invariantes (escribes lo que hay, la
-esperada solo aparece después, casilla vacía ≠ cero, un conteo por bodega).
-El rediseño de UX pendiente es fase 5 de `ui/HANDOFF-INVENTARIO-UI.md`,
-y **empieza leyendo E2**: el resumen que separa merma explicada de no
-explicada es anterior a esa conversación y sigue siendo la buena idea.
-
-- [ ] **E1. Backend `stockCountService`** — draft/completed, conteo scoped a
-  una bodega, completion baselinea pares (item, bodega), parcial permitido.
-- [ ] **E2. `StockCount.vue`** — flujo guiado por categorías
-  (`ingredientCategories.displayOrder`), inputs rápidos, draft reanudable,
-  resumen final con merma **explicada** (Σ waste) vs **no explicada**
-  (residuo del conteo).
-
-## Fase F — Compras (fase 4 del plan + riders)
-
-- [ ] **F1. Backend `purchaseService`** — doc multi-línea, bodega destino por
-  línea, presentaciones entry-time, campos IVA, prompt de actualización de
-  costo. **`supplier` como texto libre queda superado:** el UI de Ingreso
-  (`HANDOFF-INVENTARIO-UI.md` §3.4) está diseñado alrededor de un proveedor como
-  ENTIDAD, porque le compras lo mismo a la misma gente al mismo precio salvo
-  cuando cambia — y sin entidad no hay historial de precio que avisar. Contrato
-  que el UI asume: `{ id, name }` por panadería,
-  `GET .../providers/:id/last-purchase` → `{ itemKey, unitCost, lastPurchasedAt }[]`,
-  y `providerId` en el documento de compra.
-  **Una línea de compra puede llegar sin `itemKey`:** el picker se construye
-  contra el catálogo, así que comprar algo por primera vez es normal, y la línea
-  viaja con su identidad (`{ type, id, combinationId }`). Acuñar el itemKey es
-  trabajo de este endpoint (invariante 5).
-- [ ] **F2. UI de compras** — entrada keyboard-first; `preferredSupplier`
-  pre-llena el proveedor.
-- [ ] **F3. Producir para stock** — flujo para producto con receta **y**
-  preparación stocked: +N en bodega destino, −componentes, preview antes de
-  confirmar (modal desde ShowStock).
+House rules: ask before running any test. Never touch git unless asked.
+`warehouse` in code, "bodega" on screen.
 
 ---
 
-**Diferidos con trigger** (no construir hasta que duela): página Compras si
-el modal simple alcanza primero, widget de split Bodega/Producir,
-multi-ubicación de ingredientes (unlock solo-UI, el campo ya existe),
-reportes por bodega. ~~entidades proveedor (fase balance-sheet)~~ —
-**adelantado a fase F por decisión explícita del usuario (2026-09-07):** es el
-centro del rediseño de Ingreso, no un adorno contable. Ver F1.
+## 1. Where we are
+
+**Built and live**
+
+- Ledger backend: `stocks` per (item, warehouse), `stockMovements` append-only,
+  `writeMovements`, idempotency keys, `adjust` / `waste` / `transfer`. 31 tests.
+- Recipe graph: typed components, live cost, cost propagation, cycle and depth
+  guards (`recipeGraph.js`).
+- `Product.inventoryMode`, `Ingredient.stockBehavior`, `OrderItem.fulfillmentSource`
+  (`'produce' | 'stock'`, unused so far).
+- Bodega tab (`ShowStock.vue`): adjust, baja and transfer save.
+- Recetario (`RecipeBookView.vue`), preparaciones, the shared item picker.
+- Ingreso (`PurchaseDoc.vue`) and Producción (`ProductionDoc.vue`): screens built,
+  drafts in localStorage, **Confirmar disabled**.
+- Conteo (`CountDoc.vue`): screen shell, no backend, no design pass yet.
+
+**Not built:** providers, purchases, production runs, availability, order
+deduction, the recipe expansion walk, counts.
+
+---
+
+## 2. The model
+
+### Three numbers
+
+| Number | Meaning | Stored? |
+|---|---|---|
+| **Existencia** | physically in the store | yes: `stocks.currentStock`, moved only through the ledger |
+| **En producción** (`incoming`) | on open production-run lines | no: computed |
+| **Comprometido** (`committed`) | on open order lines with `fulfillmentSource: 'stock'` | no: computed |
+
+**Disponible (`available`) = existencia + en producción − comprometido.**
+
+Disponible is never stored. Editing, cancelling or deleting an order before it
+ships needs no inventory code: the order *is* the commitment, and the next read
+reflects it. Two stored numbers drift; one derived number can't.
+
+### The ledger moves only on physical events
+
+| Event | Movements |
+|---|---|
+| Purchase confirmed | `purchase`: + each line |
+| Production-run line received | `production`: + output, − its components (expansion walk) |
+| Order reaches Enviada or Entregada | `sale`: per line, see §3 |
+| Adjust / baja / transfer / count | as today |
+| Shipped order edited, deleted, or moved back | `compensation`: the delta |
+
+Payment never touches inventory.
+
+---
+
+## 3. Orders
+
+Order statuses (all repos agree since 2026-10-07): **0 Recibida · 1 Producida ·
+2 Enviada · 3 Entregada**.
+
+**When — the order decides.** One predicate, edge-triggered:
+
+```
+affectsStock(order) = !order.isDeleted && order.status >= 2
+```
+
+Every stock-relevant change runs **one** mechanism, `reconcileOrderStock`:
+expand what the order *should* have deducted (nothing when the predicate is
+false), diff it against the net of the order's existing movements
+(`refs.orderId`), write only the delta. That covers:
+
+- false → true: the full deduction.
+- true → false (moved back below Enviada, or deleted): the full reversal.
+- true, and `orderItems` change: the delta only.
+- Re-running on an unchanged order: an empty diff, zero writes. This is the
+  idempotency, not deterministic ids: an order shipped, pulled back and shipped
+  again must end at one net deduction, and a fixed sale id would skip the second
+  deduction and leave it at zero.
+
+Any other patch (driver, payment, notes…) neither flips the predicate nor
+touches `orderItems` while it's true, so no stock code runs.
+
+Pickups that jump straight to Entregada are covered by `>= 2`.
+
+**What — each line decides.**
+
+| `fulfillmentSource` | Commits disponible while open | Deducts when the order ships |
+|---|---|---|
+| `stock` (Vitrina) | yes | − the product |
+| `produce` (Producir) | no | − its ingredients, through the recipe walk |
+
+A `'unit'` product (reventa) always deducts itself; a `'none'` product deducts
+nothing. A mixed order is just lines of both kinds. Marking a line *producido* never
+touches inventory. A `produce` line with no recipe is a gap, never a block.
+
+**OrderForm** shows disponible per line and suggests `stock` when disponible
+covers the quantity, `produce` otherwise. It warns, never blocks.
+
+**Kitchen list:** `stock` lines drop off production's flattened list.
+
+**Known dependency:** POS orders must be born Entregada, or counter sales never
+deduct. Tracked in `mad-td.md`; not part of this epic.
+
+**Open:** a forgotten order (never marked shipped) commits stock forever. Plan:
+only count open orders due within a window. Window size undecided — comment on
+the client doc.
+
+---
+
+## 4. Production runs (new entity)
+
+A run is a promise of future stock, so it must live on the server: `incoming`
+is computed from open runs, and the counter sends while the kitchen receives.
+
+```
+ProductionRun     { id, date, warehouseId, status: 'open' | 'closed', lines[] }
+ProductionRunLine { id, item: { type, id, combinationId }, plannedQty,
+                    status: 'pending' | 'received' | 'cancelled',
+                    receivedQty, receivedAt, receivedBy }
+```
+
+- `ProductionRunLine` lives inside `ProductionRun.js`, lines as an array on the
+  run doc, the same way `OrderItem` lives in `Order.js`. Not `OrderItem`: that
+  is a sales line (price, tax, discounts) and can't hold a preparación.
+- Lines are products in `inventoryMode: 'recipe'` or preparaciones (ingredients
+  with a recipe).
+- **Draft** stays in localStorage. **Send** creates the run; its pending lines
+  count as `incoming`.
+- **Receive** one line at its planned quantity: + output, − components, in one
+  transaction, deterministic movement ids per line. The editable received
+  quantity is on hold.
+- **Cancel** a pending line: leaves `incoming`, no movements.
+- Pending lines stay editable. The run closes when no line is pending.
+- **Kitchen:** run lines appear in the existing production list next to order
+  lines. Run lines carry a "Vitrina" tag, order lines the customer's name,
+  because the same tap moves stock on one and not the other.
+- Ingredients come off at receipt, not when baking starts. Counts happen at
+  closing, so the mid-bake gap doesn't matter (confirm via the client-doc
+  comment).
+- Producción picker shows products in `'none'` and `'recipe'` (never `'unit'`),
+  and every preparación. Adding a `'none'` product flips it to `'recipe'`; adding
+  a `passThrough` preparación flips it to `stocked`. Either way the output gets
+  a stocks doc to land in; no recipe is required. Show a one-line note in the
+  picker. The backend rejects a run line whose output has no stocks doc.
+- ProductionDoc should show, per line, what's already scheduled and what's in
+  stock (`mad-td` "reu fitbar"). Free once availability exists.
+
+---
+
+## 5. Providers and purchases (new entities)
+
+```
+Provider { id, name, nationalId?, phone?, isDeleted }
+Purchase { id, providerId, date, warehouseId,
+           lines: [{ item: { type, id, combinationId }, qty, unitCost, updateCost }],
+           total }
+```
+
+- Provider is an entity from day one. `nationalId` (NIT) because supplier
+  e-invoices identify the issuer by NIT (backend `ACTIVE_INVOICE_PARSING.md`).
+  Soft delete. Created inline from Ingreso with a name only.
+- The provider's last basket (items, last unit cost) is computed from their
+  latest purchase. Nothing denormalized on the provider.
+- `Ingredient.preferredSupplier` (free text) is deleted.
+- A purchase is immutable once confirmed. Mistakes are fixed with adjustments.
+- One `purchase` movement per line, `unitCost` on the movement, `refs.purchaseId`.
+- **Cost update is on by default, per line** (`updateCost`); untick to keep a
+  one-off price. Confirmar names the count and asks once before applying.
+  Applied in the purchase's
+  transaction; all or nothing. The new cost is the last price paid, not an
+  average. Ingredients without a recipe (a preparación's cost comes from its
+  recipe) and resale products / combinations whose cost is manual (never a
+  recipe-costed one). A flagged price change shows
+  `antes $3.200 · subió 9%`.
+- No tax fields until an accounting screen exists to fill them.
+- Draft stays in localStorage.
+
+---
+
+## 6. Availability endpoint
+
+No new route. `GET /bakeries/:bakeryId/stocks` returns `committed`, `incoming`
+and `available` on each row, computed server-side. `?itemKeys=` narrows it for
+OrderForm. The browser never sums orders or builds item keys.
+
+---
+
+## 7. Milestones
+
+Each ends shipped and used.
+
+| # | Milestone | Backend | Frontend |
+|---|---|---|---|
+| 1 | **Providers + Ingreso** | Provider CRUD, last-basket read, Purchase create → `purchase` movements, cost update in the same transaction, drop `preferredSupplier` | Provider list on PurchaseDoc, basket prefill, price-change flag, per-line cost checkbox, Confirmar on |
+| 2 | **Production runs** | Export `resolveRecipeId` / `normalizeComponent` / `MAX_DEPTH`; `expandComponents`; ProductionRun model + routes (send, edit, receive line, cancel line, preview) | ProductionDoc sends; picker fix; kitchen list shows run lines with "Vitrina" |
+| 3 | **Orders + availability** | `committed` / `incoming` / `available` on `GET /stocks`; `affectsStock` edges in `orderService` (create, patch, patchAll, remove); compensation; gaps | Disponible in Bodega and OrderForm; source toggle per line; `stock` lines off the kitchen list |
+| 4 | **Conteo** | design conversation first, then `stockCountService` | `CountDoc` saves; explained vs unexplained merma |
+| 5 | Multi-bodega UI | — | Bodega editor in settings. Only when a client has two bodegas |
+
+---
+
+## 8. Invariants (unchanged, restated because they bite)
+
+1. Movements are append-only. Corrections are new movements.
+2. Every movement goes through `writeMovements`.
+3. Movement + `currentStock` increment in one transaction.
+4. Transactions read everything before writing. Unbounded walks happen outside.
+5. `itemKey` / stock-doc ids are built by one function each. The frontend never builds one.
+6. No "already deducted" flags on documents. Idempotency comes from
+   deterministic ids (hand-entered movements, run-line receipts) or from the
+   order's diff against its own movements (§3).
+7. No unit conversions in the ledger.
+8. Inventory never blocks a sale.
+9. `inventoryMode: 'none'` items show no inventory UI.

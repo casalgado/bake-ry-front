@@ -14,7 +14,7 @@ Design decisions for the Inventory epic ([ROADMAP.md](../strategy/ROADMAP.md) �
 | Missing-recipe / gap handling | ✅ Decided |
 | Ledger: stocks docs + movements collection | ✅ Decided |
 | Stock triggers (which order changes touch stock) | ✅ Decided |
-| Trigger predicate (the "completed" definition) | ✅ Decided (§9) |
+| Trigger predicate (the "shipped" definition) | ✅ Decided (§9) |
 | Module activation (opt-in per business) | ✅ Decided (§14) |
 | Role access for counts / purchases | 🔶 Open |
 
@@ -221,7 +221,7 @@ StockMovement {
 ```
 
 - **Immutable**: movements are never edited or deleted. Corrections are new movements (`compensation`, referencing the original via `refs.compensates`).
-- **Deterministic IDs for idempotency**: a sale movement's ID is `{orderId}_{orderItemId}_{itemKey}`. Re-running deduction on the same order is a structural no-op (the transaction reads existing movements first). No "already deducted" flag on the order doc to keep in sync.
+- **Idempotency without flags**: order movements are never keyed by a fixed id. Every order change diffs the order's desired deduction against the net of its existing movements (`refs.orderId`) and writes only the delta (§9), so re-running is an empty diff. A fixed sale id would break an order that ships, is pulled back, and ships again. Hand-entered movements and production-run receipts do use deterministic ids. No "already deducted" flag on any document.
 - **Flat collection, not per-item subcollections**: the real queries are cross-item — "all movements from order X" (compensation), "everything a count absorbed", "today's purchases". Per-item history is just `where('itemKey' == …)`.
 - **Indexes**: composite on (`itemKey`, `timestamp`) for per-item history and drift recompute; single-field on `refs.orderId` for compensation lookups; (`type`, `timestamp`) for purchase/count listings.
 
@@ -262,29 +262,26 @@ Expand the order's **new** item state → diff against the order's **existing** 
 
 ## 9. Decision: stock triggers — the `affectsStock` predicate
 
-**One boolean decides whether an order holds stock. Every trigger is an edge of that predicate — there are no independent triggers to conflict with each other.**
+**The ledger records what physically left. An order deducts when it ships, not when it's created or paid.** Order statuses: 0 Recibida · 1 Producida · 2 Enviada · 3 Entregada.
 
 ```
-affectsStock(order) = order.status >= 1                     // left 'Recibida': work started
-                   OR (order.salesChannel === 'pos'
-                       && order is FULLY paid)              // POS: paid means goods handed over
+affectsStock(order) = !order.isDeleted && order.status >= 2   // Enviada or Entregada
 ```
 
-Edge-triggered semantics (evaluated in the `diffObjects` gate, and **also at order creation** — a POS order with `autoMarkPaid` is born with the predicate true):
+**One mechanism for every edge — `reconcileOrderStock(order)`:** expand what the order should have deducted (nothing when the predicate is false) → diff against the net of the order's existing movements (`refs.orderId`) → write only the delta (`sale` for the first deduction, `compensation` after). This single diff is deduction, reversal (shipped order moved back or deleted) and edit compensation (§8.6), and running it twice is an empty diff.
 
-1. **false → true** (by either leg; doesn't matter which) → full deduction, once (deterministic IDs make repeats structural no-ops).
-2. **true → false** (both legs now false — e.g. unpaid + moved back to Recibida, or deletion while true) → full reversal (compensating movements for everything the order deducted).
-3. **true, and `orderItems` change** — quantity edited, product/combination swapped, item added/removed → compensation diff (§8.6).
-4. **true → true** (the other leg turning on, e.g. a deducted order later marked paid) → nothing; the predicate didn't change.
+**Per line, by `OrderItem.fulfillmentSource`:** a `stock` line deducts the product; a `produce` line deducts its ingredients through the recipe walk (§6) and never touches the product's own stock — it was made for that customer and never sat on the shelf.
 
-Why these legs:
+Why ship-time and not creation:
 
-- **`status >= 1` ("left Recibida"), not "reached Completada"**: index-agnostic w.r.t. ladder length and naming; physically accurate for recipe-mode products (ingredients are committed when production starts, not at delivery); robust to the common case of orders that are moved to En Produccion and never walked further.
-- **Paid leg scoped to POS orders, fully paid only**: for regular orders, "paid" can precede consumption by weeks (advance-paid encargos — partial payments exist for exactly this). Deducting early corrupts every count taken in the gap: the count absorbs a deduction that hasn't physically happened yet, permanently overstating stock. For POS, paid genuinely means the goods left. Deposits/partial payments never trigger.
-- **`Order.salesChannel: 'standard' | 'pos'`** (new field, default `'standard'`) stamped by the order form when operating in POS mode. It cannot be inferred after the fact (POS sells to real named clients when `autoSelectClient` is off), and — like the IVA fields — it can't be reconstructed retroactively; it also unlocks counter-vs-encargo reporting later. Existing orders read as `'standard'` with no migration.
-- A client who uses **neither** statuses nor POS gets no automatic deduction — consistent with the opt-in philosophy; their counts still work (counts don't need a trigger).
+- **An order is a promise; nothing physical happens at creation.** Writing movements for it means a compensation for every edit, quantity change and cancellation — orders get edited constantly, and the ledger is append-only.
+- **Counts would corrupt it.** A 3 pm pre-order deducted at 9 am is still on the shelf at a 2 pm count; the count re-baselines it, the pickup has already been deducted, and stock is overstated permanently.
+- **"Is it still sellable?" is a different number.** Disponible = existencia + en producción − comprometido, computed from open orders and open production runs on read (`next-steps` §2). The commitment exists from the moment the order does, at zero ledger cost.
+- **Payment is not a physical event.** Advance-paid encargos are paid weeks before they ship.
 
-Everything else — driver assignment, payment marking on standard orders, notes, delivery fields, invoice tweaks, item reordering — never enters the stock path. The gate is cheap: `orderService` already computes `diffObjects(currentOrder, updatedOrder)` on every patch; if the diff neither flips the predicate nor touches `orderItems` while the predicate is true, stock code is not invoked. This keeps the dozens of mundane patches per order at zero inventory cost.
+Pickups that jump straight to Entregada are covered by `>= 2`. POS orders must be born Entregada (tracked outside this epic); a counter sale that never reaches Enviada never deducts.
+
+Everything else — driver assignment, payment, notes, delivery fields, invoice tweaks — never enters the stock path. `orderService` already computes `diffObjects(currentOrder, updatedOrder)` on every patch; if the diff neither flips the predicate nor touches `orderItems` while it's true, stock code is not invoked.
 
 ---
 
@@ -292,7 +289,7 @@ Everything else — driver assignment, payment marking on standard orders, notes
 
 | Entity | Change |
 |---|---|
-| `Order` | + `salesChannel: 'standard' \| 'pos'` (default `'standard'`, stamped by the order form in POS mode; feeds the trigger predicate §9) |
+| `OrderItem` | + `fulfillmentSource: 'produce' \| 'stock'` (default `'produce'`) + `sourceWarehouseId` — decides what the line deducts when the order ships (§9) |
 | `Product` | + `inventoryMode: 'none' \| 'unit' \| 'recipe'` (default `'none'`) |
 | `Combination` | + `recipeId` (nullable) |
 | `Recipe` | owner generalized: product \| combination \| ingredient; + `yield` (ingredient-owned only); components become typed (`RecipeComponent`, §3) |
@@ -301,7 +298,9 @@ Everything else — driver assignment, payment marking on standard orders, notes
 | New: `stockMovements` collection | append-only ledger (§8.2), composite indexes (§8.2) |
 | New: `stockGaps` collection | gap markers: order, item, combination, date, reason (§6) |
 | New: stock counts (phase 3) | count doc: items with counted quantities, draft/completed, `completedAt`; completion baselines each included item (§8.3); partial counts supported (§8.1) |
-| New: purchases / Compras (phase 4) | purchase doc → `purchase` movements + cache increments; presentation multipliers applied at entry time only; optional prompt to update ingredient `costPerUnit` from purchase price; **tax fields from day one in the accounting vocabulary** — `ivaAmount`, `retefuente`, `reteica`, `reteiva`, same names as `AccountingEntry` (§13) |
+| New: `providers` | `{ name, nationalId?, phone?, isDeleted }` per bakery. NIT because supplier e-invoices identify the issuer by it |
+| New: `purchases` | `{ providerId, date, warehouseId, lines: [{ item, qty, unitCost, updateCost }], total }` → one `purchase` movement per line; immutable once confirmed; per-line cost update (on by default, untick to skip) applied in the purchase's transaction (all or nothing). Tax fields join when an accounting screen exists to fill them, named as `AccountingEntry` names them (§13) |
+| New: `productionRuns` | `{ date, warehouseId, status: 'open' \| 'closed', lines: [ProductionRunLine] }`; a line `{ item, plannedQty, status: 'pending' \| 'received' \| 'cancelled', receivedQty, receivedAt, receivedBy }`. Pending lines are `incoming`; receiving a line writes + output − components |
 
 New backend surface: `stockService` (movements + cache + expansion/deduction + drift verify), `stockCountService` (phase 3), `purchaseService` (phase 4), with routes following the existing factory patterns. All changes are additive **except the retirement of `Ingredient.isResale`**; otherwise no data migration required (existing products default to `inventoryMode: 'none'`, existing `product.recipeId` untouched, `Ingredient.currentStock` ignored then removed). Retiring `isResale` is applied forward only: an ingredient that carried it stays an ordinary ingredient, and anything that must actually be sold is created as a product and its balance moved with an explicit adjustment at each end. Nothing rewrites the ledger — an item's `itemKey` changes when it changes entity, and the movements collection is append-only. See `PLAN-resale-to-product.md` §5.
 
@@ -325,10 +324,9 @@ The roadmap's cross-cutting rule: **data entry is the product risk, not the repo
 
 ## 12. Open items
 
-1. **"Completed" trigger — RESOLVED.** The `affectsStock` predicate (§9): `status >= 1 OR (salesChannel === 'pos' && fully paid)`, edge-triggered, with the new `Order.salesChannel` field. Kept here (struck, not renumbered) so cross-references to §12.2–§12.4 stay valid.
-2. **Role access:** which roles may record counts, purchases, adjustments (`production_assistant`, `accounting_assistant`, `bakery_staff`?). Decide when building routes.
-3. **Production entries for stocked intermediates (accepted IOU, §4):** compound `production` movement; Compras phase or later.
-4. **Negative stock policy:** deduction can drive `currentStock` below zero (sale before purchase entry). Proposed: allow it, display prominently, let counts correct — never block sales. Confirm during phase 2 UI.
+1. **Forgotten orders.** An order never marked shipped commits stock forever. Plan: count only open orders due within a window; the size is undecided.
+2. **Role access:** which roles may record counts, purchases, adjustments (`production_assistant`, `accounting_assistant`, `bakery_staff`?). Decide when building routes. Receiving production-run lines includes `production_assistant`.
+3. **Negative stock:** allowed, displayed, never blocks a sale; counts correct it.
 
 ---
 
@@ -339,8 +337,8 @@ Boundary contract with [ACCOUNTING-IMPLEMENTATION.md](../accounting/ACCOUNTING-I
 1. **The only shared data is `costPrice` / `costPerUnit`.** Accounting consumes them (the COGS waterfall in the income statement); inventory refreshes them (recipe cost propagation, §7). No other reads or writes cross the boundary. A client without inventory maintains costs manually — today's behavior — and their P&L still works.
 2. **The income statement never reads `purchases`; Compras never writes `accountingEntries`.** If a "cash view of ingredient spend" is ever wanted, it's a report over `purchases` — never expense entries.
 3. **Ingredient spend is never an expense entry — universal rule, not inventory-conditional.** Flour recorded as an expense double-counts against COGS whether or not the inventory module exists, because COGS comes from `costPrice` either way. Guarded in the expense form by the decoy category (accounting §5).
-4. **One tax vocabulary**: `ivaAmount`, `retefuente`, `reteica`, `reteiva` — identical flat scalars on both `accountingEntries` and `purchases`, so future IVA/retención reports union the two collections without translation.
-5. **Supplier entities / accounts payable belong to neither epic** — balance-sheet phase. Until then `counterparty` (entries) and `supplier` (purchases) remain free text and must not grow into entities independently.
+4. **One tax vocabulary**: `ivaAmount`, `retefuente`, `reteica`, `reteiva` — the names `accountingEntries` uses, and the names `purchases` will use when it gains tax fields, so future IVA/retención reports union the two collections without translation.
+5. **Providers are an inventory entity; accounts payable is not.** `providers` exist because Ingreso is built around them (the last basket, price-change flags). Accounting may later point `counterparty` at a provider id, but owing money, due dates and payments stay in the balance-sheet phase.
 
 Failure asymmetry worth remembering: rent-into-Compras is structurally impossible (the item picker only offers stock items), while flour-into-Gastos types in fine (an entry needs only an amount) — so the entire guard budget sits on the expense form's side, and the merma summary (§11.9) is the backstop that makes anything that leaks through visible instead of permanent.
 

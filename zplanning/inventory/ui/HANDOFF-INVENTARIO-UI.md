@@ -1,7 +1,7 @@
 # Handoff — Preparaciones, Ingreso, Producción, Conteo
 
 **Created:** 2026-09-07
-**Status:** phases 0–4 built 2026-09-07; 3.4 and 4.3 partial (backend), phase 5 not started
+**Status:** phases 0–4 built 2026-09-07; 3.4 and 4.3 wait on milestones 1–2 (`../inventory-next-steps.md` §7), phase 5 not started
 **Scope:** frontend `bake-ry-front` only, except where marked **[BACKEND]**
 
 Written for someone with no context on the conversation that produced it. Read
@@ -11,10 +11,10 @@ Written for someone with no context on the conversation that produced it. Read
 
 1. [`../PLAN-resale-to-product.md`](../PLAN-resale-to-product.md) — settles what
    a "resale product" is. **Its conclusion is a hard input to this plan.**
-2. [`../inventory-next-steps.md`](../inventory-next-steps.md) — the epic's phase
-   list (A–F). This plan reorders and expands parts of B and F; §9 reconciles them.
+2. [`../inventory-next-steps.md`](../inventory-next-steps.md) — the epic's
+   decisions and milestones. **Wins wherever this document disagrees.**
 3. [`EXISTENCIAS-BUILD.md`](./EXISTENCIAS-BUILD.md) — the already-built
-   Existencias screen. Its §4.1–4.3 name the endpoints this plan waits on.
+   Existencias screen. Its §4 is the backend shape this plan waits on.
 4. [`../INVENTORY-IMPLEMENTATION.md`](../INVENTORY-IMPLEMENTATION.md)
    — the *why* of the data model.
 
@@ -77,8 +77,9 @@ Apply the rule directly in the new files.
   user 2026-09-07). It is held in the bodega and produced as its own event.
 - The provider lives on the **document**, never on the line. One delivery, one
   provider.
-- Confirming a purchase never silently updates an ingredient's standard cost.
-  It is an opt-in, per-line checkbox at confirm time.
+- Confirming a purchase updates the cost of every changed line by default,
+  never silently: each is a pre-ticked checkbox, Confirmar names the count, and
+  a confirmation lists them. Untick to keep a one-off price.
 
 ---
 
@@ -456,30 +457,23 @@ confirmation with exception-flagging, not data entry.
 
 1. Provider is the **first and most prominent** field. A list, not a text box.
 2. Selecting one **prefills the document** with that provider's usual basket:
-   the items from their last purchase, **unit cost prefilled**, **quantity blank**.
-3. The user types quantities. Most lines are never touched.
+   the items from their last purchase, **unit cost and quantity prefilled**.
+3. The user corrects what differs on today's invoice. Most lines are never touched.
 4. A **changed price is flagged on the line**: `antes $3.200 · subió 9%`. Use
    `ui-item-desc`; a rise and a fall should be distinguishable at a glance.
-5. Each flagged line offers an opt-in checkbox: *"actualizar el costo de harina a
-   $3.500"*. Per-line, never automatic, applied at confirm. This preserves the
-   ruling already recorded at `EntryDoc.vue:197-201`.
+5. Each line whose price differs from the stored cost gets a pre-ticked
+   checkbox; untick to keep the current cost. Confirmar names the count and
+   asks once before applying.
 
 Store change: `blankDoc` in `inventoryDocsStore.js:27` has a generic `party`
 string. Ingreso's becomes `providerId`; Producción drops it entirely (see 4.1).
 Keep `blankDoc` honest — do not leave a dead `party` field on either.
 
-**[BACKEND] contract this UI assumes** (§9 flags that this contradicts a prior
-deferral, so confirm before the backend work starts):
-
-- A provider entity: `{ id, name }` at minimum, scoped by bakery.
-- `GET .../providers/:id/last-purchase` (or equivalent) returning
-  `{ itemKey, unitCost, lastPurchasedAt }[]` — enough to build the basket and
-  flag a price change.
-- `POST /purchases` accepts `providerId` on the document.
-
-Until those exist, prefill from whatever `stockStore` can offer and keep the
-provider list stubbed from bakery settings. **Do not fake a price history** —
-an invented "antes" is worse than no flag.
+**[BACKEND] contract** — confirmed, milestone 1 (`next-steps` §5,
+`EXISTENCIAS-BUILD.md` §4.2): a `providers` entity, `GET
+.../providers/:id/last-purchase` returning the latest purchase's lines, and
+`POST /purchases` carrying `providerId`. **Do not fake a price history** — an
+invented "antes" is worse than no flag.
 
 - [~] 3.4 **partial — blocked.** El proveedor is now the first and most
   prominent field on the document, and `blankDoc` carries `provider` for
@@ -540,8 +534,9 @@ Pan de queso     20 und          Mantequilla  3.2 kg  (hay 2.1)  ⚠ faltan 1.1
                                  Levadura     0.4 kg  (hay 6.0)  ✓
 ```
 
-- Driven by `stockStore.produce({ ...payload, preview: true })`, which already
-  exists (`stockStore.js:40-45`) and correctly skips the refetch on a preview.
+- Driven by the production-run preview action (`EXISTENCIAS-BUILD.md` §4.1).
+  `stockStore.produce` targets an endpoint that will never exist; it goes when
+  the production-run store lands.
 - Component expansion is a **backend walk** (`EXISTENCIAS-BUILD.md` §4.1). This
   screen must never re-derive it client-side — that is why `InventoryLayout.vue`
   deliberately does not fetch recipes (`:31-34`).
@@ -566,8 +561,8 @@ Pan de queso     20 und          Mantequilla  3.2 kg  (hay 2.1)  ⚠ faltan 1.1
   second input, and typing `2` fills the quantity with `2 × yield`. Products
   keep counting in units — they have no rendimiento to multiply by.
   **"Repetir la producción de ayer" is blocked and deliberately not faked:**
-  there are no production movements in the ledger until
-  `POST /stocks/produce` lands, so there is no yesterday to repeat yet.
+  there is no yesterday to repeat until production runs exist. Once they do,
+  "repetir" copies yesterday's run lines into a new draft.
 
 ### 4.4 Confirm stays disabled
 
@@ -608,36 +603,18 @@ that predates this conversation.
 
 ---
 
-## 9. Reconciliation with `inventory-next-steps.md`
+## 9. What comes next
 
-This plan changes that document's shape. **Reconciled 2026-09-07** — B2, B3, F1, E and the deferred list now say so in `inventory-next-steps.md` itself.
-
-| That doc | This plan |
-|---|---|
-| **B1** ProductForm mode selector | **Unchanged, and now blocking.** Promote it ahead of Phase 3. |
-| **B2** IngredientForm extras — "receta opcional con yield obligatorio" | **Partly absorbed.** Phase 1 delivers preparación creation through the recetario instead. B2 keeps `preferredSupplier`, the pass-through/stocked toggle, and editing an existing ingredient. Remove its `isResale: false` condition (`:64`) per `PLAN-resale-to-product.md`. |
-| **B3** Recipe Manager | **Overlaps Phase 1.** B3 was written against `ShowRecipes.vue`; `RecipeBookView.vue` has since superseded it. Phase 1 is the next honest increment. Re-scope or close B3. |
-| **E1/E2** Conteo | **Unchanged.** Phase 5 defers to it. |
-| **F1/F2** Compras | **Superseded in part.** F1 specifies `supplier` as **free text**; Phase 3.4 replaces that with a provider entity and price history. |
-| Deferred list: *"entidades proveedor (fase balance-sheet)"* | **Contradicted.** The user has asked for provider entities now. This is a deliberate scope change — flag it rather than letting the two documents disagree silently. |
+The remaining work — providers, production runs, availability, order
+deduction, Conteo — is in [`../inventory-next-steps.md`](../inventory-next-steps.md)
+§7. Producción is both a plan and a record: *Enviar* makes it a promise
+(en producción), receiving a line makes it real (`next-steps` §4).
 
 ---
 
 ## 10. Open questions
 
-1. **Producción: record or plan?** Is the document *"we made this"* (confirm →
-   stock moves now) or *"we are going to make this"* (a plan someone ticks off
-   later)? **Deliberately postponed** — the user has not settled stock movements
-   yet. Safe to postpone: both versions have the identical screen, and only
-   Confirmar's behaviour differs. The plan version is additive.
-2. **Provider entity vs the balance-sheet deferral** (§9). Confirm before backend
-   work starts.
-3. **`Ingredient.isResale` migration.** `PLAN-resale-to-product.md` §5 needs its
-   Fase 0 measurement (how many `isResale: true` ingredients have ledger
-   movements) before this plan's §1 model is fully true. Most likely zero, since
-   inventory sits behind a feature flag — in which case the whole migration
-   problem evaporates.
-4. **`seedIngredients.js:19` forces `stockBehavior: STOCKED` for every seeded
+1. **`seedIngredients.js:19` forces `stockBehavior: STOCKED` for every seeded
    ingredient.** Probably wrong (the design default is `passThrough`), noted in
    `PLAN-resale-to-product.md` §9.4. Separate issue; do not fix it here.
 
@@ -670,7 +647,6 @@ This plan changes that document's shape. **Reconciled 2026-09-07** — B2, B3, F
 | 4.4 | Confirm disabled, endpoint named | 4 | 4.1 | ☑ |
 | 5.0 | Conteo design conversation | 5 | — | ☐ |
 | 5.1 | Conteo build | 5 | 5.0 | ☐ |
-| 9 | Update `inventory-next-steps.md` | — | all above | ☑ |
 
 **Marking a task done:** tick the checkbox in its section **and** the row here.
 A task is done when its stated verification passes, not when the code compiles.

@@ -163,7 +163,7 @@ ingredients                           → unchanged (stocked stops, passThrough 
 
 Compensation (§8.6) needs no changes: flipping the toggle or the warehouse on a
 line is an item edit → expand new state, diff against existing movements,
-write the delta. Deterministic ids unchanged.
+write the delta (`reconcileOrderStock`, IMPLEMENTATION §9).
 
 ### 2.3 Recipe-mode products can hold stock
 
@@ -175,18 +175,15 @@ vitrina *and* made to order).
   `=== 'none'` — `recipe`-mode products get stocks docs for their sellable
   units too. (The `writeMovements` fallback would create them lazily anyway;
   syncing eagerly keeps them visible in the stock view before first movement.)
-- **"Producir para stock" extends to products** (amends plan 4.5, which only
-  covered stocked intermediates): one compound `writeMovements` call —
-  `+N` of the sellable unit at the destination warehouse, `−` its recipe
-  components scaled by N, `type: 'production'`, shared `refs.productionId`.
-  Same flow, two owners (stocked production ingredient | recipe product).
-- Frontend: modal from `ShowStock.vue` — pick item with recipe, quantity,
-  destination warehouse → preview movements → confirm.
+- **Producing for stock covers products and stocked preparaciones**, through
+  production runs (`inventory-next-steps.md` §4): receiving a run line writes
+  `+N` of the output at the run's warehouse and `−` its recipe components scaled
+  by N, `type: 'production'`, in one `writeMovements` call.
 
 ### 2.4 What does NOT change
 
-- The `affectsStock` predicate (§9) stays the sole trigger, order-level,
-  edge-triggered. **Marking items produced in the production views never
+- The `affectsStock` predicate (IMPLEMENTATION §9: the order reached Enviada
+  or Entregada) stays the sole trigger, order-level, edge-triggered. **Marking items produced in the production views never
   touches stock** (the UX plan's earlier "consume on mark-produced" line is
   superseded by this).
 - Production views (`ShowProductionSingleItems` / `ShowProductionGroupedItems`)

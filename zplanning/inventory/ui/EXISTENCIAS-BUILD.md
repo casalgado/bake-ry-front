@@ -32,9 +32,9 @@ Four tabs:
 | Tab | What it is | Backend state |
 |---|---|---|
 | **Bodega** | permanent, never closes. A place, not a task. | **exists** |
-| **Ingreso** | lo que llega de afuera (compras) | build in commit 3 |
-| **Producción** | lo que hacemos (productos y preparaciones) | build in commit 2 |
-| **Conteo** | el físico | build in commit 4 |
+| **Ingreso** | lo que llega de afuera (compras) | milestone 1 (`inventory-next-steps.md` §7) |
+| **Producción** | lo que vamos a hacer (productos y preparaciones) | milestone 2 |
+| **Conteo** | el físico | milestone 4, after its design pass |
 
 Layout rule locked across both inventory views (Recetario does the same):
 
@@ -218,8 +218,8 @@ produce(          { lines, warehouseId, idempotencyKey, preview })
 `src/stores/stockStore.js` gains matching wrappers that refetch stocks after a
 write, exactly as `adjust` already does.
 
-`produce` is written now but its endpoint arrives in commit 2 — the button
-that would call it stays disabled until then.
+`produce` targets an endpoint that will never exist: production runs (§4.1)
+replace it with their own service and store. Delete it when those land.
 
 ### 3.4 The view — four files
 
@@ -318,7 +318,7 @@ Build them fully: real chips from the real catalogs showing real current stock,
 drag and click-to-add, editable quantities, live totals, the meta fields.
 
 `Confirm` is disabled behind one `ponytail:` comment per tab naming the endpoint
-it waits on (`POST /stocks/produce`, `POST /purchases`, `POST /stockCounts`).
+it waits on (production runs, `POST /purchases`, `POST /stockCounts`).
 **Nothing fakes a write.** In particular: do not route Ingreso or Producción
 through the existing `adjust` endpoint to "make it work" — that writes
 `adjustment` movements for events that are purchases and production, and an
@@ -344,16 +344,26 @@ in the PR:
 
 ---
 
-## 4. Commits 2-4 — one backend each, then wire the tab up
+## 4. Backend for the three work tabs
 
-Backend before the frontend that consumes it. Role access matches the existing
-stock routes. Tests are written where noted and **never run without asking**.
+Decisions live in [../inventory-next-steps.md](../inventory-next-steps.md); this
+section is the technical shape. Backend before the frontend that consumes it.
+Role access matches the existing stock routes. Tests are written where noted and
+**never run without asking**.
 
-### 4.1 Commit 2 — Producción
+### 4.1 Producción — production runs
 
-**`expandComponents` in `stockService.js`** — the recursive rule of
-IMPLEMENTATION §6, extracted once, because Fase D's `expandOrderItem` is a thin
-wrapper over it later:
+**The walk: `expandComponents` in `stockService.js`** — the recursive rule of
+IMPLEMENTATION §6, written once. Its one public entry is
+`expandRecipe(item, qty)`: the components of an item's **own** recipe, each
+through `expandComponents`. Callers:
+
+| Caller | Movements |
+|---|---|
+| production-run receipt | + the output, then − `expandRecipe(output, qty)` |
+| order line, `produce`, `'recipe'` product | − `expandRecipe(product, qty)` |
+| order line, `stock`, or any `'unit'` product | − qty of the product itself. No walk: it came off the shelf |
+| order line, `'none'` product | nothing |
 
 ```
 expandComponents(bakeryId, { type, id, combinationId }, qty, warehouseId)
@@ -381,64 +391,63 @@ Export `resolveRecipeId`, `normalizeComponent` and `MAX_DEPTH` from
 than re-deriving them. Recipe resolution must exist once, or deduction reads the
 graph differently from how the cycle check validated it.
 
-**`produce()`** — no document and **no new service**; §4.5 of the plan is
-explicit that this is one compound `writeMovements` call, and a
-service/controller/routes trio around forty lines with no document of its own is
-ceremony. It lives beside `adjust` and `waste`.
+**The document: `ProductionRun`** (`src/models/ProductionRun.js`, with
+`ProductionRunLine` in the same file, the way `OrderItem` lives in `Order.js`).
+Shape in `next-steps` §4. Service on `createBaseService('productionRuns', …)`.
 
-```
-produce(bakeryId, { lines: [{ item, qty }], warehouseId, idempotencyKey, preview })
-```
+| Action | Effect |
+|---|---|
+| create (send) | run `open`, lines `pending`. No movements |
+| patch pending lines | add, change `plannedQty`, remove. Received lines are immutable |
+| receive line | one transaction: `+plannedQty` of the output, `−` `expandRecipe(output, plannedQty)`; `type: 'production'`, `refs: { productionRunId, lineId }`, deterministic ids per line; line → `received`; run → `closed` if nothing is pending |
+| cancel line | line → `cancelled`, no movements; same close check |
+| preview | the movements a receipt *would* write, nothing written. Same code path as receive, so the preview provably matches |
 
-Expand every line; concatenate `+output` with the `−component` movements;
-`type: 'production'`; shared generated `refs.productionId`. `preview: true`
-returns the movement list **without writing** — one endpoint, two uses, and the
-preview provably matches confirm because it is the same code path. Reuse
-`retryId`. Reject producing a `none`-mode product: it holds no stocks doc, so
-there is nothing for the output to land in.
-
-Route: `POST /bakeries/:bakeryId/stocks/produce`.
+Expansion reads happen before the transaction (invariant 4). The output must
+have a stocks doc: a `'none'` product or a `passThrough` preparación has
+nowhere to land. The Producción picker flips them on add (`'none'` →
+`'recipe'`, `passThrough` → `stocked`), and the backend rejects a line whose
+output has no stocks doc.
 
 **Tests:** nested product→recipe→product→ingredient expansion; pass-through
-yield scaling; missing recipe → gap not a guess; depth guard; preview writes
-nothing; confirm writes output and components atomically; same
-`idempotencyKey` twice → one set of movements.
+yield scaling; missing recipe → gap, not a guess; depth guard; preview writes
+nothing; receipt writes output and components atomically; receiving the same
+line twice writes once; cancelled and received lines leave `incoming`.
 
-**Then the frontend:** turn on the preview panel and `Confirm` in `EntryDoc.vue`.
+**Frontend:** ProductionDoc's Confirmar becomes *Enviar a producción*; the
+consumption preview calls the preview action; run lines join the kitchen's
+production list with a "Vitrina" tag.
 
-### 4.2 Commit 3 — Ingreso
+### 4.2 Ingreso — providers and purchases
 
-`src/models/Purchase.js` extending `BaseModel`: `supplier` (free text — **not**
-an entity, that's the balance-sheet epic), `date`, `warehouseId`,
-`paymentMethod`, `lines[{ itemKey, item, presentation, presentationQty,
-baseQty, unitCost }]`, `subtotal`/`total`, and the flat tax scalars named
-**exactly** as `AccountingEntry` names them — `ivaAmount`, `retefuente`,
-`reteica`, `reteiva` — so a future IVA report is a union with zero translation.
+`Provider` (`providers`, factory service, soft delete) and `Purchase`
+(`purchases`). Shapes in `next-steps` §5.
 
-Tax fields are captured from day one even though nothing reports on them yet:
-reporting can be added later, the data cannot be reconstructed retroactively.
-Keep them in a collapsed section, off the fast path.
+`purchaseService.create` writes the purchase doc and one `purchase` movement per
+line — positive qty, `unitCost` on the movement, `refs.purchaseId` — via
+`writeMovements` **in the same transaction**. The service mints each line's
+`itemKey` (the frontend never does), creating the stocks doc on a first
+purchase. No update or delete of a confirmed purchase.
 
-`purchaseService.js` on `createBaseService('purchases', Purchase,
-'bakeries/{bakeryId}')` (see `productCollectionService.js` for the shape),
-overriding `create` to also write one `purchase` movement per line — positive
-qty, `unitCost` snapshot, `refs.purchaseId` — via `writeMovements` **inside the
-same transaction**. No update or delete of a posted purchase.
+**Cost update** is per line, on by default (`updateCost`; untick to keep a
+one-off price), for ingredients and manual-cost resale products. It runs in the
+purchase's own transaction, with cost propagation planned before any write.
+All or nothing. Confirmar names the count and asks once before sending.
 
-**Presentation is entry-time only** (invariant 7): the line stores `baseQty` in
-the item's own unit; `presentation`/`presentationQty` are display memory the
-ledger never has to interpret.
+**Last basket:** `GET /providers/:id/last-purchase` → the lines of that
+provider's latest purchase (`{ item, itemKey, unitCost, date }[]`). Computed
+from `purchases`; nothing denormalized on the provider.
 
-**Cost prompt**: when a line's unit cost differs from the item's current cost,
-offer "¿actualizar el costo de harina a $X?" per line. Accepting calls
-`ingredientService.update({ costPerUnit })`, which already triggers cost
-propagation. **Never automatic** — purchase prices fluctuate; the user decides
-what the standard cost is.
+No tax fields and no presentations (bulto = 25 kg) yet. Both are entry-time
+additions for later; when presentations arrive, the ledger still only ever sees
+base units (invariant 7).
 
-**Tests:** movement per line in base units; presentation math never reaches the
-ledger; accepting the prompt propagates to recipes and product costs.
+**Tests:** one movement per line; purchase + movements atomic; same
+`idempotencyKey` twice → one purchase; `updateCost` only on flagged lines and
+propagates to recipes and product costs; last basket returns the latest
+purchase's lines.
 
-### 4.3 Commit 4 — Conteo
+### 4.3 Conteo — pending its design conversation
 
 `src/models/StockCount.js`: `{ status: 'draft' | 'completed', warehouseId,
 items: [{ itemKey, name, unit, countedQty, expectedQty }], createdBy,
@@ -512,14 +521,15 @@ nothing. Steps 5-7 arrive with their own commits.
    move; an `adjustment` row appears in the history.
 4. **Baja** 2 · *dañado* → number drops; the history shows `waste`, visibly
    distinct from the adjustment.
-5. **Ingreso**: two lines with presentations → purchase doc written, one
-   `purchase` movement per line **in base units**, tab closes, rows cascade in.
-   Accept the cost prompt on one line → the ingredient's `costPerUnit` changes
-   and recipes using it re-cost.
-6. **Producción**: a product with a nested recipe → preview lists `+output` and
-   the `−components` at depth → confirm writes exactly the previewed set under
-   one `refs.productionId`. Resubmitting the same `idempotencyKey` writes
-   nothing.
+5. **Ingreso**: pick a provider → their last basket prefills with last prices.
+   Two lines → purchase doc written, one `purchase` movement per line, tab
+   closes, rows cascade in. Tick the cost checkbox on one line → that
+   ingredient's `costPerUnit` changes and recipes using it re-cost; the other
+   line's cost is untouched.
+6. **Producción**: send a run with a nested-recipe product → Bodega shows it as
+   en producción, nothing in existencia. Receive the line → `+output` and the
+   `−components` at depth, exactly as the preview listed. Receiving it again
+   writes nothing. Cancel another line → it leaves en producción.
 7. **Conteo**: enter half the items, reload the page, reopen → the draft is
    there with its numbers. Complete → only counted items are baselined, the
    summary splits explicada from no explicada, stock equals what was typed.

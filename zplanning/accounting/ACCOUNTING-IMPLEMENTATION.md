@@ -232,8 +232,8 @@ Boundary contract with [INVENTORY-IMPLEMENTATION.md](../inventory/INVENTORY-IMPL
 1. **The only shared data is `costPrice` / `costPerUnit`.** Accounting consumes them (the COGS waterfall); inventory refreshes them (recipe cost propagation). A client without inventory maintains costs manually — today's behavior — and their P&L still computes to net profit.
 2. **The income statement never reads `purchases`; Compras never writes `accountingEntries`.** If a "cash view of ingredient spend" is ever wanted, it's a report over `purchases` — never expense entries.
 3. **Ingredient spend is never an expense entry — universal rule, not inventory-conditional** (§7). Guarded by the decoy category (§5).
-4. **One tax vocabulary**: `ivaAmount`, `retefuente`, `reteica`, `reteiva` — identical flat scalars on both `accountingEntries` and `purchases`, so future IVA/retención reports union the two collections without translation.
-5. **Supplier entities / accounts payable belong to neither epic** — balance-sheet phase. Until then `counterparty` (entries) and `supplier` (purchases) remain free text and must not grow into entities independently.
+4. **One tax vocabulary**: `ivaAmount`, `retefuente`, `reteica`, `reteiva` — the names `accountingEntries` uses, and the names `purchases` will use when it gains tax fields, so future IVA/retención reports union the two collections without translation.
+5. **Providers are an inventory entity; accounts payable is not.** `providers` exist because Ingreso is built around them. `counterparty` may later point at a provider id, but owing money, due dates and payments stay in the balance-sheet phase.
 
 ---
 

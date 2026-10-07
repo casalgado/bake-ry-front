@@ -109,7 +109,7 @@ The first instinct was that "cargar productos" should create an order so product
 - **Wrong tense.** *Cargar* is past — the product is in your hands now. An order is future. Two different acts at two different moments.
 - The production↔stock link already runs the right way: production **consumes** ingredients (out) and **yields** product (in). Stock is production's output, not its request.
 
-"Pedirle a producción que llene la bodega" is a real feature — a *production request* — but it's a separate entity, it belongs with production, and it's a backend ask.
+"Pedirle a producción que llene la bodega" is the **production run**: its own entity, not an order. Sending it makes the output *en producción* (sellable on encargos, not yet on the shelf); receiving each line moves the stock.
 
 ### Reventa
 
@@ -158,13 +158,13 @@ Buying 20kg of flour is one event with two facts: you have more flour, *and* flo
 
 **Nunca** — editar el número directamente · borrar un movimiento · mostrar items con `inventoryMode: 'none'`
 
-### Backend asks (do not improvise)
+### Backend answers
 
-1. Does a movement carry a **unit cost**, and does an ingreso update the ingredient's `costPrice`?
-2. If it does — do recipes referencing that ingredient recompute `totalCost`, and does that touch products with `costPriceSource: 'recipe'`? Cost propagation has real teeth.
-3. Can a movement carry a **reference** back to the document that caused it (ingreso / producción / conteo)?
-4. `minStock` / reorder point — needed before "bajo" can exist.
-5. The `productionRun` **document** (status, date, planned vs. real lines) is a new entity. Lazy alternative for this phase: no document, "entró de producción" is just a batch of in-movements. Ships Existencias complete with zero new endpoints; loses planned-vs-real.
+1. A movement carries `unitCost`. An ingreso updates an ingredient's cost only on lines the user ticks, in the same transaction as the purchase.
+2. That update runs the existing propagation: recipes re-cost, and products with `costPriceSource: 'recipe'` follow.
+3. Movements carry `refs` back to their document (`purchaseId`, `productionRunId` + `lineId`, `countId`, `orderId`).
+4. `minStock` doesn't exist, so "bajo" still can't. Not planned.
+5. `productionRun` **is** a document: *Enviar* creates it, and each line is received or cancelled on its own (`../inventory-next-steps.md` §4).
 
 ### Deliberately skipped
 
@@ -174,7 +174,6 @@ Buying 20kg of flour is one event with two facts: you have more flour, *and* flo
 
 ### Open
 
-- Does an unconfirmed document survive a reload, or is a tab session-only?
-- Conteo scope: whole bodega, or one shelf at a time? (Prototype counts everything.)
-- Does *Producción* consume the ingredients it used, or only add the output? (Prototype only adds — consumption presumably belongs to the recipe deduction, but this needs settling.)
-- Proveedor as free text or an entity.
+- Conteo scope: whole bodega, or one shelf at a time? Part of Conteo's design pass.
+
+Settled: drafts survive a reload (localStorage); receiving a production line adds the output **and** consumes its recipe; proveedor is an entity.

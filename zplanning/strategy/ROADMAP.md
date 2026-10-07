@@ -3,10 +3,9 @@
 ## Now
 
 ### Inventory
-**Status (2026-10-05):** in progress. Checklist in [inventory/inventory-next-steps.md](../inventory/inventory-next-steps.md).
+**Status (2026-10-07):** in progress. Decisions and milestones in [inventory/inventory-next-steps.md](../inventory/inventory-next-steps.md).
 - Done: stock ledger, warehouses, adjust / transfer / waste (backend); Existencias, Ingreso, Producción and Conteo screens (frontend).
-- Blocked: Ingreso and Producción can't save yet (Confirmar disabled, see [inventory/ui/HANDOFF-SAVING-INGRESO-PRODUCCION.md](../inventory/ui/HANDOFF-SAVING-INGRESO-PRODUCCION.md)).
-- Not built: sub-phase 2 (deduction on sale), the count backend (3) and the Compras backend (4).
+- Next: providers + Ingreso, production runs, orders + availability (deduct on ship), Conteo.
 
 Unified inventory system supporting both restaurant-style (recipe-based) and store-style (buy/sell) operations, since a business may need either or both depending on how it sells.
 
