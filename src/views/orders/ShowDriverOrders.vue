@@ -299,6 +299,7 @@ const columns = computed(() => [
     label: 'Estado',
     field: 'status',
     sortable: true,
+    maxBulk: 20,
     type: 'toggle',
     options: [
       { value: 0, displayText: '0', skipWhenToggled: true },

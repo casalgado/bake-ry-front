@@ -94,10 +94,16 @@ const groups = computed(() => {
       name: catalog.nameOf(itemOfStock(stock)) || stock.name,
       unit: stock.unit,
       qty: 0,
+      committed: 0,
+      incoming: 0,
+      available: 0,
       rows: [],
     };
 
     group.qty += stock.currentStock || 0;
+    group.committed += stock.committed || 0;
+    group.incoming += stock.incoming || 0;
+    group.available += stock.available ?? stock.currentStock ?? 0;
     group.rows.push(stock);
     byKey.set(stock.itemKey, group);
   });
@@ -613,8 +619,15 @@ async function submitForm() {
                     </span>
                   </span>
                   <span class="ui-item-trail">
-                    <span class="ui-item-num ui-num">
-                      {{ formatQty(g.qty) }}<span class="ui-unit">{{ g.unit }}</span>
+                    <span class="flex flex-col items-end shrink-0">
+                      <span class="ui-item-num ui-num">
+                        {{ formatQty(g.qty) }}<span class="ui-unit">{{ g.unit }}</span>
+                      </span>
+                      <!-- Only when pedidos or producción move it: equal to the
+                           existencia it would just repeat the number. -->
+                      <span v-if="g.available !== g.qty" class="ui-item-meta ui-ink-brand font-semibold">
+                        disp. {{ formatQty(g.available) }}
+                      </span>
                     </span>
                     <span class="ui-item-meta w-20 text-right shrink-0">
                       {{ valueOf(g) === null ? '—' : formatMoney(valueOf(g)) }}
@@ -676,11 +689,35 @@ async function submitForm() {
               </span>
             </div>
 
-            <div class="ui-stat ui-stat-hero mb-4">
-              <span class="ui-stat-k">Existencia</span>
-              <span class="ui-stat-v">
-                {{ formatQty(selected.qty) }}<span class="ui-unit">{{ selected.unit }}</span>
-              </span>
+            <!-- Disponible = existencia + en producción − comprometido. Silent
+                 when no pedido or producción touches the item. -->
+            <div class="flex flex-wrap items-end gap-x-7 gap-y-3 mb-4">
+              <div class="ui-stat ui-stat-hero">
+                <span class="ui-stat-k">Existencia</span>
+                <span class="ui-stat-v">
+                  {{ formatQty(selected.qty) }}<span class="ui-unit">{{ selected.unit }}</span>
+                </span>
+              </div>
+              <template v-if="selected.available !== selected.qty">
+                <span class="ui-stat">
+                  <span class="ui-stat-k">Disponible</span>
+                  <span class="ui-stat-v">
+                    {{ formatQty(selected.available) }}<span class="ui-unit">{{ selected.unit }}</span>
+                  </span>
+                </span>
+                <span v-if="selected.incoming" class="ui-stat">
+                  <span class="ui-stat-k">En producción</span>
+                  <span class="ui-stat-v">
+                    {{ formatSignedQty(selected.incoming) }}<span class="ui-unit">{{ selected.unit }}</span>
+                  </span>
+                </span>
+                <span v-if="selected.committed" class="ui-stat">
+                  <span class="ui-stat-k">Comprometido</span>
+                  <span class="ui-stat-v">
+                    {{ formatSignedQty(-selected.committed) }}<span class="ui-unit">{{ selected.unit }}</span>
+                  </span>
+                </span>
+              </template>
             </div>
 
             <div class="flex flex-wrap gap-1.5 mb-4">

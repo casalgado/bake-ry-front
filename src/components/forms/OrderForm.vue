@@ -261,6 +261,21 @@ const formData = ref(
     : getInitialFormState(),
 );
 
+// The order as saved, for each line's disponible. Copied once, before any edit,
+// because edits can reach the very same line objects. A duplicate has no id and
+// holds nothing on the server.
+const savedLines = props.initialData?.id
+  ? props.initialData.orderItems.map(({
+    productId, combination, sourceWarehouseId, quantity, fulfillmentSource,
+  }) => ({
+    productId,
+    combination: combination ? { id: combination.id } : null,
+    sourceWarehouseId,
+    quantity,
+    fulfillmentSource,
+  }))
+  : [];
+
 const errors = ref({});
 
 const resetForm = () => {
@@ -989,6 +1004,7 @@ const clearUser = () => {
         v-model="formData.orderItems"
         :products="productStore.items"
         :selectionMode="productSelectionMode"
+        :saved-lines="savedLines"
       />
 
       <div class="base-card flex flex-col gap-4">

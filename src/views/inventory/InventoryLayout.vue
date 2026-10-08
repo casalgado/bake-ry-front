@@ -46,8 +46,13 @@ const catalogError = ref('');
  * preventDefault is the whole API; browsers show their own wording. */
 const warnOnUnload = (e) => { if (docsStore.anyDirty) e.preventDefault(); };
 
+/* Existencias refreshes itself while the section is open: the store listens for
+ * anything that moves it and refetches. */
+let stopWatching = () => {};
+
 onMounted(() => {
   stockStore.fetchAll().catch(() => {});
+  stopWatching = stockStore.watchAvailability();
 
   Promise.all([ingredientStore.fetchAll(), productStore.fetchAll()])
     .catch((err) => {
@@ -62,7 +67,10 @@ onMounted(() => {
   window.addEventListener('beforeunload', warnOnUnload);
 });
 
-onUnmounted(() => window.removeEventListener('beforeunload', warnOnUnload));
+onUnmounted(() => {
+  window.removeEventListener('beforeunload', warnOnUnload);
+  stopWatching();
+});
 </script>
 
 <template>

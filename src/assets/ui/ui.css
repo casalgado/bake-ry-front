@@ -385,6 +385,10 @@ button.ui-item,
 .ui-item-num { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .ui-item-meta { font-size: 12.5px; color: var(--ui-ink-muted); font-variant-numeric: tabular-nums; }
 
+/* Brand as text. Color only: size, weight and arrangement stay with the element it
+ * is put on. Mixed toward the text color so it still reads at small sizes. */
+.ui-ink-brand { color: color-mix(in oklab, var(--ui-brand) 75%, var(--ui-ink)); }
+
 /* Nothing there. Muted, not alarming. */
 .ui-item-zero .ui-item-num { color: var(--ui-ink-muted); }
 

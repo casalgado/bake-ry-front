@@ -17,6 +17,21 @@ export const useStockStore = createResourceStore('stocks', service);
 // off the service directly (same pattern as bakerySettingsStore's helpers).
 const store = useStockStore();
 
+// Keeps the list fresh while a screen is open. A ship fires both listeners, and
+// the stocks write lands after the reconcile, so waiting a beat coalesces them
+// into one refetch that never reads half a ship. Returns the stop function.
+store.watchAvailability = () => {
+  let timer = null;
+  const stop = service.subscribeToAvailability(() => {
+    clearTimeout(timer);
+    timer = setTimeout(() => store.fetchAll().catch(() => {}), 300);
+  });
+  return () => {
+    stop();
+    clearTimeout(timer);
+  };
+};
+
 store.getMovements = (itemKey, options) => service.getMovements(itemKey, options);
 store.getOrderMovements = (orderId) => service.getOrderMovements(orderId);
 // Every write refetches: currentStock is a server-side cache, and the screen

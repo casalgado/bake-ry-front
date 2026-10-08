@@ -19,6 +19,14 @@ const props = defineProps({
     type: Number,
     required: true,
   },
+  inventoryMode: {
+    type: String,
+    default: 'none',
+  },
+  available: {
+    type: Number,
+    default: 0,
+  },
 });
 
 const emit = defineEmits([
@@ -46,6 +54,16 @@ const effectiveReferencePrice = computed(() => {
   }
   return props.item.basePrice;
 });
+
+// Resale always takes from stock. A shortfall warns, never blocks: stock may go negative.
+const fromStock = computed(() =>
+  props.inventoryMode === 'unit' || props.item.fulfillmentSource === 'stock');
+const isShort = computed(() => fromStock.value && props.available < props.item.quantity);
+const availableLabel = computed(() => `${props.available} ${props.available === 1 ? 'disponible' : 'disponibles'}`);
+
+const toggleFulfillmentSource = () => {
+  emit('update:item', props.index, { fulfillmentSource: fromStock.value ? 'produce' : 'stock' });
+};
 
 const costValidationError = computed(() => {
   if (props.item.costPrice < 0) return 'Costo debe ser >= 0';
@@ -155,6 +173,23 @@ onMounted(() => {
             >- {{ item.variation.name }}</span
           >
         </div>
+        <button
+          v-if="inventoryMode === 'recipe'"
+          type="button"
+          @click="toggleFulfillmentSource"
+          class="text-pill text-xs"
+          :class="isShort ? 'text-red-700' : 'text-neutral-700'"
+          title="Disponible sale del stock; Producir va a cocina"
+        >
+          {{ fromStock ? availableLabel : 'Producir' }}
+        </button>
+        <span
+          v-else-if="inventoryMode === 'unit'"
+          class="text-pill text-xs"
+          :class="isShort ? 'text-red-700' : 'text-neutral-700'"
+        >
+          {{ availableLabel }}
+        </span>
       </div>
 
       <!-- Controls row -->

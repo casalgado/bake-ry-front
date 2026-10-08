@@ -23,14 +23,16 @@ House rules: ask before running any test. Never touch git unless asked.
   guards (`recipeGraph.js`).
 - `Product.inventoryMode`, `Ingredient.stockBehavior`, `OrderItem.fulfillmentSource`
   (`'produce' | 'stock'`, unused so far).
-- Bodega tab (`ShowStock.vue`): adjust, baja and transfer save.
+- Bodega tab (`ShowStock.vue`): adjust, baja and transfer save; a hand-typed
+  cost (plain ingredient, or resale product / combination with a manual cost)
+  is editable.
 - Recetario (`RecipeBookView.vue`), preparaciones, the shared item picker.
-- Ingreso (`PurchaseDoc.vue`) and Producción (`ProductionDoc.vue`): screens built,
-  drafts in localStorage, **Confirmar disabled**.
+- Providers + Ingreso (`PurchaseDoc.vue`, M1): purchases confirm, §5.
+- Production runs (`ProductionDoc.vue` + kitchen lists, M2): send, receive,
+  undo, edit, cancel, preview; the recipe walk `expandRecipe`. §4.
 - Conteo (`CountDoc.vue`): screen shell, no backend, no design pass yet.
 
-**Not built:** providers, purchases, production runs, availability, order
-deduction, the recipe expansion walk, counts.
+**Not built:** availability, order deduction, counts.
 
 ---
 
@@ -97,7 +99,7 @@ Pickups that jump straight to Entregada are covered by `>= 2`.
 
 | `fulfillmentSource` | Commits disponible while open | Deducts when the order ships |
 |---|---|---|
-| `stock` (Vitrina) | yes | − the product |
+| `stock` (Disponible) | yes | − the product |
 | `produce` (Producir) | no | − its ingredients, through the recipe walk |
 
 A `'unit'` product (reventa) always deducts itself; a `'none'` product deducts
@@ -112,9 +114,9 @@ covers the quantity, `produce` otherwise. It warns, never blocks.
 **Known dependency:** POS orders must be born Entregada, or counter sales never
 deduct. Tracked in `mad-td.md`; not part of this epic.
 
-**Open:** a forgotten order (never marked shipped) commits stock forever. Plan:
-only count open orders due within a window. Window size undecided — comment on
-the client doc.
+**Forgotten orders:** an open order (never marked shipped) counts as
+comprometido only while its `dueDate` is at most 10 days past (decided
+2026-10-08). Future orders always count.
 
 ---
 
@@ -216,7 +218,7 @@ Each ends shipped and used.
 | # | Milestone | Backend | Frontend |
 |---|---|---|---|
 | 1 | **Providers + Ingreso** | Provider CRUD, last-basket read, Purchase create → `purchase` movements, cost update in the same transaction, drop `preferredSupplier` | Provider list on PurchaseDoc, basket prefill, price-change flag, per-line cost checkbox, Confirmar on |
-| 2 | **Production runs** | Export `resolveRecipeId` / `normalizeComponent` / `MAX_DEPTH`; `expandComponents`; ProductionRun model + routes (send, edit, receive line, cancel line, preview) | ProductionDoc sends; picker fix; kitchen list shows run lines with "Vitrina" |
+| 2 | **Production runs** | Export `resolveRecipeId` / `normalizeComponent` / `MAX_DEPTH`; `expandRecipe`; ProductionRun model + routes (send, edit, receive line, cancel line, preview) | ProductionDoc sends; picker fix; kitchen list shows run lines with "Vitrina" |
 | 3 | **Orders + availability** | `committed` / `incoming` / `available` on `GET /stocks`; `affectsStock` edges in `orderService` (create, patch, patchAll, remove); compensation; gaps | Disponible in Bodega and OrderForm; source toggle per line; `stock` lines off the kitchen list |
 | 4 | **Conteo** | design conversation first, then `stockCountService` | `CountDoc` saves; explained vs unexplained merma |
 | 5 | Multi-bodega UI | — | Bodega editor in settings. Only when a client has two bodegas |

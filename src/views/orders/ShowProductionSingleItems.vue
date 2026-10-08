@@ -68,8 +68,9 @@ const runRowsById = computed(() => new Map(runRows.value.map(row => [row.id, row
 
 const flattenedOrderItems = computed(() => {
   return [
+    // A line taken from stock (Disponible) has nothing for the kitchen to make.
     ...orderStore.items.flatMap(order =>
-      order.orderItems.map(item => ({
+      order.orderItems.filter(item => item.fulfillmentSource !== 'stock').map(item => ({
         ...item,
         id: item.id,
         orderId: order.id,

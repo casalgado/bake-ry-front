@@ -430,10 +430,11 @@ to existencia; en producción and comprometido in the detail pane. Silent when
 both are zero.
 
 **M3.8 Order form** — `OrderLineItem.vue` / `OrderItemsManager.vue`: for a
-product not in `'none'`, a two-option toggle **Vitrina / Producir**, plus
-"disponible N" from `stockStore` (fetched with `itemKeys` for the order's
-products). Default: Vitrina when disponible covers the quantity, else Producir.
-`'unit'` products are always Vitrina, no toggle. A shortfall warns, never
+product not in `'none'`, a two-option chip **Disponible · N / Producir**, N
+from `stockStore` (rows matched on `productId` + `combinationId`). Default:
+Disponible when it covers the quantity, else Producir. `'unit'` products are
+always Disponible, no toggle. "Vitrina" stays the kitchen's word for run lines
+made *for* the shelf — the order line takes *from* it, so it gets the other word. A shortfall warns, never
 blocks. Bodega picker only when multi-warehouse. Additive, in the file's
 existing idiom.
 
@@ -441,7 +442,7 @@ existing idiom.
 of `flattenedOrderItems` in both production views (and
 `ShowProductionAssistantOrders.vue` if it lists items).
 
-**M3.10 Verify by hand:** stock 10 pan → pre-order 4 as Vitrina → disponible 6,
+**M3.10 Verify by hand:** stock 10 pan → pre-order 4 as Disponible → disponible 6,
 existencia 10, the kitchen doesn't see it → mark Enviada → existencia 6 → back
 to Producida → 10 → Entregada → 6 → edit to 5 → 5 → delete → 10. A Producir
 line for a cake → kitchen sees it with the customer's name → Entregada →
@@ -469,7 +470,7 @@ last baseline) from **no explicada**. Backend shape in
 
 | Decision | Step |
 |---|---|
-| Forgotten-order window | M3.2 |
+| Forgotten-order window | decided: 10 days past `dueDate` |
 | Who may receive / cancel run lines | M2.5 |
 | Editing a sent run's pending lines | after M2, when a screen needs it |
 | Received quantity ≠ planned | on hold; until then, the difference is a baja |

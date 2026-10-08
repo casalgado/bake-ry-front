@@ -6,6 +6,7 @@ import TableHeader from './components/TableHeader.vue';
 import TableBody from './components/TableBody.vue';
 import ActionBar from './components/ActionBar.vue';
 import FilterBar from './components/FilterBar.vue';
+import ToastNotification from '@/components/ToastNotification.vue';
 import { useTableSort } from './composables/useTableSort';
 import { useTableFilter } from './composables/useTableFilter';
 import { useUndoHistory } from './composables/useUndoHistory';
@@ -122,12 +123,24 @@ const getNextToggleValue = (currentValue, options) => {
   const currentIndex = availableOptions.findIndex(opt => opt.value === currentValue);
   return availableOptions[(currentIndex + 1) % availableOptions.length].value;
 };
+const limitToast = ref(null);
+
 const handleToggleUpdate = async ({ row, column }) => {
   try {
     // Determine affected rows
     const rowsToUpdate = selectedRows.value.has(row.id)
       ? props.data.filter(r => selectedRows.value.has(r.id))
       : [row];
+
+    // A column can cap how many rows one click changes: each row is a server-side
+    // reconcile, run one after another. Undo and redo replay a click that passed.
+    if (column.maxBulk && rowsToUpdate.length > column.maxBulk) {
+      limitToast.value?.showError(
+        `Máximo ${column.maxBulk} filas a la vez`,
+        `Hay ${rowsToUpdate.length} seleccionadas. Cambia ${column.label} en grupos más pequeños.`,
+      );
+      return;
+    }
 
     const currentValue = row[column.field];
     const nextValue = getNextToggleValue(currentValue, column.options);
@@ -361,6 +374,8 @@ onUnmounted(() => {
       @action="handleAction"
       @clear-selection="clearSelection"
     />
+
+    <ToastNotification ref="limitToast" />
   </div>
 </template>
 

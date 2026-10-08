@@ -2,6 +2,10 @@
 import ProductWizard from './ProductWizard.vue';
 import ProductSearch from './ProductSearch.vue';
 import OrderLineItem from './OrderLineItem.vue';
+import { watch } from 'vue';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
+import { useStockStore } from '@/stores/stockStore';
+import { useWarehouses } from '@/composables/useWarehouses';
 
 const props = defineProps({
   modelValue: {
@@ -19,9 +23,61 @@ const props = defineProps({
     required: true,
     default: 'wizard', // 'wizard' | 'search'
   },
+  // The lines of the order as saved, when editing one. The server already holds
+  // them against the stock, so they are given back before the draft is counted.
+  savedLines: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+const settingsStore = useBakerySettingsStore();
+const stockStore = useStockStore();
+const { defaultWarehouseId } = useWarehouses();
+
+// ponytail: loads every stock row; pass ?itemKeys= if the catalog grows large.
+watch(() => settingsStore.isInventoryEnabled, (enabled) => {
+  if (enabled) stockStore.fetchAll().catch(() => {});
+}, { immediate: true });
+
+const inventoryModeOf = (item) => (settingsStore.isInventoryEnabled
+  ? props.products.find((p) => p.id === item.productId)?.inventoryMode ?? 'none'
+  : 'none');
+
+const warehouseOf = (item) => item.sourceWarehouseId || defaultWarehouseId.value;
+const combinationOf = (item) => item.combination?.id || null;
+
+// Units that `lines` take from the same stock row as `item`, leaving out the line
+// at skipIndex. -1 skips none: used for a line that is not in the list yet.
+const takenBy = (lines, item, skipIndex = -1) => lines.reduce((sum, line, i) => (
+  i !== skipIndex
+  && line.productId === item.productId
+  && combinationOf(line) === combinationOf(item)
+  && warehouseOf(line) === warehouseOf(item)
+  && (inventoryModeOf(line) === 'unit' || line.fulfillmentSource === 'stock')
+    ? sum + line.quantity
+    : sum), 0);
+
+// Disponible at the bodega the line takes from. The server's figure already holds
+// the saved order's own lines (open: committed; shipped: deducted), so they come
+// back, and the rest of the draft goes out. A product never stocked has none.
+// ponytail: an open order past the 10-day window is not held server-side, so
+// giving its lines back overshoots by its own quantity.
+const availableFor = (item, index = -1) => (stockStore.items.find((s) =>
+  s.productId === item.productId
+  && (s.combinationId || null) === combinationOf(item)
+  && s.warehouseId === warehouseOf(item),
+)?.available ?? 0) + takenBy(props.savedLines, item) - takenBy(props.modelValue, item, index);
+
+// Resale always takes from stock; a recipe product does when disponible covers it.
+const defaultSource = (item) => {
+  const mode = inventoryModeOf(item);
+  if (mode === 'unit') return 'stock';
+  if (mode === 'recipe' && availableFor(item) >= item.quantity) return 'stock';
+  return 'produce';
+};
 
 const handleWizardSelect = (selection) => {
   const product = props.products.find(p => p.id === selection.product.id);
@@ -65,6 +121,7 @@ const handleWizardSelect = (selection) => {
       recipeId: selection.combination.recipeId || product.recipeId,
       isComplimentary: false,
     };
+    newItem.fulfillmentSource = defaultSource(newItem);
 
     emit('update:modelValue', [...props.modelValue, newItem]);
     return;
@@ -107,6 +164,7 @@ const handleWizardSelect = (selection) => {
     recipeId: selection.variation?.recipeId || product.recipeId,
     isComplimentary: false,
   };
+  newItem.fulfillmentSource = defaultSource(newItem);
 
   emit('update:modelValue', [...props.modelValue, newItem]);
 };
@@ -193,6 +251,8 @@ const updateItemTaxPercentage = (index, newTaxPercentage) => {
             :key="`${item.productId}-${index}`"
             :item="item"
             :index="index"
+            :inventory-mode="inventoryModeOf(item)"
+            :available="availableFor(item, index)"
             @update:quantity="updateItemQuantity"
             @update:item="updateItem"
             @update:costPrice="updateItemCostPrice"

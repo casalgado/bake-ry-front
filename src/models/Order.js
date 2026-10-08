@@ -27,6 +27,8 @@ class OrderItem {
     discountType = null,
     discountValue = 0,
     invoiceTitle = '',
+    fulfillmentSource,
+    sourceWarehouseId = null,
   }) {
     this.id = id || generateId();
     this.productId = productId;
@@ -45,6 +47,8 @@ class OrderItem {
     this.status = status;
     this.taxMode = taxMode;
     this.displayOrder = displayOrder;
+    this.fulfillmentSource = fulfillmentSource ?? 'produce';
+    this.sourceWarehouseId = sourceWarehouseId;
 
     // Discount tracking fields
     this.referencePrice = basePrice > 0 ? basePrice : (referencePrice ?? currentPrice);

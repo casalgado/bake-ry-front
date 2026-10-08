@@ -201,6 +201,17 @@ const shuffleCascade = () => {
                   <span class="ui-item-meta w-20 text-right">{{ it.value }}</span>
                 </span>
               </button>
+              <div class="ui-item">
+                <span class="ui-item-icon"><PhPackage :size="16" /></span>
+                <span class="ui-item-title">Con pedidos abiertos</span>
+                <span class="ui-item-trail">
+                  <span class="flex flex-col items-end shrink-0">
+                    <span class="ui-item-num">6<span class="ui-unit">uds</span></span>
+                    <span class="ui-item-meta ui-ink-brand font-semibold">disp. 0</span>
+                  </span>
+                  <span class="ui-item-meta w-20 text-right">$26,298</span>
+                </span>
+              </div>
             </div>
           </div>
 
