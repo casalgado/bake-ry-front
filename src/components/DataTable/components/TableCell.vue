@@ -75,6 +75,9 @@ const currentOption = computed(() => {
 // Get tooltip content
 const tooltipContent = computed(() => {
   if (!isClickEnabled.value || props.column.type !== 'toggle') return null;
+  // A column can say something else for a row whose toggle only goes one way.
+  const hint = props.column.tooltipFor?.(props.row);
+  if (hint) return { text: hint };
   const nextValue = getNextToggleValue.value;
   const affectedCount = props.selectedRows.size || 1;
   return {
@@ -159,7 +162,7 @@ onUnmounted(() => {
     <!-- AppTooltip only on toggle cells: each instance adds window scroll/resize listeners. -->
     <component
       :is="column.type === 'toggle' ? AppTooltip : 'span'"
-      v-bind="column.type === 'toggle' ? { placement: 'right', disabled: !tooltipContent || isLoading } : {}"
+      v-bind="column.type === 'toggle' ? { placement: tooltipContent?.text ? 'left' : 'right', disabled: !tooltipContent || isLoading } : {}"
     >
       <div
         class="inline-block px-1 rounded-2xl transition-colors"
@@ -203,7 +206,10 @@ onUnmounted(() => {
         </template>
       </div>
       <template #content>
-        <div v-if="tooltipContent" class="flex items-center gap-1 px-2 py-1 text-xs whitespace-nowrap">
+        <div v-if="tooltipContent?.text" class="px-2 py-1 text-xs whitespace-nowrap">
+          {{ tooltipContent.text }}
+        </div>
+        <div v-else-if="tooltipContent" class="flex items-center gap-1 px-2 py-1 text-xs whitespace-nowrap">
           {{ tooltipContent.prefix }}
           <PhArrowRight weight="bold" class="w-3 h-3" />
           <component

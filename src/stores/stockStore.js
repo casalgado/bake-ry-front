@@ -45,10 +45,3 @@ store.purchase = async (payload) => {
   await store.fetchAll();
   return purchase;
 };
-
-store.produce = async (payload) => {
-  const result = await service.produce(payload);
-  // A preview writes nothing, so there is nothing to re-read.
-  if (!payload?.preview) await store.fetchAll();
-  return result;
-};

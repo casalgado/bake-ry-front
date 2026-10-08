@@ -124,8 +124,9 @@ const catalogItems = computed(() => {
         id: p.id,
         combinationId: p.hasVariations ? c.id : null,
       };
-      const name = p.hasVariations ? `${p.name} ${c.name}`.trim() : p.name;
-      return entryOf(item, name, 'uds');
+      // Full name, colección first: this picker groups by Insumos/Reventa, not
+      // by colección, so nothing else on the row says which "Original" it is.
+      return entryOf(item, catalog.nameOf(item), 'uds');
     }));
 
   return [...ingredients, ...resale].sort((a, b) => a.name.localeCompare(b.name));

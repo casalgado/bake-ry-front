@@ -13,6 +13,7 @@ import PeriodSelector from '@/components/common/PeriodSelector.vue';
 // Stores
 import { useOrderStore } from '@/stores/orderStore';
 import { usePeriodStore } from '@/stores/periodStore';
+import { useProductionRunStore } from '@/stores/productionRunStore';
 
 // Icons & Utils
 import { PhPlusMinus } from '@phosphor-icons/vue';
@@ -20,7 +21,9 @@ import { categoryOrder } from '@/utils/helpers';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
+const productionRunStore = useProductionRunStore();
 const unsubscribeRef = ref(null);
+const unsubscribeRunsRef = ref(null);
 
 const dataTable = ref(null);
 const toggleLoading = ref({});
@@ -28,17 +31,49 @@ const actionLoading = ref({});
 const isBatchDialogOpen = ref(false);
 const selectedIds = ref([]);
 
+// Production-run lines ("Vitrina"). They group apart from order items, so one
+// tap never mixes "mark producido" with "move stock".
+// Only runs for the day being prepared: the live listener adds any new run, so
+// one sent for another date must not show up here.
+const inPeriod = (run) => {
+  const date = new Date(run.date);
+  const { start, end } = periodStore.periodRange;
+  return date >= start && date <= end;
+};
+
+const runRows = computed(() => productionRunStore.items.filter(inPeriod).flatMap((run) =>
+  (run.lines || [])
+    .filter((line) => line.status !== 'cancelled')
+    .map((line) => ({
+      id: `run-${run.id}-${line.id}`,
+      source: 'run',
+      runId: run.id,
+      lineId: line.id,
+      groupKey: `run-${line.item.type}-${line.item.id}-${line.item.combinationId || ''}`,
+      productId: line.item.id,
+      productName: line.unit && line.unit !== 'uds' ? `${line.name} (${line.unit})` : line.name,
+      collectionName: line.collectionName,
+      quantity: line.plannedQty,
+      status: line.status === 'received' ? 1 : 0,
+    }))));
+
 // Flattened order items with additional references
 const flattenedOrderItems = computed(() => {
-  return orderStore.items.flatMap((order) =>
-    order.orderItems.map((item) => ({
-      ...item,
-      id: item.id,
-      orderId: order.id,
-      productionBatch: item.productionBatch || 0,
-      status: item.status || 0,
-    })),
-  );
+  return [
+    ...orderStore.items.flatMap((order) =>
+      order.orderItems.map((item) => ({
+        ...item,
+        id: item.id,
+        orderId: order.id,
+        productionBatch: item.productionBatch || 0,
+        status: item.status || 0,
+        // Who the order is for: the key counts distinct clients, the label shows one.
+        clientKey: order.userId || order.userName || order.id,
+        clientLabel: order.userName || '',
+      })),
+    ),
+    ...runRows.value,
+  ];
 });
 
 // Computed property to get unique collection names
@@ -51,21 +86,34 @@ const uniqueCollections = computed(() => {
       }
     });
   });
+  runRows.value.forEach((row) => {
+    if (row.collectionName) collections.add(row.collectionName);
+  });
   return Array.from(collections);
 });
+
+// One client: their name. Several: how many. A Vitrina group has no client.
+const clientLabelOf = (group) => {
+  if (group.origin === 'Vitrina') return 'Vitrina';
+  if (group.clients.size > 1) return `${group.clients.size} clientes`;
+  return [...group.clients.values()][0] || '-';
+};
 
 // Then modify the groupedOrderItems to include the sorting value and make sorting case-insensitive
 const groupedOrderItems = computed(() => {
   const groups = flattenedOrderItems.value.reduce((acc, item) => {
     // Use combination for grouping if available, fallback to variation (legacy support)
     const variationId = item.combination?.id || item.variation?.id || 'no-variation';
-    const key = `${item.productId}-${variationId}`;
+    const key = item.groupKey || `${item.productId}-${variationId}`;
 
     if (!acc[key]) {
       acc[key] = {
         id: key,
         productId: item.productId,
         productName: item.productName,
+        // A group is all Vitrina or all orders: the group key keeps them apart.
+        origin: item.source === 'run' ? 'Vitrina' : 'Clientes',
+        clients: new Map(),
         collectionName: item.collectionName,
         collectionOrder:
           categoryOrder[item.collectionName?.toLowerCase()] || 999,
@@ -80,6 +128,7 @@ const groupedOrderItems = computed(() => {
 
     acc[key].totalQuantity += item.quantity;
     acc[key].originalItems.push(item);
+    if (item.source !== 'run') acc[key].clients.set(item.clientKey, item.clientLabel);
     acc[key].totalItems++;
     if (item.status === 1) {
       // 1 represents 'producido'
@@ -94,10 +143,13 @@ const groupedOrderItems = computed(() => {
       if (a.collectionOrder !== b.collectionOrder) {
         return a.collectionOrder - b.collectionOrder;
       }
-      return a.productName.localeCompare(b.productName);
+      const byName = a.productName.localeCompare(b.productName);
+      // Same product made for orders and for the vitrina: orders first.
+      return byName || a.origin.localeCompare(b.origin);
     })
     .map((group) => ({
       ...group,
+      clientName: clientLabelOf(group),
       status:
         group.producedCount === group.totalItems
           ? 1
@@ -127,6 +179,12 @@ const columns = [
       combination: row.combination,
       totalQuantity: row.totalQuantity,
     }),
+  },
+  {
+    id: 'clientName',
+    label: 'Cliente',
+    field: 'clientName',
+    sortable: true,
   },
   {
     id: 'status',
@@ -164,6 +222,13 @@ const tableFilters = computed(() => [
       label: collection,
       value: collection,
     })),
+  },
+  {
+    field: 'origin',
+    options: [
+      { label: 'Clientes', value: 'Clientes' },
+      { label: 'Vitrina', value: 'Vitrina' },
+    ],
   },
   {
     field: 'status',
@@ -257,8 +322,9 @@ const handleBatchSelect = async (batchNumber) => {
           ?.originalItems || [],
     );
 
-    // Now group updates by order using the actual order items
-    const orderUpdates = itemsToUpdate.reduce((acc, orderItem) => {
+    // Now group updates by order using the actual order items. Tanda is an
+    // order-item field; Vitrina rows have none.
+    const orderUpdates = itemsToUpdate.filter((item) => item.source !== 'run').reduce((acc, orderItem) => {
       if (!acc[orderItem.orderId]) {
         acc[orderItem.orderId] = {
           itemIds: new Set(),
@@ -287,7 +353,7 @@ const handleBatchSelect = async (batchNumber) => {
     );
 
     isBatchDialogOpen.value = false;
-    await orderStore.patchAll(updates);
+    if (updates.length) await orderStore.patchAll(updates);
     await nextTick();
   } catch (error) {
     console.error('Failed to update production batch:', error);
@@ -299,10 +365,22 @@ const handleBatchSelect = async (batchNumber) => {
   }
 };
 
+// Runs sent for the same day as the orders being prepared.
+const fetchRuns = (range) => productionRunStore.fetchAll({
+  filters: {
+    dateRange: {
+      dateField: 'date',
+      startDate: range.start.toISOString(),
+      endDate: range.end.toISOString(),
+    },
+  },
+}).catch((error) => console.error('Failed to fetch production runs:', error));
+
 // Watch for period changes and fetch new data
 watch(
   () => periodStore.periodRange,
   async (newRange) => {
+    fetchRuns(newRange);
     try {
       await orderStore.fetchAll({
         filters: {
@@ -321,6 +399,13 @@ watch(
 );
 
 onMounted(async () => {
+  fetchRuns(periodStore.periodRange);
+  // Its own step: a failed orders load must not also take the live runs down.
+  try {
+    unsubscribeRunsRef.value = await productionRunStore.subscribeToChanges();
+  } catch (error) {
+    console.error('Failed to subscribe to production runs:', error);
+  }
   try {
     await orderStore.fetchAll({
       filters: {
@@ -342,6 +427,10 @@ onUnmounted(() => {
   if (unsubscribeRef.value) {
     unsubscribeRef.value();
     orderStore.unsubscribe();
+  }
+  if (unsubscribeRunsRef.value) {
+    unsubscribeRunsRef.value();
+    productionRunStore.unsubscribe();
   }
 });
 </script>
@@ -397,15 +486,24 @@ onUnmounted(() => {
         :toggle-loading="toggleLoading"
         :filters="tableFilters"
         :data-loading="orderStore.loading"
+        :history="false"
         @toggle-update="handleToggleUpdate"
         @action="handleAction"
-        class="bg-white shadow-lg rounded-lg"
+        class="production-table bg-white shadow-lg rounded-lg"
       />
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
+// Estado is the last column and only reads "-", "producido" or "x/y". Without a
+// fixed width the table resizes it every time a group toggles.
+.production-table :deep(th:last-child),
+.production-table :deep(td:last-child) {
+  width: 7.5rem;
+  min-width: 7.5rem;
+}
+
 .dialog-overlay {
   @apply bg-black bg-opacity-50;
 }

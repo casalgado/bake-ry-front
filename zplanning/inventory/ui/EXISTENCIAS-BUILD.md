@@ -366,15 +366,19 @@ through `expandComponents`. Callers:
 | order line, `'none'` product | nothing |
 
 ```
-expandComponents(bakeryId, { type, id, combinationId }, qty, warehouseId)
+expandRecipe(bakeryId, { type, id, combinationId }, qty)
+  the top item → its own recipe (resolveRecipeId, NO fallback)
+                 missing recipe → gap, never a guess
+  each component:
+  product 'unit' or 'recipe'          → −qty of the sellable unit. STOP.
   product 'none'                      → nothing
-  product 'unit'                      → −qty of the sellable unit. STOP.
-  product 'recipe'                    → resolveRecipeId (NO fallback) → recurse ×qty
-                                        missing recipe → gap, never a guess
   ingredient 'stocked'                → −qty in base units. STOP.
   ingredient 'passThrough' + recipe   → recurse into it, scaled by qty / yield
   ingredient 'passThrough', no recipe → NOTHING, and not a gap
 ```
+
+A tracked product used as a component comes off its own stock, never re-made:
+a caja de 6 consumes six croissants, not their flour.
 
 That last line is the one easy to get wrong. `passThrough` is the **default**,
 so most plain purchased ingredients are passThrough with no recipe — deducting

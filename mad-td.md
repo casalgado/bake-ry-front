@@ -113,3 +113,8 @@ meter un nuevo exportar en reporte clientes, que tambien tenga el historial de c
 - countryplas
 - fresalas
 - electronica
+
+
+##
+
+Fix the 2px height change in production/single when a line is selected. 

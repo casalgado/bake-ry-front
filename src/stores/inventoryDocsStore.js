@@ -34,9 +34,10 @@ const DOC_KINDS = ['ingreso', 'produccion', 'conteo'];
  *                document, never to a line. `idempotencyKey` is minted when
  *                the document opens, so a resent Confirmar lands on the same
  *                purchase (backend `retryId`).
- *   produccion — nobody. The ledger records who confirmed the movement
- *                server-side, which beats a free-text box you can type anything
- *                into.
+ *   produccion — nobody. The server records who sent the run and who received
+ *                each line, which beats a free-text box you can type anything
+ *                into. `idempotencyKey`, same reason as ingreso: a resent
+ *                "Enviar" lands on the same run.
  *   conteo     — `party`, el responsable del conteo.
  *
  * Ingreso/Producción fill `lines`; Conteo fills `counted` (itemKey → qty),
@@ -45,8 +46,8 @@ const blankDoc = (kind, warehouseId) => ({
   kind,
   date: new Date().toISOString().slice(0, 10),
   warehouseId,
-  ...(kind === 'ingreso' ? { providerId: null, idempotencyKey: crypto.randomUUID() } : {}),
-  ...(kind === 'conteo' ? { party: '', counted: {} } : { lines: [] }),
+  ...(kind === 'ingreso' ? { providerId: null } : {}),
+  ...(kind === 'conteo' ? { party: '', counted: {} } : { lines: [], idempotencyKey: crypto.randomUUID() }),
 });
 
 const blankDocs = () => ({ ingreso: null, produccion: null, conteo: null });
@@ -90,9 +91,9 @@ export const useInventoryDocsStore = defineStore('inventoryDocs', () => {
    * Safe to call on every mount, which is what the views do. */
   function open(kind, warehouseId) {
     if (!docs.value[kind]) docs.value[kind] = blankDoc(kind, warehouseId);
-    // A draft restored from before ingreso carried a key gets one now.
-    if (kind === 'ingreso' && !docs.value.ingreso.idempotencyKey) {
-      docs.value.ingreso.idempotencyKey = crypto.randomUUID();
+    // A draft restored from before it carried a key gets one now.
+    if (kind !== 'conteo' && !docs.value[kind].idempotencyKey) {
+      docs.value[kind].idempotencyKey = crypto.randomUUID();
     }
     return docs.value[kind];
   }

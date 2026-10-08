@@ -4,26 +4,31 @@
  * Future tense throughout, and that is not a wording preference. On Ingreso the
  * numbers already exist — they are printed on the invoice, and the form is
  * transcription. Here the number you type is an OUTPUT: what you intend to make.
- * Confirmar is what makes it past tense.
+ * Enviar sends it to the kitchen as a production run; nothing moves until the
+ * kitchen receives each line, and that is what makes it past tense.
  *
  * The split is documento / lista: los controles y el total a la izquierda, lo
  * que vas a hacer a la derecha, que es lo que se lee y se corrige.
  *
- * What you can make: productos con inventoryMode 'recipe', y preparaciones
- * (ingredientes que llevan receta propia). Never something you buy — that is
- * Ingreso, and nothing appears on both.
+ * What you can make: productos que no se compran (inventoryMode 'none' o
+ * 'recipe'), y preparaciones (ingredientes que llevan receta propia). Never
+ * something you buy — that is Ingreso, and nothing appears on both. Adding one
+ * that isn't tracked yet switches its inventory on, so the output has a stock
+ * row to land in.
  *
- * No proveedor, no responsable. The ledger records who confirmed the movement
- * server-side, which is more trustworthy than a box anyone can type into.
- * No unit cost either: a production line's cost comes from its recipe. */
-import { computed, onMounted, ref } from 'vue';
-import { PhX } from '@phosphor-icons/vue';
+ * No proveedor, no responsable. The server records who sent and who received,
+ * which is more trustworthy than a box anyone can type into. No unit cost
+ * either: a production line's cost comes from its recipe. */
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { PhX, PhWarning } from '@phosphor-icons/vue';
+import AppTooltip from '@/components/common/AppTooltip.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import UiItemPicker from '@/components/ui/UiItemPicker.vue';
 import { useStockStore } from '@/stores/stockStore';
 import { useIngredientStore } from '@/stores/ingredientStore';
 import { useProductStore } from '@/stores/productStore';
 import { useRecipeStore } from '@/stores/recipeStore';
+import { useProductionRunStore } from '@/stores/productionRunStore';
 import { useInventoryDocsStore } from '@/stores/inventoryDocsStore';
 import { useItemCatalog, itemOfStock, combosOf } from '@/composables/useItemCatalog';
 import { useWarehouses } from '@/composables/useWarehouses';
@@ -33,6 +38,7 @@ const stockStore = useStockStore();
 const ingredientStore = useIngredientStore();
 const productStore = useProductStore();
 const recipeStore = useRecipeStore();
+const productionRunStore = useProductionRunStore();
 const docsStore = useInventoryDocsStore();
 const catalog = useItemCatalog();
 const { warehouses, multiWarehouse, defaultWarehouseId } = useWarehouses();
@@ -91,6 +97,8 @@ const entryOf = (item, name, unit, extra = {}) => {
 const yieldOf = (ingredient) =>
   recipeStore.items.find((r) => r.id === ingredient.recipeId)?.yield ?? null;
 
+/* `activate` is the record to switch on when the line is added: an untracked
+ * product goes to 'recipe', a passThrough preparación to 'stocked'. */
 const catalogItems = computed(() => {
   const preparations = ingredientStore.items
     .filter((i) => !i.isDeleted && i.recipeId)
@@ -98,19 +106,29 @@ const catalogItems = computed(() => {
       { type: 'ingredient', id: i.id, combinationId: null },
       i.name,
       i.unit,
-      { batch: yieldOf(i), group: PREP_GROUP },
+      {
+        batch: yieldOf(i),
+        group: PREP_GROUP,
+        activate: i.stockBehavior === 'stocked' ? null : { store: ingredientStore, record: i, stockBehavior: 'stocked' },
+      },
     ));
 
+  // 'unit' products are bought, never made: they live on Ingreso.
   const made = productStore.items
+    .filter((p) => !p.isDeleted && p.inventoryMode !== 'unit')
     .flatMap((p) => combosOf(p).map((c) => {
       const item = {
         type: 'product',
         id: p.id,
         combinationId: p.hasVariations ? c.id : null,
       };
-      const name = p.hasVariations ? `${p.name} ${c.name}`.trim() : p.name;
       // A product is counted in sellable units; there is no batch size to read.
-      return entryOf(item, name, 'uds', { group: p.collectionName || 'Sin colección' });
+      return entryOf(item, catalog.nameOf(item), 'uds', {
+        // The picker already groups by colección, so its rows drop the prefix.
+        shortName: catalog.nameOf(item, { withCollection: false }),
+        group: p.collectionName || 'Sin colección',
+        activate: p.inventoryMode === 'recipe' ? null : { store: productStore, record: p, inventoryMode: 'recipe' },
+      });
     }));
 
   return [...preparations, ...made].sort((a, b) => a.name.localeCompare(b.name));
@@ -138,9 +156,12 @@ const entryByKey = computed(() => new Map(catalogItems.value.map((e) => [e.key, 
 const pickerItems = computed(() =>
   catalogItems.value.map((e) => ({
     key: e.key,
-    name: e.name,
+    name: e.shortName ?? e.name,
     kind: e.group,
-    sub: e.batch ? `una tanda rinde ${formatQty(e.batch)} ${e.unit}` : '',
+    sub: [
+      e.batch ? `una tanda rinde ${formatQty(e.batch)} ${e.unit}` : '',
+      e.activate ? 'se activará el inventario' : '',
+    ].filter(Boolean).join(' · '),
     meta: `${formatQty(stockHere(e.key))} ${e.unit}`,
   })));
 
@@ -173,17 +194,37 @@ const unpricedCount = computed(() => rows.value.filter((r) => r.cost === null).l
 const blankQuantities = computed(
   () => doc.value.lines.filter((l) => !(l.qty > 0)).length);
 
-function addLine(key) {
-  const existing = doc.value.lines.find((l) => l.key === key);
+/* Switches an untracked item's inventory on, so the run's output has a stock
+ * row to land in. Sent as the full record: the PUT validates the whole
+ * document. The server's update path creates the stocks doc. */
+async function activate({ store, record, ...change }) {
+  await store.update(record.id, { ...record, ...change });
+  await stockStore.fetchAll().catch(() => {});
+}
 
-  if (existing) {
-    doc.value.lines = doc.value.lines.map((l) =>
-      (l.key === key ? { ...l, qty: (l.qty || 0) + 1 } : l));
-    return;
-  }
+const bumpLine = (key) => {
+  doc.value.lines = doc.value.lines.map((l) =>
+    (l.key === key ? { ...l, qty: (l.qty || 0) + 1 } : l));
+};
+
+async function addLine(key) {
+  savedNote.value = '';
+  if (doc.value.lines.some((l) => l.key === key)) return bumpLine(key);
 
   const entry = entryByKey.value.get(key);
   if (!entry) return;
+
+  if (entry.activate) {
+    formError.value = '';
+    try {
+      await activate(entry.activate);
+    } catch (err) {
+      formError.value = `No se pudo activar el inventario de ${entry.name}: ${err?.message || 'error'}`;
+      return;
+    }
+    // A second pick of the same item can land while this one was activating.
+    if (doc.value.lines.some((l) => l.key === key)) return bumpLine(key);
+  }
 
   /* Identity is the truth; itemKey is a convenience the backend may not have
    * minted yet — a preparación created this morning has no stocks doc until the
@@ -239,20 +280,149 @@ const removeLine = (row) => {
   doc.value.lines = doc.value.lines.filter((_, i) => i !== row._i);
 };
 
-/* No hay panel de "esto te va a consumir": la expansión de componentes es una
- * caminata del BACKEND (EXISTENCIAS-BUILD.md §4.1) y `POST /stocks/produce` no
- * existe todavía, así que el panel solo sabía decir que no sabía. Cuando el
- * endpoint llegue, el lugar natural es debajo de las líneas, a la derecha. */
+/* ---------------- what it will consume ---------------- */
+
+/* The expansion is the server's walk (stockService.expandRecipe), the same one
+ * receiving runs, so what this shows is what the kitchen's tick will move.
+ * Debounced: every keystroke in a quantity box changes the request. A sequence
+ * number drops answers that arrive after a newer one was asked. */
+const preview = ref([]);
+const previewError = ref('');
+let previewSeq = 0;
+let previewTimer = null;
+
+const previewLines = computed(() => rows.value
+  .filter((r) => r.qty > 0)
+  .map((r) => ({ item: r.item, plannedQty: r.qty })));
+
+async function runPreview() {
+  const lines = previewLines.value;
+  const seq = ++previewSeq;
+  if (!lines.length) {
+    preview.value = [];
+    previewError.value = '';
+    return;
+  }
+  try {
+    const result = await productionRunStore.preview(lines);
+    if (seq !== previewSeq) return;
+    preview.value = result;
+    previewError.value = '';
+  } catch (err) {
+    if (seq !== previewSeq) return;
+    previewError.value = err?.message || 'No se pudo calcular lo que consume.';
+  }
+}
+
+watch(() => JSON.stringify(previewLines.value), () => {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(runPreview, 400);
+}, { immediate: true });
+
+onUnmounted(() => clearTimeout(previewTimer));
+
+// The catalog's name (colección first); the server's when the catalog lacks it.
+const displayName = (item, fallback) => catalog.nameOf(item) || fallback;
+
+/* Summed across lines: two products using harina show one harina row. Short
+ * when the bodega holds less than this takes. It warns, never blocks. */
+const consumption = computed(() => {
+  const byKey = new Map();
+  preview.value.forEach((line) => line.components.forEach((c) => {
+    const key = identityKey(c.item);
+    const current = byKey.get(key)
+      ?? { key, name: displayName(c.item, c.name), unit: c.unit, qty: 0 };
+    current.qty += c.qty;
+    byKey.set(key, current);
+  }));
+  return [...byKey.values()]
+    .map((c) => ({ ...c, inStock: stockHere(c.key), short: c.qty > stockHere(c.key) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+});
+
+const GAP_TEXT = {
+  missingRecipe: 'sin receta — no descuenta nada',
+  depthExceeded: 'receta demasiado profunda — se detuvo ahí',
+  missingItem: 'ya no existe — no descuenta nada',
+};
+
+// What the warning icon says on hover.
+const GAP_TIP = {
+  missingRecipe: 'Este producto no tiene receta',
+  depthExceeded: 'Su receta es demasiado profunda',
+  missingItem: 'Este producto ya no existe',
+};
+
+const gaps = computed(() => {
+  const byKey = new Map();
+  preview.value.forEach((line) => line.gaps.forEach((g) => {
+    const key = `${identityKey(g.item)}:${g.reason}`;
+    byKey.set(key, {
+      key,
+      name: displayName(g.item, g.name),
+      text: GAP_TEXT[g.reason] ?? g.reason,
+      tip: GAP_TIP[g.reason] ?? g.reason,
+    });
+  }));
+  return [...byKey.values()];
+});
+
+/* The lines the walk could not follow, to flag them on their own card (item key
+ * → what to say). A gap on a nested component is not this line's: it only
+ * matches when the gap's item IS the line's item. Same keys as `rows`, so it is
+ * one lookup. */
+const gapTips = computed(() => new Map(
+  preview.value.flatMap((line) => line.gaps.map((g) => [identityKey(g.item), GAP_TIP[g.reason] ?? g.reason]))));
+
+/* ---------------- sending ---------------- */
+
+const submitting = ref(false);
+const formError = ref('');
+const savedNote = ref('');
+
+const canSend = computed(() => rows.value.length > 0 && rows.value.every((r) => r.qty > 0));
+
+/* Creates the run; no stock moves until the kitchen receives each line. The
+ * document's idempotencyKey makes a resend land on the same run. On error the
+ * draft stays. */
+async function send() {
+  if (!canSend.value || submitting.value) return;
+  formError.value = '';
+  savedNote.value = '';
+  const lineCount = rows.value.length;
+
+  submitting.value = true;
+  try {
+    await productionRunStore.create({
+      date: doc.value.date,
+      warehouseId: doc.value.warehouseId,
+      idempotencyKey: doc.value.idempotencyKey,
+      lines: rows.value.map((r) => ({ item: r.item, plannedQty: r.qty })),
+    });
+    reset();
+    savedNote.value = `Enviado a producción: ${lineCount} línea(s). La cocina lo ve en su lista.`;
+  } catch (err) {
+    formError.value = err?.message || 'No se pudo enviar a producción.';
+  } finally {
+    submitting.value = false;
+  }
+}
 
 /* ---------------- losing work ---------------- */
+
+/* Reopen on the bodega you were pointing at. A fresh document also mints a
+ * fresh idempotencyKey. */
+function reset() {
+  const { warehouseId } = doc.value;
+  batchDrafts.value = {};
+  docsStore.discard('produccion');
+  docsStore.open('produccion', warehouseId);
+}
 
 function discard() {
   if (!doc.value.lines.length) return;
   if (!confirm(`Se perderán las ${doc.value.lines.length} línea(s) de esta producción. ¿Descartar?`)) return;
-
-  const { warehouseId } = doc.value;
-  docsStore.discard('produccion');
-  docsStore.open('produccion', warehouseId);
+  reset();
 }
 </script>
 
@@ -325,22 +495,24 @@ function discard() {
             </span>
           </div>
 
-          <!-- ponytail: same rule as Ingreso. POST /bakeries/:bakeryId/stocks/produce
-               arrives with expandComponents (EXISTENCIAS-BUILD.md §4.1);
-               stockStore.produce is already written against it. -->
           <div class="flex flex-wrap items-center gap-1.5 mt-4">
-            <button class="ui-btn ui-btn-solid" disabled>Confirmar producción</button>
+            <button
+              class="ui-btn ui-btn-solid"
+              :disabled="!canSend || submitting"
+              @click="send"
+            >{{ submitting ? 'Enviando…' : 'Enviar a producción' }}</button>
             <button
               class="ui-btn ui-btn-danger"
-              :disabled="!doc.lines.length"
+              :disabled="!doc.lines.length || submitting"
               @click="discard"
             >Descartar</button>
           </div>
+          <p v-if="formError" class="ui-field-error mt-2">{{ formError }}</p>
+          <p v-if="savedNote" class="ui-item-desc mt-2">{{ savedNote }}</p>
           <p class="ui-item-desc mt-2">
-            Todavía no se puede confirmar: falta <code>POST /stocks/produce</code>
-            en el servidor. Nada se guarda hasta entonces: este documento vive
-            solo en este navegador, así que aguanta una recarga pero no lo vas a
-            ver en otro dispositivo.
+            Al enviar, la cocina lo ve en su lista. La bodega cambia cuando la
+            cocina marca cada línea como producida. Hasta que lo envíes, este
+            documento vive solo en este navegador.
           </p>
         </div>
 
@@ -367,7 +539,12 @@ function discard() {
               <span class="ui-tag">{{ row.kind }}</span>
 
               <span class="min-w-0">
-                <span class="ui-item-title block capitalize" :title="row.name">{{ row.name }}</span>
+                <span class="ui-item-title flex items-center gap-1.5 capitalize">
+                  <AppTooltip v-if="gapTips.has(row.key)" class="shrink-0" :text="gapTips.get(row.key)">
+                    <PhWarning :size="14" weight="bold" role="img" :aria-label="gapTips.get(row.key)" />
+                  </AppTooltip>
+                  <span class="min-w-0 truncate" :title="row.name">{{ row.name }}</span>
+                </span>
                 <span class="ui-item-desc">
                   en bodega {{ formatQty(row.inStock) }} {{ row.unit }}
                   · <template v-if="row.cost === null">sin costo</template>
@@ -414,6 +591,51 @@ function discard() {
               </span>
             </div>
           </TransitionGroup>
+
+          <!-- ---------------- what it will consume ---------------- -->
+          <template v-if="rows.length">
+            <div class="ui-sectionhead mt-6">Lo que va a consumir</div>
+
+            <p v-if="previewError" class="ui-field-error">{{ previewError }}</p>
+            <div v-else-if="!consumption.length && !gaps.length" class="ui-empty">
+              Esta producción no descuenta nada de la bodega.
+            </div>
+
+            <div v-for="c in consumption" :key="c.key" class="ui-item ui-item-divided">
+              <span />
+              <span class="min-w-0">
+                <span class="ui-item-title block capitalize" :title="c.name">{{ c.name }}</span>
+                <span class="ui-item-desc">
+                  hay {{ formatQty(c.inStock) }} {{ c.unit }}
+                  <template v-if="c.short"> · <b>no alcanza</b></template>
+                </span>
+              </span>
+              <span class="ui-item-trail">
+                <span class="ui-item-num ui-num">
+                  {{ formatQty(c.qty) }}<span class="ui-unit">{{ c.unit }}</span>
+                </span>
+              </span>
+            </div>
+
+            <div v-for="g in gaps" :key="g.key" class="ui-item ui-item-divided">
+              <span />
+              <span class="min-w-0">
+                <span class="ui-item-title flex items-center gap-1.5 capitalize">
+                  <AppTooltip class="shrink-0" :text="g.tip">
+                    <PhWarning :size="14" weight="bold" role="img" :aria-label="g.tip" />
+                  </AppTooltip>
+                  <span class="min-w-0 truncate" :title="g.name">{{ g.name }}</span>
+                </span>
+                <span class="ui-item-desc">{{ g.text }}</span>
+              </span>
+              <span />
+            </div>
+
+            <p v-if="consumption.some((c) => c.short)" class="ui-item-desc mt-3">
+              Puedes enviarlo igual: la bodega queda en negativo hasta que
+              registres el ingreso o corrijas el conteo.
+            </p>
+          </template>
         </div>
       </div>
     </div>

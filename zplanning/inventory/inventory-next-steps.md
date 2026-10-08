@@ -138,10 +138,23 @@ ProductionRunLine { id, item: { type, id, combinationId }, plannedQty,
 - **Draft** stays in localStorage. **Send** creates the run; its pending lines
   count as `incoming`.
 - **Receive** one line at its planned quantity: + output, − components, in one
-  transaction, deterministic movement ids per line. The editable received
-  quantity is on hold.
+  transaction, deterministic movement ids per receipt (the id carries the
+  line's receipt number). The editable received quantity is on hold.
+- **Undo** a produced line ("Deshacer producido"): the line goes back to
+  pending and the bodega goes back with it. The server writes `compensation`
+  movements that are the exact opposite of what that receipt wrote (read from
+  the ledger, not rebuilt from the recipe); nothing is deleted, and stock may
+  end negative. Receiving again writes a new receipt with its own ids.
 - **Cancel** a pending line: leaves `incoming`, no movements.
-- Pending lines stay editable. The run closes when no line is pending.
+- A sent run changes one line at a time. While pending: edit its planned
+  quantity, or remove (cancel) it. Once produced: undo it. Adding is another
+  run. The table's generic undo/redo is hidden in the kitchen lists; the undo
+  above is an explicit action. Every Vitrina action (the tick included) asks
+  for a plain confirmation first, with the product and, for remove, edit and
+  undo, one line saying what happens to the bodega. The run closes when no line
+  is pending.
+- Receiving consumes the output's own recipe. A tracked product used as a
+  component of that recipe comes off its own stock, not re-made.
 - **Kitchen:** run lines appear in the existing production list next to order
   lines. Run lines carry a "Vitrina" tag, order lines the customer's name,
   because the same tap moves stock on one and not the other.

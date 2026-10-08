@@ -101,28 +101,4 @@ export class StockService extends BaseService {
     }
   }
 
-  /**
-   * One compound write: `+output` per line plus the `−components` its recipe
-   * expands to, all under one refs.productionId. `preview: true` returns the
-   * movement list without writing, so what you confirm is provably what you
-   * were shown — same code path, one flag apart.
-   *
-   * ponytail: POST /stocks/produce does not exist yet — it arrives with
-   * expandComponents in commit 2 (EXISTENCIAS-BUILD.md §4.1). The payload is
-   * written from the strategy docs; if the endpoint disagrees when it lands,
-   * this changes, never the ledger schema.
-   */
-  async produce({ lines, warehouseId, idempotencyKey, preview = false }) {
-    try {
-      const response = await this.api.post(`${this.getPath()}/produce`, {
-        lines,
-        warehouseId,
-        idempotencyKey,
-        preview,
-      });
-      return response.data;
-    } catch (error) {
-      throw this.handleError(error);
-    }
-  }
 }

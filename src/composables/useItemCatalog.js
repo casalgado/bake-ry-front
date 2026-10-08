@@ -48,16 +48,30 @@ export function useItemCatalog() {
   const comboOf = (product, combinationId) =>
     combinationId ? combosOf(product).find((c) => c.id === combinationId) : product;
 
-  const nameOf = ({ type, id, combinationId }) => {
+  /* A product reads with its colección first — "Sourdough Original Pequeño" —
+   * because "Original" alone means nothing. Skipped when the name already says
+   * it ("Croissant de mantequilla" in Croissants), and in pickers, where rows
+   * already sit under the colección heading (`withCollection: false`). */
+  const withCollection = (product, name) => {
+    const collection = product.collectionName?.trim().toLowerCase();
+    if (!collection) return name;
+    const lower = name.toLowerCase();
+    const singular = collection.replace(/e?s$/, '');
+    if (lower.includes(collection) || lower.startsWith(singular)) return name;
+    return `${product.collectionName.trim()} ${name}`;
+  };
+
+  const nameOf = ({ type, id, combinationId }, { withCollection: prefixed = true } = {}) => {
     if (type !== 'product') return ingredientById.value.get(id)?.name ?? '';
 
     const product = productById.value.get(id);
     if (!product) return '';
 
     const combo = comboOf(product, combinationId);
-    return product.hasVariations
+    const name = product.hasVariations
       ? `${product.name} ${combo?.name ?? ''}`.trim()
       : product.name;
+    return prefixed ? withCollection(product, name) : name;
   };
 
   /**

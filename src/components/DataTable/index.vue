@@ -54,6 +54,12 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  // Undo/redo of toggles (buttons, Ctrl+Z). Off where a toggle moves stock and
+  // cannot be taken back.
+  history: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const emit = defineEmits([
@@ -64,6 +70,9 @@ const emit = defineEmits([
 
 // Initialize undo history
 const { addToHistory, undo, redo, canUndo, canRedo } = useUndoHistory({ maxHistory: 100 });
+const record = (entry) => {
+  if (props.history) addToHistory(entry);
+};
 
 // Initialize sorting
 const { sortState, toggleSort, getSortDirection, getSortIndex, sortData, clearSort } = useTableSort();
@@ -131,7 +140,7 @@ const handleToggleUpdate = async ({ row, column }) => {
     }));
 
     // Create the history entry before making the change
-    addToHistory({
+    record({
       type: 'toggle',
       description: `Toggle ${column.label} for ${rowsToUpdate.length} row(s)`,
       undo: async () => {
@@ -243,7 +252,7 @@ const handleKeyDown = (event) => {
   }
 
   // Add undo/redo keyboard shortcuts
-  if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+  if (props.history && (event.ctrlKey || event.metaKey) && event.key === 'z') {
     event.preventDefault();
     if (event.shiftKey) {
       handleRedo();
@@ -295,7 +304,7 @@ onUnmounted(() => {
           @toggle-filter="toggleFilter"
           @clear-all="clearAll"
         />
-        <div class="flex items-center gap-2">
+        <div v-if="history" class="flex items-center gap-2">
           <button
             @click="handleUndo"
             :disabled="!canUndo"

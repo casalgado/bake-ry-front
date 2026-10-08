@@ -215,17 +215,19 @@ runs **before** a transaction, never inside one.
 
 **M2.2 The walk** — `stockService.expandRecipe(bakeryId, item, qty)` →
 `{ components: [{ item, qty, name, unit }], gaps: [] }`, the components of the
-item's **own** recipe, each through a private `expandComponents`:
+item's **own** recipe (`resolveRecipeId`, NO fallback; none → gap
+`missingRecipe`). Each component resolves as:
 
 ```
+product 'unit' or 'recipe'          → −qty of its own stock. STOP
 product 'none'                      → nothing
-product 'unit'                      → −qty. STOP
-product 'recipe'                    → resolveRecipeId (NO fallback) → recurse ×qty
-                                      no recipe → gap { reason: 'missingRecipe' }
 ingredient 'stocked'                → −qty. STOP
 ingredient 'passThrough' + recipe   → recurse, scaled by qty / yield
 ingredient 'passThrough', no recipe → nothing, and not a gap
 ```
+A tracked product used as a component is taken from stock, not re-made (a caja
+de 6 consumes six croissants, not their flour). Only the top item walks its own
+recipe.
 - Plain reads, no transaction (invariant 4). Memoize docs within one call.
 - Depth past `MAX_DEPTH` → gap `{ reason: 'depthExceeded' }`, stop that branch.
 - Merge results by item, so one component appears once per call.
@@ -245,12 +247,19 @@ file (the way `OrderItem` lives in `Order.js`). Shapes in next-steps §4.
   line **outside** the transaction. Transaction: re-read the run; line not
   `pending` → return the run unchanged (idempotent). Else `writeMovements` with
   `+plannedQty` of the output and `−` each component, `type: 'production'`,
-  `refs: { productionRunId, lineId }`, ids `run_${runId}_${lineId}_${itemKey}`;
-  then update the line (`received`, `receivedQty`, `receivedAt`, `receivedBy`)
-  and the run status.
+  `refs: { productionRunId, lineId, receipt }`, ids
+  `run_${runId}_${lineId}_${receipt}_${itemKey}` where `receipt` is the line's
+  `receiptNo + 1`; then update the line (`received`, `receivedQty`,
+  `receivedAt`, `receivedBy`, `receiptNo`) and the run status.
+- `undoLine`: a `received` line only (else 400). In the transaction, read the
+  receipt's `production` movements (`stockService.getMovementsByRefs`), write
+  their opposites as `compensation` (`stockService.reverseMovements`, ids
+  `undo_<original id>`), set the line back to `pending`. A receipt from before
+  receipts were counted has no `refs.receipt`: matched without it.
 - `cancelLine`: pending only → `cancelled`, run status updated. No movements.
-- **Not in v1:** editing a sent run's pending lines. No screen needs it yet;
-  cancel the line and send a new run. Add `patch` when a screen asks for it.
+- `updateLine`: the planned quantity of a pending line, `PATCH
+  /productionRuns/:id/lines/:lineId`. Any other line is refused (400), not
+  ignored. Adding a line is another run; there is no whole-run update.
 
 **M2.5 Routes** — `routes/productionRunRoutes.js`: `POST /productionRuns`,
 `GET /productionRuns` (filters: `status`, date range for the kitchen),
@@ -263,8 +272,8 @@ file (the way `OrderItem` lives in `Order.js`). Shapes in next-steps §4.
 acceptable or whether a narrower check is worth adding.
 
 **M2.6 Tests** *(write; ask before running)* —
-`__tests__/services/productionRunService.test.js` and walk cases in
-`stockService.test.js`: nested product → recipe → product → ingredient;
+`__tests__/services/productionRunService.test.js`, walk cases included: a `'recipe'` product as a component is taken from
+stock, not walked; nested preparaciones walk down to stocked ingredients;
 pass-through scaled by yield; `passThrough` without recipe deducts nothing and
 isn't a gap; missing combination recipe → gap, never the product's recipe;
 depth guard; preview writes nothing; receive writes output + components
@@ -304,8 +313,20 @@ closes when the last line resolves.
   pending and received lines into the same row shape as
   `flattenedOrderItems` (`:32-74`), with `source: 'run'`, `runId`, `lineId`, and
   `status` 0/1 from pending/received. Cancelled lines don't show.
-- Run rows carry the "Vitrina" tag; order rows show the customer's name. Put
-  both in the existing comments/client column, no new column.
+- A **Cliente** column: the customer's name on order rows, "Vitrina" on run
+  rows. "Comentarios" stays the order's production comments (`internalNotes`),
+  empty on run rows. In the grouped list the column reads "Vitrina" for a run
+  group, and for an order group the client's name when it has one client or
+  "N clientes" when it has several (distinct by `userId`). A Vitrina / Clientes
+  filter sits on the group's `origin`. Run lines form their own groups, never
+  merged with order items of the same product, so each group is one or the
+  other. Notes aren't shown there; a group spans many orders.
+- Estado is the last column in both views; a scoped style fixes its width so
+  it doesn't resize when a row toggles to "producido".
+- Run lines store `name`, `unit`, `collectionName` at send (like OrderItem's
+  productName), so the kitchen renders them without the catalog.
+- Live updates: `productionRunStore.subscribeToChanges()`, which needs a
+  read-only `productionRuns` rule in `firestore.rules` (deploy it).
 - `handleToggleUpdate` (`:167`): run rows → `productionRunStore.receiveLine`;
   un-ticking a received run row is not possible (disabled toggle). Order rows
   keep `orderStore.patchAll`.
