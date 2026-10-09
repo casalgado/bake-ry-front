@@ -2,7 +2,7 @@
 import ProductWizard from './ProductWizard.vue';
 import ProductSearch from './ProductSearch.vue';
 import OrderLineItem from './OrderLineItem.vue';
-import { watch } from 'vue';
+import { watch, onUnmounted } from 'vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useStockStore } from '@/stores/stockStore';
 import { useWarehouses } from '@/composables/useWarehouses';
@@ -37,10 +37,17 @@ const settingsStore = useBakerySettingsStore();
 const stockStore = useStockStore();
 const { defaultWarehouseId } = useWarehouses();
 
+// Live while the form is open: an order saved here or elsewhere changes disponible.
 // ponytail: loads every stock row; pass ?itemKeys= if the catalog grows large.
+let stopWatching = null;
 watch(() => settingsStore.isInventoryEnabled, (enabled) => {
-  if (enabled) stockStore.fetchAll().catch(() => {});
+  stopWatching?.();
+  stopWatching = null;
+  if (!enabled) return;
+  stockStore.fetchAll().catch(() => {});
+  stopWatching = stockStore.watchAvailability();
 }, { immediate: true });
+onUnmounted(() => stopWatching?.());
 
 const inventoryModeOf = (item) => (settingsStore.isInventoryEnabled
   ? props.products.find((p) => p.id === item.productId)?.inventoryMode ?? 'none'
@@ -49,33 +56,36 @@ const inventoryModeOf = (item) => (settingsStore.isInventoryEnabled
 const warehouseOf = (item) => item.sourceWarehouseId || defaultWarehouseId.value;
 const combinationOf = (item) => item.combination?.id || null;
 
-// Units that `lines` take from the same stock row as `item`, leaving out the line
-// at skipIndex. -1 skips none: used for a line that is not in the list yet.
-const takenBy = (lines, item, skipIndex = -1) => lines.reduce((sum, line, i) => (
-  i !== skipIndex
-  && line.productId === item.productId
+// Units that `lines` take from the same stock row as `item`.
+const takenBy = (lines, item) => lines.reduce((sum, line) => (
+  line.productId === item.productId
   && combinationOf(line) === combinationOf(item)
   && warehouseOf(line) === warehouseOf(item)
   && (inventoryModeOf(line) === 'unit' || line.fulfillmentSource === 'stock')
     ? sum + line.quantity
     : sum), 0);
 
-// Disponible at the bodega the line takes from. The server's figure already holds
+// Disponible before this draft, at the bodega the line takes from: one figure per
+// product, so editing a quantity never moves it. The server's figure already holds
 // the saved order's own lines (open: committed; shipped: deducted), so they come
-// back, and the rest of the draft goes out. A product never stocked has none.
+// back. A product never stocked has none.
 // ponytail: an open order past the 10-day window is not held server-side, so
 // giving its lines back overshoots by its own quantity.
-const availableFor = (item, index = -1) => (stockStore.items.find((s) =>
+const availableFor = (item) => (stockStore.items.find((s) =>
   s.productId === item.productId
   && (s.combinationId || null) === combinationOf(item)
   && s.warehouseId === warehouseOf(item),
-)?.available ?? 0) + takenBy(props.savedLines, item) - takenBy(props.modelValue, item, index);
+)?.available ?? 0) + takenBy(props.savedLines, item);
 
-// Resale always takes from stock; a recipe product does when disponible covers it.
+// The draft's stock lines of this product together ask for more than is free.
+const isShortFor = (item) => takenBy(props.modelValue, item) > availableFor(item);
+
+// Resale always takes from stock; a recipe product does when what the draft has
+// not already taken covers it.
 const defaultSource = (item) => {
   const mode = inventoryModeOf(item);
   if (mode === 'unit') return 'stock';
-  if (mode === 'recipe' && availableFor(item) >= item.quantity) return 'stock';
+  if (mode === 'recipe' && availableFor(item) - takenBy(props.modelValue, item) >= item.quantity) return 'stock';
   return 'produce';
 };
 
@@ -252,7 +262,8 @@ const updateItemTaxPercentage = (index, newTaxPercentage) => {
             :item="item"
             :index="index"
             :inventory-mode="inventoryModeOf(item)"
-            :available="availableFor(item, index)"
+            :available="availableFor(item)"
+            :short="isShortFor(item)"
             @update:quantity="updateItemQuantity"
             @update:item="updateItem"
             @update:costPrice="updateItemCostPrice"

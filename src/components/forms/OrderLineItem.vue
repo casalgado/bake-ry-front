@@ -27,6 +27,11 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  // The order's stock lines of this product, together, exceed `available`.
+  short: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
@@ -58,7 +63,7 @@ const effectiveReferencePrice = computed(() => {
 // Resale always takes from stock. A shortfall warns, never blocks: stock may go negative.
 const fromStock = computed(() =>
   props.inventoryMode === 'unit' || props.item.fulfillmentSource === 'stock');
-const isShort = computed(() => fromStock.value && props.available < props.item.quantity);
+const isShort = computed(() => fromStock.value && props.short);
 const availableLabel = computed(() => `${props.available} ${props.available === 1 ? 'disponible' : 'disponibles'}`);
 
 const toggleFulfillmentSource = () => {
