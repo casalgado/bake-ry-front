@@ -4,30 +4,30 @@ import { ref, computed, watch } from 'vue';
 import { useAuthenticationStore } from '@/stores/authentication';
 
 /**
- * The documents you have open in Inventario: one Ingreso, one Producción, one
- * Conteo, at most.
+ * The documents you have open in Inventario: one Ingreso and one Producción, at
+ * most. A Conteo is not here: it lives on the server (stockCountService).
  *
  * They live in a store rather than in a shell component because loading a
- * delivery and counting a bodega are long, interruptible tasks — the whole
+ * delivery and planning a production run are long, interruptible tasks — the whole
  * reason they were never modals. A component-owned draft dies the moment you
  * walk over to Pedidos to check something, which is exactly the interruption
  * that was supposed to be survivable. This survives it.
  *
  * A reload survives too, but only in THIS browser: the documents are mirrored to
  * localStorage. Real drafts are server-side and arrive with their own endpoints
- * (EXISTENCIAS-BUILD.md §4.2, §4.3) — until then a delivery entered here cannot
+ * (EXISTENCIAS-BUILD.md §4.2) — until then a delivery entered here cannot
  * be picked up on another device, and every screen that holds one says so out
  * loud.
  *
  * ponytail: one document per kind, not a list. Two deliveries open at once is
- * not a scenario anyone named; a count AND a delivery is, and that already
+ * not a scenario anyone named; a run AND a delivery is, and that already
  * works because they are different kinds. Give the doc an id and the route a
  * param if the second one ever shows up.
  */
 
-const DOC_KINDS = ['ingreso', 'produccion', 'conteo'];
+const DOC_KINDS = ['ingreso', 'produccion'];
 
-/* The three documents share a date and a bodega and nothing else, so the rest
+/* The two documents share a date and a bodega and nothing else, so the rest
  * is per kind rather than a union of every field with most of them dead:
  *
  *   ingreso    — `providerId`. One delivery, one proveedor; it belongs to the
@@ -38,19 +38,21 @@ const DOC_KINDS = ['ingreso', 'produccion', 'conteo'];
  *                each line, which beats a free-text box you can type anything
  *                into. `idempotencyKey`, same reason as ingreso: a resent
  *                "Enviar" lands on the same run.
- *   conteo     — `party`, el responsable del conteo.
  *
- * Ingreso/Producción fill `lines`; Conteo fills `counted` (itemKey → qty),
- * because a count's item list IS the bodega and never needs seeding. */
+ * Both fill `lines`. */
 const blankDoc = (kind, warehouseId) => ({
   kind,
   date: new Date().toISOString().slice(0, 10),
   warehouseId,
   ...(kind === 'ingreso' ? { providerId: null } : {}),
-  ...(kind === 'conteo' ? { party: '', counted: {} } : { lines: [], idempotencyKey: crypto.randomUUID() }),
+  lines: [],
+  idempotencyKey: crypto.randomUUID(),
 });
 
-const blankDocs = () => ({ ingreso: null, produccion: null, conteo: null });
+/* One slot per kind, filled from `saved` when there is one. Only these kinds are
+ * read back from storage; anything else in it is dropped. */
+const blankDocs = (saved = {}) =>
+  Object.fromEntries(DOC_KINDS.map((kind) => [kind, saved[kind] ?? null]));
 
 export const useInventoryDocsStore = defineStore('inventoryDocs', () => {
   const docs = ref(blankDocs());
@@ -67,10 +69,10 @@ export const useInventoryDocsStore = defineStore('inventoryDocs', () => {
 
   /* Reading can THROW, not merely return null — a private window or a browser
    * set to block site data rejects the accessor itself. Every path has to leave
-   * the three documents openable rather than taking the section down. */
+   * both documents openable rather than taking the section down. */
   function load() {
     try {
-      docs.value = { ...blankDocs(), ...JSON.parse(localStorage.getItem(storageKey.value) || '{}') };
+      docs.value = blankDocs(JSON.parse(localStorage.getItem(storageKey.value) || '{}'));
     } catch {
       docs.value = blankDocs();
     }
@@ -78,7 +80,7 @@ export const useInventoryDocsStore = defineStore('inventoryDocs', () => {
 
   watch(storageKey, load, { immediate: true });
 
-  /* deep: the screens mutate doc.lines and doc.counted in place. */
+  /* deep: the screens mutate doc.lines in place. */
   watch(docs, (value) => {
     try {
       localStorage.setItem(storageKey.value, JSON.stringify(value));
@@ -92,7 +94,7 @@ export const useInventoryDocsStore = defineStore('inventoryDocs', () => {
   function open(kind, warehouseId) {
     if (!docs.value[kind]) docs.value[kind] = blankDoc(kind, warehouseId);
     // A draft restored from before it carried a key gets one now.
-    if (kind !== 'conteo' && !docs.value[kind].idempotencyKey) {
+    if (!docs.value[kind].idempotencyKey) {
       docs.value[kind].idempotencyKey = crypto.randomUUID();
     }
     return docs.value[kind];
@@ -103,11 +105,7 @@ export const useInventoryDocsStore = defineStore('inventoryDocs', () => {
   /* An empty document is not work — you only opened the screen. Dirty means
    * there is something in it a reload would destroy. */
   function isDirty(kind) {
-    const doc = docs.value[kind];
-    if (!doc) return false;
-    return kind === 'conteo'
-      ? Object.keys(doc.counted ?? {}).length > 0
-      : (doc.lines?.length ?? 0) > 0;
+    return (docs.value[kind]?.lines?.length ?? 0) > 0;
   }
 
   const anyDirty = computed(() => DOC_KINDS.some(isDirty));

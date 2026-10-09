@@ -160,7 +160,7 @@ const navigationSections = computed(() => {
           id: 'inventario-conteo',
           icon: PhListChecks,
           text: 'Conteo',
-          path: '/dashboard/inventory/conteo',
+          path: '/dashboard/inventory/conteos',
         },
         {
           id: 'recipe-book',

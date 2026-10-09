@@ -26,6 +26,8 @@ import { useStockStore } from '@/stores/stockStore';
 import { useIngredientStore } from '@/stores/ingredientStore';
 import { useProductStore } from '@/stores/productStore';
 import { useInventoryDocsStore } from '@/stores/inventoryDocsStore';
+import { useAuthenticationStore } from '@/stores/authentication';
+import { StockCountService } from '@/services/stockCountService';
 import { useItemCatalog, itemOfStock, SHELF_TITLES } from '@/composables/useItemCatalog';
 import { useWarehouses } from '@/composables/useWarehouses';
 import { formatMoney, formatUnitCost, formatQty, formatSignedQty } from '@/utils/helpers';
@@ -54,21 +56,35 @@ const WORK = [
 const countableIn = (warehouseId) =>
   stockStore.items.filter((s) => s.warehouseId === warehouseId).length;
 
-const progressOf = (kind) => {
-  const doc = docsStore.docs[kind];
-  if (!doc) return '';
+/* A count lives on the server, not in docsStore: the button deep-links to the
+ * open one, if any. Read once on mount; a count started elsewhere shows on the
+ * next visit.
+ * ponytail: takes the first open count; with several bodegas (M5) there can be one
+ * per bodega, and this should pick the filtered bodega's. */
+const openCount = ref(null);
+new StockCountService(useAuthenticationStore().getBakeryId).list()
+  .then((counts) => { openCount.value = counts.find((c) => c.status === 'open') ?? null; })
+  .catch(() => {});
 
+const progressOf = (kind) => {
   if (kind === 'conteo') {
-    const counted = Object.keys(doc.counted).length;
-    return counted ? `${counted}/${countableIn(doc.warehouseId)}` : '';
+    const open = openCount.value;
+    return open ? `${open.counted}/${countableIn(open.warehouseId)}` : '';
   }
 
+  const doc = docsStore.docs[kind];
+  if (!doc) return '';
   return doc.lines.length
     ? `${doc.lines.length} línea${doc.lines.length === 1 ? '' : 's'}`
     : '';
 };
 
-const goTo = (kind) => router.push(`/dashboard/inventory/${kind}`);
+const goTo = (kind) => {
+  if (kind !== 'conteo') return router.push(`/dashboard/inventory/${kind}`);
+  router.push(openCount.value
+    ? `/dashboard/inventory/conteos/${openCount.value.id}`
+    : '/dashboard/inventory/conteos');
+};
 
 /* ---------------- left: the shelves ---------------- */
 

@@ -16,7 +16,8 @@ Design decisions for the Inventory epic ([ROADMAP.md](../strategy/ROADMAP.md) �
 | Stock triggers (which order changes touch stock) | ✅ Decided |
 | Trigger predicate (the "shipped" definition) | ✅ Decided (§9) |
 | Module activation (opt-in per business) | ✅ Decided (§14) |
-| Role access for counts / purchases | 🔶 Open |
+| Stock counts (conteo) | ✅ Decided and built (§15) |
+| Role access for purchases | 🔶 Open (counts: §15) |
 
 ---
 
@@ -325,7 +326,7 @@ The roadmap's cross-cutting rule: **data entry is the product risk, not the repo
 ## 12. Open items
 
 1. **Forgotten orders.** An order never marked shipped commits stock forever. Plan: count only open orders due within a window; the size is undecided.
-2. **Role access:** which roles may record counts, purchases, adjustments (`production_assistant`, `accounting_assistant`, `bakery_staff`?). Decide when building routes. Receiving production-run lines includes `production_assistant`.
+2. **Role access:** which roles may record purchases and adjustments (`production_assistant`, `accounting_assistant`, `bakery_staff`?). Decide when building routes. Receiving production-run lines includes `production_assistant`. Counts are decided: §15.
 3. **Negative stock:** allowed, displayed, never blocks a sale; counts correct it.
 
 ---
@@ -365,3 +366,79 @@ Defaults `false`, so every existing business reads as "off" with no migration �
 **What the flag does not exempt.** Rules marked universal in §13 stay universal: ingredient spend is never an expense entry, and the decoy category (accounting §5) redirects whether or not inventory is enabled. Only its message text is context-aware.
 
 **Self-containment is the §13 contract, not the toggle.** The toggle is visibility; independence is the five data rules above. New code lives in its own directories (`src/views/inventory/`, `src/services/stockService.js`, `src/stores/stockStore.js`; the accounting counterparts) and existing services gain hooks, not knowledge of each other.
+
+---
+
+## 15. Decision: stock counts (conteo)
+
+**A count is a shared, server-side document that several people type into at once; closing it sets each counted item's baseline to what was on the shelf.** Built 2026-10-09. The planning trail is [CONTEO-HANDOFF.md](./CONTEO-HANDOFF.md); where the two differ, this section is what was built.
+
+### 15.1 Rules
+
+1. **You type what is on the shelf, never the difference.** The expected number shows only after a row is entered, so the system's belief cannot anchor the count.
+2. **An empty box means "not counted", not zero.** Uncounted items keep their baseline (partial counts, §8.1).
+3. **One bodega per count, one open count per bodega.** Pressing Empezar while one is open joins it (open-or-join).
+4. **Shared and live.** Each row is its own write; everyone sees everyone's numbers. Two people on one row: the latest number wins, and the row shows who wrote it.
+5. **Nothing sells during a count.** Counting happens with the shop closed, and the difference is taken against `currentStock` at close. A count left open more than 12 h gets a warning on Revisar ("sales in that time are absorbed by the count"); it never blocks.
+6. **Closing happens only on the review page (Revisar).** The counting page has no submit button.
+7. **Alerts warn, never block.** A row is flagged when |difference| × unit cost ≥ **$50.000** (`ALERT_VALUE` in `CountReview.vue`; money only, no percent rule). A row with no cost cannot be flagged. The alert count rides on the button: "Cerrar conteo con 2 alertas". A per-item threshold can become an item field when a client asks.
+8. **Merma framing.** Bajas (`waste`) already lowered `currentStock`, so the count's whole difference is *unexplained*. A closed count reads "since the last count: bajas reported N + found by the count M (unexplained)".
+9. **Descartar ends the count for everyone and moves nothing.** The count stays listed as "Descartado · por X" with its typed rows: a count dropped right after showing a big shortfall is exactly what an owner needs to see.
+10. **Roles:** `bakery_admin`, `bakery_staff` (the supervisor) and `system_admin` (`requireBakeryStaffOrAdmin`), for every count route. `accounting_assistant` waits until accounting asks for merma.
+11. **There is no count date or "responsable" field.** The date is the close time (a backdated count would contradict `baselineAt`); who counted is recorded per row.
+
+### 15.2 Data
+
+```
+bakeries/{bakeryId}/stockCounts/{id}
+  warehouseId
+  status: 'open' | 'closed' | 'discarded'
+  createdBy: { userId, name }   createdAt
+  items: { [itemKey]: { qty, by: { userId, name }, at } }   // a map, not an array
+  closedBy, closedAt            // set by close and by discard
+  totalItems                    // close only: stocks docs in the bodega ("23 de 60")
+  // close also freezes onto each row: name, unit, expectedQty, diffQty,
+  //   unitCost (null = could not resolve), wasteSinceBaseline
+```
+
+- **A map so rows never collide.** Each typed number is one field write (`items.<itemKey>`), so two people on different rows never overwrite each other.
+- **No `isDeleted`.** Discarding is a status, so the list keeps it.
+- **Totals (faltante, sobrante, alertas, net value) are computed on read**, never stored.
+- **Names** come from the user's doc in `bakeries/{bakeryId}/users`, falling back to email (the auth token carries no name; a `system_admin` therefore shows as an email).
+- **Unit cost** follows the same rules as the frontend's `useItemCatalog.costOf`: ingredient `costPerUnit`, product or combination `costPrice`, `null` when the item cannot be resolved.
+
+### 15.3 Close: one transaction
+
+1. **Outside the transaction** (unbounded reads): unit cost and `wasteSinceBaseline` (Σ `waste` movements since the item's `baselineAt`) per counted row, and the bodega's stocks-doc count. A row typed after these reads makes the close measure again (up to 3 tries).
+2. **Inside:** the count must still be `open`, so closing twice is refused. Per counted item, `diff = counted − currentStock`:
+   - `diff ≠ 0` → one `count` movement (`refs.countId`, deterministic id `count_{countId}_{itemKey}`) through `writeMovements`. Its `stockFields` option merges `baselineQty`/`baselineAt` into that stocks doc's single cache write: one write per doc per transaction, as §8.3 requires.
+   - `diff = 0` → no movement, but the baseline is still set (a matching count verifies the item).
+   - Every counted item: `baselineQty = counted`, `baselineAt = close time`.
+3. **The movement is stamped 1 ms before `baselineAt`.** Drift verify sums movements with `timestamp >= baselineAt`; the baseline already contains this movement, so it must fall just outside. The filter stays `>=` on purpose: `>` would break stocks docs born from a movement, whose seed `baselineAt` can share that movement's millisecond. Covered by a test.
+
+### 15.4 API and access
+
+All under `requireBakeryStaffOrAdmin`:
+
+| Method | Path | Does |
+|---|---|---|
+| GET | `/stockCounts` | Newest 100 by `createdAt`, as summaries (`counted`, `counters`, `netValue`), without rows |
+| GET | `/stockCounts/:id` | One count, with rows |
+| POST | `/stockCounts` `{ warehouseId }` | Open-or-join |
+| PUT | `/stockCounts/:id/items/:itemKey` `{ qty }` | Set a row (`qty ≥ 0`) or clear it (`null`). The item must have a stocks doc in that bodega; refused once the count is not open |
+| POST | `/stockCounts/:id/close` | §15.3 |
+| POST | `/stockCounts/:id/discard` | `status: 'discarded'`; no ledger writes |
+
+- **Errors are 400**, like production runs; the shared `handleError` has no 409 path.
+- **No index needed.** The list orders by `createdAt` alone; the open-count lookup and the bajas lookup are equality-only.
+- **Firestore rule:** `stockCounts` is readable by bakery staff (the live views listen to the doc) and writable only by the API. Deploy the rule before hosting.
+
+### 15.5 Screens
+
+| Route | Screen |
+|---|---|
+| `/inventory/conteos` | `CountList.vue`: open counts pinned with "Continuar · N/M · names", Empezar, then closed and discarded counts (date, who, how many counted, net value). The sidebar's Conteo link points here |
+| `/inventory/conteos/:id` | `CountDoc.vue`: rows by shelf, each saved 400 ms after typing stops (a pending save is flushed when you leave). Shows the server's value unless you are typing in that box. After entry: "contado por X · sistema decía N · ±d". Redirects to Revisar once the count is closed |
+| `/inventory/conteos/:id/revisar` | `CountReview.vue`: open = live with Cerrar; closed = frozen, plus bajas; discarded = the typed rows only. Only counted rows, flagged first, then by money moved; rows with no difference fold away |
+
+The Bodega (Existencias) Conteo button opens the open count when there is one and shows its progress. It reads the list once per visit, so it can lag a row saved in the same moment.

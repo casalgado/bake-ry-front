@@ -79,11 +79,12 @@ const router = createRouter({
           /* Inventario is four screens, not four tabs: Bodega is a place you
            * look at, the other three are jobs you do, and each is worth its own
            * URL and its own sidebar link. The layout holds only the chrome and
-           * the catalog fetches — the open documents live in
-           * inventoryDocsStore, so they survive leaving the section entirely.
+           * the catalog fetches — open Ingreso and Producción documents live in
+           * inventoryDocsStore and counts live on the server, so both survive
+           * leaving the section entirely.
            *
            * `meta` merges across matched records in vue-router 4, so the
-           * feature flag on the parent covers all four children. */
+           * feature flag on the parent covers every child route. */
           path: 'inventory',
           component: () => import('../views/inventory/InventoryLayout.vue'),
           // Opt-in module: unreachable by URL while the flag is off (§14).
@@ -110,9 +111,20 @@ const router = createRouter({
               component: () => import('../views/inventory/ProductionDoc.vue'),
             },
             {
-              path: 'conteo',
+              // A count is a server resource with an id, so a link joins it.
+              path: 'conteos',
+              name: 'inventory-conteos',
+              component: () => import('../views/inventory/CountList.vue'),
+            },
+            {
+              path: 'conteos/:id',
               name: 'inventory-conteo',
               component: () => import('../views/inventory/CountDoc.vue'),
+            },
+            {
+              path: 'conteos/:id/revisar',
+              name: 'inventory-conteo-revisar',
+              component: () => import('../views/inventory/CountReview.vue'),
             },
           ],
         },
