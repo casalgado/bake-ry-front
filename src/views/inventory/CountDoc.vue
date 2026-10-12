@@ -16,6 +16,7 @@ import { ref, reactive, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import UiSearchField from '@/components/ui/UiSearchField.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useAuthenticationStore } from '@/stores/authentication';
 import { useStockStore } from '@/stores/stockStore';
 import { useItemCatalog, itemOfStock, SHELF_TITLES } from '@/composables/useItemCatalog';
@@ -100,46 +101,85 @@ const timers = new Map();
 /* Rows whose last save failed. Their draft stays in the box and the row says
  * so; typing again retries. */
 const failed = reactive(new Set());
+/* Rows holding a number a shelf cannot have (below 0). Nothing is sent for them
+ * and the row keeps its saved value; fixing the box clears the flag. */
+const invalid = reactive(new Set());
+/* Saves on their way, so leaving can wait for them. */
+const inFlight = new Set();
 
 const shownValue = (itemKey) => drafts[itemKey] ?? rowOf(itemKey)?.qty ?? '';
 
 /* An empty box means "not counted", which is not the same as counting zero —
  * a partial count leaves the items it skipped exactly as they were. So it
  * clears the row rather than saving 0. You cannot find minus three bags of flour
- * on a shelf either: `min="0"` only constrains the spinner, so a negative also
- * clears it. */
-async function save(itemKey) {
+ * on a shelf either: `min="0"` only constrains the spinner, so a negative is
+ * refused and said so, never turned into a cleared row. */
+function save(itemKey) {
   timers.delete(itemKey);
   const typed = drafts[itemKey];
-  if (typed === undefined) return;
+  if (typed === undefined) return Promise.resolve();
 
   const n = Number(typed);
-  const qty = String(typed).trim() === '' || !Number.isFinite(n) || n < 0 ? null : n;
-
-  try {
-    await service.setItem(countId, itemKey, qty);
-    failed.delete(itemKey);
-    // Typed again while this one was in flight: that one saves next.
-    if (drafts[itemKey] === typed) delete drafts[itemKey];
-  } catch {
-    failed.add(itemKey);
+  const blank = String(typed).trim() === '' || !Number.isFinite(n);
+  if (!blank && n < 0) {
+    invalid.add(itemKey);
+    return Promise.resolve();
   }
+  invalid.delete(itemKey);
+
+  const request = (async () => {
+    try {
+      await service.setItem(countId, itemKey, blank ? null : n);
+      failed.delete(itemKey);
+      // Typed again while this one was in flight: that one saves next.
+      if (drafts[itemKey] === typed) delete drafts[itemKey];
+    } catch {
+      failed.add(itemKey);
+    }
+  })();
+
+  inFlight.add(request);
+  request.finally(() => inFlight.delete(request));
+  return request;
 }
 
 function onInput(itemKey, value) {
   drafts[itemKey] = value;
+  invalid.delete(itemKey);
   clearTimeout(timers.get(itemKey));
   timers.set(itemKey, setTimeout(() => save(itemKey), SAVE_DELAY_MS));
 }
 
-/* Leaving for Revisar must not lose a number: one still waiting out the delay,
- * or one whose save failed, gets one more try. */
-onBeforeUnmount(() => {
-  stop();
+/* Every number typed so far reaches the server: the ones still waiting out the
+ * delay, the ones whose save failed, and the ones on their way. */
+async function flush() {
   new Set([...timers.keys(), ...failed]).forEach((itemKey) => {
     clearTimeout(timers.get(itemKey));
     save(itemKey);
   });
+  await Promise.all([...inFlight]);
+}
+
+/* Revisar waits for the flush: a number saved after the count closes is refused
+ * and would be lost without a word. */
+const leaving = ref(false);
+async function goReview() {
+  error.value = '';
+  leaving.value = true;
+  await flush();
+  leaving.value = false;
+
+  if (failed.size || invalid.size) {
+    error.value = 'Hay números sin guardar. Corrígelos antes de revisar.';
+    return;
+  }
+  router.push(`/dashboard/inventory/conteos/${countId}/revisar`);
+}
+
+/* Leaving any other way (the sidebar): one more try, best effort. */
+onBeforeUnmount(() => {
+  stop();
+  flush();
 });
 
 const total = computed(() => allRows.value.length);
@@ -149,17 +189,25 @@ const fill = computed(() => (total.value ? Math.round(done.value / total.value *
 const counters = computed(() =>
   [...new Set(Object.values(count.value?.items ?? {}).map((row) => row.by?.name).filter(Boolean))]);
 
-/* Ends the count for everyone, so it says who else is in it.
- * ponytail: native confirm(), same ruling as RecipeBookView.vue:790. */
-async function discard() {
-  const who = counters.value.length ? ` Están contando: ${counters.value.join(', ')}.` : '';
-  if (!confirm(`Descartar termina el conteo para todos y no mueve nada.${who} ¿Descartar?`)) return;
+/* Ends the count for everyone, so the dialog says who else is in it. */
+const confirmingDiscard = ref(false);
+const discarding = ref(false);
 
+const discardMessage = computed(() => {
+  const who = counters.value.length ? ` Están contando: ${counters.value.join(', ')}.` : '';
+  return `Descartar termina el conteo para todos y no mueve nada.${who}`;
+});
+
+async function discard() {
+  discarding.value = true;
   try {
     await service.discard(countId);
     router.push('/dashboard/inventory/conteos');
   } catch (err) {
     error.value = err.message;
+    confirmingDiscard.value = false;
+  } finally {
+    discarding.value = false;
   }
 }
 </script>
@@ -223,6 +271,9 @@ async function discard() {
                   <span v-if="failed.has(row.itemKey)" class="ui-field-error block">
                     No se guardó: vuelve a escribirlo.
                   </span>
+                  <span v-else-if="invalid.has(row.itemKey)" class="ui-field-error block">
+                    Escribe 0 o más. No se guardó.
+                  </span>
                   <!-- Only after entry: the expected number before it would anchor
                        the count to what the system already believes. -->
                   <span v-if="rowOf(row.itemKey)" class="ui-item-desc">
@@ -256,14 +307,22 @@ async function discard() {
             <p v-if="error" class="ui-field-error mt-2">{{ error }}</p>
 
             <div class="flex flex-wrap items-center gap-1.5 mt-4">
-              <router-link
-                class="ui-btn ui-btn-solid"
-                :to="`/dashboard/inventory/conteos/${countId}/revisar`"
-              >
-                Revisar →
-              </router-link>
-              <button class="ui-btn ui-btn-danger" @click="discard">Descartar</button>
+              <button class="ui-btn ui-btn-solid" :disabled="leaving" @click="goReview">
+                {{ leaving ? 'Guardando…' : 'Revisar →' }}
+              </button>
+              <button class="ui-btn ui-btn-danger" @click="confirmingDiscard = true">Descartar</button>
             </div>
+
+            <ConfirmDialog
+              :is-open="confirmingDiscard"
+              title="Descartar conteo"
+              :message="discardMessage"
+              confirm-text="Descartar"
+              cancel-text="Volver"
+              :loading="discarding"
+              @confirm="discard"
+              @cancel="confirmingDiscard = false"
+            />
           </template>
         </div>
       </div>

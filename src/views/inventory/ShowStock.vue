@@ -39,7 +39,7 @@ const ingredientStore = useIngredientStore();
 const productStore = useProductStore();
 const docsStore = useInventoryDocsStore();
 const catalog = useItemCatalog();
-const { warehouses, multiWarehouse, warehouseName } = useWarehouses();
+const { warehouses, multiWarehouse, defaultWarehouseId, warehouseName } = useWarehouses();
 
 /* ---------------- the three jobs ---------------- */
 
@@ -57,13 +57,15 @@ const countableIn = (warehouseId) =>
   stockStore.items.filter((s) => s.warehouseId === warehouseId).length;
 
 /* A count lives on the server, not in docsStore: the button deep-links to the
- * open one, if any. Read once on mount; a count started elsewhere shows on the
- * next visit.
- * ponytail: takes the first open count; with several bodegas (M5) there can be one
- * per bodega, and this should pick the filtered bodega's. */
-const openCount = ref(null);
+ * open one of the bodega on screen (the default one when showing all), if any.
+ * Read once on mount; a count started elsewhere shows on the next visit. */
+const openCounts = ref([]);
+const openCount = computed(() => {
+  const warehouseId = warehouseFilter.value ?? defaultWarehouseId.value;
+  return openCounts.value.find((c) => c.warehouseId === warehouseId) ?? null;
+});
 new StockCountService(useAuthenticationStore().getBakeryId).list()
-  .then((counts) => { openCount.value = counts.find((c) => c.status === 'open') ?? null; })
+  .then((counts) => { openCounts.value = counts.filter((c) => c.status === 'open'); })
   .catch(() => {});
 
 const progressOf = (kind) => {

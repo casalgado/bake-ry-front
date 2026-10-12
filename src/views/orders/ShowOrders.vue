@@ -141,6 +141,9 @@ const {
       } = selectedOrder;
       duplicateData.value = {
         ...rest,
+        // Where a line's units come from is decided again for the copy: the stock
+        // the original found may be gone.
+        orderItems: rest.orderItems.map(({ fulfillmentSource, sourceWarehouseId, ...line }) => line),
         status: 0,
         isPaid: false,
         paymentDate: null,

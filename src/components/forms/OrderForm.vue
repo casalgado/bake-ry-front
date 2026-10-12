@@ -19,6 +19,7 @@ import { formatMoney, cleanString } from '@/utils/helpers';
 import { getTodayString, getNextBusinessDayString, formatDateForInput } from '@/utils/dateUtils';
 import { PhCaretLeft, PhCaretRight, PhX, PhCaretDown } from '@phosphor-icons/vue';
 import { Order } from '@/models/Order.js';
+import { COMMITTED_WINDOW_DAYS, SHIPPED_STATUS } from '@/services/stockService';
 
 const props = defineProps({
   title: {
@@ -261,10 +262,16 @@ const formData = ref(
     : getInitialFormState(),
 );
 
+// The server holds an order's lines against the stock while the order is shipped,
+// or open and not forgotten (due no longer ago than the committed window). Past
+// that, its lines are not in the figure and must not be given back.
+const heldOnServer = (order) => order.status >= SHIPPED_STATUS
+  || new Date(order.dueDate) >= new Date(Date.now() - COMMITTED_WINDOW_DAYS * 86400000);
+
 // The order as saved, for each line's disponible. Copied once, before any edit,
 // because edits can reach the very same line objects. A duplicate has no id and
 // holds nothing on the server.
-const savedLines = props.initialData?.id
+const savedLines = props.initialData?.id && heldOnServer(props.initialData)
   ? props.initialData.orderItems.map(({
     productId, combination, sourceWarehouseId, quantity, fulfillmentSource,
   }) => ({

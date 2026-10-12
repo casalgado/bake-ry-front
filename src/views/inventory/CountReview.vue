@@ -10,6 +10,7 @@
 import { ref, computed, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useAuthenticationStore } from '@/stores/authentication';
 import { useStockStore } from '@/stores/stockStore';
 import { useItemCatalog, itemOfStock } from '@/composables/useItemCatalog';
@@ -54,12 +55,13 @@ const stockByKey = computed(() => new Map(stockStore.items
 const roundQty = (n) => Math.round(n * 1e6) / 1e6;
 const signedMoney = (value) => `${value > 0 ? '+' : ''}${formatMoney(value)}`;
 
-/* Closed: the numbers frozen at close. Open: live, against the shelf and the
- * catalog. A row with no cost reads "sin costo" and is never flagged. */
+/* A row close has measured carries its frozen numbers; any other is live,
+ * against the shelf and the catalog. A row with no cost reads "sin costo" and
+ * is never flagged. */
 const rows = computed(() => Object.entries(count.value?.items ?? {}).map(([itemKey, row]) => {
   const stock = stockByKey.value.get(itemKey);
   const item = stock ? itemOfStock(stock) : null;
-  const frozen = status.value === 'closed';
+  const frozen = row.diffQty !== undefined;
 
   const expected = frozen ? row.expectedQty : (stock?.currentStock ?? 0);
   const cost = frozen ? row.unitCost : (item ? catalog.costOf(item) : null);
@@ -109,12 +111,23 @@ const closeLabel = computed(() => (alerts.value
   ? `Cerrar conteo con ${alerts.value} alerta${alerts.value === 1 ? '' : 's'}`
   : 'Cerrar conteo'));
 
-/* ponytail: native confirm(), same ruling as RecipeBookView.vue:790. Once it
- * closes, the listener turns this page into the frozen view. */
-async function close() {
-  const n = rows.value.length;
-  if (!confirm(`La existencia de ${n} artículo${n === 1 ? '' : 's'} pasa a ser lo que se contó. Los demás no cambian. ¿Cerrar el conteo?`)) return;
+const endedLabel = computed(() => ({
+  discarded: 'Descartado',
+  closing: 'Cerrando',
+}[status.value] ?? 'Cerrado'));
 
+/* Asks first: closing sets each counted item's stock to what was typed. Once it
+ * closes, the listener turns this page into the frozen view. A count stuck in
+ * `closing` (the connection dropped mid-close) is finished by closing again. */
+const confirmingClose = ref(false);
+
+const closeQuestion = computed(() => {
+  if (status.value === 'closing') return 'Se retoma el cierre donde quedó.';
+  const n = rows.value.length;
+  return `La existencia de ${n} artículo${n === 1 ? '' : 's'} pasa a ser lo que se contó. Los demás no cambian.`;
+});
+
+async function close() {
   closing.value = true;
   try {
     await service.close(countId);
@@ -123,6 +136,7 @@ async function close() {
     error.value = err.message;
   } finally {
     closing.value = false;
+    confirmingClose.value = false;
   }
 }
 </script>
@@ -132,7 +146,7 @@ async function close() {
     <PageHeader
       :title="status === 'open' ? 'Revisar conteo' : 'Conteo'"
       :subtitle="count?.closedAt
-        ? `${status === 'discarded' ? 'Descartado' : 'Cerrado'} el ${formatDateDisplay(count.closedAt, { year: 'numeric' })} por ${count.closedBy?.name}`
+        ? `${endedLabel} el ${formatDateDisplay(count.closedAt, { year: 'numeric' })} por ${count.closedBy?.name}`
         : ''"
     >
       <router-link class="ui-btn" to="/dashboard/inventory/conteos">Conteos</router-link>
@@ -247,6 +261,14 @@ async function close() {
 
             <p v-if="error" class="ui-field-error mt-3">{{ error }}</p>
 
+            <div v-if="status === 'closing'" class="ui-empty mt-5" style="padding-block: 12px">
+              <b>Cerrando el conteo…</b>
+              Si esto no termina en un momento, ciérralo de nuevo: retoma donde quedó.
+              <button class="ui-btn ui-btn-solid mt-2" :disabled="closing" @click="confirmingClose = true">
+                Terminar de cerrar
+              </button>
+            </div>
+
             <div v-if="status === 'open'" class="flex flex-wrap items-center justify-between gap-1.5 mt-5">
               <router-link class="ui-btn" :to="`/dashboard/inventory/conteos/${countId}`">
                 ← Volver a contar
@@ -254,11 +276,22 @@ async function close() {
               <button
                 class="ui-btn ui-btn-solid"
                 :disabled="closing || !rows.length"
-                @click="close"
+                @click="confirmingClose = true"
               >
                 {{ closeLabel }}
               </button>
             </div>
+
+            <ConfirmDialog
+              :is-open="confirmingClose"
+              :title="status === 'closing' ? 'Terminar de cerrar el conteo' : 'Cerrar conteo'"
+              :message="closeQuestion"
+              :confirm-text="status === 'closing' ? 'Terminar' : 'Cerrar conteo'"
+              cancel-text="Volver"
+              :loading="closing"
+              @confirm="close"
+              @cancel="confirmingClose = false"
+            />
           </template>
         </div>
       </div>

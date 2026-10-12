@@ -102,7 +102,7 @@ const entryOf = (item, name, unit) => {
   };
 };
 
-/* THE shelf rule, in one place (HANDOFF-INVENTARIO-UI.md §1):
+/* THE shelf rule, in one place (zplanning/inventory/INVENTORY.md §4.1):
  *
  *   ingredientes sin recipeId   — harina, azúcar, lo que se compra
  *   productos inventoryMode 'unit' — la gaseosa que revendes tal cual
@@ -342,10 +342,22 @@ const removeLine = (index) =>
  *
  * A tolerance and not `!==`: retyping the same number with a trailing zero must
  * not make a row appear and vanish under your cursor. */
+/* A resale product (or combination) whose cost comes from a recipe is never
+ * overwritten by a purchase, so it offers no cost update. */
+const costFromRecipe = (item) => {
+  if (item?.type !== 'product') return false;
+  const product = productStore.items.find((p) => p.id === item.id);
+  const source = item.combinationId
+    ? product?.variations?.combinations?.find((c) => c.id === item.combinationId)?.costPriceSource
+    : product?.costPriceSource;
+  return source === 'recipe';
+};
+
 const drift = computed(() => rows.value
   // A $0 line (a gift, a sample) never sets a cost; the backend skips it too.
   .filter((r) => r.storedCost !== null
     && r.unitCost > 0
+    && !costFromRecipe(r.item)
     && Math.abs(r.unitCost - r.storedCost) > 0.005)
   .map((r) => ({
     ...r,

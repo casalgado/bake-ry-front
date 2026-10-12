@@ -33,6 +33,7 @@ import { useInventoryDocsStore } from '@/stores/inventoryDocsStore';
 import { useItemCatalog, itemOfStock, combosOf } from '@/composables/useItemCatalog';
 import { useWarehouses } from '@/composables/useWarehouses';
 import { formatMoney, formatQty, parseNumericInput } from '@/utils/helpers';
+import { formatDateDisplay, getTodayString } from '@/utils/dateUtils';
 
 const stockStore = useStockStore();
 const ingredientStore = useIngredientStore();
@@ -45,6 +46,11 @@ const { warehouses, multiWarehouse, defaultWarehouseId } = useWarehouses();
 
 docsStore.open('produccion', defaultWarehouseId.value);
 const doc = computed(() => docsStore.docs.produccion);
+
+// A production plan is for today or later: a draft restored from an earlier day
+// moves up to today (the local day, not the UTC one).
+const today = getTodayString();
+if (doc.value.date < today) doc.value.date = today;
 
 /* Fetched HERE and not in InventoryLayout, which deliberately fetches no
  * recipes: this reads one field, `yield`, off a preparación's own recipe so
@@ -243,6 +249,81 @@ async function addLine(key) {
   ];
 }
 
+/* ---------------- repeat the last production ---------------- */
+
+/* Production repeats: the most recent day with a run before this document's
+ * date (up to two weeks back; a closed day or a weekend is no reason to find
+ * nothing). Its lines come in as they were planned. */
+const LOOKBACK_DAYS = 14;
+const lastRun = ref(null); // { label, lines: [{ item, plannedQty }] }
+// A newer search (the date changed meanwhile) wins; an older one stops here.
+let lastRunSeq = 0;
+
+async function findLastRun() {
+  const seq = ++lastRunSeq;
+  lastRun.value = null;
+  const end = new Date(`${doc.value.date}T00:00:00`);
+  const start = new Date(end);
+  start.setDate(start.getDate() - LOOKBACK_DAYS);
+
+  try {
+    await productionRunStore.fetchAll({
+      filters: {
+        dateRange: {
+          dateField: 'date',
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+        },
+      },
+    });
+  } catch {
+    return; // a convenience: no history, no button
+  }
+  if (seq !== lastRunSeq) return;
+
+  const before = productionRunStore.items.filter((run) => new Date(run.date) < end);
+  if (!before.length) return;
+
+  const day = (run) => String(run.date).slice(0, 10);
+  const latest = before.map(day).sort().at(-1);
+  const lines = before.filter((run) => day(run) === latest)
+    .flatMap((run) => run.lines || [])
+    .filter((line) => line.status !== 'cancelled')
+    .map((line) => ({ item: line.item, plannedQty: line.plannedQty }));
+
+  if (lines.length) lastRun.value = { label: formatDateDisplay(new Date(`${latest}T12:00:00`)), lines };
+}
+
+watch(() => doc.value.date, findLastRun, { immediate: true });
+
+/* Adds what is not already in the document, summing a product that was sent in
+ * more than one line. What can no longer be made (untracked or bought now) is
+ * skipped, and the note says how many. */
+function repeatLast() {
+  if (!lastRun.value) return;
+
+  const planned = new Map();
+  lastRun.value.lines.forEach(({ item, plannedQty }) => {
+    const key = identityKey(item);
+    planned.set(key, (planned.get(key) || 0) + plannedQty);
+  });
+
+  const have = new Set(doc.value.lines.map((l) => l.key));
+  const added = [];
+  let skipped = 0;
+
+  planned.forEach((qty, key) => {
+    if (have.has(key)) return;
+    const entry = entryByKey.value.get(key);
+    if (!entry || entry.activate) { skipped += 1; return; }
+    added.push({ key, item: entry.item, itemKey: entry.itemKey, name: entry.name, unit: entry.unit, qty });
+  });
+
+  doc.value.lines = [...doc.value.lines, ...added];
+  savedNote.value = `Se agregaron ${added.length} línea(s) de la producción del ${lastRun.value.label}`
+    + (skipped ? `; ${skipped} ya no se pueden producir.` : '.');
+}
+
 const setField = (index, field, value) => {
   const next = parseNumericInput(value);
   doc.value.lines = doc.value.lines.map((l, i) =>
@@ -310,6 +391,8 @@ async function runPreview() {
     previewError.value = '';
   } catch (err) {
     if (seq !== previewSeq) return;
+    // The old answer is for numbers that have since changed: don't keep showing it.
+    preview.value = [];
     previewError.value = err?.message || 'No se pudo calcular lo que consume.';
   }
 }
@@ -471,6 +554,10 @@ function discard() {
             label="Agregar artículo"
             @select="addLine"
           />
+
+          <button v-if="lastRun" class="ui-btn mb-4" @click="repeatLast">
+            Repetir la producción del {{ lastRun.label }}
+          </button>
 
           <p v-if="blankQuantities" class="ui-item-desc mt-2">
             {{ blankQuantities }} línea(s) sin cantidad.

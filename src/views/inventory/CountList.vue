@@ -5,6 +5,7 @@
  * big shortfall is exactly what an owner needs to see. */
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useEventListener } from '@vueuse/core';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { useAuthenticationStore } from '@/stores/authentication';
 import { useStockStore } from '@/stores/stockStore';
@@ -24,14 +25,21 @@ const error = ref('');
 const starting = ref(false);
 const warehouseId = ref(defaultWarehouseId.value);
 
-onMounted(async () => {
+async function load() {
   try {
     counts.value = await service.list();
+    error.value = '';
   } catch (err) {
     error.value = err.message;
   } finally {
     loading.value = false;
   }
+}
+
+onMounted(load);
+// A count started or closed on another device shows when you come back to the tab.
+useEventListener(document, 'visibilitychange', () => {
+  if (document.visibilityState === 'visible') load();
 });
 
 const openCounts = computed(() => counts.value.filter((c) => c.status === 'open'));
@@ -126,6 +134,9 @@ const dateOf = (count) =>
                   <template v-if="multiWarehouse">{{ warehouseName(count.warehouseId) }} · </template>
                   <template v-if="count.status === 'discarded'">
                     Descartado · por {{ count.closedBy?.name }} · {{ count.counted }} escritos
+                  </template>
+                  <template v-else-if="count.status === 'closing'">
+                    Cerrando · {{ count.counted }} contados
                   </template>
                   <template v-else>
                     {{ count.counted }} de {{ count.totalItems }} contados

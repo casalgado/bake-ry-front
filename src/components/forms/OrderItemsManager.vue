@@ -2,7 +2,7 @@
 import ProductWizard from './ProductWizard.vue';
 import ProductSearch from './ProductSearch.vue';
 import OrderLineItem from './OrderLineItem.vue';
-import { watch, onUnmounted } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useStockStore } from '@/stores/stockStore';
 import { useWarehouses } from '@/composables/useWarehouses';
@@ -38,16 +38,26 @@ const stockStore = useStockStore();
 const { defaultWarehouseId } = useWarehouses();
 
 // Live while the form is open: an order saved here or elsewhere changes disponible.
+// Listening starts before the first load, so a change in between refetches.
 // ponytail: loads every stock row; pass ?itemKeys= if the catalog grows large.
+const stockLoaded = ref(false);
 let stopWatching = null;
 watch(() => settingsStore.isInventoryEnabled, (enabled) => {
   stopWatching?.();
   stopWatching = null;
   if (!enabled) return;
-  stockStore.fetchAll().catch(() => {});
+  stockLoaded.value = false;
   stopWatching = stockStore.watchAvailability();
+  stockStore.fetchAll().catch(() => {}).finally(() => { stockLoaded.value = true; });
 }, { immediate: true });
 onUnmounted(() => stopWatching?.());
+
+// A line's default source depends on the settings, the products and, with
+// inventory on, the stock; decided before they are here it would be wrong and
+// never revisited.
+const defaultsReady = computed(() => settingsStore.items.length > 0
+  && props.products.length > 0
+  && (!settingsStore.isInventoryEnabled || stockLoaded.value));
 
 const inventoryModeOf = (item) => (settingsStore.isInventoryEnabled
   ? props.products.find((p) => p.id === item.productId)?.inventoryMode ?? 'none'
@@ -69,8 +79,6 @@ const takenBy = (lines, item) => lines.reduce((sum, line) => (
 // product, so editing a quantity never moves it. The server's figure already holds
 // the saved order's own lines (open: committed; shipped: deducted), so they come
 // back. A product never stocked has none.
-// ponytail: an open order past the 10-day window is not held server-side, so
-// giving its lines back overshoots by its own quantity.
 const availableFor = (item) => (stockStore.items.find((s) =>
   s.productId === item.productId
   && (s.combinationId || null) === combinationOf(item)
@@ -80,14 +88,30 @@ const availableFor = (item) => (stockStore.items.find((s) =>
 // The draft's stock lines of this product together ask for more than is free.
 const isShortFor = (item) => takenBy(props.modelValue, item) > availableFor(item);
 
-// Resale always takes from stock; a recipe product does when what the draft has
-// not already taken covers it.
-const defaultSource = (item) => {
+// Resale always takes from stock; a recipe product does when what `lines` (the
+// draft) have not already taken covers it.
+const defaultSource = (item, lines = props.modelValue) => {
   const mode = inventoryModeOf(item);
   if (mode === 'unit') return 'stock';
-  if (mode === 'recipe' && availableFor(item) - takenBy(props.modelValue, item) >= item.quantity) return 'stock';
+  if (mode === 'recipe' && availableFor(item) - takenBy(lines, item) >= item.quantity) return 'stock';
   return 'produce';
 };
+
+// A line that arrives without a source (a repeated order, a duplicate) gets the
+// default a freshly added one would, once the defaults can be decided. One at a
+// time, so two lines of a product share what is free instead of each claiming
+// all of it.
+watch([() => props.modelValue, defaultsReady], ([lines, ready]) => {
+  if (!ready || !lines.some((line) => line.fulfillmentSource === undefined)) return;
+
+  const decided = lines.filter((line) => line.fulfillmentSource !== undefined);
+  emit('update:modelValue', lines.map((line) => {
+    if (line.fulfillmentSource !== undefined) return line;
+    const withSource = { ...line, fulfillmentSource: defaultSource(line, decided) };
+    decided.push(withSource);
+    return withSource;
+  }));
+}, { immediate: true });
 
 const handleWizardSelect = (selection) => {
   const product = props.products.find(p => p.id === selection.product.id);

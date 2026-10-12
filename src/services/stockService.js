@@ -6,10 +6,14 @@ import { BaseService } from './base/resourceService';
 // ponytail: a hand copy of the backend's COMMITTED_WINDOW_DAYS (stockService.js).
 // If that number changes, orders inside the new window stop refreshing the
 // screen live until this follows; the data itself stays right.
-const COMMITTED_WINDOW_DAYS = 10;
+export const COMMITTED_WINDOW_DAYS = 10;
+
+// Enviada: from this status on an order has left, and the ledger holds its lines
+// (the backend's affectsStock).
+export const SHIPPED_STATUS = 2;
 
 /**
- * The stock ledger (see zplanning/inventory/INVENTORY-IMPLEMENTATION.md §8).
+ * The stock ledger (see zplanning/inventory/INVENTORY.md §2).
  *
  * Reads plus four appends, on purpose: movements are append-only, so there is
  * no update or delete endpoint to call anywhere. Corrections are new
