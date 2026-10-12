@@ -119,7 +119,12 @@ export const createResourceStore = (resourceName, resourceService) => {
 
     // stores/base/resourceStore.js
 
+    // Overlapping fetches can land out of order; only the newest request may
+    // write the list, set the error or clear the loading flag.
+    let latestFetch = 0;
+
     async function fetchAll(request = {}) {
+      const thisFetch = ++latestFetch;
       setLoading(true);
       clearError();
 
@@ -144,6 +149,7 @@ export const createResourceStore = (resourceName, resourceService) => {
 
         const query = queryBuilder.build();
         const response = await resourceService.getAll(query);
+        if (thisFetch !== latestFetch) return response;
 
         items.value = Array.isArray(response.data) && response.data.length > 0
           ? response.data
@@ -151,10 +157,10 @@ export const createResourceStore = (resourceName, resourceService) => {
 
         return response;
       } catch (err) {
-        setError(err);
+        if (thisFetch === latestFetch) setError(err);
         throw err;
       } finally {
-        setLoading(false);
+        if (thisFetch === latestFetch) setLoading(false);
       }
     }
 
