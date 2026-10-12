@@ -1,8 +1,8 @@
 <script setup>
-/* Read-only for now. Creating and editing went out with IngredientForm.vue on
- * 2026-09-01 — it could never submit (see the note in that file). The list, the
- * filters and delete all work and are worth keeping; create an ingredient from
- * RecipeBookView.vue's despensa until the form is rebuilt. */
+/* The list, the filters and delete. Ingredients are created from
+ * RecipeBookView.vue's despensa; the cost of a plain ingredient is edited from
+ * Existencias (a preparación's cost comes from its recipe). There is no screen
+ * yet to edit the rest (name, category, unit, storage temperature). */
 
 // Vue
 import { ref, computed } from 'vue';

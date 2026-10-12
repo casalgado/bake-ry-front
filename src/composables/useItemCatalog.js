@@ -104,7 +104,7 @@ export function useItemCatalog() {
    * resold as it comes (una Coca-Cola), 'recipe' is made here, 'none' is not
    * tracked in the bodega at all. It is the marker that decides whether a
    * product belongs on Ingreso or on Producción, and there is deliberately no
-   * second `isResale` flag — see zplanning/inventory/PLAN-resale-to-product.md §0.
+   * second `isResale` flag — see zplanning/inventory/INVENTORY.md §1.
    *
    * `null` for an ingredient, because the question does not apply to one:
    * ingredients split on `recipeId`, which is what `kindOf` above already

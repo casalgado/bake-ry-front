@@ -3,7 +3,7 @@
 ## Now
 
 ### Inventory
-**Status (2026-10-07):** in progress. Decisions and milestones in [inventory/inventory-next-steps.md](../inventory/inventory-next-steps.md).
+**Status (2026-10-07):** in progress. How it works, what is open and how to deploy it: [inventory/INVENTORY.md](../inventory/INVENTORY.md).
 - Done: stock ledger, warehouses, adjust / transfer / waste (backend); Existencias, Ingreso, Producción and Conteo screens (frontend).
 - Next: providers + Ingreso, production runs, orders + availability (deduct on ship), Conteo.
 

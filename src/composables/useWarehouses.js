@@ -10,7 +10,7 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
  * warehouse list. It reveals four things and nothing else: the filter chips,
  * the per-bodega expander, Transferir, and a document's destination picker.
  * With one bodega the screens must contain no trace of the idea — that is
- * locked in INVENTORY-CORRECTIONS §1, and one flag is how it stays true.
+ * locked in zplanning/inventory/INVENTORY.md §4.6, and one flag is how it stays true.
  *
  * The fallback mirrors the backend's own default (BakerySettings
  * DEFAULT_FEATURES), so a settings doc that predates the field still resolves

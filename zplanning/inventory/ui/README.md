@@ -1,6 +1,6 @@
 # Inventory UI — design decisions
 
-Working notes for the two inventory front-end views. Design decisions only; the *why* of the data model lives in [../INVENTORY-IMPLEMENTATION.md](../INVENTORY-IMPLEMENTATION.md) and the sequence in [../INVENTORY-PLAN.md](../INVENTORY-PLAN.md) (this covers plan items 1C.2 and 1C.3).
+Working notes for the two inventory front-end views. Design decisions only; the data model, the flows and what is still open live in [../INVENTORY.md](../INVENTORY.md).
 
 - `recetas-prototype.html` — clickable layout prototype for the recipes view. Open it in a browser; it has no dependencies. It is a **layout and interaction** prototype, not the styling target and not component-accurate.
 - `existencias-prototype.html` — same, for the stock view. Same rules: no dependencies, layout and interaction only.
@@ -115,7 +115,7 @@ The first instinct was that "cargar productos" should create an order so product
 
 First-class, not an afterthought. Some tenants resell as their main business and have no other inventory: for them an **Ingreso** of finished product is the only flow they'll ever use, and Recetas/Producción stay empty and silent.
 
-A resale item is a **product in `inventoryMode: 'unit'`** — never an ingredient. It has a price, a collection and a place on an order line, and an ingredient has none of the three. (`Ingredient.isResale` used to say this and was retired; see `../PLAN-resale-to-product.md`.)
+A resale item is a **product in `inventoryMode: 'unit'`** — never an ingredient. It has a price, a collection and a place on an order line, and an ingredient has none of the three. (There is no `isResale` flag; see `../INVENTORY.md` §1.)
 
 ### Layout
 
@@ -164,7 +164,7 @@ Buying 20kg of flour is one event with two facts: you have more flour, *and* flo
 2. That update runs the existing propagation: recipes re-cost, and products with `costPriceSource: 'recipe'` follow.
 3. Movements carry `refs` back to their document (`purchaseId`, `productionRunId` + `lineId`, `countId`, `orderId`).
 4. `minStock` doesn't exist, so "bajo" still can't. Not planned.
-5. `productionRun` **is** a document: *Enviar* creates it, and each line is received or cancelled on its own (`../inventory-next-steps.md` §4).
+5. `productionRun` **is** a document: *Enviar* creates it, and each line is received or cancelled on its own (`../INVENTORY.md` §4.2).
 
 ### Deliberately skipped
 

@@ -1,6 +1,6 @@
 # Accounting Implementation
 
-Design decisions for the Accounting epic ([ROADMAP.md](../strategy/ROADMAP.md) → Next → Accounting), phases 1–3 (fixed costs, variable/other revenue, full P&L). Balance sheet and DIAN invoicing are out of scope here. Same purpose as [INVENTORY-IMPLEMENTATION.md](../inventory/INVENTORY-IMPLEMENTATION.md): source of truth for what was decided and why.
+Design decisions for the Accounting epic ([ROADMAP.md](../strategy/ROADMAP.md) → Next → Accounting), phases 1–3 (fixed costs, variable/other revenue, full P&L). Balance sheet and DIAN invoicing are out of scope here. Same purpose as [INVENTORY.md](../inventory/INVENTORY.md): source of truth for what was decided and why.
 
 **Status of each area:**
 
@@ -227,7 +227,7 @@ Roadmap cross-cutting rule: **data entry is the product risk, not the reports.**
 
 ## 13. Relationship to the Inventory epic
 
-Boundary contract with [INVENTORY-IMPLEMENTATION.md](../inventory/INVENTORY-IMPLEMENTATION.md) (mirrored there as its §13). The two epics are **independent by construction** — a business can adopt either, both, or neither, in any order — and stay that way by holding five rules:
+Boundary contract with [INVENTORY.md](../inventory/INVENTORY.md) (mirrored there as its §10). The two epics are **independent by construction** — a business can adopt either, both, or neither, in any order — and stay that way by holding five rules:
 
 1. **The only shared data is `costPrice` / `costPerUnit`.** Accounting consumes them (the COGS waterfall); inventory refreshes them (recipe cost propagation). A client without inventory maintains costs manually — today's behavior — and their P&L still computes to net profit.
 2. **The income statement never reads `purchases`; Compras never writes `accountingEntries`.** If a "cash view of ingredient spend" is ever wanted, it's a report over `purchases` — never expense entries.

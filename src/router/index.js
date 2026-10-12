@@ -154,11 +154,6 @@ const router = createRouter({
           component: () => import('../views/ingredients/ShowIngredients.vue'),
         },
         {
-          path: 'ingredients/create',
-          name: 'create-ingredient',
-          component: () => import('../views/ingredients/CreateIngredient.vue'),
-        },
-        {
           path: 'recipe-book',
           name: 'recipe-book',
           component: () => import('../views/recipes/RecipeBookView.vue'),
@@ -519,7 +514,7 @@ router.beforeEach(async (to, from, next) => {
     }
 
     // Opt-in modules: a disabled module's routes are not reachable, even by URL.
-    // Frontend visibility only — see zplanning/inventory/INVENTORY-IMPLEMENTATION.md §14.
+    // Frontend visibility only — see zplanning/inventory/INVENTORY.md §4.4.
     if (to.meta.requiresFeature) {
       // Imported lazily: bakerySettingsStore touches pinia at module scope.
       const { useBakerySettingsStore } = await import('@/stores/bakerySettingsStore');

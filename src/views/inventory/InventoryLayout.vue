@@ -30,7 +30,7 @@ const docsStore = useInventoryDocsStore();
  * for.
  *
  * Recipes are deliberately NOT fetched: producción's component expansion is a
- * backend walk (EXISTENCIAS-BUILD.md §4.1), and this section never re-derives
+ * backend walk (zplanning/inventory/INVENTORY.md §3), and this section never re-derives
  * it. */
 
 /* Not swallowed like the stocks fetch is: stockStore surfaces its own error,

@@ -3,7 +3,7 @@ import BaseModel from './base/BaseModel.js';
 import VariationGroups from './VariationGroups.js';
 
 class Product extends BaseModel {
-  // How a sale of this product moves stock (INVENTORY-IMPLEMENTATION.md §5).
+  // How a sale of this product moves stock (zplanning/inventory/INVENTORY.md §1).
   // 'none' is the default so every existing product behaves exactly as before.
   static INVENTORY_MODES = {
     NONE: 'none',

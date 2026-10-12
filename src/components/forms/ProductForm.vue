@@ -67,7 +67,7 @@ const errors = ref({});
 
 /* Reventa vs producción is a product mode, not an ingredient flag: an
  * ingredient has no price and no collection, and an order line only carries a
- * productId. Wording per INVENTORY-IMPLEMENTATION.md §11.1 — describe what the
+ * productId. Wording per zplanning/inventory/INVENTORY.md §1 — describe what the
  * business does, never the enum. */
 const INVENTORY_MODES = [
   { value: 'none', label: 'Sin control' },

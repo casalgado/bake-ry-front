@@ -219,7 +219,7 @@ export const useSystemAdminStore = defineStore('systemAdmin', {
             inventory: {
               // Spread first: this form only owns `enabled`, and a patch
               // replaces the whole features object — without this, saving it
-              // would wipe the bakery's warehouses and orderDefault.
+              // would wipe the bakery's warehouses and when inventory went live.
               ...(this.bakeries[bakeryIndex]?.settings?.features?.inventory || {}),
               enabled: featuresData.inventoryEnabled || false,
             },

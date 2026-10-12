@@ -805,10 +805,7 @@ async function save() {
 /* ---------------- insumos (the supplies shelf) ---------------- */
 
 /* Stored as a flat array — every seed and every backup has it that way, and
- * `BakerySettings` maps it as one. `IngredientForm.vue` reads it keyed by
- * ingredient type instead, so that dropdown is always empty and no ingredient
- * can be created through it. That file is frozen, so this reads it correctly
- * rather than fixing it there. */
+ * `BakerySettings` maps it as one. */
 const categories = computed(() =>
   (bakerySettingsStore.items[0]?.ingredientCategories ?? [])
     .filter((c) => c.isActive !== false));

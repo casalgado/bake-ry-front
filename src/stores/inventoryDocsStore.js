@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { useAuthenticationStore } from '@/stores/authentication';
+import { getTodayString } from '@/utils/dateUtils';
 
 /**
  * The documents you have open in Inventario: one Ingreso and one Producción, at
@@ -14,10 +15,9 @@ import { useAuthenticationStore } from '@/stores/authentication';
  * that was supposed to be survivable. This survives it.
  *
  * A reload survives too, but only in THIS browser: the documents are mirrored to
- * localStorage. Real drafts are server-side and arrive with their own endpoints
- * (EXISTENCIAS-BUILD.md §4.2) — until then a delivery entered here cannot
- * be picked up on another device, and every screen that holds one says so out
- * loud.
+ * localStorage. These drafts are not on the server, so a delivery entered here
+ * cannot be picked up on another device, and every screen that holds one says
+ * so out loud.
  *
  * ponytail: one document per kind, not a list. Two deliveries open at once is
  * not a scenario anyone named; a run AND a delivery is, and that already
@@ -42,7 +42,7 @@ const DOC_KINDS = ['ingreso', 'produccion'];
  * Both fill `lines`. */
 const blankDoc = (kind, warehouseId) => ({
   kind,
-  date: new Date().toISOString().slice(0, 10),
+  date: getTodayString(),
   warehouseId,
   ...(kind === 'ingreso' ? { providerId: null } : {}),
   lines: [],
