@@ -115,21 +115,11 @@ const flattenedOrderItems = computed(() => {
       return (aVariationName ? 1 : 0) - (bVariationName ? 1 : 0);
     });
 });
-// Computed property to get unique collection names
-const uniqueCollections = computed(() => {
-  const collections = new Set();
-  orderStore.items.forEach(order => {
-    order.orderItems.forEach(item => {
-      if (item.collectionName) {
-        collections.add(item.collectionName);
-      }
-    });
-  });
-  runRows.value.forEach(row => {
-    if (row.collectionName) collections.add(row.collectionName);
-  });
-  return Array.from(collections);
-});
+// The collections of what is listed: a collection with only Disponible lines has
+// nothing here to filter.
+const uniqueCollections = computed(() => [
+  ...new Set(flattenedOrderItems.value.map(item => item.collectionName).filter(Boolean)),
+]);
 
 // Column definitions
 const columns = [

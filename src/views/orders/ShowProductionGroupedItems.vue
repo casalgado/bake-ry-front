@@ -26,7 +26,6 @@ const unsubscribeRef = ref(null);
 const unsubscribeRunsRef = ref(null);
 
 const dataTable = ref(null);
-const toggleLoading = ref({});
 const actionLoading = ref({});
 const isBatchDialogOpen = ref(false);
 const selectedIds = ref([]);
@@ -77,21 +76,11 @@ const flattenedOrderItems = computed(() => {
   ];
 });
 
-// Computed property to get unique collection names
-const uniqueCollections = computed(() => {
-  const collections = new Set();
-  orderStore.items.forEach((order) => {
-    order.orderItems.forEach((item) => {
-      if (item.collectionName) {
-        collections.add(item.collectionName);
-      }
-    });
-  });
-  runRows.value.forEach((row) => {
-    if (row.collectionName) collections.add(row.collectionName);
-  });
-  return Array.from(collections);
-});
+// The collections of what is listed: a collection with only Disponible lines has
+// nothing here to filter.
+const uniqueCollections = computed(() => [
+  ...new Set(flattenedOrderItems.value.map((item) => item.collectionName).filter(Boolean)),
+]);
 
 // One client: their name. Several: how many. A Vitrina group has no client.
 const clientLabelOf = (group) => {
@@ -241,59 +230,6 @@ const tableFilters = computed(() => [
   },
 ]);
 
-const handleToggleUpdate = async ({ rowIds, field, value }) => {
-  try {
-    // Find all original items that need to be updated
-    const itemsToUpdate = rowIds.flatMap(
-      (groupId) =>
-        groupedOrderItems.value.find((group) => group.id === groupId)
-          ?.originalItems || [],
-    );
-
-    // Set loading state for all items
-    itemsToUpdate.forEach((item) => {
-      toggleLoading.value[`${item.id}-${field}`] = true;
-    });
-
-    // Group updates by order
-    const orderUpdates = itemsToUpdate.reduce((acc, item) => {
-      if (!acc[item.orderId]) {
-        acc[item.orderId] = {
-          itemIds: new Set(),
-          orderItems: orderStore.items.find(
-            (order) => order.id === item.orderId,
-          ).orderItems,
-        };
-      }
-      acc[item.orderId].itemIds.add(item.id);
-      return acc;
-    }, {});
-
-    // Prepare updates
-    const updates = Object.entries(orderUpdates).map(
-      ([orderId, { orderItems, itemIds }]) => ({
-        id: orderId,
-        data: {
-          orderItems: orderItems.map((item) => ({
-            ...item,
-            [field]: itemIds.has(item.id) ? value : item[field],
-          })),
-        },
-      }),
-    );
-
-    // Execute updates
-    await orderStore.patchAll(updates);
-    await nextTick();
-  } catch (error) {
-    console.error('Failed to update items:', error);
-  } finally {
-    // Clear loading states
-    Object.keys(toggleLoading.value).forEach((key) => {
-      toggleLoading.value[key] = false;
-    });
-  }
-};
 const handleAction = async ({ actionId, selectedIds: rowIds }) => {
   // Changed parameter destructuring
   actionLoading.value[actionId] = true;
@@ -484,11 +420,9 @@ onUnmounted(() => {
         :columns="columns"
         :actions="tableActions"
         :action-loading="actionLoading"
-        :toggle-loading="toggleLoading"
         :filters="tableFilters"
         :data-loading="orderStore.loading"
         :history="false"
-        @toggle-update="handleToggleUpdate"
         @action="handleAction"
         class="production-table bg-white shadow-lg rounded-lg"
       />
