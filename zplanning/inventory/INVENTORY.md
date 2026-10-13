@@ -394,31 +394,6 @@ Switching a bakery on: first count (Ajustar or Conteo), then the switch, then
 `GET /stocks/verify` after the first day; the report must be empty.
 `GET /stocks/verify-orders` should be empty too.
 
-Browser checks that still need a person (no test covers the screens):
-
-- **Orders.** Repeat an order for a client with a resale and a recipe product:
-  the resale line reads Disponible, the recipe line Disponible only if the stock
-  covers it. Duplicar after a hard refresh does the same, and a copy whose stock is
-  gone reads Producir. Edit an open order due more than 10 days ago: its Disponible
-  figure doesn't include its own lines. Ship two orders quickly: neither
-  Existencias nor the order form flickers back to an older figure.
-- **Kitchen lists.** An order with only Disponible lines doesn't add its category
-  to the filter. A production assistant receives and undoes a Vitrina line; a
-  delivery or accounting assistant is refused.
-- **Conteo.** Two browsers on one count: rows appear live, the latest number wins,
-  a $50.000 row is flagged, `verify` is empty after close, and the closed count
-  reopens frozen. Type `-3` in a row: it says so, keeps its saved value and Revisar
-  stays until it's fixed. Type and press Revisar at once, then close: the number is
-  in the count. Close and discard ask in a dialog (discard names who is counting).
-  A count left in `closing` shows the banner on Revisar and "Cerrando" in the list,
-  and "Terminar de cerrar" finishes it. The list refetches when you return to the
-  tab; with two bodegas the Bodega button opens the open count of the bodega shown.
-- **Producción and Ingreso.** "Repetir la producción del {fecha}" shows the last
-  day with runs, adds its lines once (pressing it twice adds nothing), and its date
-  matches the document's after changing the date quickly. In the evening a new
-  document is dated today (local). A recipe-costed resale line on Ingreso offers no
-  cost checkbox.
-
 ---
 
 ## 8. Open and deferred

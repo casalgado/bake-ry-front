@@ -42,3 +42,10 @@ zdocs
 
 # Claude Code isolation worktrees
 .claude/worktrees/
+
+# e2e artifacts
+e2e/results*
+e2e/report*
+e2e/last-run
+e2e/screens
+test-results
