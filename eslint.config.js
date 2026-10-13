@@ -82,6 +82,10 @@ export default [
     plugins: {
       jest,
     },
+    // The project runs Vitest, so the plugin cannot detect a Jest version on its own.
+    settings: {
+      jest: { version: 29 },
+    },
     languageOptions: {
       globals: {
         ...globals.jest,

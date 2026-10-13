@@ -185,6 +185,12 @@ const validate = () => {
   if (!formData.value.role) errors.value.role = 'El rol es requerido';
   if (!formData.value.name) errors.value.name = 'El nombre es requerido';
 
+  // Team roles sign in with this address; the backend would otherwise invent a fake one.
+  const isTeam = formData.value.category === 'PER';
+  if (isTeam && !formData.value.email) {
+    errors.value.email = 'El correo es requerido para el equipo';
+  }
+
   // Email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (formData.value.email && !emailRegex.test(formData.value.email)) {
