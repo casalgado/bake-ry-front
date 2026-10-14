@@ -1,7 +1,7 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, useId } from 'vue';
 import CombinationGroups from '@/models/frontend/CombinationGroups.js';
-import { PhCaretDown, PhCaretUp, PhCaretRight, PhLock, PhInfo, PhArrowCounterClockwise } from '@phosphor-icons/vue';
+import { PhCaretDown, PhCaretRight, PhLock, PhLockOpen, PhInfo, PhArrowCounterClockwise } from '@phosphor-icons/vue';
 import AppTooltip from '@/components/common/AppTooltip.vue';
 
 const props = defineProps({
@@ -16,6 +16,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update-combination-price']);
+
+// Ids are per instance: ids built from group keys alone would collide across forms.
+const uid = useId();
 
 // Reactive state for groups
 const combinationGroups = ref(null);
@@ -59,10 +62,6 @@ watch(() => [props.variationGroup?.combinations?.length, props.variationGroup?.d
 });
 
 // Computed properties
-const allPossibleCombinations = computed(() => {
-  return props.variationGroup?.generateAllCombinations() || [];
-});
-
 const groupsArray = computed(() => {
   return combinationGroups.value?.getGroupsArray() || [];
 });
@@ -117,9 +116,13 @@ const updateGroupPrice = (groupKey, field, value, skipIds = null) => {
  * evidence that someone claimed it, which is what survives closing the form. */
 const manuallyUnlocked = ref(new Set());
 
+/* "Waiting for a recipe" only describes a row that has none. One that is linked
+ * and whose source is 'manual' is frozen by the user, not pending: showing it
+ * locked at 0 would pass a frozen cost off as an automatic one. */
 const isCostLocked = (variant) =>
-  variant.costPriceSource === 'recipe' ||
-  (props.inventoryMode === 'recipe' && !manuallyUnlocked.value.has(variant.id) && !variant.costPrice);
+  !manuallyUnlocked.value.has(variant.id) &&
+  (variant.costPriceSource === 'recipe' ||
+    (props.inventoryMode === 'recipe' && !variant.recipeId && !variant.costPrice));
 
 const isGroupCostLocked = (group) => group.variants.every(isCostLocked);
 
@@ -127,11 +130,24 @@ const hasLockedCosts = computed(() =>
   groupsArray.value.some(group => group.variants.some(isCostLocked)),
 );
 
+const costsUnlocked = computed(() => manuallyUnlocked.value.size > 0);
+
+/* The toggle has to outlive the locks it removes: once everything is unlocked
+ * hasLockedCosts is false, and a button that vanished the moment you pressed it
+ * could never be pressed back. */
+const showCostToggle = computed(() => hasLockedCosts.value || costsUnlocked.value);
+
 /* Unlocking is permission to type, nothing more: it never writes
  * costPriceSource. Detaching every recipe-owned row from propagation because the
  * user wanted to edit one of them would silently freeze costs they never looked
- * at. The flag flips in claimCost, on the row that actually receives a number. */
-const unlockAllCosts = () => {
+ * at. The flag flips in claimCost, on the row that actually receives a number.
+ * Locking again only forgets the permission: a row someone already typed into
+ * has left its recipe (source 'manual') and stays editable. */
+const toggleCostLock = () => {
+  if (costsUnlocked.value) {
+    manuallyUnlocked.value = new Set();
+    return;
+  }
   groupsArray.value.forEach(group => group.variants.forEach(v => manuallyUnlocked.value.add(v.id)));
   manuallyUnlocked.value = new Set(manuallyUnlocked.value);
 };
@@ -158,13 +174,25 @@ const claimedFromRecipe = computed(() =>
     .filter(v => v.costPriceSource === 'manual' && originalCosts.value.get(v.id)?.costPriceSource === 'recipe'),
 );
 
-const restoreRecipeCosts = () => {
-  claimedFromRecipe.value.forEach(variant => {
-    const original = originalCosts.value.get(variant.id);
-    updateCombinationPrice(variant.id, 'costPrice', original.costPrice);
-    updateCombinationPrice(variant.id, 'costPriceSource', 'recipe');
-  });
+const restoreRecipeCost = (variant) => {
+  const original = originalCosts.value.get(variant.id);
+  updateCombinationPrice(variant.id, 'costPrice', original.costPrice);
+  updateCombinationPrice(variant.id, 'costPriceSource', 'recipe');
 };
+
+const restoreRecipeCosts = () => claimedFromRecipe.value.forEach(restoreRecipeCost);
+
+/* A zero is "no cost", which is how the backend reads it too when it links a
+ * recipe (recipeService followsRecipe). On a row taken from its recipe that
+ * means: go back to it. Applied when the field is left, not while typing —
+ * clearing a number to type another passes through 0 on the way. */
+const isClaimed = (variant) => claimedFromRecipe.value.some(v => v.id === variant.id);
+
+const commitCost = (variant, value) => {
+  if (!(Number(value) > 0) && isClaimed(variant)) restoreRecipeCost(variant);
+};
+
+const commitGroupCost = (group, value) => group.variants.forEach(v => commitCost(v, value));
 
 const setGroupCost = (group, value) => {
   // Snapshot before claiming: claimCost mutates the flag isCostLocked reads.
@@ -194,79 +222,62 @@ const toggleAllGroups = () => {
 const changeGrouping = (dimensionIndex) => {
   combinationGroups.value?.changeGrouping(dimensionIndex);
 };
-
-const formatPriceRange = (group) => {
-  return combinationGroups.value?.formatPriceRange(group) || '$0.00';
-};
 </script>
 
 <template>
-  <!-- Combinations/Prices Section -->
-  <div v-if="variationGroup.combinations.length > 0" class="base-card">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-4">
-      <h4 class="text-lg font-medium text-neutral-800">
-        Precios
-        <span v-if="variationGroup.dimensions.length > 1" class="text-sm text-neutral-500"
-          >({{ summaryStats.total }} combinaciones)</span
-        >
-      </h4>
-      <div class="text-sm text-neutral-600 hidden">
-        Total de combinaciones posibles: {{ allPossibleCombinations.length }}
-      </div>
+  <!-- The price columns are one decision made in three places: the .ui-listhead
+       labels, the group rows and the variant rows all use w-28 / w-28 / w-24, and
+       .ui-item-trail's 14px gap is what the head's gap matches. Change one and the
+       labels drift off their numbers. Below sm the head is gone and every field
+       carries its own visible label instead. -->
+  <div v-if="variationGroup.combinations.length > 0" class="flex flex-col gap-3">
+    <div class="ui-sectionhead">
+      Precios
+      <span v-if="variationGroup.dimensions.length > 1" class="ui-unit">
+        ({{ summaryStats.total }} combinaciones)
+      </span>
     </div>
 
-    <!-- Controls Row -->
-    <div class="flex justify-between items-center mb-4 pb-4 border-b border-neutral-200">
-      <div class="flex items-center gap-4">
-        <!-- Group by Dropdown (only show if multiple dimensions) -->
-        <div v-if="showGroupControls" class="flex items-center gap-2">
-          <label class="text-sm font-medium text-neutral-700">Agrupar por:</label>
-          <select
-            :value="combinationGroups?.groupByDimension || 0"
-            @change="changeGrouping(parseInt($event.target.value))"
-            class="text-sm border border-neutral-300 rounded px-2 py-1"
-          >
-            <option
-              v-for="option in groupingOptions"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Here rather than beside the "P. Costo" column header: that header row
-             is `hidden sm:grid`, and a control that disappears on mobile is a
-             lock with no key. -->
-        <button
-          v-if="hasLockedCosts"
-          type="button"
-          @click="unlockAllCosts"
-          class="text-sm flex items-center gap-1 utility-btn"
+    <div class="flex flex-wrap items-end gap-2">
+      <div v-if="showGroupControls" class="ui-field w-48">
+        <label class="ui-field-k" :for="`${uid}-group-by`">Agrupar por</label>
+        <select
+          :id="`${uid}-group-by`"
+          class="ui-input"
+          :value="combinationGroups?.groupByDimension || 0"
+          @change="changeGrouping(parseInt($event.target.value))"
         >
-          <PhLock class="w-4 h-4" />
-          Editar costos manualmente
-        </button>
-
-        <button
-          v-if="claimedFromRecipe.length"
-          type="button"
-          @click="restoreRecipeCosts"
-          class="text-sm flex items-center gap-1 utility-btn"
-        >
-          <PhArrowCounterClockwise class="w-4 h-4" />
-          Restaurar costos de receta
-        </button>
+          <option v-for="option in groupingOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
       </div>
 
-      <!-- Expand/Collapse All -->
+      <!-- Here rather than beside the "P. Costo" column header: that header row
+           is hidden below sm, and a control that disappears on mobile is a
+           lock with no key. -->
+      <button
+        v-if="showCostToggle"
+        type="button"
+        class="ui-btn"
+        :aria-pressed="costsUnlocked"
+        @click="toggleCostLock"
+      >
+        <PhLockOpen v-if="costsUnlocked" class="w-4 h-4" />
+        <PhLock v-else class="w-4 h-4" />
+        Editar costos manualmente
+      </button>
+
+      <button v-if="claimedFromRecipe.length" type="button" class="ui-btn" @click="restoreRecipeCosts">
+        <PhArrowCounterClockwise class="w-4 h-4" />
+        Restaurar costos de receta
+      </button>
+
       <button
         v-if="variationGroup.dimensions.length > 1"
         type="button"
+        class="ui-btn ml-auto"
         @click="toggleAllGroups"
-        class="text-sm flex items-center gap-1 utility-btn"
       >
         <PhCaretDown v-if="allExpanded" class="w-4 h-4" />
         <PhCaretRight v-else class="w-4 h-4" />
@@ -274,362 +285,179 @@ const formatPriceRange = (group) => {
       </button>
     </div>
 
-    <!-- Column Headers (Desktop only) -->
-    <div class="hidden sm:grid grid-cols-14 gap-3 mb-2 px-4 py-2 text-xs font-medium text-neutral-600 uppercase tracking-wide">
-      <div class="col-span-6">Variante</div>
-      <div class="col-span-3">P. Venta</div>
-      <div class="col-span-3 flex items-center gap-1">
+    <span v-if="showCostToggle" class="ui-field-hint">
+      {{ costsUnlocked
+        ? 'Puedes escribir los costos. Cada costo que cambies deja de calcularse desde la receta; déjalo en 0 para que vuelva a ella.'
+        : 'Los costos bloqueados se calculan con las recetas y se actualizan solos. Actívalo para escribirlos tú.' }}
+    </span>
+
+    <div class="ui-listhead hidden sm:flex">
+      <span class="ui-sectionhead">Variante</span>
+      <span class="ui-listhead-col w-28">P. Venta</span>
+      <span class="ui-listhead-col w-28">
         P. Costo
         <AppTooltip :text="COST_TOOLTIP" tabindex="0">
-          <PhInfo class="w-3.5 h-3.5 text-neutral-400" />
+          <PhInfo class="w-3.5 h-3.5 ui-ink-muted" />
         </AppTooltip>
-      </div>
-      <div class="col-span-2">Código</div>
+      </span>
+      <span class="ui-listhead-col w-24">Código</span>
     </div>
 
-    <!-- Groups List -->
-    <div class="space-y-1">
-      <div v-for="group in groupsArray" :key="group.key" class="group-container">
+    <div class="flex flex-col gap-2">
+      <div v-for="(group, gi) in groupsArray" :key="group.key">
+        <div class="ui-item ui-item-filled">
+          <span class="ui-item-icon w-4">
+            <template v-if="variationGroup.dimensions.length > 1">
+              <PhCaretDown v-if="group.expanded" class="w-4 h-4" />
+              <PhCaretRight v-else class="w-4 h-4" />
+            </template>
+          </span>
 
-        <!-- Group Header -->
-        <div
-          class="group-header flex flex-col sm:grid sm:grid-cols-14 gap-2 sm:gap-3 sm:items-center px-4 py-3 hover:bg-neutral-100 border-l-4 border-neutral-300"
-          :class="group.expanded ? 'border-blue-400 bg-neutral-50' : ''"
-        >
-          <!-- Mobile: Group Name row -->
-          <div class="flex items-center justify-between sm:col-span-6 sm:justify-start"
-               :class="variationGroup.dimensions.length > 1 ? 'cursor-pointer' : ''"
-               @click="variationGroup.dimensions.length > 1 ? toggleGroup(group.key) : null">
-            <div class="flex items-center">
-              <PhCaretDown v-if="variationGroup.dimensions.length > 1 && group.expanded" class="w-4 h-4 mr-3 text-neutral-500" />
-              <PhCaretRight v-else-if="variationGroup.dimensions.length > 1" class="w-4 h-4 mr-3 text-neutral-500" />
-              <div>
-                <span class="font-medium text-neutral-800">{{ group.name }}</span>
-                <span v-if="group.variants.length > 1" class="text-sm text-neutral-500 ml-2">
-                  {{ group.variants.length }} variantes
-                </span>
-              </div>
-            </div>
+          <div
+            class="min-w-0"
+            :class="variationGroup.dimensions.length > 1 ? 'cursor-pointer' : ''"
+            @click="variationGroup.dimensions.length > 1 ? toggleGroup(group.key) : null"
+          >
+            <span class="ui-item-title">{{ group.name }}</span>
+            <span v-if="group.variants.length > 1" class="ui-item-desc ml-2">
+              {{ group.variants.length }} variantes
+            </span>
           </div>
 
-          <!-- Mobile: Price fields row / Desktop: Inline price fields -->
-          <div class="flex gap-2 sm:contents">
-            <!-- Base Price -->
-            <div class="flex-1 sm:col-span-3" @click.stop="console.log('Group base price div clicked')">
-              <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">P. Venta</label>
-              <div class="input-with-unit compact" data-unit="$">
+          <div class="ui-item-trail max-sm:col-span-full max-sm:justify-between">
+            <div class="ui-field w-28 max-sm:flex-1">
+              <label class="ui-field-k sm:sr-only" :for="`${uid}-g${gi}-price`">P. Venta</label>
+              <div class="ui-field-unit" data-unit="$">
                 <input
+                  :id="`${uid}-g${gi}-price`"
                   type="number"
+                  class="ui-input ui-input-num"
                   :value="getGroupPriceValue(group.key, 'basePrice')"
                   :placeholder="getGroupPriceDisplay(group.key, 'basePrice')"
-                  @input.stop="updateGroupPrice(group.key, 'basePrice', parseFloat($event.target.value) || 0)"
-                  @click.stop
-                  @focus.stop
-                  class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
                   min="0"
                   step="1"
-                />
+                  @input="updateGroupPrice(group.key, 'basePrice', parseFloat($event.target.value) || 0)"
+                >
               </div>
             </div>
 
-            <!-- Cost Price -->
-            <div class="flex-1 sm:col-span-3" @click.stop>
-              <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">P. Costo</label>
-              <div class="input-with-unit compact" data-unit="$">
+            <div class="ui-field w-28 max-sm:flex-1">
+              <label class="ui-field-k sm:sr-only" :for="`${uid}-g${gi}-cost`">P. Costo</label>
+              <div class="ui-field-unit" data-unit="$">
                 <!-- Live while any row in the group is still manual; the locked
                      rows are skipped by CombinationGroups.updateGroupPrice. -->
                 <input
+                  :id="`${uid}-g${gi}-cost`"
                   type="number"
+                  class="ui-input ui-input-num"
                   :value="getGroupPriceValue(group.key, 'costPrice')"
                   :placeholder="getGroupPriceDisplay(group.key, 'costPrice')"
                   :readonly="isGroupCostLocked(group)"
-                  @input.stop="setGroupCost(group, parseFloat($event.target.value) || 0)"
-                  @click.stop
-                  @focus.stop
-                  class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
                   min="0"
                   step="1"
-                />
+                  @input="setGroupCost(group, parseFloat($event.target.value) || 0)"
+                  @change="commitGroupCost(group, $event.target.value)"
+                >
               </div>
             </div>
 
-            <!-- Accounting Code -->
-            <div class="flex-1 sm:col-span-2" @click.stop>
-              <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Código</label>
+            <div class="ui-field w-24 max-sm:flex-1">
+              <label class="ui-field-k sm:sr-only" :for="`${uid}-g${gi}-code`">Código</label>
               <input
+                :id="`${uid}-g${gi}-code`"
                 type="text"
+                class="ui-input"
                 :value="getGroupPriceValue(group.key, 'accountingCode')"
                 :placeholder="getGroupPriceDisplay(group.key, 'accountingCode')"
-                @input.stop="updateGroupPrice(group.key, 'accountingCode', $event.target.value)"
-                @click.stop
-                @focus.stop
-                class="w-full px-2 py-1 border border-neutral-300 rounded text-sm group-price-input"
-              />
+                @input="updateGroupPrice(group.key, 'accountingCode', $event.target.value)"
+              >
             </div>
           </div>
         </div>
 
-        <!-- Group Variants (Expanded) -->
-        <transition name="slide-down">
-          <div v-if="group.expanded" class="variants-container bg-neutral-25">
-            <div
-              v-for="variant in group.variants"
-              :key="variant.id"
-              class="variant-row flex flex-col sm:grid sm:grid-cols-14 gap-2 sm:gap-3 sm:items-center px-4 py-3 pl-4 sm:pl-8 hover:bg-neutral-75 border-l-4 border-neutral-200"
-              :class="variant.isWholeGrain ? 'bg-amber-25' : ''"
-            >
-              <!-- Variant Name -->
-              <div class="sm:col-span-6">
-                <div class="flex items-center">
-                  <div>
-                    <div class="text-xs font-medium text-neutral-800">
-                      {{ variant.variantName }}
-                    </div>
-                    <div class="text-xs text-neutral-500">
-                      {{ variant.originalSelection ? variant.originalSelection.join(" • ") : "" }}
-                    </div>
-                  </div>
-                </div>
+        <div v-if="group.expanded" class="flex flex-col gap-1 mt-1 pl-4 sm:pl-6">
+          <div v-for="variant in group.variants" :key="variant.id" class="ui-item">
+            <span></span>
+
+            <div class="min-w-0">
+              <div class="ui-item-title">
+                {{ variant.variantName }}
+                <span v-if="variant.isWholeGrain" class="ui-tag ml-1">Integral</span>
               </div>
+              <div v-if="variant.originalSelection" class="ui-item-desc">
+                {{ variant.originalSelection.join(' • ') }}
+              </div>
+            </div>
 
-              <!-- Mobile: Price fields row / Desktop: Inline price fields -->
-              <div class="flex gap-2 sm:contents">
-                <!-- Base Price -->
-                <div class="flex-1 sm:col-span-3" @click.stop="console.log('🛑 Variant base price div clicked')">
-                  <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">P. Venta</label>
-                  <div class="input-with-unit compact" data-unit="$">
-                    <input
-                      type="number"
-                      :value="variant.basePrice"
-                      @input.stop="
-                        console.log('⌨️ Variant base price input:', $event.target.value, 'for variant:', variant.id);
-                        updateCombinationPrice(
-                          variant.id,
-                          'basePrice',
-                          parseFloat($event.target.value) || 0
-                        )
-                      "
-                      @click.stop="console.log('🖱️ Option base price input clicked')"
-                      @focus.stop="console.log('🎯 Option base price input focused')"
-                      placeholder="0"
-                      class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
-                      min="0"
-                      step="1"
-                    />
-                  </div>
-                </div>
-
-                <!-- Cost Price -->
-                <div class="flex-1 sm:col-span-3" @click.stop>
-                  <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">P. Costo</label>
-                  <div class="input-with-unit compact" data-unit="$">
-                    <input
-                      type="number"
-                      :value="variant.costPrice"
-                      :readonly="isCostLocked(variant)"
-                      @input.stop="setCombinationCost(variant, parseFloat($event.target.value) || 0)"
-                      @click.stop
-                      @focus.stop
-                      placeholder="0"
-                      class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
-                      min="0"
-                      step="1"
-                    />
-                  </div>
-                </div>
-
-                <!-- Accounting Code -->
-                <div class="flex-1 sm:col-span-2" @click.stop>
-                  <label class="block text-xs font-medium text-neutral-600 mb-1 sm:hidden">Código</label>
+            <div class="ui-item-trail max-sm:col-span-full max-sm:justify-between">
+              <div class="ui-field w-28 max-sm:flex-1">
+                <label class="ui-field-k sm:sr-only" :for="`${uid}-${variant.id}-price`">P. Venta</label>
+                <div class="ui-field-unit" data-unit="$">
                   <input
-                    type="text"
-                    :value="variant.accountingCode"
-                    @input.stop="
-                      updateCombinationPrice(
-                        variant.id,
-                        'accountingCode',
-                        $event.target.value
-                      )
-                    "
-                    @click.stop
-                    @focus.stop
-                    placeholder=""
-                    class="w-full px-2 py-1 border border-neutral-300 rounded text-sm"
-                  />
+                    :id="`${uid}-${variant.id}-price`"
+                    type="number"
+                    class="ui-input ui-input-num"
+                    :value="variant.basePrice"
+                    placeholder="0"
+                    min="0"
+                    step="1"
+                    @input="updateCombinationPrice(variant.id, 'basePrice', parseFloat($event.target.value) || 0)"
+                  >
                 </div>
               </div>
 
+              <div class="ui-field w-28 max-sm:flex-1">
+                <label class="ui-field-k sm:sr-only" :for="`${uid}-${variant.id}-cost`">P. Costo</label>
+                <div class="ui-field-unit" data-unit="$">
+                  <input
+                    :id="`${uid}-${variant.id}-cost`"
+                    type="number"
+                    class="ui-input ui-input-num"
+                    :value="variant.costPrice"
+                    :readonly="isCostLocked(variant)"
+                    placeholder="0"
+                    min="0"
+                    step="1"
+                    @input="setCombinationCost(variant, parseFloat($event.target.value) || 0)"
+                    @change="commitCost(variant, $event.target.value)"
+                  >
+                </div>
+              </div>
+
+              <div class="ui-field w-24 max-sm:flex-1">
+                <label class="ui-field-k sm:sr-only" :for="`${uid}-${variant.id}-code`">Código</label>
+                <input
+                  :id="`${uid}-${variant.id}-code`"
+                  type="text"
+                  class="ui-input"
+                  :value="variant.accountingCode"
+                  @input="updateCombinationPrice(variant.id, 'accountingCode', $event.target.value)"
+                >
+              </div>
             </div>
           </div>
-        </transition>
+        </div>
       </div>
     </div>
 
-    <!-- Summary -->
-    <div class="mt-6 p-4 bg-neutral-100 rounded-lg">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-        <div>
-          <div class="text-neutral-600">Con precios definidos:</div>
-          <div class="font-medium text-neutral-900">
-            {{ summaryStats.withPrices }} / {{ summaryStats.total }}
-          </div>
-        </div>
-        <div>
-          <div class="text-neutral-600">Precio promedio:</div>
-          <div class="font-medium text-neutral-900">
-            ${{ summaryStats.averagePrice.toLocaleString("es-CO") }}
-          </div>
-        </div>
-        <div>
-          <div class="text-neutral-600">Costo promedio:</div>
-          <div class="font-medium text-neutral-900">
-            ${{ summaryStats.averageCost.toLocaleString("es-CO") }}
-          </div>
-        </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="ui-stat">
+        <span class="ui-stat-k">Con precios definidos</span>
+        <span class="ui-stat-v">{{ summaryStats.withPrices }} / {{ summaryStats.total }}</span>
+      </div>
+      <div class="ui-stat">
+        <span class="ui-stat-k">Precio promedio</span>
+        <span class="ui-stat-v">${{ summaryStats.averagePrice.toLocaleString('es-CO') }}</span>
+      </div>
+      <div class="ui-stat">
+        <span class="ui-stat-k">Costo promedio</span>
+        <span class="ui-stat-v">${{ summaryStats.averageCost.toLocaleString('es-CO') }}</span>
       </div>
     </div>
   </div>
 
-  <!-- Empty State -->
-  <div
-    v-else-if="variationGroup.dimensions.length > 0"
-    class="base-card text-center py-8"
-  >
-    <div class="text-neutral-500">
-      <p class="text-md font-medium">Configurando combinaciones...</p>
-      <p class="text-sm mt-2">
-        Completa la configuración para ver las combinaciones disponibles.
-      </p>
-    </div>
+  <div v-else-if="variationGroup.dimensions.length > 0" class="ui-empty">
+    <b>Configurando combinaciones...</b>
+    Completa la configuración para ver las combinaciones disponibles.
   </div>
 </template>
-
-<style scoped>
-/* A bg utility class can't grey these out: .form-container input
- * (custom-components.css:89) sets bg-gray-50 at (0,1,1), which outranks any
- * single-class utility. The scoped attribute takes this rule to (0,2,1). */
-input[readonly] {
-  background-color: #E6DFD8; /* neutral-200 */
-  color: #725F46; /* neutral-600 */
-}
-
-/* Custom 14-column grid (Tailwind only goes up to 12) */
-.grid-cols-14 {
-  grid-template-columns: repeat(14, minmax(0, 1fr));
-}
-
-@media (min-width: 640px) {
-  .sm\:grid-cols-14 {
-    grid-template-columns: repeat(14, minmax(0, 1fr));
-  }
-}
-
-/* Group header styling */
-.group-header {
-  @apply transition-all duration-200 ease-in-out;
-}
-
-.group-header:hover {
-  @apply bg-neutral-100;
-}
-
-.group-header.expanded {
-  @apply border-blue-400 bg-neutral-50;
-}
-
-/* Variant row styling */
-.variant-row {
-  @apply transition-all duration-150 ease-in-out;
-}
-
-.variant-row:hover {
-  @apply bg-neutral-75;
-}
-
-/* Slide down transition for expanded variants */
-.slide-down-enter-active,
-.slide-down-leave-active {
-  transition: all 0.3s ease-in-out;
-  overflow: hidden;
-}
-
-.slide-down-enter-from,
-.slide-down-leave-to {
-  opacity: 0;
-  max-height: 0;
-  transform: translateY(-10px);
-}
-
-.slide-down-enter-to,
-.slide-down-leave-from {
-  opacity: 1;
-  max-height: 1000px;
-  transform: translateY(0);
-}
-
-/* Custom neutral color utilities for better hierarchy */
-.bg-neutral-25 {
-  @apply bg-gray-50;
-}
-
-.bg-neutral-75 {
-  @apply bg-gray-100;
-}
-
-.bg-neutral-150 {
-  @apply bg-gray-200;
-}
-
-.bg-amber-25 {
-  @apply bg-amber-50;
-}
-
-/* Visual hierarchy enhancements */
-.group-container {
-  @apply rounded-lg overflow-hidden border border-neutral-200;
-}
-
-.group-container:not(:last-child) {
-  @apply mb-2;
-}
-
-/* Focus states for accessibility */
-.group-header:focus-within {
-  @apply ring-2 ring-blue-400 ring-opacity-50;
-}
-
-input[type="number"]:focus {
-  @apply ring-2 ring-blue-400 ring-opacity-50 border-blue-400;
-}
-
-/* Prevent input interactions from triggering group toggle */
-.variant-row input[type="number"] {
-  @apply relative z-10;
-}
-
-/* Custom styling for price range display */
-.price-range {
-  @apply font-mono text-sm;
-}
-
-/* Enhanced placeholder visibility for group price inputs */
-.group-price-input::placeholder {
-  @apply text-neutral-500;
-  opacity: 1;
-}
-
-.group-price-input::-webkit-input-placeholder {
-  @apply text-neutral-500;
-  opacity: 1;
-}
-
-.group-price-input::-moz-placeholder {
-  @apply text-neutral-500;
-  opacity: 1;
-}
-
-.group-price-input:-ms-input-placeholder {
-  @apply text-neutral-500;
-  opacity: 1;
-}
-</style>

@@ -108,16 +108,6 @@ describe('VariationCombinationManager', () => {
       expect(wrapper.text()).toContain('(3 combinaciones)');
     });
 
-    it('displays total possible combinations', () => {
-      const variationGroup = createMockVariationGroup([
-        { id: 'combo1', name: 'test1', selection: ['opt1'], basePrice: 100, costPrice: 50, isWholeGrain: false },
-        { id: 'combo2', name: 'test2', selection: ['opt2'], basePrice: 200, costPrice: 100, isWholeGrain: false },
-      ]);
-
-      wrapper = createWrapper({ variationGroup });
-      expect(wrapper.text()).toContain('Total de combinaciones posibles: 2');
-    });
-
     it('does not render combinations section when no combinations exist', () => {
       const emptyVariationGroup = createMockVariationGroup([], [
         { id: 'dim1', type: 'WEIGHT', options: [], displayOrder: 0 }
@@ -153,30 +143,24 @@ describe('VariationCombinationManager', () => {
       expect(wrapper.text()).toContain('grande');
 
       // Expand first group to see variants by clicking the group header
-      const firstGroupHeader = wrapper.find('.group-header');
+      const firstGroupHeader = wrapper.find('.ui-item-filled');
       await firstGroupHeader.trigger('click');
 
-      // Now should see variant price inputs (groups are expanded)
+      // Now should see the variant's price labels (groups are expanded)
       await wrapper.vm.$nextTick();
-      expect(wrapper.text()).toContain('Precio Venta');
-      expect(wrapper.text()).toContain('Precio Costo');
+      expect(wrapper.text()).toContain('P. Venta');
+      expect(wrapper.text()).toContain('P. Costo');
     });
 
-    it('applies different background classes for wholegrain vs regular combinations', async () => {
+    it('marks wholegrain combinations with an Integral tag', async () => {
       // Expand all groups first to see variants
       await wrapper.vm.toggleAllGroups(true);
       await wrapper.vm.$nextTick();
 
-      const variantRows = wrapper.findAll('.variant-row');
+      const tags = wrapper.findAll('.ui-tag');
 
-      // Check that wholegrain variants have different styling
-      const wholeGrainVariant = variantRows.find(row =>
-        row.html().includes('integral')
-      );
-
-      if (wholeGrainVariant) {
-        expect(wholeGrainVariant.classes()).toContain('bg-amber-25');
-      }
+      expect(tags.length).toBeGreaterThan(0);
+      tags.forEach(tag => expect(tag.text()).toBe('Integral'));
     });
 
     it('displays selection items separated by bullets', async () => {
@@ -223,7 +207,7 @@ describe('VariationCombinationManager', () => {
     });
 
     it('has correct input attributes', () => {
-      const variantInputs = wrapper.findAll('.variant-row input[type="number"]');
+      const variantInputs = wrapper.findAll('.ui-item:not(.ui-item-filled) input[type="number"]');
 
       variantInputs.forEach(input => {
         expect(input.attributes('min')).toBe('0');
@@ -289,7 +273,7 @@ describe('VariationCombinationManager', () => {
 
     it('displays group-level price inputs in headers', () => {
       // Should have 3 groups, each with 2 inputs (basePrice, costPrice)
-      const groupHeaders = wrapper.findAll('.group-header');
+      const groupHeaders = wrapper.findAll('.ui-item-filled');
       expect(groupHeaders).toHaveLength(3);
 
       groupHeaders.forEach(header => {
@@ -300,7 +284,7 @@ describe('VariationCombinationManager', () => {
 
     it('shows single value when all variants have same price', async () => {
       // All variants in first group should have same price initially
-      const firstGroupInputs = wrapper.findAll('.group-header input[type="number"]');
+      const firstGroupInputs = wrapper.findAll('.ui-item-filled input[type="number"]');
 
       // The first group should show actual values since all variants have same price
       expect(firstGroupInputs.length).toBeGreaterThan(0);
@@ -308,7 +292,7 @@ describe('VariationCombinationManager', () => {
 
     it('updates all group variants when group price is changed', async () => {
       // Find first group's base price input
-      const firstGroupHeader = wrapper.findAll('.group-header')[0];
+      const firstGroupHeader = wrapper.findAll('.ui-item-filled')[0];
       const basePriceInput = firstGroupHeader.findAll('input[type="number"]')[0];
 
       // Update group price
@@ -329,19 +313,19 @@ describe('VariationCombinationManager', () => {
 
     it('displays count of combinations with defined prices', () => {
       // All 3 combinations have basePrice > 0
-      expect(wrapper.text()).toContain('Con precios definidos:');
+      expect(wrapper.text()).toContain('Con precios definidos');
       expect(wrapper.text()).toContain('3 / 3');
     });
 
     it('calculates and displays average base price', () => {
       // (1000 + 1500 + 2000) / 3 = 1500
-      expect(wrapper.text()).toContain('Precio promedio:');
+      expect(wrapper.text()).toContain('Precio promedio');
       expect(wrapper.text()).toContain('$1.500');
     });
 
     it('calculates and displays average cost price', () => {
       // (600 + 900 + 1200) / 3 = 900
-      expect(wrapper.text()).toContain('Costo promedio:');
+      expect(wrapper.text()).toContain('Costo promedio');
       expect(wrapper.text()).toContain('$900');
     });
 
@@ -375,18 +359,6 @@ describe('VariationCombinationManager', () => {
       wrapper = createWrapper({ variationGroup: testGroup });
 
       expect(wrapper.props('variationGroup')).toStrictEqual(testGroup);
-    });
-
-    it('computes allPossibleCombinations correctly', () => {
-      const testCombinations = [
-        { id: 'combo1', name: 'test1', selection: ['opt1'] },
-        { id: 'combo2', name: 'test2', selection: ['opt2'] },
-      ];
-      const testGroup = createMockVariationGroup(testCombinations);
-
-      wrapper = createWrapper({ variationGroup: testGroup });
-
-      expect(wrapper.vm.allPossibleCombinations).toEqual(testCombinations);
     });
   });
 

@@ -1,17 +1,21 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, useId } from 'vue';
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
-import YesNoToggle from '@/components/forms/YesNoToggle.vue';
+import UiYesNo from '@/components/ui/UiYesNo.vue';
+import UiPills from '@/components/ui/UiPills.vue';
 import VariationsManager from '@/components/forms/VariationsManager.vue';
-import RadioButtonGroup from '@/components/forms/RadioButtonGroup.vue';
 import AppTooltip from '@/components/common/AppTooltip.vue';
 import { PhInfo } from '@phosphor-icons/vue';
 import { cleanString } from '@/utils/helpers';
 
 const collectionStore = useProductCollectionStore();
 const settingsStore = useBakerySettingsStore();
+
+/* Per instance, not per file: ShowProducts mounts this next to a DataTable whose
+ * filters have ids of their own, and `#name` would match whichever came first. */
+const uid = useId();
 
 const props = defineProps({
   title: {
@@ -169,12 +173,8 @@ const loadCategoryDimensions = (categoryDimensionTemplates) => {
 const handleVariationUpdate = (variationData) => {
   formData.value.variations = variationData;
 
-  // Keep hasVariations true if dimensions exist (even without combinations)
-  // This allows users to continue configuring dimensions
-  formData.value.hasVariations =
-    (variationData.dimensions && variationData.dimensions.length > 0) ||
-    (variationData.combinations && variationData.combinations.length > 0);
-
+  // hasVariations is the user's Sí/No answer, never derived from the contents:
+  // removing the last type must leave the section open for the next one.
   // Clear base price and cost price if variations exist
   if (formData.value.hasVariations) {
     formData.value.basePrice = 0;
@@ -252,13 +252,11 @@ const handleSubmit = () => {
 
   formData.value.name = cleanString(formData.value.name);
   formData.value.description = cleanString(formData.value.description);
-  console.log('Submitting form data:', formData.value);
   emit('submit', formData.value);
 };
 
 // Load data on mount
 onMounted(async () => {
-  console.log('ProductForm mounted');
   if (!collectionStore.isLoaded) {
     try {
       await collectionStore.fetchAll();
@@ -278,8 +276,6 @@ onMounted(async () => {
     }
   }
 
-  console.log('props.initialData:', props.initialData);
-
   // Check if initial data has variations
   if (props.initialData && props.initialData.variations) {
     formData.value.hasVariations =
@@ -290,303 +286,220 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="">
-    <h2>{{ title }}</h2>
+  <!-- One card, sections divided by .ui-sectionhead. Several cards would show the
+       dialog backdrop through the gaps, and the edit dialog's panel has no
+       surface of its own (see BakeryUserForm). -->
+  <form
+    class="ui-card flex flex-col gap-4"
+    data-ui-theme="light"
+    @submit.prevent="handleSubmit"
+  >
+    <div class="ui-panehead !mb-0 items-start">
+      <h2 class="ui-panehead-title">{{ title }}</h2>
+      <!-- On/off, so a pressed toggle rather than a Sí/No pair (forms gallery, "Elegir"). -->
+      <button
+        type="button"
+        class="ui-btn ui-btn-sm"
+        :aria-pressed="formData.isActive"
+        @click="formData.isActive = !formData.isActive"
+      >
+        {{ formData.isActive ? 'Activo' : 'Inactivo' }}
+      </button>
+    </div>
 
-    <form @submit.prevent="handleSubmit">
-      <!-- Basic Information -->
-      <div class="base-card">
-        <!-- Name -->
-        <div class="mb-4">
-          <label
-            for="name"
-            class="block text-sm font-medium text-neutral-700 mb-1"
-          >
-            Nombre
-          </label>
-          <input
-            id="name"
-            type="text"
-            v-model="formData.name"
-            class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-            :class="{ 'border-danger': errors.name }"
-            required
-          />
-          <span
-            v-if="errors.name"
-            class="text-sm text-danger mt-1"
-          >
-            {{ errors.name }}
-          </span>
-        </div>
+    <div class="ui-field">
+      <label class="ui-field-k" :for="`${uid}-name`" data-required>Nombre</label>
+      <input
+        :id="`${uid}-name`"
+        v-model="formData.name"
+        type="text"
+        class="ui-input"
+        required
+        :aria-invalid="!!errors.name"
+        :aria-describedby="errors.name ? `${uid}-name-e` : undefined"
+      >
+      <span v-if="errors.name" :id="`${uid}-name-e`" class="ui-field-error">
+        {{ errors.name }}
+      </span>
+    </div>
 
-        <!-- Description -->
-        <div class="mb-4">
-          <label
-            for="description"
-            class="block text-sm font-medium text-neutral-700 mb-1"
-          >
-            Descripción
-          </label>
-          <textarea
-            id="description"
-            v-model="formData.description"
-            rows="3"
-            class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-          />
-        </div>
+    <div class="ui-field">
+      <label class="ui-field-k" :for="`${uid}-description`">Descripción</label>
+      <textarea
+        :id="`${uid}-description`"
+        v-model="formData.description"
+        class="ui-input ui-input-area"
+        rows="3"
+      ></textarea>
+    </div>
 
-        <!-- Category, Tax Percentage and Accounting Code Row -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <!-- Category Selection -->
-          <div>
-            <label
-              for="collection"
-              class="block text-sm font-medium text-neutral-700 mb-1"
-            >
-              Categoría
-            </label>
-            <select
-              id="collection"
-              v-model="formData.collectionId"
-              @change="handleCategoryChange"
-              class="w-full px-2 py-2 border border-neutral-300 rounded-md"
-              :class="{ 'border-danger': errors.collectionId }"
-              required
-            >
-              <option value="">Selecciona una categoría</option>
-              <option
-                v-for="category in availableCategories"
-                :key="category.id"
-                :value="category.id"
-              >
-                {{ category.name }}
-              </option>
-            </select>
-            <span
-              v-if="errors.collectionId"
-              class="text-sm text-danger mt-1 block"
-            >
-              {{ errors.collectionId }}
-            </span>
-          </div>
-
-          <!-- Tax Percentage -->
-          <div>
-            <label
-              for="taxPercentage"
-              class="block text-sm font-medium text-neutral-700 mb-1"
-            >
-              Porcentaje de Impuesto
-            </label>
-            <div class="input-with-unit" data-unit="%">
-              <input
-                id="taxPercentage"
-                type="number"
-                v-model="formData.taxPercentage"
-                class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-                min="0"
-                max="100"
-                step="0.01"
-              />
-            </div>
-          </div>
-
-          <!-- Accounting Code -->
-          <div>
-            <label
-              for="accountingCode"
-              class="block text-sm font-medium text-neutral-700 mb-1"
-            >
-              Código
-            </label>
-            <input
-              id="accountingCode"
-              type="text"
-              v-model="formData.accountingCode"
-              class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-              placeholder=""
-            />
-          </div>
-        </div>
-
-        <!-- Variations and Active Status Row -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <!-- Has Variations Toggle -->
-          <div>
-            <YesNoToggle
-              v-model="formData.hasVariations"
-              @update:modelValue="toggleVariations"
-              label="¿Este producto tiene variaciones?"
-            />
-          </div>
-
-          <!-- Active Status -->
-          <div>
-            <YesNoToggle
-              v-model="formData.isActive"
-              label="Producto activo"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Inventory: only for businesses with the module on (§14). -->
-      <div v-if="settingsStore.isInventoryEnabled" class="base-card">
-        <h4 class="text-lg font-medium text-neutral-800 mb-3">Inventario</h4>
-
-        <RadioButtonGroup
-          v-model="formData.inventoryMode"
-          :options="INVENTORY_MODES"
-          name="inventory-mode"
-          @option-selected="handleInventoryModeChange"
-          label="¿Qué pasa con las existencias al vender este producto?"
-          class="inventory-modes"
-        />
-
-        <p class="text-sm text-neutral-500 mt-3">{{ inventoryModeHint }}</p>
-      </div>
-
-      <!-- Variations Manager -->
-      <div v-if="hasVariations">
-        <VariationsManager
-          :initial-variations="formData.variations"
-          :category-templates="selectedCategory?.variationTemplates"
-          :product-name="formData.name"
-          :inventory-mode="formData.inventoryMode"
-          @update="handleVariationUpdate"
-        />
-
-        <span
-          v-if="errors.variations"
-          class="text-sm text-danger mt-1 block"
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="ui-field">
+        <label class="ui-field-k" :for="`${uid}-collection`" data-required>Categoría</label>
+        <select
+          :id="`${uid}-collection`"
+          v-model="formData.collectionId"
+          class="ui-input"
+          required
+          :aria-invalid="!!errors.collectionId"
+          :aria-describedby="errors.collectionId ? `${uid}-collection-e` : undefined"
+          @change="handleCategoryChange"
         >
-          {{ errors.variations }}
+          <option value="">Selecciona una categoría</option>
+          <option v-for="category in availableCategories" :key="category.id" :value="category.id">
+            {{ category.name }}
+          </option>
+        </select>
+        <span v-if="errors.collectionId" :id="`${uid}-collection-e`" class="ui-field-error">
+          {{ errors.collectionId }}
         </span>
       </div>
 
-      <!-- Pricing Configuration for products without variations -->
-      <div v-else class="base-card">
-        <h4 class="text-lg font-medium text-neutral-800 mb-4">Configuración de Precios</h4>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Base Price -->
-          <div>
-            <label
-              for="basePrice"
-              class="block text-sm font-medium text-neutral-700 mb-1"
-            >
-              Precio de Venta
-            </label>
-            <div class="input-with-unit" data-unit="$">
-              <input
-                id="basePrice"
-                type="number"
-                v-model="formData.basePrice"
-                class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-                :class="{ 'border-danger': errors.basePrice }"
-                min="0"
-                step="1"
-                placeholder="0"
-              />
-            </div>
-            <span
-              v-if="errors.basePrice"
-              class="text-sm text-danger mt-1 block"
-            >
-              {{ errors.basePrice }}
-            </span>
-          </div>
-
-          <!-- Cost Price -->
-          <div>
-            <label
-              for="costPrice"
-              class="flex items-center gap-1 text-sm font-medium text-neutral-700 mb-1"
-            >
-              Precio de Costo
-              <!-- tabindex: the tooltip wraps static content, so it needs its own
-                   tab stop to be reachable without a mouse. -->
-              <AppTooltip v-if="isCostFromRecipe" :text="COST_TOOLTIP" tabindex="0">
-                <PhInfo class="w-4 h-4 text-neutral-400" />
-              </AppTooltip>
-            </label>
-            <div class="input-with-unit" data-unit="$">
-              <!-- readonly, not disabled: the value stays selectable and in the
-                   tab order — a disabled number input reads as broken, not derived. -->
-              <input
-                id="costPrice"
-                type="number"
-                v-model="formData.costPrice"
-                :readonly="isCostFromRecipe"
-                class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-                :class="{ 'border-danger': errors.costPrice }"
-                min="0"
-                step="1"
-                placeholder="0"
-              />
-            </div>
-            <p v-if="isCostFromRecipe" class="text-xs text-neutral-500 mt-1">
-              {{ formData.recipeId ? 'Calculado desde la receta.' : 'Se calculará cuando armes la receta en el recetario.' }}
-              <button
-                type="button"
-                @click="unlockCost"
-                class="underline hover:text-neutral-700"
-              >
-                Editar manualmente
-              </button>
-            </p>
-            <span
-              v-if="errors.costPrice"
-              class="text-sm text-danger mt-1 block"
-            >
-              {{ errors.costPrice }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Profit Margin Display -->
-        <div class="mt-4 p-4 bg-neutral-50 rounded-lg">
-          <div class="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span class="text-neutral-600">Margen de ganancia:</span>
-              <span class="ml-2 font-medium text-neutral-900">
-                ${{ (formData.basePrice - formData.costPrice).toLocaleString('es-CO') }}
-              </span>
-            </div>
-            <div>
-              <span class="text-neutral-600">Porcentaje de ganancia:</span>
-              <span class="ml-2 font-medium">
-                {{ isNaN(parseInt((formData.basePrice - formData.costPrice) / formData.costPrice * 100)) ? 0 : ((formData.basePrice - formData.costPrice) / formData.costPrice * 100).toFixed(1) }}%
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <p class="text-xs text-neutral-500 mt-4">
-          Define los precios de venta y costo para productos sin variaciones. El margen de ganancia se calcula automáticamente.
-        </p>
-      </div>
-
-      <!-- Form Actions -->
-      <div class="base-card">
-        <div class="flex gap-2 justify-end">
-          <button type="submit" :disabled="loading" class="action-btn">
-            {{ loading ? loadingText : submitButtonText }}
-          </button>
-          <button
-            type="button"
-            @click="$emit('cancel')"
-            :disabled="loading"
-            class="danger-btn"
+      <div class="ui-field">
+        <label class="ui-field-k" :for="`${uid}-tax`">Porcentaje de Impuesto</label>
+        <div class="ui-field-unit" data-unit="%">
+          <input
+            :id="`${uid}-tax`"
+            v-model="formData.taxPercentage"
+            type="number"
+            class="ui-input ui-input-num"
+            min="0"
+            max="100"
+            step="0.01"
           >
-            Cancelar
-          </button>
         </div>
       </div>
-    </form>
 
-    <!-- Confirm Dialog -->
+      <div class="ui-field">
+        <label class="ui-field-k" :for="`${uid}-code`">Código</label>
+        <input :id="`${uid}-code`" v-model="formData.accountingCode" type="text" class="ui-input">
+      </div>
+    </div>
+
+    <!-- Inventory: only for businesses with the module on (§14). -->
+    <template v-if="settingsStore.isInventoryEnabled">
+      <div class="ui-sectionhead">Inventario</div>
+
+      <div class="flex flex-col gap-2">
+        <UiPills
+          v-model="formData.inventoryMode"
+          :options="INVENTORY_MODES"
+          label="¿Qué pasa con las existencias al vender este producto?"
+          @change="handleInventoryModeChange"
+        />
+        <span class="ui-field-hint">{{ inventoryModeHint }}</span>
+      </div>
+    </template>
+
+    <div class="ui-sectionhead">Variaciones</div>
+
+    <UiYesNo
+      v-model="formData.hasVariations"
+      label="¿Este producto tiene variaciones?"
+      @update:model-value="toggleVariations"
+    />
+
+    <template v-if="hasVariations">
+      <VariationsManager
+        :initial-variations="formData.variations"
+        :product-name="formData.name"
+        :inventory-mode="formData.inventoryMode"
+        @update="handleVariationUpdate"
+      />
+
+      <span v-if="errors.variations" class="ui-field-error">
+        {{ errors.variations }}
+      </span>
+    </template>
+
+    <!-- Pricing for products without variations -->
+    <template v-else>
+      <div class="ui-sectionhead">Configuración de Precios</div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="ui-field">
+          <label class="ui-field-k" :for="`${uid}-base`">Precio de Venta</label>
+          <div class="ui-field-unit" data-unit="$">
+            <input
+              :id="`${uid}-base`"
+              v-model="formData.basePrice"
+              type="number"
+              class="ui-input ui-input-num"
+              min="0"
+              step="1"
+              placeholder="0"
+              :aria-invalid="!!errors.basePrice"
+              :aria-describedby="errors.basePrice ? `${uid}-base-e` : undefined"
+            >
+          </div>
+          <span v-if="errors.basePrice" :id="`${uid}-base-e`" class="ui-field-error">
+            {{ errors.basePrice }}
+          </span>
+        </div>
+
+        <div class="ui-field">
+          <label :for="`${uid}-cost`" class="ui-field-k flex items-center gap-1">
+            Precio de Costo
+            <!-- tabindex: the tooltip wraps static content, so it needs its own
+                 tab stop to be reachable without a mouse. -->
+            <AppTooltip v-if="isCostFromRecipe" :text="COST_TOOLTIP" tabindex="0">
+              <PhInfo class="w-4 h-4 ui-ink-muted" />
+            </AppTooltip>
+          </label>
+          <div class="ui-field-unit" data-unit="$">
+            <!-- readonly, not disabled: the value stays selectable and in the
+                 tab order — a disabled number input reads as broken, not derived. -->
+            <input
+              :id="`${uid}-cost`"
+              v-model="formData.costPrice"
+              type="number"
+              class="ui-input ui-input-num"
+              min="0"
+              step="1"
+              placeholder="0"
+              :readonly="isCostFromRecipe"
+              :aria-invalid="!!errors.costPrice"
+              :aria-describedby="errors.costPrice ? `${uid}-cost-e` : undefined"
+            >
+          </div>
+          <div v-if="isCostFromRecipe" class="ui-field-hint flex items-center gap-2 flex-wrap">
+            {{ formData.recipeId ? 'Calculado desde la receta.' : 'Se calculará cuando armes la receta en el recetario.' }}
+            <button type="button" class="ui-btn" @click="unlockCost">
+              Editar manualmente
+            </button>
+          </div>
+          <span v-if="errors.costPrice" :id="`${uid}-cost-e`" class="ui-field-error">
+            {{ errors.costPrice }}
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="ui-stat">
+          <span class="ui-stat-k">Margen de ganancia</span>
+          <span class="ui-stat-v">${{ (formData.basePrice - formData.costPrice).toLocaleString('es-CO') }}</span>
+        </div>
+        <div class="ui-stat">
+          <span class="ui-stat-k">Porcentaje de ganancia</span>
+          <span class="ui-stat-v">{{ isNaN(parseInt((formData.basePrice - formData.costPrice) / formData.costPrice * 100)) ? 0 : ((formData.basePrice - formData.costPrice) / formData.costPrice * 100).toFixed(1) }}%</span>
+        </div>
+      </div>
+
+      <span class="ui-field-hint">
+        Define los precios de venta y costo para productos sin variaciones. El margen de ganancia se calcula automáticamente.
+      </span>
+    </template>
+
+    <!-- Cancelar backs out, so it is danger outline; the one solid button commits. -->
+    <div class="flex gap-2 justify-end">
+      <button type="button" class="ui-btn ui-btn-danger" :disabled="loading" @click="emit('cancel')">
+        Cancelar
+      </button>
+      <button type="submit" class="ui-btn ui-btn-solid" :disabled="loading">
+        {{ loading ? loadingText : submitButtonText }}
+      </button>
+    </div>
+
     <ConfirmDialog
       :is-open="confirmDialog.isOpen"
       :title="confirmDialog.title"
@@ -596,39 +509,5 @@ onMounted(async () => {
       @confirm="confirmDialog.onConfirm"
       @cancel="confirmDialog.onCancel"
     />
-  </div>
+  </form>
 </template>
-
-<style scoped>
-/* Three equal, full-width pills instead of the shared group's tight inline row.
- * The class lands on RadioButtonGroup's root, which is the radiogroup itself. */
-.inventory-modes :deep(> div) {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.inventory-modes :deep(label[for]) {
-  display: block;
-  text-align: center;
-  padding: 0.625rem 0.75rem;
-}
-
-/* A bg utility class can't grey this out: .form-container input
- * (custom-components.css:89) sets bg-gray-50 at (0,1,1), which outranks any
- * single-class utility. The scoped attribute takes this rule to (0,2,1). */
-input[readonly] {
-  background-color: #E6DFD8; /* neutral-200 */
-  color: #725F46; /* neutral-600 */
-}
-
-/* Remove browser default outlines from all form elements */
-select {
-  outline: none !important;
-}
-
-select:focus {
-  outline: none !important;
-}
-</style>

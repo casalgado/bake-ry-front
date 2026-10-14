@@ -488,6 +488,14 @@ const shuffleCascade = () => {
               <button class="ui-btn ui-btn-danger ui-btn-solid">Eliminar bodega</button>
               <button class="ui-btn ui-btn-danger ui-btn-icon"><PhX :size="14" weight="bold" /></button>
             </div>
+            <p class="ui-card-body mt-4 mb-3">
+              <code>ui-btn-sm</code> recorta el relleno vertical: el botón no es más alto
+              que el título que tiene al lado.
+            </p>
+            <div class="ui-panehead !mb-0 items-start">
+              <span class="ui-panehead-title">Título</span>
+              <button class="ui-btn ui-btn-sm">Activo</button>
+            </div>
 
             <p class="ui-card-body mt-4 mb-3">
               Hover pinta con el suave; seleccionado se rellena sólido — es un

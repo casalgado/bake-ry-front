@@ -9,7 +9,7 @@ const fill = async (wrapper, { name, email }) => {
   if (email !== undefined) await wrapper.find('input[type=email]').setValue(email);
 };
 
-const pick = (wrapper, value) => wrapper.find(`input[type=radio][value=${value}]`).setValue(true);
+const pick = (wrapper, value) => wrapper.find(`input[type=radio][id$="-${value}"]`).setValue(true);
 
 const submit = (wrapper) => wrapper.find('form').trigger('submit');
 

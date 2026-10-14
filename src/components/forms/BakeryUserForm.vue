@@ -10,6 +10,7 @@
  * which is why a 896px dialog rendered an 800px form. */
 import { ref, computed, useId } from 'vue';
 import { parseSpanishName } from '@/utils/helpers';
+import UiPills from '@/components/ui/UiPills.vue';
 
 const props = defineProps({
   title: {
@@ -269,38 +270,15 @@ const handleSubmit = () => {
       </span>
     </div>
 
-    <!-- Was RadioButtonGroup, which belongs to the old system and still runs its
-         other call sites. This is the gallery's raw markup: an sr-only radio
-         with the label next to it doing the painting, so `:checked + .ui-btn`
-         can reach it. Not Tailwind peer-checked:, which applies one class.
-
-         radiogroup on a div, not fieldset/legend: .ui-field is display:flex and
-         a <legend> is not laid out as a normal flex item in every engine.
-         The radios sit directly in the grid — .sr-only is position:absolute, so
-         an input claims no track and stays the label's previous sibling, which
-         is what `input:focus-visible + .ui-btn` needs. -->
-    <div class="ui-field">
-      <span :id="`${uid}-type-k`" class="ui-field-k" data-required>Tipo de Usuario</span>
-      <div
-        class="grid grid-cols-2 sm:grid-cols-3 gap-1.5"
-        role="radiogroup"
-        :aria-labelledby="`${uid}-type-k`"
-      >
-        <template v-for="option in filteredUserTypeOptions" :key="option.value">
-          <input
-            :id="`${uid}-type-${option.value}`"
-            v-model="selectedUserType"
-            class="sr-only"
-            type="radio"
-            :name="`${uid}-user-type`"
-            :value="option.value"
-            @change="handleUserTypeChange(option.value)"
-          >
-          <label class="ui-btn justify-center w-full" :for="`${uid}-type-${option.value}`">
-            {{ option.label }}
-          </label>
-        </template>
-      </div>
+    <div>
+      <UiPills
+        v-model="selectedUserType"
+        :options="filteredUserTypeOptions"
+        label="Tipo de Usuario"
+        required
+        min-width="11rem"
+        @change="handleUserTypeChange"
+      />
       <span v-if="errors.role" class="ui-field-error">{{ errors.role }}</span>
     </div>
 

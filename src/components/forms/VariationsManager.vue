@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
-import YesNoToggle from '@/components/forms/YesNoToggle.vue';
+import { ref, computed, watch, onMounted, nextTick, useId } from 'vue';
+import UiYesNo from '@/components/ui/UiYesNo.vue';
+import UiPills from '@/components/ui/UiPills.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import VariationCombinationManager from '@/components/forms/VariationCombinationManager.vue';
 import { PhPlus, PhTrash, PhX, PhCaretUp, PhCaretDown } from '@phosphor-icons/vue';
@@ -12,10 +13,6 @@ const props = defineProps({
   initialVariations: {
     type: Object,
     default: () => ({ dimensions: [], combinations: [] }),
-  },
-  categoryTemplates: {
-    type: Array,
-    default: () => [],
   },
   productName: {
     type: String,
@@ -39,6 +36,9 @@ const emit = defineEmits(['update']);
 // System settings store
 const systemSettingsStore = useSystemSettingsStore();
 
+// Ids are per instance, so two managers on one page never share a `for` target.
+const uid = useId();
+
 // Core data structure - VariationGroups instance
 const variationGroup = ref(new VariationGroups(props.initialVariations));
 
@@ -47,7 +47,6 @@ const selectedDimensionTypes = ref([]);
 const customDimensions = ref([]);
 const newCustomDimension = ref({ label: '', value: '' });
 const dimensionWholeGrainStatus = ref(new Map()); // Map of dimensionId -> boolean
-const optionPositionDropdowns = ref(new Map()); // Map of optionKey -> boolean for dropdown visibility
 
 // Fixed dimension types
 const availableDimensionTypes = [
@@ -106,10 +105,15 @@ onMounted(() => {
 });
 
 // Dimension management functions
-const toggleDimensionType = (type) => {
+const toggleDimensionType = (type, event) => {
   const index = selectedDimensionTypes.value.indexOf(type);
 
   if (index > -1) {
+    /* The browser already flipped the checkbox, but nothing is removed until the
+     * user confirms. Cancelling changes no state, so Vue would never repaint it
+     * and the pill would stay off while the dimension stays on. */
+    if (event) event.target.checked = true;
+
     // Remove dimension type
     confirmDialog.value = {
       isOpen: true,
@@ -500,38 +504,6 @@ const moveOptionToPosition = (dimensionId, optionName, newPosition) => {
   variationGroup.value = new VariationGroups(plainObj);
 
   regenerateCombinations();
-
-  // Close the dropdown
-  const key = `${dimensionId}-${optionName}`;
-  optionPositionDropdowns.value.set(key, false);
-};
-
-const togglePositionDropdown = (dimensionId, optionName, event) => {
-  const key = `${dimensionId}-${optionName}`;
-  const currentState = optionPositionDropdowns.value.get(key) || false;
-
-  // Prevent the click from bubbling and triggering handleClickOutside
-  if (event) {
-    event.stopPropagation();
-  }
-
-  // Close all other dropdowns
-  optionPositionDropdowns.value.forEach((value, k) => {
-    if (k !== key) {
-      optionPositionDropdowns.value.set(k, false);
-    }
-  });
-
-  // Toggle current dropdown
-  optionPositionDropdowns.value.set(key, !currentState);
-
-  // Force reactivity update
-  optionPositionDropdowns.value = new Map(optionPositionDropdowns.value);
-};
-
-const isPositionDropdownOpen = (dimensionId, optionName) => {
-  const key = `${dimensionId}-${optionName}`;
-  return optionPositionDropdowns.value.get(key) || false;
 };
 
 // Dimension ordering functions
@@ -577,37 +549,6 @@ const getDimensionPosition = (dimensionId) => {
   return index !== -1 ? index + 1 : 0;
 };
 
-// Close dropdowns when clicking outside
-const handleClickOutside = (event) => {
-  // Check if click is outside all dropdowns
-  const dropdownElements = document.querySelectorAll('.position-dropdown-container');
-  let clickedInside = false;
-
-  dropdownElements.forEach(el => {
-    if (el.contains(event.target)) {
-      clickedInside = true;
-    }
-  });
-
-  if (!clickedInside) {
-    // Close all dropdowns
-    optionPositionDropdowns.value.clear();
-  }
-};
-
-// Add/remove click outside listener
-watch(optionPositionDropdowns, (newMap) => {
-  const hasOpenDropdown = Array.from(newMap.values()).some(v => v);
-  if (hasOpenDropdown) {
-    // Use nextTick to avoid adding listener during the same click event
-    nextTick(() => {
-      document.addEventListener('click', handleClickOutside);
-    });
-  } else {
-    document.removeEventListener('click', handleClickOutside);
-  }
-}, { deep: true });
-
 // Watch for changes and emit updates
 watch(
   variationGroup,
@@ -637,324 +578,202 @@ watch(
 </script>
 
 <template>
-  <div class="variations-manager mb-4">
+  <div class="flex flex-col gap-4">
+    <p class="ui-field-hint">
+      Selecciona una o más variaciones{{ props.isCategoryTemplateMode ? '' : ' del producto' }}.
+      También puedes crear variaciones personalizadas. Por ejemplo, puedes combinar peso y aroma.
+    </p>
 
-    <!-- Dimension Type Selection -->
-    <div class="base-card mb-6">
-      <h4 class="text-lg font-medium text-neutral-800 mb-4">
-        Seleccionar Tipos de Variación
-      </h4>
-      <p class="text-sm text-neutral-600 mb-4">
-        <span v-if="props.isCategoryTemplateMode">
-           Selecciona una o más variaciones. Tambien puedes crear variaciones personalizadas.
-          Por ejemplo, puedes combinar peso y aroma.
-        </span>
-        <span v-else>
-          Selecciona una o más variaciones del producto. Tambien puedes crear variaciones personalizadas.
-          Por ejemplo, puedes combinar peso y aroma.
-        </span>
-      </p>
+    <!-- Several can be on at once, so these are checkbox pills: the sr-only input
+         feeds the label next to it, which `:checked + .ui-btn` paints. The input
+         must stay the label's previous sibling. -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+      <template v-for="dimensionType in [...availableDimensionTypes, ...customDimensions]" :key="dimensionType.value">
+        <input
+          :id="`${uid}-dim-${dimensionType.value}`"
+          class="sr-only"
+          type="checkbox"
+          :value="dimensionType.value"
+          :checked="selectedDimensionTypes.includes(dimensionType.value)"
+          @change="toggleDimensionType(dimensionType.value, $event)"
+        >
+        <label class="ui-btn justify-center w-full" :for="`${uid}-dim-${dimensionType.value}`">{{ dimensionType.label }}</label>
+      </template>
+    </div>
 
-      <div class="space-y-4">
-        <!-- Fixed Dimension Types -->
-        <div class="flex flex-wrap gap-2">
-          <div
-            v-for="dimensionType in availableDimensionTypes"
-            :key="dimensionType.value"
-            class="relative"
-          >
-            <input
-              type="checkbox"
-              :id="`dimension-${dimensionType.value}`"
-              :value="dimensionType.value"
-              :checked="selectedDimensionTypes.includes(dimensionType.value)"
-              @change="toggleDimensionType(dimensionType.value)"
-              class="sr-only peer"
-            />
-            <label
-              :for="`dimension-${dimensionType.value}`"
-              class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black text-center block"
-            >
-              {{ dimensionType.label }}
-            </label>
-          </div>
-          <div
-            v-for="customDim in customDimensions"
-            :key="customDim.value"
-            class="relative"
-          >
-            <input
-              type="checkbox"
-              :id="`dimension-${customDim.value}`"
-              :value="customDim.value"
-              :checked="selectedDimensionTypes.includes(customDim.value)"
-              @change="toggleDimensionType(customDim.value)"
-              class="sr-only peer"
-            />
-            <label
-              :for="`dimension-${customDim.value}`"
-              class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black text-center block"
-            >
-              {{ customDim.label }}
-            </label>
-          </div>
-        </div>
-
-        <!-- Add Custom Dimension Form -->
-        <div class="border-t pt-4">
-          <div class="flex gap-2 items-end">
-            <div class="flex-1">
-              <label class="block text-sm font-medium text-neutral-700 mb-1">
-                Crear variación personalizada
-              </label>
-              <input
-                type="text"
-                v-model="newCustomDimension.label"
-                placeholder="ej: Sabor, Color, Material..."
-                class="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm"
-                @keydown.enter.prevent="addCustomDimension"
-              />
-            </div>
-            <button
-              type="button"
-              @click="addCustomDimension"
-              :disabled="!newCustomDimension.label.trim()"
-              class="utility-btn flex items-center gap-1 mb-1"
-              :class="{
-                'utility-btn-inactive':
-                  !newCustomDimension.label.trim(),
-              }"
-            >
-              <PhPlus class="w-4 h-4" />
-              Agregar
-            </button>
-          </div>
-          <p class="text-xs text-neutral-500 mt-1">
-            Presiona Enter o haz clic en "Agregar" para crear una variación personalizada.
-          </p>
-        </div>
+    <div class="ui-field">
+      <label class="ui-field-k" :for="`${uid}-custom`">Crear variación personalizada</label>
+      <div class="flex gap-2">
+        <input
+          :id="`${uid}-custom`"
+          v-model="newCustomDimension.label"
+          type="text"
+          class="ui-input"
+          placeholder="ej: Sabor, Color, Material..."
+          @keydown.enter.prevent="addCustomDimension"
+        >
+        <button
+          type="button"
+          class="ui-btn ui-btn-field shrink-0"
+          :disabled="!newCustomDimension.label.trim()"
+          @click="addCustomDimension"
+        >
+          <PhPlus class="w-4 h-4" weight="bold" />
+          Agregar
+        </button>
       </div>
+      <span class="ui-field-hint">Presiona Enter o haz clic en "Agregar".</span>
     </div>
 
     <!-- Dimension Configuration -->
-    <div
+    <section
       v-for="(dimension, dimIndex) in sortedDimensions"
       :key="dimension.id"
-      class="base-card mb-6 relative group"
+      class="flex flex-col gap-3"
     >
-      <div class="flex justify-between items-center mb-4">
-        <div class="flex items-center gap-2">
-          <!-- Dimension position badge -->
-          <div class="flex items-center gap-2">
-            <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold text-neutral-600 bg-neutral-200 rounded">
-              {{ getDimensionPosition(dimension.id) }}
-            </span>
-            <div class="flex flex-col -my-1 transition-opacity duration-200" :class="{ 'opacity-0 group-hover:opacity-100': sortedDimensions.length > 1, 'hidden': sortedDimensions.length <= 1 }">
-              <button
-                type="button"
-                @click="moveDimensionUp(dimension.id)"
-                :disabled="dimIndex === 0"
-                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 leading-none"
-                title="Mover arriba"
-              >
-                <PhCaretUp class="w-3 h-3" />
-              </button>
-              <button
-                type="button"
-                @click="moveDimensionDown(dimension.id)"
-                :disabled="dimIndex === sortedDimensions.length - 1"
-                class="p-0 text-neutral-500 hover:text-neutral-700 disabled:opacity-30 leading-none"
-                title="Mover abajo"
-              >
-                <PhCaretDown class="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-          <h5 class="text-md font-medium text-neutral-800">
-            {{ dimension.label }}
-            <span v-if="dimension.unit" class="text-sm text-neutral-500"
-              >({{ dimension.unit }})</span
-            >
-          </h5>
-        </div>
+      <div class="ui-sectionhead">Variación {{ getDimensionPosition(dimension.id) }}</div>
+
+      <div class="flex items-center gap-2">
+        <span class="ui-card-title">
+          {{ dimension.label }}
+          <span v-if="dimension.unit" class="ui-unit">({{ dimension.unit }})</span>
+        </span>
+        <template v-if="sortedDimensions.length > 1">
+          <button
+            type="button"
+            class="ui-btn ui-btn-icon"
+            aria-label="Mover variación arriba"
+            :disabled="dimIndex === 0"
+            @click="moveDimensionUp(dimension.id)"
+          >
+            <PhCaretUp class="w-3.5 h-3.5" weight="bold" />
+          </button>
+          <button
+            type="button"
+            class="ui-btn ui-btn-icon"
+            aria-label="Mover variación abajo"
+            :disabled="dimIndex === sortedDimensions.length - 1"
+            @click="moveDimensionDown(dimension.id)"
+          >
+            <PhCaretDown class="w-3.5 h-3.5" weight="bold" />
+          </button>
+        </template>
         <button
           type="button"
+          class="ui-btn ui-btn-danger ml-auto"
           @click="toggleDimensionType(dimension.type)"
-          class="danger-btn flex items-center gap-1"
         >
           <PhTrash class="w-4 h-4" />
           Eliminar
         </button>
       </div>
 
-      <!-- Unit Selection for dimensions that support it -->
-      <div
+      <UiPills
         v-if="getUnitOptionsForDimension(dimension.type).length > 0"
-        class="mb-4"
-      >
-        <label class="block text-sm font-medium text-neutral-700 mb-2"
-          >Unidad</label
-        >
-        <div class="flex gap-1">
-          <div
-            v-for="unitOption in getUnitOptionsForDimension(dimension.type)"
-            :key="unitOption.value"
-            class="relative flex-1"
-          >
-            <input
-              type="radio"
-              :id="`unit-${dimension.id}-${unitOption.value}`"
-              :value="unitOption.value"
-              :name="`unit-${dimension.id}`"
-              v-model="dimension.unit"
-              class="sr-only peer"
-            />
-            <label
-              :for="`unit-${dimension.id}-${unitOption.value}`"
-              class="utility-btn-inactive cursor-pointer py-1 px-2 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block text-sm"
-            >
-              {{ unitOption.label }}
-            </label>
-          </div>
-        </div>
-      </div>
+        v-model="dimension.unit"
+        label="Unidad"
+        :options="getUnitOptionsForDimension(dimension.type)"
+      />
 
-      <!-- Wholegrain Toggle -->
-      <div class="mb-4">
-        <YesNoToggle
+      <div class="flex flex-col gap-1">
+        <UiYesNo
           :model-value="getDimensionWholeGrainStatus(dimension.id)"
-          @update:modelValue="(value) => toggleWholeGrainForDimension(dimension.id, value)"
           label="¿Ofrecer opciones integrales para esta variación?"
+          @update:model-value="(value) => toggleWholeGrainForDimension(dimension.id, value)"
         />
-        <p class="text-xs text-neutral-500 mt-1">
-          Se creará automáticamente una versión integral para cada opción
-        </p>
+        <span class="ui-field-hint">Se creará automáticamente una versión integral para cada opción</span>
       </div>
 
       <!-- Options List -->
-      <div class="space-y-2 mb-4">
+      <!-- The position is a native select, not the popover it replaces: "move to
+           position N" was the popover's only job, and a select does it with no
+           open/close state and no document click listener. The controls drop to
+           their own line below sm, same trick as the combinations grid. -->
+      <div class="flex flex-col gap-1.5">
         <div
           v-for="(option, optionIndex) in getSortedOptions(dimension.id)"
           :key="dimension.id + '-' + optionIndex"
-          class="flex flex-col sm:flex-row gap-2 sm:gap-2 sm:items-center p-2 sm:p-3 rounded-lg relative group/option"
-          :class="option.isWholeGrain ? 'bg-neutral-150' : 'bg-neutral-50'"
+          class="ui-item ui-item-filled"
         >
-          <!-- Mobile: Position controls and delete button row -->
-          <div class="flex items-center justify-between sm:contents">
-            <!-- Position controls -->
-            <div class="flex items-center gap-4 sm:gap-2">
-              <!-- Position badge (clickable) -->
-              <div class="relative position-dropdown-container">
-                <button
-                  type="button"
-                  @click="togglePositionDropdown(dimension.id, option.name, $event)"
-                  class="inline-flex items-center justify-center w-7 h-7 sm:w-6 sm:h-6 text-xs font-semibold text-neutral-600 bg-neutral-200 rounded hover:bg-neutral-300 transition-colors touch-manipulation"
-                  title="Cambiar posición"
-                >
-                  {{ getOptionPosition(dimension.id, option.name) }}
-                </button>
+          <select
+            class="ui-input w-16"
+            aria-label="Posición de la opción"
+            :value="getOptionPosition(dimension.id, option.name)"
+            @change="moveOptionToPosition(dimension.id, option.name, parseInt($event.target.value))"
+          >
+            <option v-for="n in getSortedOptions(dimension.id).length" :key="n" :value="n">{{ n }}</option>
+          </select>
 
-                <!-- Position dropdown -->
-                <div
-                  v-if="isPositionDropdownOpen(dimension.id, option.name)"
-                  class="absolute z-10 mt-1 w-36 sm:w-32 bg-white border border-neutral-300 rounded-md shadow-lg position-dropdown left-0 sm:left-auto right-0 sm:right-auto"
-                >
-                  <div class="p-2">
-                    <label class="text-xs text-neutral-600 block mb-1">Mover a posición:</label>
-                    <select
-                      @change="moveOptionToPosition(dimension.id, option.name, parseInt($event.target.value))"
-                      class="w-full text-sm border border-neutral-300 rounded px-2 py-1.5 sm:py-1"
-                      :value="getOptionPosition(dimension.id, option.name)"
-                    >
-                      <option
-                        v-for="n in getSortedOptions(dimension.id).length"
-                        :key="n"
-                        :value="n"
-                      >
-                        {{ n }}
-                      </option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Up/Down arrows -->
-              <div class="flex gap-4 sm:flex-col sm:-my-1 transition-opacity duration-200" :class="{ 'opacity-50 sm:opacity-0 sm:group-hover/option:opacity-100': getSortedOptions(dimension.id).length > 1, 'hidden': getSortedOptions(dimension.id).length <= 1 }">
-                <button
-                  type="button"
-                  @click="moveOptionUp(dimension.id, option.name)"
-                  :disabled="optionIndex === 0"
-                  class="p-1 sm:p-0 text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100 rounded disabled:opacity-30 leading-none touch-manipulation transition-colors"
-                  title="Mover arriba"
-                  tabindex="-1"
-                >
-                  <PhCaretUp class="w-4 h-4 sm:w-3 sm:h-3" weight="bold" />
-                </button>
-                <button
-                  type="button"
-                  @click="moveOptionDown(dimension.id, option.name)"
-                  :disabled="optionIndex === getSortedOptions(dimension.id).length - 1"
-                  class="p-1 sm:p-0 text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100 rounded disabled:opacity-30 leading-none touch-manipulation transition-colors"
-                  title="Mover abajo"
-                  tabindex="-1"
-                >
-                  <PhCaretDown class="w-4 h-4 sm:w-3 sm:h-3" weight="bold"/>
-                </button>
-              </div>
-            </div>
-
-            <!-- Delete button (top row on mobile, end on desktop) -->
-            <button
-              type="button"
-              @click="removeOptionFromDimension(dimension.id, getSortedOptions(dimension.id).findIndex(o => o.name === option.name))"
-              class="text-danger hover:text-danger-dark p-1 sm:p-0 touch-manipulation flex-shrink-0 sm:order-last"
-              title="Eliminar opción"
-              tabindex="-1"
+          <div class="flex items-center gap-2 min-w-0">
+            <input
+              v-model="option.name"
+              type="text"
+              class="ui-input"
+              placeholder="Nombre de la opción"
+              aria-label="Nombre de la opción"
+              :data-option-index="`${dimension.id}-${optionIndex}`"
+              @keydown.enter.prevent="addOptionToDimension(dimension.id)"
             >
-              <PhX class="w-4 h-4" />
-            </button>
+            <span v-if="option.isWholeGrain" class="ui-tag">Integral</span>
           </div>
 
-          <!-- Input fields row -->
-          <div class="flex gap-2 sm:flex-1 sm:min-w-0">
-            <div class="flex-1 min-w-0">
+          <div class="ui-item-trail max-sm:col-span-full max-sm:justify-between">
+            <div v-if="dimension.unit" class="ui-field-unit w-24" :data-unit="dimension.unit">
               <input
-                type="text"
-                v-model="option.name"
-                placeholder="Nombre de la opción"
-                class="w-full px-2 sm:px-3 py-1 border border-neutral-300 rounded-md text-sm"
-                :data-option-index="`${dimension.id}-${optionIndex}`"
+                v-model="option.value"
+                type="number"
+                class="ui-input ui-input-num"
+                placeholder="0"
+                aria-label="Valor de la opción"
+                min="0"
+                step="1"
                 @keydown.enter.prevent="addOptionToDimension(dimension.id)"
-              />
+              >
             </div>
-
-            <div v-if="dimension.unit" class="w-24 flex-shrink-0">
-              <div class="input-with-unit compact" :data-unit="dimension.unit">
-                <input
-                  type="number"
-                  v-model="option.value"
-                  placeholder="0"
-                  class="w-full px-2 sm:px-3 py-1 border border-neutral-300 rounded-md text-sm"
-                  min="0"
-                  step="1"
-                  @keydown.enter.prevent="addOptionToDimension(dimension.id)"
-                />
-              </div>
-            </div>
+            <span class="flex gap-1">
+              <button
+                v-if="getSortedOptions(dimension.id).length > 1"
+                type="button"
+                class="ui-btn ui-btn-icon"
+                aria-label="Mover opción arriba"
+                tabindex="-1"
+                :disabled="optionIndex === 0"
+                @click="moveOptionUp(dimension.id, option.name)"
+              >
+                <PhCaretUp class="w-3.5 h-3.5" weight="bold" />
+              </button>
+              <button
+                v-if="getSortedOptions(dimension.id).length > 1"
+                type="button"
+                class="ui-btn ui-btn-icon"
+                aria-label="Mover opción abajo"
+                tabindex="-1"
+                :disabled="optionIndex === getSortedOptions(dimension.id).length - 1"
+                @click="moveOptionDown(dimension.id, option.name)"
+              >
+                <PhCaretDown class="w-3.5 h-3.5" weight="bold" />
+              </button>
+              <button
+                type="button"
+                class="ui-btn ui-btn-icon ui-btn-danger"
+                aria-label="Eliminar opción"
+                tabindex="-1"
+                @click="removeOptionFromDimension(dimension.id, getSortedOptions(dimension.id).findIndex(o => o.name === option.name))"
+              >
+                <PhX class="w-3.5 h-3.5" weight="bold" />
+              </button>
+            </span>
           </div>
         </div>
       </div>
 
-      <!-- Add Option Button -->
-      <button
-        type="button"
-        @click="addOptionToDimension(dimension.id)"
-        class="utility-btn flex items-center gap-2"
-      >
-        <PhPlus class="w-4 h-4" />
-        Agregar Opción
-      </button>
-    </div>
+      <div>
+        <button type="button" class="ui-btn" @click="addOptionToDimension(dimension.id)">
+          <PhPlus class="w-4 h-4" weight="bold" />
+          Agregar opción
+        </button>
+      </div>
+    </section>
 
     <!-- Combinations/Prices Section -->
     <VariationCombinationManager
@@ -967,16 +786,10 @@ watch(
     <!-- Empty State -->
     <div
       v-if="selectedDimensionTypes.length === 0 && !props.isCategoryTemplateMode"
-      class="base-card text-center py-12"
+      class="ui-empty"
     >
-      <div class="text-neutral-500 mb-2">
-        <PhPlus class="w-12 h-12 mx-auto mb-4 text-neutral-300 " />
-        <p class="text-lg font-medium">No hay variaciones seleccionadas</p>
-        <p class="text-sm mt-2">
-          Selecciona al menos una variación arriba para comenzar a configurar
-          las opciones.
-        </p>
-      </div>
+      <b>No hay variaciones seleccionadas</b>
+      Selecciona al menos una variación arriba para comenzar a configurar las opciones.
     </div>
 
     <!-- Confirm Dialog -->
@@ -991,73 +804,3 @@ watch(
     />
   </div>
 </template>
-
-<style scoped>
-/* Additional styles for better visual hierarchy */
-.variations-manager {
-  @apply space-y-6;
-}
-
-/* Position badge styles */
-.position-badge {
-  @apply inline-flex items-center justify-center w-6 h-6 text-xs font-semibold;
-  @apply text-neutral-600 bg-neutral-200 rounded;
-  @apply transition-all duration-200;
-}
-
-.position-badge:hover {
-  @apply bg-neutral-300 transform scale-110;
-}
-
-/* Arrow button styles */
-.arrow-button {
-  @apply p-0.5 text-neutral-500 hover:text-neutral-700;
-  @apply disabled:opacity-30 disabled:cursor-not-allowed;
-  @apply transition-colors duration-150;
-}
-
-/* Option and dimension card transitions */
-.dimension-card {
-  @apply transition-all duration-300 ease-in-out;
-}
-
-.option-item {
-  @apply transition-all duration-200 ease-in-out;
-}
-
-/* Dropdown animation */
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.position-dropdown {
-  animation: slideDown 0.2s ease-out;
-}
-
-/* Visual feedback for reordering */
-.reordering {
-  @apply ring-2 ring-blue-400 ring-opacity-50;
-}
-
-/* Smooth hover effects */
-.option-item:hover {
-  @apply shadow-sm;
-}
-
-/* Position controls container */
-.position-controls {
-  @apply flex items-center gap-1;
-}
-
-/* Make position badge more prominent on hover */
-.position-badge-wrapper:hover .position-badge {
-  @apply bg-blue-100 text-blue-700;
-}
-</style>

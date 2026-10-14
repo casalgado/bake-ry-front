@@ -1,15 +1,15 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import { cleanString, getVariationTypeLabel, capitalize } from '@/utils/helpers';
-import SystemSettings from '@/models/SystemSettings';
-import { useRouter } from 'vue-router';
-import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
-import TemplateVariation from '@/components/TemplateVariation.vue';
+/* Second form on the ui-* system; same contract as BakeryUserForm: props and
+ * emits unchanged, no width of its own (the host sets 48rem).
+ *
+ * The legacy per-collection variationTemplates editor is gone. Nothing in the
+ * UI could switch it on any more (dimensionTemplates replaced it), and the
+ * `...initialData` spread below still carries an old array through on submit. */
+import { ref, computed, watch } from 'vue';
+import { cleanString } from '@/utils/helpers';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
-import YesNoToggle from '@/components/forms/YesNoToggle.vue';
+import UiYesNo from '@/components/ui/UiYesNo.vue';
 import VariationsManager from '@/components/forms/VariationsManager.vue';
-
-const systemSettingsStore = useSystemSettingsStore();
 
 const props = defineProps({
   title: {
@@ -27,11 +27,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['submit', 'cancel']);
-
-// Form state
-const hasVariationTemplates = ref(
-  props.initialData?.variationTemplates?.length > 0 || false,
-);
 
 const hasDimensionTemplates = ref(
   props.initialData?.dimensionTemplates?.dimensions?.length > 0 || false,
@@ -63,7 +58,6 @@ const formData = ref(
 
 const errors = ref({});
 
-// Confirm dialog state
 const confirmDialog = ref({
   isOpen: false,
   title: '',
@@ -71,339 +65,31 @@ const confirmDialog = ref({
   onConfirm: null,
 });
 
-// Variation template management
-const newTemplate = ref({
-  name: '',
-  value: 0,
-  unit: 'g',
-  type: 'WEIGHT',
-  isWholeGrain: false,
-  displayOrder: 0,
-});
+// Disabling the toggle with dimensions configured asks first, and reverts it until confirmed.
+watch(hasDimensionTemplates, (newValue, oldValue) => {
+  if (newValue) return;
 
-// Reset template form
-const resetTemplateForm = () => {
-  newTemplate.value = {
-    name: '',
-    value: 0,
-    unit: formData.value.defaultUnit || 'g',
-    type: formData.value.defaultVariationType || 'WEIGHT',
-    isWholeGrain: false,
-    displayOrder: formData.value.variationTemplates.length,
-  };
-};
-
-// Get system default templates
-const systemDefaultTemplates = computed(() => {
-  if (!systemSettingsStore.isLoaded) return {};
-  return systemSettingsStore.defaultVariationTemplates;
-});
-
-// Get available unit options from system settings, filtered by template
-const unitPillOptions = computed(() => {
-  /* El mismo vocabulario que sirve el servidor, no una copia con otros
-   * símbolos: el símbolo que elijas aquí se GUARDA en la colección, así que una
-   * lista propia hacía que el valor dependiera de si settings había cargado. */
-  const fallbackOptions = SystemSettings.UNIT_OPTIONS;
-
-  const allOptions = systemSettingsStore.isLoaded
-    ? (systemSettingsStore.unitOptions || fallbackOptions)
-    : fallbackOptions;
-
-  // Filter by the selected template type
-  const filtered = formData.value.defaultVariationType
-    ? allOptions.filter(unit => unit.template === formData.value.defaultVariationType)
-    : allOptions;
-
-  // Transform to pill options format (value, label)
-  return filtered.map(unit => ({
-    value: unit.symbol,
-    label: unit.symbol,
-    name: unit.name,
-  }));
-});
-
-// Safely check if unit selection should be shown
-const showUnitSelection = computed(() => {
-  return formData.value.defaultVariationType &&
-         systemDefaultTemplates.value[formData.value.defaultVariationType]?.unit;
-});
-
-// Load system defaults for selected type
-const loadSystemDefaultTemplates = () => {
-  const type = formData.value.defaultVariationType;
-  if (!type || !systemDefaultTemplates.value[type]) return;
-
-  const templates = systemDefaultTemplates.value[type].defaults.map((template, index) => ({
-    name: template.name,
-    value: template.value,
-    unit: systemDefaultTemplates.value[type].unit || '',
-    type: type,
-    isWholeGrain: false,
-    displayOrder: index,
-  }));
-
-  formData.value.variationTemplates = templates;
-
-  // If whole grain variations are enabled, add integral versions
-  if (formData.value.hasWholeGrainVariations) {
-    addWholeGrainVariations();
-  } else {
-    // Sort even if no whole grain variations for consistency
-    sortTemplatesInPairs();
-  }
-};
-
-// Generate whole grain variation from regular variation
-const createWholeGrainVariation = (regularVariation) => ({
-  name: `${regularVariation.name} integral`,
-  value: regularVariation.value,
-  unit: regularVariation.unit,
-  type: regularVariation.type,
-  isWholeGrain: true,
-  displayOrder: regularVariation.displayOrder,
-  // Note: id is intentionally NOT copied to avoid duplicates
-});
-
-// Add whole grain variations for all non-whole-grain templates
-const addWholeGrainVariations = () => {
-  const regularTemplates = formData.value.variationTemplates.filter(t => !t.isWholeGrain && t.name !== 'otra');
-  const wholeGrainTemplates = regularTemplates.map(createWholeGrainVariation);
-  formData.value.variationTemplates.push(...wholeGrainTemplates);
-
-  // Sort to maintain pairing
-  sortTemplatesInPairs();
-};
-
-// Remove all whole grain variations
-const removeWholeGrainVariations = () => {
-  formData.value.variationTemplates = formData.value.variationTemplates.filter(t => !t.isWholeGrain);
-};
-
-// Sort templates to maintain pairing (regular, integral, regular, integral)
-const sortTemplatesInPairs = () => {
-  const regularTemplates = formData.value.variationTemplates.filter(t => !t.isWholeGrain);
-  const sorted = [];
-
-  regularTemplates.forEach(regular => {
-    sorted.push(regular);
-    // Find corresponding integral variation
-    const integral = formData.value.variationTemplates.find(
-      t => t.isWholeGrain && t.name === `${regular.name} integral`,
-    );
-    if (integral) {
-      sorted.push(integral);
-    }
-  });
-
-  // Add any remaining integral variations that don't have a regular counterpart
-  const remainingIntegrals = formData.value.variationTemplates.filter(
-    t => t.isWholeGrain && !sorted.includes(t),
-  );
-  sorted.push(...remainingIntegrals);
-
-  formData.value.variationTemplates = sorted;
-};
-
-// Add new template
-const addNewTemplate = () => {
-  if (!newTemplate.value.name || !newTemplate.value.value) {
-    return;
-  }
-
-  // Create a deep copy to avoid reference issues
-  const baseTemplate = {
-    name: newTemplate.value.name,
-    value: newTemplate.value.value,
-    unit: newTemplate.value.unit,
-    type: newTemplate.value.type,
-    isWholeGrain: false,
-    displayOrder: newTemplate.value.displayOrder,
-  };
-
-  formData.value.variationTemplates.push(baseTemplate);
-
-  // If whole grain variations are enabled, add integral version
-  if (formData.value.hasWholeGrainVariations) {
-    const wholeGrainTemplate = createWholeGrainVariation(baseTemplate);
-    formData.value.variationTemplates.push(wholeGrainTemplate);
-  }
-
-  // Sort to maintain pairing
-  sortTemplatesInPairs();
-  resetTemplateForm();
-};
-
-// Update existing template
-const updateTemplate = (index, payload) => {
-  formData.value.variationTemplates[index][payload.field] = payload.value;
-};
-
-// Update new template
-const updateNewTemplate = (payload) => {
-  newTemplate.value[payload.field] = payload.value;
-};
-
-// Remove template - allow removing any variation independently
-const removeTemplate = (index) => {
-  formData.value.variationTemplates.splice(index, 1);
-};
-
-// Track previous value for cancellation
-const previousDefaultVariationType = ref(props.initialData?.defaultVariationType || '');
-
-// Handle default variation type change
-const handleDefaultTypeChange = () => {
-  if (formData.value.variationTemplates.length > 0) {
-    confirmDialog.value = {
-      isOpen: true,
-      title: 'Cargar plantillas por defecto',
-      message: '¿Deseas cargar las plantillas por defecto? Esto reemplazará las plantillas actuales.',
-      onConfirm: () => {
-        previousDefaultVariationType.value = formData.value.defaultVariationType;
-        if (formData.value.defaultVariationType) {
-          loadSystemDefaultTemplates();
-        } else {
-          formData.value.variationTemplates = [];
-        }
-        confirmDialog.value.isOpen = false;
-      },
-      onCancel: () => {
-        formData.value.defaultVariationType = previousDefaultVariationType.value;
-        confirmDialog.value.isOpen = false;
-      },
-    };
-    return;
-  }
-
-  previousDefaultVariationType.value = formData.value.defaultVariationType;
-  if (formData.value.defaultVariationType) {
-    loadSystemDefaultTemplates();
-  } else {
-    formData.value.variationTemplates = [];
-  }
-};
-
-// Watch for unit changes and update all variations that use units
-watch(() => formData.value.defaultUnit, (newUnit) => {
-  if (showUnitSelection.value) {
-    formData.value.variationTemplates.forEach(template => {
-      if (template.type === formData.value.defaultVariationType) {
-        template.unit = newUnit;
-      }
-    });
-    // Also update the new template unit
-    if (newTemplate.value.type === formData.value.defaultVariationType) {
-      newTemplate.value.unit = newUnit;
-    }
-  }
-  // Always reset the template form to ensure reactivity
-  resetTemplateForm();
-});
-
-// Watch for variation type change and handle confirmation
-watch(() => formData.value.defaultVariationType, (newType, oldType) => {
-  // Skip if this is the initial value or if we're reverting
-  if (oldType === undefined || newType === previousDefaultVariationType.value) {
-    return;
-  }
-
-  handleDefaultTypeChange();
-});
-
-// Watch for variation type change and auto-select default unit
-watch(() => formData.value.defaultVariationType, (newType) => {
-  if (newType && systemDefaultTemplates.value[newType]?.unit) {
-    formData.value.defaultUnit = systemDefaultTemplates.value[newType].unit;
-  }
-  // Update the new template type and unit
-  newTemplate.value.type = newType || 'WEIGHT';
-  newTemplate.value.unit = systemDefaultTemplates.value[newType]?.unit || '';
-});
-
-// Watch for hasVariationTemplates toggle
-watch(() => hasVariationTemplates.value, (newValue, oldValue) => {
-  if (!newValue && formData.value.variationTemplates.length > 0) {
-    // Show confirmation dialog when disabling templates with existing data
-    confirmDialog.value = {
-      isOpen: true,
-      title: 'Eliminar plantillas de variación',
-      message: '¿Estás seguro de que deseas eliminar todas las plantillas de variación? Esta acción no se puede deshacer.',
-      onConfirm: () => {
-        // Clear template data when templates are disabled
-        formData.value.defaultVariationType = '';
-        formData.value.variationTemplates = [];
-        formData.value.hasWholeGrainVariations = false;
-        confirmDialog.value.isOpen = false;
-      },
-      onCancel: () => {
-        hasVariationTemplates.value = oldValue;
-        confirmDialog.value.isOpen = false;
-      },
-    };
-    // Revert the toggle until confirmed
-    hasVariationTemplates.value = oldValue;
-  } else if (!newValue) {
-    // Clear template data when no existing templates
-    formData.value.defaultVariationType = '';
-    formData.value.variationTemplates = [];
-    formData.value.hasWholeGrainVariations = false;
-  }
-});
-
-// Watch for whole grain variations toggle
-watch(() => formData.value.hasWholeGrainVariations, (newValue, oldValue) => {
-  if (newValue) {
-    // Add whole grain variations for existing templates
-    addWholeGrainVariations();
-  } else {
-    // Remove all whole grain variations
-    if (formData.value.variationTemplates.some(t => t.isWholeGrain)) {
-      confirmDialog.value = {
-        isOpen: true,
-        title: 'Eliminar variaciones integrales',
-        message: '¿Estás seguro de que deseas eliminar todas las variaciones integrales?',
-        onConfirm: () => {
-          removeWholeGrainVariations();
-          confirmDialog.value.isOpen = false;
-        },
-        onCancel: () => {
-          formData.value.hasWholeGrainVariations = oldValue;
-          confirmDialog.value.isOpen = false;
-        },
-      };
-      // Revert the toggle until confirmed
-      formData.value.hasWholeGrainVariations = oldValue;
-    }
-  }
-});
-
-// Watch for dimension templates toggle
-watch(() => hasDimensionTemplates.value, (newValue, oldValue) => {
-  if (!newValue && formData.value.dimensionTemplates.dimensions.length > 0) {
-    // Show confirmation dialog when disabling dimension templates with existing data
-    confirmDialog.value = {
-      isOpen: true,
-      title: 'Eliminar variaciones',
-      message: '¿Estás seguro de que deseas eliminar todas las variaciones? Esta acción no se puede deshacer.',
-      onConfirm: () => {
-        formData.value.dimensionTemplates = { dimensions: [] };
-        confirmDialog.value.isOpen = false;
-      },
-      onCancel: () => {
-        hasDimensionTemplates.value = oldValue;
-        confirmDialog.value.isOpen = false;
-      },
-    };
-    // Revert the toggle until confirmed
-    hasDimensionTemplates.value = oldValue;
-  } else if (!newValue) {
-    // Clear dimension templates when no existing templates
+  if (formData.value.dimensionTemplates.dimensions.length === 0) {
     formData.value.dimensionTemplates = { dimensions: [] };
+    return;
   }
+
+  confirmDialog.value = {
+    isOpen: true,
+    title: 'Eliminar variaciones',
+    message: '¿Estás seguro de que deseas eliminar todas las variaciones? Esta acción no se puede deshacer.',
+    onConfirm: () => {
+      formData.value.dimensionTemplates = { dimensions: [] };
+      confirmDialog.value.isOpen = false;
+    },
+    onCancel: () => {
+      hasDimensionTemplates.value = oldValue;
+      confirmDialog.value.isOpen = false;
+    },
+  };
+  hasDimensionTemplates.value = oldValue;
 });
 
-// Computed properties for button text
 const submitButtonText = computed(() => {
   return props.initialData ? 'Actualizar Categoría' : 'Crear Categoría';
 });
@@ -412,7 +98,6 @@ const loadingText = computed(() => {
   return props.initialData ? 'Actualizando...' : 'Creando...';
 });
 
-// Validation
 const validate = () => {
   errors.value = {};
 
@@ -434,299 +119,78 @@ const handleSubmit = () => {
   emit('submit', formData.value);
 };
 
-// Handle dimension template updates from VariationsManager
+// Only dimensions are stored on a category; combinations belong to the product.
 const handleDimensionTemplateUpdate = (variationData) => {
-  // Only store dimensions, no combinations for category templates
   formData.value.dimensionTemplates = {
     dimensions: variationData.dimensions || [],
   };
 };
-
-const resetForm = () => {
-  formData.value = {
-    name: '',
-    description: '',
-    isActive: true,
-    displayOrder: 0,
-    defaultVariationType: '',
-    defaultUnit: 'g',
-    hasWholeGrainVariations: false,
-    variationTemplates: [],
-    dimensionTemplates: { dimensions: [] },
-  };
-  hasVariationTemplates.value = false;
-  hasDimensionTemplates.value = false;
-  errors.value = {};
-  resetTemplateForm();
-};
-
-// Load system settings on mount
-onMounted(async () => {
-  if (!systemSettingsStore.isLoaded) {
-    try {
-      await systemSettingsStore.fetchSettings();
-    } catch (error) {
-      console.error('Failed to load system settings:', error);
-    }
-  }
-  // Reset template form to ensure proper initialization
-  resetTemplateForm();
-});
 </script>
 
 <template>
-  <div class="form-container">
-    <h2>{{ title }}</h2>
-    <form @submit.prevent="handleSubmit">
-      <!-- Basic Information -->
-      <div class="base-card">
+  <form
+    class="ui-card flex flex-col gap-4"
+    data-ui-theme="light"
+    @submit.prevent="handleSubmit"
+  >
+    <h2 class="ui-panehead-title">{{ title }}</h2>
 
-        <!-- Name -->
-        <div class="mb-4">
-          <label
-            for="name"
-            class="block text-sm font-medium text-neutral-700 mb-1"
-          >
-            Nombre
-          </label>
-          <input
-            id="name"
-            type="text"
-            v-model="formData.name"
-            class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-            :class="{ 'border-danger': errors.name }"
-            required
-          />
-          <span
-            v-if="errors.name"
-            class="text-sm text-danger mt-1"
-          >
-            {{ errors.name }}
-          </span>
-        </div>
+    <div class="ui-field">
+      <label class="ui-field-k" for="name" data-required>Nombre</label>
+      <input
+        id="name"
+        v-model="formData.name"
+        type="text"
+        class="ui-input"
+        required
+        :aria-invalid="!!errors.name"
+        :aria-describedby="errors.name ? 'name-e' : undefined"
+      >
+      <span v-if="errors.name" id="name-e" class="ui-field-error">
+        {{ errors.name }}
+      </span>
+    </div>
 
-        <!-- Description -->
-        <div class="mb-4">
-          <label
-            for="description"
-            class="block text-sm font-medium text-neutral-700 mb-1"
-          >
-            Descripción
-          </label>
-          <textarea
-            id="description"
-            v-model="formData.description"
-            rows="3"
-            class="w-full px-3 py-2 border border-neutral-300 rounded-md"
-          />
-        </div>
+    <div class="ui-field">
+      <label class="ui-field-k" for="description">Descripción</label>
+      <textarea
+        id="description"
+        v-model="formData.description"
+        class="ui-input ui-input-area"
+        rows="3"
+      ></textarea>
+    </div>
 
-        <!-- Has Dimension Templates Toggle -->
-        <div class="mb-4">
-          <YesNoToggle
-            v-model="hasDimensionTemplates"
-            label="¿Los productos de esta categoria tendran variaciones?"
-          />
-          <p v-if="hasDimensionTemplates" class="text-xs text-neutral-500 mt-1">
-            Las variaciones definidas aquí se cargarán automáticamente al crear productos en esta categoría
-          </p>
-        </div>
+    <div class="ui-sectionhead">Variaciones</div>
 
-        <!-- Display Order
-        <div class="mb-4">
-          <label
-            for="displayOrder"
-            class="block text-sm font-medium text-neutral-700 mb-1"
-          >
-            Display Order
-          </label>
-          <input
-            id="displayOrder"
-            type="number"
-            v-model="formData.displayOrder"
-            class="w-full px-3 py-2 border border-neutral-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
-            min="0"
-          />
-        </div> -->
+    <div class="flex flex-col gap-1">
+      <UiYesNo
+        v-model="hasDimensionTemplates"
+        label="¿Los productos de esta categoria tendran variaciones?"
+      />
+      <span v-if="hasDimensionTemplates" class="ui-field-hint">
+        Las variaciones definidas aquí se cargarán automáticamente al crear productos en esta categoría
+      </span>
+    </div>
 
-        <!-- Default Variation Type -->
-        <div v-if="hasVariationTemplates" class="mb-6">
-          <label class="block text-sm font-medium text-neutral-700 mb-1">
-            Tipo de Variación
-          </label>
-          <div class="flex gap-1">
-            <div class="relative flex-1">
-              <input
-                type="radio"
-                id="variation-type-weight"
-                value="WEIGHT"
-                name="defaultVariationType"
-                v-model="formData.defaultVariationType"
-                class="sr-only peer"
-              />
-              <label
-                for="variation-type-weight"
-                class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
-              >
-                Peso / Volumen
-              </label>
-            </div>
-            <div class="relative flex-1">
-              <input
-                type="radio"
-                id="variation-type-quantity"
-                value="QUANTITY"
-                name="defaultVariationType"
-                v-model="formData.defaultVariationType"
-                class="sr-only peer"
-              />
-              <label
-                for="variation-type-quantity"
-                class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
-              >
-                Cantidad
-              </label>
-            </div>
-            <div class="relative flex-1">
-              <input
-                type="radio"
-                id="variation-type-size"
-                value="SIZE"
-                name="defaultVariationType"
-                v-model="formData.defaultVariationType"
-                class="sr-only peer"
-              />
-              <label
-                for="variation-type-size"
-                class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
-              >
-                Tamaño / Color
-              </label>
-            </div>
-          </div>
-          <p class="text-xs text-neutral-500 mt-1">
-            Los productos en esta categoría sugerirán variaciones de este tipo.
-          </p>
-        </div>
+    <VariationsManager
+      v-if="hasDimensionTemplates"
+      :initial-variations="formData.dimensionTemplates"
+      :product-name="`Plantilla para ${formData.name || 'Categoría'}`"
+      :is-category-template-mode="true"
+      @update="handleDimensionTemplateUpdate"
+    />
 
-        <!-- Unit Selection for types that use units -->
-        <div v-if="hasVariationTemplates && showUnitSelection" class="mb-4">
-          <label class="block text-sm font-medium text-neutral-700 mb-1">
-            Unidad
-          </label>
-          <div class="flex gap-1">
-            <div
-              v-for="option in unitPillOptions"
-              :key="option.value"
-              class="relative flex-1"
-            >
-              <input
-                type="radio"
-                :id="`unit-${option.value}`"
-                :value="option.value"
-                name="defaultUnit"
-                v-model="formData.defaultUnit"
-                class="sr-only peer"
-              />
-              <label
-                :for="`unit-${option.value}`"
-                class="utility-btn-inactive cursor-pointer py-2 px-3 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black w-full text-center block"
-              >
+    <!-- Cancelar backs out, so it is danger outline; the one solid button commits. -->
+    <div class="flex gap-2 justify-end">
+      <button type="button" class="ui-btn ui-btn-danger" :disabled="loading" @click="emit('cancel')">
+        Cancelar
+      </button>
+      <button type="submit" class="ui-btn ui-btn-solid" :disabled="loading">
+        {{ loading ? loadingText : submitButtonText }}
+      </button>
+    </div>
 
-               {{ `${option.name.toLowerCase()}s (${option.label})` }}
-              </label>
-            </div>
-          </div>
-          <p class="text-xs text-neutral-500 mt-1">
-            Todas las variaciones de peso/volumen usarán esta unidad
-          </p>
-        </div>
-
-        <!-- Whole Grain Variations Toggle -->
-        <div v-if="hasVariationTemplates && formData.defaultVariationType && formData.defaultVariationType !== 'SIZE'" class="mb-4">
-          <YesNoToggle
-            v-model="formData.hasWholeGrainVariations"
-            label="¿Esta categoría ofrece variaciones integrales?"
-          />
-          <p class="text-xs text-neutral-500 mt-1">
-            Se creará automáticamente una versión integral para cada variación
-          </p>
-        </div>
-      </div>
-
-      <!-- Variation Templates -->
-      <div v-if="hasVariationTemplates && (formData.defaultVariationType || formData.variationTemplates.length > 0)" class="base-card">
-        <div class="flex justify-between items-center mb-4">
-          <h4 class="text-lg font-medium text-neutral-800">Plantillas de Variación</h4>
-          <span v-if="formData.defaultVariationType" class="px-2 py-1 bg-primary-100 text-primary-800 rounded text-xs font-medium">
-            {{ getVariationTypeLabel(formData.defaultVariationType) }}
-          </span>
-        </div>
-
-        <!-- Templates List - Always Editable -->
-        <div class="space-y-3">
-          <!-- Existing Templates -->
-          <TemplateVariation
-            v-for="(template, index) in formData.variationTemplates"
-            :key="`template-${index}-${template.id || ''}-${template.isWholeGrain ? 'whole' : 'regular'}`"
-            :template="template"
-            :is-new="false"
-            :default-variation-type="formData.defaultVariationType"
-            :base-price="false"
-            @remove="removeTemplate(index)"
-            @update="(payload) => updateTemplate(index, payload)"
-          />
-
-          <!-- Add New Template Form -->
-          <TemplateVariation
-            :key="`new-template-${formData.defaultUnit}-${formData.defaultVariationType}`"
-            :template="newTemplate"
-            :is-new="true"
-            :default-variation-type="formData.defaultVariationType"
-            :base-price="false"
-            @add="addNewTemplate"
-            @update="(payload) => updateNewTemplate(payload)"
-          />
-        </div>
-
-        <!-- Load System Defaults Button -->
-        <button
-          v-if="false &&formData.defaultVariationType && systemDefaultTemplates[formData.defaultVariationType]"
-          type="button"
-          @click="loadSystemDefaultTemplates"
-          class="w-full mt-4 px-3 py-2 border border-neutral-300 rounded-md text-neutral-700 hover:bg-neutral-50 text-sm"
-        >
-          Cargar plantillas por defecto para {{ getVariationTypeLabel(formData.defaultVariationType) }}
-        </button>
-      </div>
-
-        <VariationsManager
-        v-if="hasDimensionTemplates"
-          :initial-variations="formData.dimensionTemplates"
-          :product-name="`Plantilla para ${formData.name || 'Categoría'}`"
-          :is-category-template-mode="true"
-          @update="handleDimensionTemplateUpdate"
-        />
-
-      <!-- Form Actions -->
-      <div class="base-card">
-        <div class="flex gap-2 justify-end">
-          <button type="submit" :disabled="loading" class="action-btn">
-            {{ loading ? loadingText : submitButtonText }}
-          </button>
-          <button
-            type="button"
-            @click="$emit('cancel')"
-            :disabled="loading"
-            class="danger-btn"
-          >
-            Cancelar
-          </button>
-        </div>
-      </div>
-    </form>
-
-    <!-- Confirm Dialog -->
     <ConfirmDialog
       :is-open="confirmDialog.isOpen"
       :title="confirmDialog.title"
@@ -736,16 +200,5 @@ onMounted(async () => {
       @confirm="confirmDialog.onConfirm"
       @cancel="confirmDialog.onCancel"
     />
-  </div>
+  </form>
 </template>
-
-<style scoped>
-/* Remove browser default outlines from all form elements */
-select {
-  outline: none !important;
-}
-
-select:focus {
-  outline: none !important;
-}
-</style>

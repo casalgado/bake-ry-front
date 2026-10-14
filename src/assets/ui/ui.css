@@ -389,6 +389,10 @@ button.ui-item,
  * is put on. Mixed toward the text color so it still reads at small sizes. */
 .ui-ink-brand { color: color-mix(in oklab, var(--ui-brand) 75%, var(--ui-ink)); }
 
+/* Muted ink as text color, for a glyph or a word that is not a .ui-* element of
+ * its own (an info icon beside a label). Color only, like .ui-ink-brand. */
+.ui-ink-muted { color: var(--ui-ink-muted); }
+
 /* Nothing there. Muted, not alarming. */
 .ui-item-zero .ui-item-num { color: var(--ui-ink-muted); }
 
@@ -646,6 +650,14 @@ button.ui-item,
  * Phosphor stroke disappears against the border. */
 .ui-btn-icon { padding: 7px; gap: 0; }
 
+/* A button that sits on the same line as an input. Takes the input's height, so
+ * the two are flush on desktop and on the taller phone input. */
+.ui-btn-field { height: var(--ui-field-h); padding-block: 0; }
+
+/* Compact: no taller than the line of text beside it, e.g. a pane head's title.
+ * 20 line + 4 padding + 2 border = 26, the 17px title's line box. */
+.ui-btn-sm { padding-block: 2px; }
+
 /* --- HOVER: soft wash, momentary. Only background and border react — the label
  *     keeps its rest color (ink for neutral, red for danger), so hover never
  *     recolors text. Icon included: a lone glyph makes the fill faint, but the
@@ -690,10 +702,15 @@ input:disabled+.ui-btn {
  * while an <input> honours it — so the two came out ~4px apart on any row that
  * had one of each (the create card: Unidad, Cantidad, Categoría). 32 = 20 line +
  * 10 padding + 2 border, so the box is exact rather than approximately right.
- * A textarea opts out of the fixed height through .ui-input-area, below. */
+ * A textarea opts out of the fixed height through .ui-input-area, below.
+ *
+ * --ui-field-h is that height as a variable, so a button beside an input
+ * (.ui-btn-field) follows it, including the taller phone value below. */
+:root { --ui-field-h: 32px; }
+
 .ui-input {
   width: 100%;
-  height: 32px;
+  height: var(--ui-field-h);
   padding: 5px 8px;
   background: var(--ui-surface-3);
   border: 1px solid var(--ui-line);
@@ -931,10 +948,9 @@ input:checked+.ui-card {
  * (see CLAUDE.md). Desktop keeps 13.5px — the inventory grids need the density.
  * 38px is the smallest height 16px text is not cramped in. */
 @media (max-width: 768px) {
-  .ui-input {
-    font-size: 16px;
-    height: 38px;
-  }
+  :root { --ui-field-h: 38px; }
+
+  .ui-input { font-size: 16px; }
 
   /* A textarea carries both classes, and .ui-input's height above is the later
    * rule at equal specificity, so it would win. Opt out again here. */

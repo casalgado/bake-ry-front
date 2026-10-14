@@ -269,14 +269,13 @@ const toggleRowExpanded = (rowId) => {
 
       <!-- Full-screen container -->
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <h3 class="text-xl font-bold mb-4">Edit Product</h3>
+        <!-- No surface of its own: the form is a ui-card and paints itself. -->
+        <DialogPanel class="w-full max-w-[48rem] max-h-[90dvh] overflow-y-auto">
           <ProductForm
             v-if="selectedProduct"
             :key="selectedProduct.id"
             :initial-data="selectedProduct"
             :loading="productStore.loading"
-            class="w-full"
             @submit="handleSubmit"
             @cancel="handleCancel"
           />

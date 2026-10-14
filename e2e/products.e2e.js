@@ -10,6 +10,8 @@ import {
   expectNotListed,
   findRow,
   storedByName,
+  priceRow,
+  dimensionCard,
   LIST_API,
 } from './helpers.js';
 
@@ -206,7 +208,7 @@ test.describe('products without variations', () => {
     await createProduct(page, { name, collection, basePrice: 5000 });
 
     const dialog = await openEdit(page, PRODUCTS, name);
-    await setToggle(dialog, 'Producto activo', 'No');
+    await dialog.getByRole('button', { name: 'Activo', exact: true }).click(); // a pressed toggle, not Sí/No
     await saveEdit(dialog, 'Actualizar Producto', PRODUCT_API);
 
     expect((await storedByName(request, 'products', name)).isActive).toBe(false);
@@ -246,7 +248,7 @@ test.describe('products with variations', () => {
     );
 
     const dialog = await openEdit(page, PRODUCTS, name);
-    await expect(page.locator('.group-header').filter({ hasText: 'Grande' }).locator('input[type=number]').first()).toHaveValue('7000');
+    await expect(priceRow(page, 'Grande').locator('input[type=number]').first()).toHaveValue('7000');
     await dialog.getByRole('button', { name: 'Cancelar' }).click();
   });
 
@@ -290,10 +292,10 @@ test.describe('products with variations', () => {
     await createProduct(page, { name, collection, variations: [SIZE], prices: { Pequeño: [4000], Grande: [7000] } });
 
     const dialog = await openEdit(page, PRODUCTS, name);
-    await page.locator('.group-header').filter({ hasText: 'Grande' }).locator('input[type=number]').first().fill('7500');
-    await dialog.getByRole('button', { name: 'Agregar Opción' }).click();
+    await priceRow(page, 'Grande').locator('input[type=number]').first().fill('7500');
+    await dialog.getByRole('button', { name: 'Agregar opción' }).click();
     await dialog.getByPlaceholder('Nombre de la opción').nth(2).fill('Mediano');
-    await page.locator('.group-header').filter({ hasText: 'Mediano' }).locator('input[type=number]').first().fill('5500');
+    await priceRow(page, 'Mediano').locator('input[type=number]').first().fill('5500');
     await saveEdit(dialog, 'Actualizar Producto', PRODUCT_API);
 
     const { variations } = await storedByName(request, 'products', name);
@@ -313,7 +315,7 @@ test.describe('products with variations', () => {
 
     await setToggle(dialog, '¿Este producto tiene variaciones?', 'No');
     await confirm.getByRole('button', { name: 'Cancelar' }).click();
-    await expect(page.locator('.group-header').filter({ hasText: 'Grande' })).toBeVisible();
+    await expect(priceRow(page, 'Grande')).toBeVisible();
 
     await setToggle(dialog, '¿Este producto tiene variaciones?', 'No');
     await confirm.getByRole('button', { name: 'Confirmar' }).click();
@@ -333,11 +335,11 @@ test.describe('products with variations', () => {
     await page.getByLabel('Nombre', { exact: true }).fill(name);
     await page.getByLabel('Categoría').selectOption({ label: collection });
 
-    const card = page.locator('.base-card').filter({ has: page.getByRole('heading', { level: 5, name: SIZE.label }) });
+    const card = dimensionCard(page, SIZE.label);
     await expect.poll(() => optionValues(card)).toEqual(['Pequeño', 'Grande']);
 
-    await page.locator('.group-header').filter({ hasText: 'Pequeño' }).locator('input[type=number]').first().fill('4000');
-    await page.locator('.group-header').filter({ hasText: 'Grande' }).locator('input[type=number]').first().fill('7000');
+    await priceRow(page, 'Pequeño').locator('input[type=number]').first().fill('4000');
+    await priceRow(page, 'Grande').locator('input[type=number]').first().fill('7000');
     await page.getByRole('button', { name: 'Crear Producto' }).click();
     await expect(page).toHaveURL(/\/dashboard\/products$/);
 

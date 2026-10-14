@@ -21,6 +21,8 @@ const handleCancel = () => {
 </script>
 
 <template>
+  <!-- Width lives on the host, not the form. See CreateClient.vue. -->
+  <div class="p-4 lg:p-6 w-full max-w-[48rem]">
     <ProductCollectionForm
       :loading="productCollectionStore.loading"
       @submit="handleSubmit"
@@ -29,5 +31,5 @@ const handleCancel = () => {
     <div v-if="productCollectionStore.error">
       {{ productCollectionStore.error }}
     </div>
-
+  </div>
 </template>

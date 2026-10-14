@@ -111,18 +111,25 @@ Four rungs, `0` furthest from your face:
 - There is no quiet/ghost button — outline is already quiet enough, and a
   borderless button next to a bordered one just reads as broken. Variants compose
   because `.ui-btn` reads `--btn` / `--btn-soft` / `--btn-ink`; a new intent swaps
-  those three, it does not repeat the hover math. Built: `ui-btn-icon`,
+  those three, it does not repeat the hover math. Built: `ui-btn-icon`, `ui-btn-field` (a button
+  beside an input; takes `--ui-field-h`, the input's height), `ui-btn-sm` (a button beside a
+  pane-head title; 26px, the title's line box),
   `ui-btn-danger` (every back-out action, not just deletes — §13), and the
   selected state (`aria-pressed` / `aria-current` /
   `:checked +` on a `<label class="ui-btn">` — **not** Tailwind `peer-checked:`,
   which can only apply single classes). Hover fills with the soft; selected
   fills solid, and `ui-btn-solid` / the `danger` vars ride along so there is no
   per-variant selected rule.
-- No form components. `ui-field` + `ui-input` and friends are classes only;
-  `RadioButtonGroup.vue` and `YesNoToggle.vue` belong to the old system and stay
-  untouched (restyling them would hit ~126 un-migrated sites). Extract a
-  `Ui*` equivalent from the second migrated form, not before — that is when you
-  learn whether the number-key shortcuts and custom-option slot survive.
+- Form components are two: `UiPills.vue` (one of several, `v-model` + `change`)
+  and `UiYesNo.vue` (tri-state Sí/No), extracted from the product forms — the
+  second migrated form. Both wrap the gallery's sr-only radio + `<label class="ui-btn">`
+  markup with `useId()` wiring. The number-key shortcuts and custom-option slot of
+  `RadioButtonGroup.vue` did not survive; nothing migrated so far used them.
+  The dimension-type picker in `VariationsManager` is the one multi-select drawn
+  as pills (checkbox input + `<label class="ui-btn">`, same `:checked +` rule).
+  `RadioButtonGroup.vue`
+  belongs to the old system and stays untouched (~126 un-migrated sites);
+  `YesNoToggle.vue` has no call sites left and can be deleted.
 - `formatQty` in `src/utils/helpers.js` — number only, max 3 decimals, unit
   rendered as its own `<span class="ui-unit">`.
 - `UiSearchField.vue`. `.ui-search` has one real call site today

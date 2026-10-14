@@ -39,7 +39,9 @@ const handleCancel = () => {
 
 <template>
   <div>
-    <div class="form-container" :class="{ 'fade-out': isRedirecting }">
+    <!-- Width lives on the host, not the form. w-full because the dashboard shell
+         is `grid justify-items-center` and would size this to its content. -->
+    <div class="form-fade p-4 lg:p-6 w-full max-w-[48rem]" :class="{ 'fade-out': isRedirecting }">
       <ProductForm
         :loading="productStore.loading"
         @submit="handleSubmit"
@@ -56,11 +58,11 @@ const handleCancel = () => {
 </template>
 
 <style scoped>
-.form-container {
+.form-fade {
   transition: opacity 1s ease-out;
 }
 
-.form-container.fade-out {
+.form-fade.fade-out {
   opacity: 0;
 }
 </style>

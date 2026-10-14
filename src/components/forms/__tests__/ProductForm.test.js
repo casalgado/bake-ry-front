@@ -24,7 +24,7 @@ const MockConfirmDialog = {
 };
 
 const MockYesNoToggle = {
-  name: 'YesNoToggle',
+  name: 'UiYesNo',
   props: ['modelValue', 'label'],
   emits: ['update:modelValue'],
   template: `
@@ -68,7 +68,7 @@ describe('ProductForm', () => {
       global: {
         components: {
           ConfirmDialog: MockConfirmDialog,
-          YesNoToggle: MockYesNoToggle,
+          UiYesNo: MockYesNoToggle,
           VariationsManager: MockVariationsManager,
           VariationCombinationManager: MockVariationCombinationManager,
         },
@@ -83,12 +83,12 @@ describe('ProductForm', () => {
     it('renders the form with all basic fields', () => {
       wrapper = createWrapper();
 
-      expect(wrapper.find('#name').exists()).toBe(true);
-      expect(wrapper.find('#description').exists()).toBe(true);
-      expect(wrapper.find('#collection').exists()).toBe(true);
-      expect(wrapper.find('#taxPercentage').exists()).toBe(true);
-      expect(wrapper.find('#basePrice').exists()).toBe(true);
-      expect(wrapper.find('#costPrice').exists()).toBe(true);
+      expect(wrapper.find('[id$="-name"]').exists()).toBe(true);
+      expect(wrapper.find('[id$="-description"]').exists()).toBe(true);
+      expect(wrapper.find('[id$="-collection"]').exists()).toBe(true);
+      expect(wrapper.find('[id$="-tax"]').exists()).toBe(true);
+      expect(wrapper.find('[id$="-base"]').exists()).toBe(true);
+      expect(wrapper.find('[id$="-cost"]').exists()).toBe(true);
     });
 
     it('uses the new variations structure', () => {
@@ -111,8 +111,8 @@ describe('ProductForm', () => {
     it('shows basePrice and costPrice when no variations', async () => {
       wrapper = createWrapper();
 
-      expect(wrapper.find('#basePrice').exists()).toBe(true);
-      expect(wrapper.find('#costPrice').exists()).toBe(true);
+      expect(wrapper.find('[id$="-base"]').exists()).toBe(true);
+      expect(wrapper.find('[id$="-cost"]').exists()).toBe(true);
     });
 
     it('hides basePrice and costPrice when variations exist', async () => {
@@ -122,8 +122,8 @@ describe('ProductForm', () => {
       wrapper.vm.formData.hasVariations = true;
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('#basePrice').exists()).toBe(false);
-      expect(wrapper.find('#costPrice').exists()).toBe(false);
+      expect(wrapper.find('[id$="-base"]').exists()).toBe(false);
+      expect(wrapper.find('[id$="-cost"]').exists()).toBe(false);
     });
   });
 
@@ -142,7 +142,7 @@ describe('ProductForm', () => {
     it('validates name length', async () => {
       wrapper = createWrapper();
 
-      await wrapper.find('#name').setValue('AB');
+      await wrapper.find('[id$="-name"]').setValue('AB');
       await wrapper.find('form').trigger('submit.prevent');
 
       expect(wrapper.vm.errors.name).toBe('Nombre debe tener al menos 3 caracteres');
@@ -151,10 +151,10 @@ describe('ProductForm', () => {
     it('validates costPrice is not negative', async () => {
       wrapper = createWrapper();
 
-      await wrapper.find('#name').setValue('Test Product');
-      await wrapper.find('#collection').setValue('cat1');
-      await wrapper.find('#basePrice').setValue(1000);
-      await wrapper.find('#costPrice').setValue(-100);
+      await wrapper.find('[id$="-name"]').setValue('Test Product');
+      await wrapper.find('[id$="-collection"]').setValue('cat1');
+      await wrapper.find('[id$="-base"]').setValue(1000);
+      await wrapper.find('[id$="-cost"]').setValue(-100);
 
       await wrapper.find('form').trigger('submit.prevent');
 
@@ -185,8 +185,8 @@ describe('ProductForm', () => {
         }],
       };
 
-      await wrapper.find('#name').setValue('Test Product');
-      await wrapper.find('#collection').setValue('cat1');
+      await wrapper.find('[id$="-name"]').setValue('Test Product');
+      await wrapper.find('[id$="-collection"]').setValue('cat1');
 
       await wrapper.find('form').trigger('submit.prevent');
 
@@ -282,6 +282,7 @@ describe('ProductForm', () => {
 
     it('handles variation updates from VariationsManager', async () => {
       wrapper = createWrapper();
+      wrapper.vm.formData.hasVariations = true;
 
       const testVariations = {
         dimensions: [
@@ -309,18 +310,27 @@ describe('ProductForm', () => {
       expect(wrapper.vm.formData.basePrice).toBe(0);
       expect(wrapper.vm.formData.costPrice).toBe(0);
     });
+
+    it('keeps the Sí answer when the last variation type is removed', async () => {
+      wrapper = createWrapper();
+      wrapper.vm.formData.hasVariations = true;
+
+      wrapper.vm.handleVariationUpdate({ dimensions: [], combinations: [] });
+
+      expect(wrapper.vm.formData.hasVariations).toBe(true);
+    });
   });
 
   describe('Form Submission', () => {
     it('emits submit event with form data', async () => {
       wrapper = createWrapper();
 
-      await wrapper.find('#name').setValue('Test Product');
-      await wrapper.find('#description').setValue('Test Description');
-      await wrapper.find('#collection').setValue('cat1');
-      await wrapper.find('#taxPercentage').setValue(15);
-      await wrapper.find('#basePrice').setValue(1000);
-      await wrapper.find('#costPrice').setValue(500);
+      await wrapper.find('[id$="-name"]').setValue('Test Product');
+      await wrapper.find('[id$="-description"]').setValue('Test Description');
+      await wrapper.find('[id$="-collection"]').setValue('cat1');
+      await wrapper.find('[id$="-tax"]').setValue(15);
+      await wrapper.find('[id$="-base"]').setValue(1000);
+      await wrapper.find('[id$="-cost"]').setValue(500);
 
       await wrapper.find('form').trigger('submit.prevent');
 
@@ -342,10 +352,10 @@ describe('ProductForm', () => {
     it('cleans strings before submission', async () => {
       wrapper = createWrapper();
 
-      await wrapper.find('#name').setValue('  Test Product  ');
-      await wrapper.find('#description').setValue('  Test Description  ');
-      await wrapper.find('#collection').setValue('cat1');
-      await wrapper.find('#basePrice').setValue(1000);
+      await wrapper.find('[id$="-name"]').setValue('  Test Product  ');
+      await wrapper.find('[id$="-description"]').setValue('  Test Description  ');
+      await wrapper.find('[id$="-collection"]').setValue('cat1');
+      await wrapper.find('[id$="-base"]').setValue(1000);
 
       await wrapper.find('form').trigger('submit.prevent');
 
@@ -422,7 +432,7 @@ describe('ProductForm', () => {
     it('updates collection name when category is selected', async () => {
       wrapper = createWrapper();
 
-      await wrapper.find('#collection').setValue('cat1');
+      await wrapper.find('[id$="-collection"]').setValue('cat1');
       wrapper.vm.handleCategoryChange();
 
       expect(wrapper.vm.formData.collectionName).toBe('Pasteles');
@@ -440,7 +450,7 @@ describe('ProductForm', () => {
     it('provides selected category to VariationsManager placeholder', async () => {
       wrapper = createWrapper();
 
-      await wrapper.find('#collection').setValue('cat2');
+      await wrapper.find('[id$="-collection"]').setValue('cat2');
       wrapper.vm.formData.hasVariations = true;
       await wrapper.vm.$nextTick();
 
@@ -454,8 +464,8 @@ describe('ProductForm', () => {
       wrapper = createWrapper();
 
       // Fill form
-      await wrapper.find('#name').setValue('Test Product');
-      await wrapper.find('#collection').setValue('cat1');
+      await wrapper.find('[id$="-name"]').setValue('Test Product');
+      await wrapper.find('[id$="-collection"]').setValue('cat1');
       wrapper.vm.formData.hasVariations = true;
 
       // Reset

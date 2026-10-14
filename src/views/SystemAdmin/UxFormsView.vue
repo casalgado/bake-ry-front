@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { PhTrash, PhX } from '@phosphor-icons/vue';
 import UiSearchField from '@/components/ui/UiSearchField.vue';
+import UiYesNo from '@/components/ui/UiYesNo.vue';
+import UiPills from '@/components/ui/UiPills.vue';
 
 /* Same local theme as the main gallery: the rest of the app has no dark styles,
  * so the flip lives on this view's wrapper and not on <html>. */
@@ -185,6 +187,17 @@ const reset = () => { form.value = { ...BLANK }; saved.value = ''; };
                 <input id="f-impuesto" v-model.number="demo.tax" type="number" class="ui-input ui-input-num" >
               </div>
             </div>
+            <div class="ui-field md:col-span-3">
+              <label class="ui-field-k" for="f-agregar">Con botón</label>
+              <div class="flex gap-2">
+                <input id="f-agregar" v-model="demo.text" class="ui-input" placeholder="ej: Sabor, Color, Material...">
+                <button type="button" class="ui-btn ui-btn-field shrink-0">Agregar</button>
+              </div>
+              <span class="ui-field-hint">
+                <code>ui-btn-field</code> toma la altura del input
+                (<code>--ui-field-h</code>), también en el teléfono.
+              </span>
+            </div>
           </div>
 
           <div class="grid md:grid-cols-3 gap-3 mt-3">
@@ -366,6 +379,25 @@ const reset = () => { form.value = { ...BLANK }; saved.value = ''; };
                 <p class="ui-card-body mt-1">{{ p.body }}</p>
               </label>
             </div>
+          </div>
+        </div>
+
+        <div class="ui-card">
+          <div class="ui-card-title">UiPills y UiYesNo</div>
+          <p class="ui-card-body mb-3 max-w-prose">
+            Los dos marcados de arriba ya empaquetados: ids, <code>name</code> y
+            <code>aria-labelledby</code> salen de <code>useId()</code>.
+            <code>UiPills</code> reparte el ancho a partes iguales según cuántas
+            opciones haya y emite <code>change</code> además de
+            <code>v-model</code>. Solo una opción; varias independientes siguen
+            siendo casillas.
+          </p>
+          <div class="flex flex-col gap-4">
+            <UiPills v-model="inventoryMode" :options="INVENTORY_MODES" label="Control de inventario" />
+            <UiYesNo v-model="hasVariations" label="¿Tiene variaciones?" />
+            <p class="ui-field-hint">
+              <code>ui-ink-muted</code>: <span class="ui-ink-muted">tinta apagada para un glifo o una palabra suelta</span>, solo color.
+            </p>
           </div>
         </div>
       </section>

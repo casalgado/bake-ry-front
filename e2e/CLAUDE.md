@@ -67,7 +67,7 @@ Run `npm run seed:e2e` in the backend (`functions/`) before the users or orders 
 - The IMP (%) column renders the raw number (`19`, not `19.0%`: the column's `format` is ignored by the table). `taxCell(row)` is the cell before Activo.
 - Edit dialogs: the `getByRole('dialog')` locator is never "visible" (its root has no box), so `toBeHidden()` on it passes instantly. `saveEdit` waits for the PUT response instead.
 - Open the products edit dialog only after both the products and the collections GET have returned (`selectRow` does). Otherwise the Categoría select is blank and its `required` blocks the save with no error shown.
-- The variation UI is reached by structure: `.base-card` filtered by its h5 heading for a dimension, `.group-header` filtered by option name for the price inputs (sale, then cost). The No/Sí toggles are found as the sibling of their label text (`setToggle`).
+- The variation UI is reached by structure: `dimensionCard` (a `section` filtered by its `.ui-card-title`) for a dimension, `priceRow` (a `.ui-item-filled` whose `.ui-item-title` has the option name) for the price inputs (sale, then cost). The Sí/No pairs (`UiYesNo`) are found as the sibling of their label text (`setToggle`); the active toggle is a pressed button in the form header, click "Activo".
 - The emulator gets slower as the bakery fills (lists 2 to 6 s, creates up to 20 s), and tests never clean up. The suite sets a 180 s test timeout and a 30 s expect timeout; reset the emulators and re-run `seed:e2e` when it drags.
 - Collection delete is a hard delete and is refused (400) while an active product uses it; product delete is soft.
 

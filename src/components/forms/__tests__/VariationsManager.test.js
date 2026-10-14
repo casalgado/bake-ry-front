@@ -59,7 +59,7 @@ vi.mock('@/utils/helpers', () => ({
 
 // Mock child components
 const MockYesNoToggle = {
-  name: 'YesNoToggle',
+  name: 'UiYesNo',
   props: ['modelValue', 'label'],
   emits: ['update:modelValue'],
   template: `
@@ -113,14 +113,13 @@ describe('VariationsManager', () => {
     return mount(VariationsManager, {
       props: {
         initialVariations: { dimensions: [], combinations: [] },
-        categoryTemplates: [],
         productName: 'Test Product',
         collectionId: 'test-collection',
         ...props,
       },
       global: {
         components: {
-          YesNoToggle: MockYesNoToggle,
+          UiYesNo: MockYesNoToggle,
           ConfirmDialog: MockConfirmDialog,
           VariationCombinationManager: MockVariationCombinationManager,
           PhPlus: MockIcon,
@@ -264,7 +263,7 @@ describe('VariationsManager', () => {
     it('can add options to dimensions', async () => {
       const allButtons = wrapper.findAll('button');
       const addOptionButton = allButtons.find(btn =>
-        btn.text().includes('Agregar Opción')
+        btn.text().includes('Agregar opción')
       );
 
       const initialOptionCount = wrapper.vm.variationGroup.dimensions[0].options.length;
@@ -1070,8 +1069,8 @@ describe('VariationsManager', () => {
 
         await wrapper.vm.$nextTick();
 
-        const moveUpButtons = wrapper.findAll('button[title="Mover arriba"]');
-        const moveDownButtons = wrapper.findAll('button[title="Mover abajo"]');
+        const moveUpButtons = wrapper.findAll('button[aria-label="Mover opción arriba"]');
+        const moveDownButtons = wrapper.findAll('button[aria-label="Mover opción abajo"]');
 
         // Only test if buttons exist (they might not be present in test environment)
         if (moveUpButtons.length > 0) {
@@ -1113,7 +1112,7 @@ describe('VariationsManager', () => {
 
         await wrapper.vm.$nextTick();
 
-        const removeButtons = wrapper.findAll('button[title="Eliminar opción"]');
+        const removeButtons = wrapper.findAll('button[aria-label="Eliminar opción"]');
 
         removeButtons.forEach(button => {
           expect(button.attributes('tabindex')).toBe('-1');
@@ -1121,118 +1120,19 @@ describe('VariationsManager', () => {
       });
     });
 
-    describe('Position Dropdown Improvements', () => {
-      it('prevents event bubbling when toggling position dropdown', async () => {
-        // Add a WEIGHT dimension first
+    describe('Position select', () => {
+      it('moves an option to the picked position', async () => {
         const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
         await weightCheckbox.setChecked(true);
-
         await wrapper.vm.$nextTick();
 
         const dimension = wrapper.vm.variationGroup.dimensions[0];
-        const option = dimension.options[0];
+        const first = wrapper.vm.getSortedOptions(dimension.id)[0].name;
 
-        // Mock event with stopPropagation
-        const mockEvent = {
-          stopPropagation: vi.fn(),
-        };
+        const select = wrapper.find('select[aria-label="Posición de la opción"]');
+        await select.setValue('2');
 
-        // Toggle dropdown with event
-        wrapper.vm.togglePositionDropdown(dimension.id, option.name, mockEvent);
-
-        expect(mockEvent.stopPropagation).toHaveBeenCalled();
-      });
-
-      it('forces reactivity update when toggling dropdown', async () => {
-        // Add a WEIGHT dimension first
-        const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
-        await weightCheckbox.setChecked(true);
-
-        await wrapper.vm.$nextTick();
-
-        const dimension = wrapper.vm.variationGroup.dimensions[0];
-        const option = dimension.options[0];
-
-        const initialMapSize = wrapper.vm.optionPositionDropdowns.size;
-
-        // Toggle dropdown
-        wrapper.vm.togglePositionDropdown(dimension.id, option.name);
-
-        // Map should be updated (recreated for reactivity)
-        expect(wrapper.vm.optionPositionDropdowns.size).toBeGreaterThanOrEqual(initialMapSize);
-      });
-
-      it('closes all other dropdowns when opening one', async () => {
-        // Add a WEIGHT dimension first
-        const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
-        await weightCheckbox.setChecked(true);
-
-        await wrapper.vm.$nextTick();
-
-        const dimension = wrapper.vm.variationGroup.dimensions[0];
-        const option1 = dimension.options[0];
-        const option2 = dimension.options[1];
-
-        // Open first dropdown
-        wrapper.vm.togglePositionDropdown(dimension.id, option1.name);
-        expect(wrapper.vm.isPositionDropdownOpen(dimension.id, option1.name)).toBe(true);
-
-        // Open second dropdown
-        wrapper.vm.togglePositionDropdown(dimension.id, option2.name);
-
-        // First should be closed, second should be open
-        expect(wrapper.vm.isPositionDropdownOpen(dimension.id, option1.name)).toBe(false);
-        expect(wrapper.vm.isPositionDropdownOpen(dimension.id, option2.name)).toBe(true);
-      });
-    });
-
-    describe('Click Outside Handling', () => {
-      it('adds click listener when dropdown is opened', async () => {
-        const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
-
-        // Add a WEIGHT dimension first
-        const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
-        await weightCheckbox.setChecked(true);
-
-        await wrapper.vm.$nextTick();
-
-        const dimension = wrapper.vm.variationGroup.dimensions[0];
-        const option = dimension.options[0];
-
-        // Open dropdown
-        wrapper.vm.togglePositionDropdown(dimension.id, option.name);
-
-        // Manually trigger watcher since it might not fire in test environment
-        if (wrapper.vm.optionPositionDropdowns.has(`${dimension.id}-${option.name}`)) {
-          await wrapper.vm.$nextTick();
-          // Since watchers might not trigger in tests, just verify the dropdown state
-          expect(wrapper.vm.isPositionDropdownOpen(dimension.id, option.name)).toBe(true);
-        }
-
-        addEventListenerSpy.mockRestore();
-      });
-
-      it('removes click listener when all dropdowns are closed', async () => {
-        const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
-
-        // Add a WEIGHT dimension first
-        const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
-        await weightCheckbox.setChecked(true);
-
-        await wrapper.vm.$nextTick();
-
-        const dimension = wrapper.vm.variationGroup.dimensions[0];
-        const option = dimension.options[0];
-
-        // Open and close dropdown
-        wrapper.vm.togglePositionDropdown(dimension.id, option.name);
-        wrapper.vm.togglePositionDropdown(dimension.id, option.name);
-
-        await wrapper.vm.$nextTick();
-
-        expect(removeEventListenerSpy).toHaveBeenCalledWith('click', wrapper.vm.handleClickOutside);
-
-        removeEventListenerSpy.mockRestore();
+        expect(wrapper.vm.getOptionPosition(dimension.id, first)).toBe(2);
       });
     });
 
@@ -1252,32 +1152,6 @@ describe('VariationsManager', () => {
           const expectedAttribute = `${dimension.id}-${index}`;
           expect(input.attributes('data-option-index')).toBe(expectedAttribute);
         });
-      });
-    });
-
-    describe('Touch and Mobile Optimizations', () => {
-      it('applies touch-manipulation class to interactive elements', async () => {
-        // Add a WEIGHT dimension first
-        const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
-        await weightCheckbox.setChecked(true);
-
-        await wrapper.vm.$nextTick();
-
-        // Check for touch-manipulation class on various interactive elements
-        const positionButtons = wrapper.findAll('.touch-manipulation');
-        expect(positionButtons.length).toBeGreaterThan(0);
-      });
-
-      it('uses proper sizing for mobile screens', async () => {
-        // Add a WEIGHT dimension first
-        const weightCheckbox = wrapper.find('input[value="WEIGHT"]');
-        await weightCheckbox.setChecked(true);
-
-        await wrapper.vm.$nextTick();
-
-        // Check for responsive sizing classes
-        const responsiveElements = wrapper.findAll('.sm\\:w-6');
-        expect(responsiveElements.length).toBeGreaterThan(0);
       });
     });
   });

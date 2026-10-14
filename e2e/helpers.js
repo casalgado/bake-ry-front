@@ -107,13 +107,14 @@ export const editRole = async (page, { path, name, kind }) => {
 // Products and collections are stored lowercase, so the names are lowercase from the start.
 export const uniqueName = (kind) => `e2e ${kind} ${Date.now()}-${++counter}`;
 
-// YesNoToggle's label is a sibling of its No/Sí buttons, not tied to them.
+// UiYesNo's label is a sibling of its radiogroup, not tied to it; the visible
+// Sí/No are <label>s next to sr-only radios, so click the text.
 export const setToggle = (scope, label, answer) =>
-  scope.getByText(label, { exact: true }).locator('xpath=following-sibling::div').getByRole('button', { name: answer, exact: true }).click();
+  scope.getByText(label, { exact: true }).locator('xpath=following-sibling::div').getByText(answer, { exact: true }).click();
 
-// The card of one variation dimension, found by its heading (e.g. 'Forma / Tamaño').
-const dimensionCard = (page, label) =>
-  page.locator('.base-card').filter({ has: page.getByRole('heading', { level: 5, name: label }) });
+// The block of one variation dimension, found by its title (e.g. 'Forma / Tamaño').
+export const dimensionCard = (page, label) =>
+  page.locator('section').filter({ has: page.locator('.ui-card-title', { hasText: label }) });
 
 // Adds a fixed dimension pill (or a custom one when `custom`) and fills its options in order.
 export const addDimension = async (page, { label, options, custom = false }) => {
@@ -132,7 +133,7 @@ export const addDimension = async (page, { label, options, custom = false }) => 
 
 // Row of the price table for one single-dimension option; [sale, cost] number inputs follow its name.
 export const priceRow = (page, optionName) =>
-  page.locator('.group-header').filter({ hasText: optionName });
+  page.locator('.ui-item-filled').filter({ has: page.locator('.ui-item-title', { hasText: optionName }) });
 
 export const createCollection = async (page, { name, description, dimensions = [], stay = false }) => {
   await page.goto('/dashboard/product-collections/create');
@@ -153,7 +154,7 @@ export const createProduct = async (page, { name, collection, basePrice, costPri
   await page.getByLabel('Categoría').selectOption({ label: collection });
   if (tax !== undefined) await page.getByLabel('Porcentaje de Impuesto').fill(String(tax));
   if (variations.length) {
-    if (!(await page.getByText('Seleccionar Tipos de Variación').isVisible())) {
+    if (!(await page.getByLabel('Crear variación personalizada').isVisible())) {
       await setToggle(page, '¿Este producto tiene variaciones?', 'Sí');
     }
     for (const variation of variations) await addDimension(page, variation);
