@@ -462,6 +462,22 @@ const reset = () => { form.value = { ...BLANK }; saved.value = ''; };
         </div>
       </section>
 
+      <!-- ---------- host ---------- -->
+      <section class="flex flex-col gap-4">
+        <h2 class="ui-sectionhead">6 · Dónde vive el formulario</h2>
+        <div class="ui-card">
+          <p class="ui-card-body max-w-prose">
+            El formulario no declara ancho: lo pone quien lo aloja, con
+            <code>ui-formhost</code> (48rem), en el elemento raíz de la página o
+            en el panel de un diálogo. Uno más ancho cambia la variable:
+            <code>style="--ui-form-w: 72rem"</code>.
+            <code>ui-gutter</code> va en lo que hace scroll (el shell o un
+            panel) y reserva el lugar de la barra, para que nada se corra cuando
+            aparece.
+          </p>
+        </div>
+      </section>
+
     </div>
   </div>
 </template>

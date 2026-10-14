@@ -234,6 +234,23 @@ input:focus-visible+.ui-btn {
   .ui-pane + .ui-pane { border-left: none; border-top: 1px solid var(--ui-line); }
 }
 
+/* The width of whatever hosts a form — a create page or a dialog panel. The form
+ * declares none, so the same form fits a 48rem host or a wider one.
+ * A wider host sets the variable, not a new class: style="--ui-form-w: 72rem".
+ *
+ * On a page, put it on the route's ROOT element. The dashboard shell is
+ * `grid justify-items-center`, which sizes that element to its content, and
+ * `width: 100%` only resolves against the grid area for a direct grid item. On
+ * an inner div the root still shrink-wraps and the form changes width with its
+ * content. A dialog panel is not in that grid, so it is safe anywhere. */
+.ui-formhost { width: 100%; max-width: var(--ui-form-w, 48rem); }
+
+/* For an element that scrolls: the dashboard shell, or a dialog panel. A classic
+ * scrollbar takes width when it appears, so centered content moves by half of it
+ * and a form inside narrows. Reserving the gutter on both edges keeps everything
+ * where it was; overlay scrollbars take no space, so there it changes nothing. */
+.ui-gutter { scrollbar-gutter: stable both-edges; }
+
 /* ---------- 3. pane head ---------- */
 
 /* Wraps: in a narrow pane a long title and its sub would otherwise squeeze each
