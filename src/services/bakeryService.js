@@ -24,7 +24,6 @@ export class BakeryService {
   static async createBakeryWithUser(data) {
     try {
       const response = await api.post('/bakeries', data);
-      console.log('Bakery created with user:', response.data);
       return response.data;
     } catch (error) {
       const errorMessage = error.response?.data?.error || 'Failed to create bakery';

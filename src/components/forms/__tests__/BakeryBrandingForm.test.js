@@ -36,7 +36,7 @@ describe('BakeryBrandingForm', () => {
         },
       });
 
-      expect(wrapper.find('.form-container').exists()).toBe(true);
+      expect(wrapper.find('form.ui-card').exists()).toBe(true);
       expect(wrapper.text()).toContain('Identidad');
     });
 
@@ -80,7 +80,7 @@ describe('BakeryBrandingForm', () => {
         },
       });
 
-      expect(wrapper.text()).toContain('Esquema de Colores');
+      expect(wrapper.text()).toContain('Esquema de colores');
       expect(wrapper.text()).toContain('Color Principal');
       expect(wrapper.text()).toContain('Color Secundario');
     });
@@ -433,7 +433,7 @@ describe('BakeryBrandingForm', () => {
       await wrapper.vm.$nextTick();
 
       const cancelButton = wrapper.findAll('button').find(btn => btn.text().includes('Cancelar'));
-      expect(cancelButton.classes()).toContain('danger-btn');
+      expect(cancelButton.classes()).toContain('ui-btn-danger');
     });
   });
 
@@ -518,42 +518,6 @@ describe('BakeryBrandingForm', () => {
 
       // Original prop should not be mutated
       expect(wrapper.props('initialData').logos.original).toBe('https://example.com/new-logo.png');
-    });
-  });
-
-  describe('Logo Preview Versions', () => {
-    it('hides logo preview section by default', () => {
-      wrapper = mount(BakeryBrandingForm, {
-        props: {
-          initialData: mockInitialData,
-        },
-        global: {
-          plugins: [createPinia()],
-        },
-      });
-
-      // The section with "Versiones Disponibles" should have hidden class
-      const html = wrapper.html();
-      // Check that the versions section exists and has hidden class
-      expect(html).toContain('Versiones Disponibles');
-      expect(html).toMatch(/class="[^"]*mt-6 hidden[^"]*"/);
-    });
-
-    it('displays all logo size versions when available', () => {
-      wrapper = mount(BakeryBrandingForm, {
-        props: {
-          initialData: mockInitialData,
-        },
-        global: {
-          plugins: [createPinia()],
-        },
-      });
-
-      const html = wrapper.html();
-      expect(html).toContain('Original');
-      expect(html).toContain('Grande (800px)');
-      expect(html).toContain('Mediano (400px)');
-      expect(html).toContain('Pequeño (200px)');
     });
   });
 

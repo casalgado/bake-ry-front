@@ -31,56 +31,19 @@ export const useSystemAdminStore = defineStore('systemAdmin', {
 
   actions: {
     /**
-     * Fetch all bakeries with their settings
+     * Fetch the bakery list. Settings load per bakery, when one is picked.
      */
-    async fetchAllBakeriesWithSettings() {
+    async fetchBakeries() {
       this.loading = true;
       this.error = null;
 
       try {
-        // Get all bakeries first
         const bakeriesResponse = await BakeryService.getAllBakeries();
-        const bakeries = bakeriesResponse?.items || [];
-
-        if (bakeries.length === 0) {
-          this.bakeries = [];
-          return;
-        }
-
-        // Fetch settings for each bakery
-        const bakeriesWithSettings = await Promise.allSettled(
-          bakeries.map(async (bakery) => {
-            try {
-              const settingsService = new BakerySettingsService(bakery.id);
-              const response = await settingsService.api.get(`/bakeries/${bakery.id}/settings/default`);
-
-              return {
-                ...bakery,
-                settings: response.data,
-                settingsError: null,
-              };
-            } catch (error) {
-              console.warn(`Failed to fetch settings for bakery ${bakery.id}:`, error);
-              return {
-                ...bakery,
-                settings: null,
-                settingsError: error.message || 'Failed to load settings',
-              };
-            }
-          }),
-        );
-
-        // Map results, keeping both successful and failed attempts
-        this.bakeries = Array.isArray(bakeriesWithSettings)
-          ? bakeriesWithSettings.map(result =>
-            result.status === 'fulfilled' ? result.value : result.reason,
-          )
-          : [];
-
+        this.bakeries = bakeriesResponse?.items || [];
       } catch (error) {
         this.error = error.message || 'Failed to fetch bakeries';
-        this.bakeries = []; // Ensure bakeries is always an array
-        console.error('Error fetching bakeries with settings:', error);
+        this.bakeries = [];
+        console.error('Error fetching bakeries:', error);
       } finally {
         this.loading = false;
       }
@@ -92,19 +55,19 @@ export const useSystemAdminStore = defineStore('systemAdmin', {
     async fetchBakerySettings(bakeryId) {
       try {
         const settingsService = new BakerySettingsService(bakeryId);
-        const settings = await settingsService.fetchById('default');
+        const response = await settingsService.api.get(`/bakeries/${bakeryId}/settings/default`);
 
         // Update the specific bakery in our list
         const bakeryIndex = this.bakeries.findIndex(b => b.id === bakeryId);
         if (bakeryIndex !== -1) {
           this.bakeries[bakeryIndex] = {
             ...this.bakeries[bakeryIndex],
-            settings: settings.data,
+            settings: response.data,
             settingsError: null,
           };
         }
 
-        return settings.data;
+        return response.data;
       } catch (error) {
         // Update error state for this specific bakery
         const bakeryIndex = this.bakeries.findIndex(b => b.id === bakeryId);
@@ -164,83 +127,26 @@ export const useSystemAdminStore = defineStore('systemAdmin', {
     /**
      * Update a specific bakery's settings
      */
-    async updateBakerySettings(bakeryId, featuresData) {
+    async updateBakerySettings(bakeryId, features) {
       try {
-        // Get current settings to check if Auto-select Client is being enabled for first time
-        const bakeryIndex = this.bakeries.findIndex(b => b.id === bakeryId);
-        const currentAutoSelectClient = bakeryIndex !== -1 ?
-          this.bakeries[bakeryIndex].settings?.features?.pos?.autoSelectClient : false;
+        // `features` is the patch from BakeryModulesForm: only the keys it owns.
+        // The backend merges it group by group, so nothing else is touched.
+        const bakery = this.bakeries.find(b => b.id === bakeryId);
+        const pos = features.pos;
 
-        let posDefaultClientId = featuresData.posDefaultClientId;
-
-        // If Auto-select Client is being enabled for the first time, auto-create client
-        if (featuresData.posAutoSelectClient && !currentAutoSelectClient) {
+        // Auto-select Client turned on for the first time: make sure the client exists.
+        if (pos?.autoSelectClient && !bakery?.settings?.features?.pos?.autoSelectClient) {
           try {
-            const posClient = await this.findOrCreatePOSClient(bakeryId);
-            console.log('🏪 Created/found POS client:', posClient);
-            posDefaultClientId = posClient.id;
-            console.log('🏪 Setting POS client ID to:', posDefaultClientId);
+            pos.defaultClientId = (await this.findOrCreatePOSClient(bakeryId)).id;
           } catch (error) {
             console.error('Error creating POS client:', error);
             // Continue with settings update even if client creation fails
           }
         }
 
-        // Use the same structure as BakeryFeaturesForm expects
-        const settingsPayload = {
-          features: {
-            order: {
-              activePaymentMethods: featuresData.activePaymentMethods,
-              allowPartialPayment: featuresData.allowPartialPayment,
-              timeOfDay: featuresData.timeOfDay,
-              offlineMode: featuresData.offlineMode,
-              loadHistoricalOnUserSelection: featuresData.loadHistoricalOnUserSelection,
-            },
-            reports: {
-              defaultReportFilter: featuresData.defaultReportFilter,
-              showMultipleReports: featuresData.showMultipleReports,
-            },
-            products: {
-              // Spread first, like inventory: a patch replaces the whole features object.
-              ...(this.bakeries[bakeryIndex]?.settings?.features?.products || {}),
-              useProductCost: featuresData.useProductCost,
-              offersWholeGrain: featuresData.wholeGrainEnabled || false,
-            },
-            invoicing: {
-              defaultTermsAndConditions: featuresData.defaultTermsAndConditions || '',
-              showProductDescriptions: true,
-              showTermsAndConditions: true,
-              taxMode: featuresData.taxMode || 'inclusive',
-            },
-            pos: {
-              autoMarkPaid: featuresData.posAutoMarkPaid || false,
-              defaultToCurrentDate: featuresData.posDefaultToCurrentDate || false,
-              hideDeliveryOptions: featuresData.posHideDeliveryOptions || false,
-              autoSelectClient: featuresData.posAutoSelectClient || false,
-              defaultClientId: posDefaultClientId,
-            },
-            inventory: {
-              // Spread first: this form only owns `enabled`, and a patch
-              // replaces the whole features object — without this, saving it
-              // would wipe the bakery's warehouses and when inventory went live.
-              ...(this.bakeries[bakeryIndex]?.settings?.features?.inventory || {}),
-              enabled: featuresData.inventoryEnabled || false,
-            },
-            accounting: {
-              enabled: featuresData.accountingEnabled || false,
-            },
-          },
-        };
-
         const settingsService = new BakerySettingsService(bakeryId);
-        await settingsService.api.patch(`/bakeries/${bakeryId}/settings/default`, settingsPayload);
-
-        // Update the bakery in our local state
-        if (bakeryIndex !== -1) {
-          // Re-fetch the updated settings
-          const response = await settingsService.api.get(`/bakeries/${bakeryId}/settings/default`);
-          this.bakeries[bakeryIndex].settings = response.data;
-        }
+        await settingsService.api.patch(`/bakeries/${bakeryId}/settings/default`, { features });
+        await this.fetchBakerySettings(bakeryId);
 
         return { success: true };
       } catch (error) {

@@ -126,3 +126,13 @@ agregar devoluciones a mad.
 ## order form
 
 an idea for a separate 'tab' in the wizard called disponible that shows only whats available, as a list? or what? 
+
+
+## Next Steps 26/10/14
+
+- migrate the signup form (define what features are only sys admin, which are user and unify the user settings with the signup)
+- migrate the settings forms
+- migrate and redesign order form. 
+
+- how are we going to migrate he tables? 
+- why are emulators so slow lately? 

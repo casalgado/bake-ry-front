@@ -429,6 +429,11 @@ const router = createRouter({
           component: () => import('../views/SystemAdmin/BakeryManagementView.vue'),
         },
         {
+          path: 'bakeries/:bakeryId/settings',
+          name: 'system-admin-bakery-settings',
+          component: () => import('../views/SystemAdmin/BakerySettingsAdminView.vue'),
+        },
+        {
           path: 'settings',
           name: 'system-settings',
           component: () => import('../views/SystemSettingsView.vue'),

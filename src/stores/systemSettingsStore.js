@@ -54,6 +54,14 @@ export const useSystemSettingsStore = defineStore('systemSettings', {
     availablePaymentMethods: (state) => state.settings?.availablePaymentMethods || [],
 
     /**
+     * Payment methods a business chooses from. Complimentary is always on, never a choice.
+     * @returns {Array}
+     */
+    configurablePaymentMethods() {
+      return this.availablePaymentMethods.filter(method => method.value !== 'complimentary');
+    },
+
+    /**
      * Get default variation templates object
      * @returns {Object}
      */

@@ -1,10 +1,12 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { RouterLink } from 'vue-router';
-import { PhTrash, PhX } from '@phosphor-icons/vue';
+import { PhTrash, PhX, PhCircleHalf, PhCalendarBlank } from '@phosphor-icons/vue';
 import UiSearchField from '@/components/ui/UiSearchField.vue';
 import UiYesNo from '@/components/ui/UiYesNo.vue';
 import UiPills from '@/components/ui/UiPills.vue';
+import UiFeatureCard from '@/components/ui/UiFeatureCard.vue';
+import UiChoiceCard from '@/components/ui/UiChoiceCard.vue';
 
 /* Same local theme as the main gallery: the rest of the app has no dark styles,
  * so the flip lives on this view's wrapper and not on <html>. */
@@ -45,6 +47,12 @@ const INVENTORY_MODES = [
 ];
 
 const hasVariations = ref(false);
+const featureOn = ref(true);
+const dateMode = ref('delivery');
+const DATE_MODES = [
+  { value: 'delivery', label: 'Entrega' },
+  { value: 'production', label: 'Preparación' },
+];
 const isActive = ref(true);
 
 const paymentMethods = ref(['cash']);
@@ -398,6 +406,36 @@ const reset = () => { form.value = { ...BLANK }; saved.value = ''; };
             <p class="ui-field-hint">
               <code>ui-ink-muted</code>: <span class="ui-ink-muted">tinta apagada para un glifo o una palabra suelta</span>, solo color.
             </p>
+          </div>
+        </div>
+
+        <div class="ui-card">
+          <div class="ui-card-title">UiFeatureCard y UiChoiceCard</div>
+          <p class="ui-card-body mb-3 max-w-prose">
+            La tarjeta entera como opción, ya empaquetada. <code>UiFeatureCard</code>
+            es un encendido/apagado independiente: la casilla oculta va dentro del
+            mismo mecanismo <code>:checked + .ui-card</code>, y el check lleno de la
+            esquina lo dice también con un glifo, porque el sistema no tiene
+            interruptor. <code>UiChoiceCard</code> es una elección entre varias:
+            la misma cara con <code>UiPills</code> debajo, y el título sirve de
+            etiqueta accesible sin dibujarse dos veces. Las dos suben un escalón con
+            <code>ui-surface-3</code> (solo fondo, el de los inputs), para no
+            confundirse con la tarjeta que las contiene.
+          </p>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <UiFeatureCard
+              v-model="featureOn"
+              :icon="PhCircleHalf"
+              title="Pagos parciales"
+              description="Permite a los clientes pagar una parte del pedido."
+            />
+            <UiChoiceCard
+              v-model="dateMode"
+              :icon="PhCalendarBlank"
+              title="Fecha por defecto"
+              description="¿Te organizas mejor por cuándo produces o cuándo entregas?"
+              :options="DATE_MODES"
+            />
           </div>
         </div>
       </section>

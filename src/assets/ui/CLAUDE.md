@@ -130,6 +130,10 @@ Four rungs, `0` furthest from your face:
   `RadioButtonGroup.vue` did not survive; nothing migrated so far used them.
   The dimension-type picker in `VariationsManager` is the one multi-select drawn
   as pills (checkbox input + `<label class="ui-btn">`, same `:checked +` rule).
+  `UiFeatureCard.vue` (independent on/off as a whole card) and `UiChoiceCard.vue`
+  (one-of-several as a card, `UiPills` inside) came with the settings forms; the first
+  rides on `input:checked + .ui-card`, the second is a plain `ui-card`. There is no switch
+  in the system — the filled check in the corner is the second signal of "on".
   `RadioButtonGroup.vue`
   belongs to the old system and stays untouched (~126 un-migrated sites);
   `YesNoToggle.vue` has no call sites left and can be deleted.

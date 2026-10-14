@@ -67,7 +67,8 @@
 
 /* Keyboard focus, once, for everything. The old system has no focus state at
  * all, so this is the one place the new one is not just a restyle.
- * input:focus-visible+.ui-btn covers a hidden input feeding a label button. */
+ * input:focus-visible+.ui-btn covers a hidden input feeding a label button,
+ * and +.ui-card the same for a whole card used as a choice. */
 .ui-btn:focus-visible,
 .ui-tab:focus-visible,
 .ui-tab-close:focus-visible,
@@ -75,7 +76,8 @@
 .ui-item:focus-visible,
 .ui-chip:focus-visible,
 .ui-card-action:focus-visible,
-input:focus-visible+.ui-btn {
+input:focus-visible+.ui-btn,
+input:focus-visible+.ui-card {
   outline: 2px solid var(--ui-brand);
   outline-offset: 2px;
 }
@@ -510,6 +512,12 @@ button.ui-item,
 
 /* An accent reads as a spine, never a fill. */
 .ui-card[data-accent] { border-left: 3px solid var(--ui-accent); }
+
+/* A card one rung up, the ground inputs sit on: for a card that lives inside
+ * another card and would otherwise vanish into it. Color only, like .ui-ink-brand,
+ * and after .ui-card on purpose — equal specificity, so the later rule wins. A
+ * selected card still beats it, `input:checked+.ui-card` being more specific. */
+.ui-surface-3 { background: var(--ui-surface-3); }
 
 /* ---------- 7. chip ---------- */
 

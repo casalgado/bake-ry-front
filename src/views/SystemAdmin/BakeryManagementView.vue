@@ -1,139 +1,116 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useSystemAdminStore } from '@/stores/systemAdminStore';
-import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
-import BakeryFeaturesForm from '@/components/forms/BakeryFeaturesForm.vue';
+import { useUnsavedChangesGuard } from '@/composables/useUnsavedChanges';
+import { featuresToForm, ADMIN_FIELDS } from '@/utils/settingsForm';
+import PageHeader from '@/components/ui/PageHeader.vue';
+import BakeryModulesForm from '@/components/forms/BakeryModulesForm.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import ToastNotification from '@/components/ToastNotification.vue';
 
 const systemAdminStore = useSystemAdminStore();
-const systemSettingsStore = useSystemSettingsStore();
 const selectedBakeryId = ref('');
+const isLoadingSettings = ref(false);
 const isSaving = ref(false);
-const formPreviewData = ref(null);
+const formRef = ref(null);
+const toastRef = ref(null);
 
-onMounted(async () => {
-  await Promise.all([
-    systemAdminStore.fetchAllBakeriesWithSettings(),
-    systemSettingsStore.fetchSettings(),
-  ]);
-});
+const isDirty = computed(() => !!formRef.value?.isDirty);
+const { isOpen: leaveOpen, leave, stay } = useUnsavedChangesGuard(isDirty);
 
-const selectedBakery = computed(() => {
-  if (!selectedBakeryId.value || !systemAdminStore.bakeries) return null;
-  return systemAdminStore.bakeries.find(b => b.id === selectedBakeryId.value);
-});
+onMounted(() => systemAdminStore.fetchBakeries());
 
-const featuresFormData = computed(() => {
-  // Use preview data if available, otherwise use original bakery data
-  if (formPreviewData.value) {
-    return formPreviewData.value;
+const selectedBakery = computed(() =>
+  systemAdminStore.bakeries.find(b => b.id === selectedBakeryId.value),
+);
+
+const formData = computed(() =>
+  featuresToForm(selectedBakery.value?.settings?.features, ADMIN_FIELDS),
+);
+
+// Settings load for the one business being edited, not for all of them up front.
+watch(selectedBakeryId, async (id) => {
+  if (!id) return;
+  isLoadingSettings.value = true;
+  try {
+    await systemAdminStore.fetchBakerySettings(id);
+  } catch (error) {
+    console.error('Error loading bakery settings:', error);
+  } finally {
+    isLoadingSettings.value = false;
   }
-
-  if (!selectedBakery.value?.settings?.features) return null;
-
-  const features = selectedBakery.value.settings.features;
-  return {
-    activePaymentMethods: features.order?.activePaymentMethods || [],
-    allowPartialPayment: features.order?.allowPartialPayment || false,
-    defaultDate: features.order?.defaultDate || 'production',
-    timeOfDay: features.order?.timeOfDay || false,
-    offlineMode: features.order?.offlineMode || false,
-    loadHistoricalOnUserSelection: features.order?.loadHistoricalOnUserSelection || false,
-    defaultReportFilter: features.reports?.defaultReportFilter || 'dueDate',
-    showMultipleReports: features.reports?.showMultipleReports || false,
-    useProductCost: features.products?.useProductCost || false,
-    defaultTermsAndConditions: features.invoicing?.defaultTermsAndConditions || '',
-    taxMode: features.invoicing?.taxMode || 'inclusive',
-    posAutoMarkPaid: features.pos?.autoMarkPaid || false,
-    posDefaultToCurrentDate: features.pos?.defaultToCurrentDate || false,
-    posHideDeliveryOptions: features.pos?.hideDeliveryOptions || false,
-    posAutoSelectClient: features.pos?.autoSelectClient || false,
-    posDefaultClientId: features.pos?.defaultClientId || null,
-    inventoryEnabled: features.inventory?.enabled || false,
-    accountingEnabled: features.accounting?.enabled || false,
-    wholeGrainEnabled: features.products?.offersWholeGrain || false,
-  };
 });
 
-const configurablePaymentMethods = computed(() => {
-  const allMethods = systemSettingsStore.availablePaymentMethods || [];
-  return allMethods.filter((method) => method.value !== 'complimentary');
-});
-
-// Handle form changes (just update preview, don't save)
-const handleFormDataChanged = (formData) => {
-  formPreviewData.value = { ...formData };
-};
-
-// Handle manual save button click (actually save to backend)
-const handleSaveBakerySettings = async (formData) => {
-  if (!selectedBakeryId.value) return;
-
+const handleSave = async (features) => {
   isSaving.value = true;
   try {
-    await systemAdminStore.updateBakerySettings(selectedBakeryId.value, formData);
-    // Clear preview data after successful save
-    formPreviewData.value = null;
-    // Success feedback could be added here
+    await systemAdminStore.updateBakerySettings(selectedBakeryId.value, features);
+    toastRef.value?.showSuccess('Configuración guardada', 'Los cambios ya están activos.');
   } catch (error) {
     console.error('Error saving bakery settings:', error);
-    // Error feedback could be added here
+    toastRef.value?.showError('Error al guardar', 'No se pudo guardar la configuración. Intenta nuevamente.');
   } finally {
     isSaving.value = false;
   }
 };
-
-// Clear preview data when switching bakeries
-watch(selectedBakeryId, () => {
-  formPreviewData.value = null;
-});
 </script>
 
 <template>
-  <div class="form-container">
-    <h2 >
-      Configuraciones de Panaderías
-    </h2>
+  <div class="ui-formhost p-4 lg:p-6 flex flex-col gap-4">
+    <PageHeader title="Configuración de negocios" subtitle="Punto de venta y módulos de cada negocio">
+      <router-link
+        v-if="selectedBakery"
+        :to="{ name: 'system-admin-bakery-settings', params: { bakeryId: selectedBakery.id } }"
+        class="ui-btn"
+      >
+        Ver configuración del negocio
+      </router-link>
+    </PageHeader>
 
-    <div class="">
-      <label>Seleccionar Panadería</label>
-      <select v-model="selectedBakeryId">
-        <option value="">-- Selecciona una panadería --</option>
-        <option
-          v-for="bakery in (systemAdminStore.bakeries || [])"
-          :key="bakery.id"
-          :value="bakery.id"
-        >
+    <div class="ui-field" data-ui-theme="light">
+      <label class="ui-field-k" for="bakery-select">Negocio</label>
+      <select
+        id="bakery-select"
+        v-model="selectedBakeryId"
+        class="ui-input"
+        :disabled="isDirty"
+        :aria-describedby="isDirty ? 'bakery-select-h' : undefined"
+      >
+        <option value="">Selecciona un negocio</option>
+        <option v-for="bakery in systemAdminStore.bakeries" :key="bakery.id" :value="bakery.id">
           {{ bakery.name }}
         </option>
       </select>
-
-    </div>
-    </div>
-    <div>
-    <div v-if="systemAdminStore.loading" class="text-center py-8">
-      <p class="text-neutral-600">Cargando panaderías...</p>
+      <!-- Always laid out, only hidden: its line is reserved so showing it moves nothing. -->
+      <span id="bakery-select-h" class="ui-field-hint" :class="{ invisible: !isDirty }">
+        Guarda o cancela los cambios para cambiar de negocio.
+      </span>
     </div>
 
-    <div v-else-if="systemAdminStore.error" class="text-center py-8 text-red-600">
-      <p>Error: {{ systemAdminStore.error }}</p>
-    </div>
+    <p v-if="systemAdminStore.error" class="ui-field-error">{{ systemAdminStore.error }}</p>
+    <p v-else-if="selectedBakery?.settingsError" class="ui-field-error">
+      No se pudo cargar la configuración: {{ selectedBakery.settingsError }}
+    </p>
 
-    <div v-else-if="selectedBakery && featuresFormData" class="mt-6">
-      <BakeryFeaturesForm
-        :title="`Configuración de ${selectedBakery.name}`"
-        :initial-data="featuresFormData"
-        :available-payment-methods="configurablePaymentMethods"
-        :loading="isSaving"
-        :system-admin-mode="true"
-        :bakery-id="selectedBakeryId"
-        class="w-full"
-        @data-changed="handleFormDataChanged"
-        @save="handleSaveBakerySettings"
-      />
-    </div>
+    <BakeryModulesForm
+      v-if="selectedBakery && formData && !isLoadingSettings"
+      :key="selectedBakeryId"
+      ref="formRef"
+      :title="`Configuración de ${selectedBakery.name}`"
+      :initial-data="formData"
+      :loading="isSaving"
+      @save="handleSave"
+    />
+
+    <ConfirmDialog
+      :is-open="leaveOpen"
+      title="Cambios sin guardar"
+      message="Tienes cambios sin guardar. Si sales ahora, se pierden."
+      confirm-text="Salir sin guardar"
+      cancel-text="Seguir editando"
+      @confirm="leave"
+      @cancel="stay"
+    />
+    <ToastNotification ref="toastRef" />
   </div>
 </template>
-
-<style scoped>
-
-</style>

@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { PhGraph, PhTag, PhUserPlus, PhUserCirclePlus } from '@phosphor-icons/vue';
+import { PhGraph, PhTag, PhUserPlus, PhUserCirclePlus, PhIdentificationCard } from '@phosphor-icons/vue';
 import { BakeryService } from '@/services/bakeryService';
 import { useAuthenticationStore } from '@/stores/authentication';
 import BakeryForm from '@/components/forms/BakeryForm.vue';
@@ -74,69 +74,15 @@ const handleSuccessAnimation = async () => {
 };
 
 // Form submission
-const handleFormSubmit = async (formData) => {
+const handleFormSubmit = async (payload) => {
   globalError.value = '';
   loading.value = true;
 
   try {
-    // Build payload
-    const payload = {
-      user: {
-        name: formData.user.name,
-        email: formData.user.email,
-        password: formData.user.password,
-      },
-      bakery: {
-        name: formData.bakery.name,
-      },
-      settings: {
-        features: {
-          order: {
-            activePaymentMethods: formData.settings.features.order.activePaymentMethods,
-            allowPartialPayment: formData.settings.features.order.allowPartialPayment,
-            defaultDate: formData.settings.features.order.defaultDate,
-            timeOfDay: formData.settings.features.order.timeOfDay,
-          },
-        },
-      },
-    };
-
-    // Add optional user fields
-    if (formData.user.phone.trim()) {
-      payload.user.phone = formData.user.phone;
-    }
-
-    // Add optional bakery fields
-    if (formData.bakery.address.trim()) {
-      payload.bakery.address = formData.bakery.address;
-    }
-
-    // Add social media if any provided
-    const socialMedia = {};
-    if (formData.bakery.socialMedia.instagram.trim()) {
-      socialMedia.instagram = formData.bakery.socialMedia.instagram;
-    }
-    if (formData.bakery.socialMedia.facebook.trim()) {
-      socialMedia.facebook = formData.bakery.socialMedia.facebook;
-    }
-    if (formData.bakery.socialMedia.whatsapp.trim()) {
-      socialMedia.whatsapp = formData.bakery.socialMedia.whatsapp;
-    }
-    if (formData.bakery.socialMedia.website.trim()) {
-      socialMedia.website = formData.bakery.socialMedia.website;
-    }
-
-    if (Object.keys(socialMedia).length > 0) {
-      payload.bakery.socialMedia = socialMedia;
-    }
-
-    // Call API
     const result = await BakeryService.createBakeryWithUser(payload);
 
-    console.log('Bakery created successfully:', result);
-
     // Store bakery name for welcome message
-    bakeryName.value = formData.bakery.name;
+    bakeryName.value = payload.bakery.name;
 
     // Log in user with custom token silently (no loading states)
     const loginResult = await authStore.loginWithCustomTokenSilent(result.customToken);
@@ -199,17 +145,18 @@ const handleFormSubmit = async (formData) => {
     <!-- Success Overlay - covers entire view -->
     <div
       v-if="showOverlay"
-      class="fixed inset-0 bg-neutral-100 transition-opacity duration-1000 ease-in-out flex items-center justify-center z-50"
+      class="fixed inset-0 bg-neutral-100 transition-opacity duration-1000 ease-in-out flex overflow-y-auto z-50"
       :style="{ opacity: overlayOpacity }"
     >
       <!-- Loading State -->
-      <div v-if="!showWelcome" class="text-center">
+      <div v-if="!showWelcome" class="text-center m-auto">
         <PhGraph class="hidden mx-auto w-16 h-16 text-primary mb-4 animate-pulse" weight="light" />
         <p class="hidden text-neutral-600">Creando tu emprendimiento...</p>
       </div>
 
       <!-- Welcome Screen -->
-      <div v-else class="w-full max-w-4xl px-4">
+      <!-- m-auto centers it and stays scrollable if the cards ever outgrow the screen; the bottom padding lifts it a little above true center. -->
+      <div v-else class="w-full max-w-4xl px-4 m-auto pb-16">
         <div class="text-center mb-8">
           <PhGraph class="mx-auto w-20 h-20 text-neutral-800 mb-6" weight="light" />
           <h1 class="text-3xl font-bold text-neutral-800 mb-4">{{ bakeryName }}</h1>
@@ -218,41 +165,53 @@ const handleFormSubmit = async (formData) => {
         </div>
 
         <!-- Action Cards -->
-        <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+          <!-- Identity Card: the one that puts legal data on their first receipt -->
+          <router-link
+            to="/dashboard/settings"
+            class="bg-white rounded-lg shadow-sm border border-neutral-200 p-8 hover:shadow-md transition-shadow duration-200 group text-center"
+          >
+            <div class="flex justify-center mb-4">
+              <PhIdentificationCard class="w-12 h-12 text-primary" weight="regular" />
+            </div>
+            <h3 class="text-xl font-semibold text-neutral-800 mb-2">Completa tu Identidad</h3>
+            <p class="text-base text-neutral-600">Logo, colores y redes sociales</p>
+          </router-link>
+
           <!-- Create Product Card -->
           <router-link
             to="/dashboard/product-collections/create"
-            class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow duration-200 group text-center"
+            class="bg-white rounded-lg shadow-sm border border-neutral-200 p-8 hover:shadow-md transition-shadow duration-200 group text-center"
           >
-            <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <PhTag class="w-6 h-6 text-primary" weight="bold" />
+            <div class="flex justify-center mb-4">
+              <PhTag class="w-12 h-12 text-primary" weight="regular" />
             </div>
-            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Sube tus Productos</h3>
-            <p class="text-sm text-neutral-600">Comienza agregando los primeros productos al catálogo</p>
+            <h3 class="text-xl font-semibold text-neutral-800 mb-2">Sube tus Productos</h3>
+            <p class="text-base text-neutral-600">Comienza agregando productos</p>
           </router-link>
 
           <!-- Create Client Card -->
           <router-link
             to="/dashboard/users/create-client"
-            class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow duration-200 group text-center"
+            class="bg-white rounded-lg shadow-sm border border-neutral-200 p-8 hover:shadow-md transition-shadow duration-200 group text-center"
           >
-            <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <PhUserPlus class="w-6 h-6 text-primary" weight="bold" />
+            <div class="flex justify-center mb-4">
+              <PhUserPlus class="w-12 h-12 text-primary" weight="regular" />
             </div>
-            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Agrega Clientes</h3>
-            <p class="text-sm text-neutral-600">Registra tu primer cliente para comenzar a recibir pedidos</p>
+            <h3 class="text-xl font-semibold text-neutral-800 mb-2">Agrega Clientes</h3>
+            <p class="text-base text-neutral-600">Registra tu primer cliente</p>
           </router-link>
 
           <!-- Create Staff Card -->
           <router-link
             to="/dashboard/users/create-staff"
-            class="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow duration-200 group text-center"
+            class="bg-white rounded-lg shadow-sm border border-neutral-200 p-8 hover:shadow-md transition-shadow duration-200 group text-center"
           >
-            <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <PhUserCirclePlus class="w-6 h-6 text-primary" weight="bold" />
+            <div class="flex justify-center mb-4">
+              <PhUserCirclePlus class="w-12 h-12 text-primary" weight="regular" />
             </div>
-            <h3 class="text-lg font-semibold text-neutral-800 mb-2">Agranda tu Equipo</h3>
-            <p class="text-sm text-neutral-600">Invita miembros de tu equipo para colaborar</p>
+            <h3 class="text-xl font-semibold text-neutral-800 mb-2">Agranda tu Equipo</h3>
+            <p class="text-base text-neutral-600">Invita miembros de tu equipo</p>
           </router-link>
         </div>
       </div>

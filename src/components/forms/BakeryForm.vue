@@ -1,43 +1,15 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
-import { PhMoney, PhClock, PhCalendarBlank, PhCircleHalf } from '@phosphor-icons/vue';
-import { paymentIconMap } from '@/utils/paymentIcons';
-import FeatureCard from '@/components/forms/FeatureCard.vue';
-import RadioFeatureCard from '@/components/forms/RadioFeatureCard.vue';
+/* Signup: who you are, your business, and how you work. Only the names are
+ * required; legal data and contact are optional and editable later in business
+ * settings, which also holds the logo and colors (they need a signed-in user to
+ * upload).
+ *
+ * `submit` carries the payload POST /bakeries expects. */
+import { ref } from 'vue';
+import { formToFeatures, hasChosenPaymentMethod, SIGNUP_FIELDS } from '@/utils/settingsForm';
+import OrdersSection from '@/components/settings/OrdersSection.vue';
 
-const props = defineProps({
-  initialData: {
-    type: Object,
-    default: () => ({
-      user: {
-        name: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        phone: '',
-      },
-      bakery: {
-        name: '',
-        address: '',
-        socialMedia: {
-          instagram: '',
-          facebook: '',
-          whatsapp: '',
-          website: '',
-        },
-      },
-      settings: {
-        features: {
-          order: {
-            activePaymentMethods: ['cash', 'transfer', 'complimentary'],
-            allowPartialPayment: false,
-            defaultDate: 'delivery',
-            timeOfDay: false,
-          },
-        },
-      },
-    }),
-  },
+defineProps({
   loading: {
     type: Boolean,
     default: false,
@@ -46,11 +18,7 @@ const props = defineProps({
 
 const emit = defineEmits(['submit']);
 
-// Form state
-const formData = ref({ ...props.initialData });
-const errors = ref({});
-
-// Payment methods configuration
+// The catalog behind /system-settings needs a signed-in user, so signup keeps its own list.
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Efectivo' },
   { value: 'transfer', label: 'Transferencia' },
@@ -61,399 +29,234 @@ const PAYMENT_METHODS = [
   { value: 'nequi', label: 'Nequi' },
 ];
 
-const defaultDateOptions = [
-  { value: 'delivery', label: 'Entrega' },
-  { value: 'production', label: 'Producción' },
+const MIN_PASSWORD_LENGTH = 6;
 
-];
+const form = ref({
+  name: '',
+  email: '',
+  phone: '',
+  password: '',
+  confirmPassword: '',
+  bakeryName: '',
+  legalName: '',
+  nationalId: '',
+  address: '',
+  bakeryPhone: '',
+  activePaymentMethods: ['cash', 'transfer'],
+  defaultDate: 'delivery',
+  allowPartialPayment: false,
+  timeOfDay: false,
+});
 
-// Payment method helpers
-const isPaymentMethodActive = (methodValue) => {
-  return formData.value.settings.features.order.activePaymentMethods.includes(methodValue);
-};
-
-const togglePaymentMethod = (methodValue, isActive) => {
-  const activePaymentMethods = formData.value.settings.features.order.activePaymentMethods;
-  if (isActive) {
-    if (!activePaymentMethods.includes(methodValue)) {
-      activePaymentMethods.push(methodValue);
-    }
-  } else {
-    const index = activePaymentMethods.indexOf(methodValue);
-    if (index > -1) {
-      activePaymentMethods.splice(index, 1);
-    }
-  }
-};
-
-// Validation
-const validateUserSection = () => {
-  const userErrors = {};
-  const user = formData.value.user;
-
-  if (!user.name.trim()) {
-    userErrors.name = 'El nombre es requerido';
-  }
-
-  if (!user.email.trim()) {
-    userErrors.email = 'El email es requerido';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) {
-    userErrors.email = 'El formato del email no es válido';
-  }
-
-  if (!user.password) {
-    userErrors.password = 'La contraseña es requerida';
-  } else if (user.password.length < 6) {
-    userErrors.password = 'La contraseña debe tener al menos 6 caracteres';
-  }
-
-  if (user.password !== user.confirmPassword) {
-    userErrors.confirmPassword = 'Las contraseñas no coinciden';
-  }
-
-  return userErrors;
-};
-
-const validateBakerySection = () => {
-  const bakeryErrors = {};
-  const bakery = formData.value.bakery;
-
-  if (!bakery.name.trim()) {
-    bakeryErrors.name = 'El nombre de la panadería es requerido';
-  }
-
-  // Validate social media URLs if provided
-  if (bakery.socialMedia.website && !isValidUrl(bakery.socialMedia.website)) {
-    bakeryErrors.website = 'El formato de la URL no es válido';
-  }
-
-  return bakeryErrors;
-};
-
-const validateFeaturesSection = () => {
-  const featuresErrors = {};
-  const features = formData.value.settings.features.order;
-
-  if (features.activePaymentMethods.length === 0) {
-    featuresErrors.activePaymentMethods = 'Debe seleccionar al menos un método de pago';
-  }
-
-  return featuresErrors;
-};
-
-const isValidUrl = (string) => {
-  try {
-    new URL(string);
-    return true;
-  } catch (_) {
-    return false;
-  }
-};
+const errors = ref({});
 
 const validate = () => {
-  errors.value = {
-    ...validateUserSection(),
-    ...validateBakerySection(),
-    ...validateFeaturesSection(),
-  };
-
-  return Object.keys(errors.value).length === 0;
-};
-
-const scrollToError = async () => {
-  await nextTick(); // Wait for the DOM to update
-  // Add a small delay to ensure error elements are rendered
-  setTimeout(() => {
-    const firstErrorElement = document.querySelector('.text-danger');
-    if (firstErrorElement) {
-      firstErrorElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
-    }
-  }, 50);
-};
-
-// Form submission
-const handleSubmit = async (event) => {
-  event.preventDefault(); // Prevent default browser validation
-
-  // if (!validate()) {
-  //   scrollToError();
-  //   return;
-  // }
-
-  emit('submit', formData.value);
-};
-
-// Clear errors when user types
-const clearFieldError = (fieldName) => {
-  if (errors.value[fieldName]) {
-    delete errors.value[fieldName];
+  errors.value = {};
+  if (form.value.password.length < MIN_PASSWORD_LENGTH) {
+    errors.value.password = `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`;
   }
+  if (form.value.password !== form.value.confirmPassword) {
+    errors.value.confirmPassword = 'Las contraseñas no coinciden';
+  }
+  return Object.keys(errors.value).length === 0 && hasChosenPaymentMethod(form.value);
 };
 
-onMounted(() => {
-  // Focus on first input
-  const firstInput = document.querySelector('input[type="text"]');
-  if (firstInput) {
-    firstInput.focus();
-  }
-});
+const handleSubmit = () => {
+  if (!validate()) return;
+
+  const { name, email, phone, password, bakeryName, legalName, nationalId, address, bakeryPhone } = form.value;
+  const features = formToFeatures(form.value, SIGNUP_FIELDS);
+  // Complimentary is not a choice; the settings screens hide it and keep it on.
+  features.order.activePaymentMethods = [...features.order.activePaymentMethods, 'complimentary'];
+
+  // Optional fields are sent only when filled, so an empty box never overwrites a default.
+  const optional = { legalName, nationalId, address, phone: bakeryPhone };
+  const filled = Object.fromEntries(
+    Object.entries(optional).filter(([, value]) => value.trim()).map(([key, value]) => [key, value.trim()]),
+  );
+
+  emit('submit', {
+    user: { name: name.trim(), email: email.trim(), password, ...(phone.trim() && { phone: phone.trim() }) },
+    bakery: { name: bakeryName.trim(), ...filled },
+    settings: { features },
+  });
+};
 </script>
 
 <template>
-  <form @submit="handleSubmit" class="space-y-6 flex flex-col items-center">
-    <!-- User Information Section -->
-    <div class="form-container">
-      <h2>Datos del Emprendedor</h2>
-      <div class="base-card flex flex-col gap-2">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <div>
-            <label for="user-name">Nombre Completo</label>
-            <input
-              id="user-name"
-              type="text"
-              v-model="formData.user.name"
-              @input="clearFieldError('name')"
-              :disabled="loading"
-              class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
+  <form
+    class="flex flex-col gap-4"
+    data-ui-theme="light"
+    @submit.prevent="handleSubmit"
+  >
+    <div class="ui-card flex flex-col gap-3">
+      <h2 class="ui-panehead-title">Datos del Emprendedor</h2>
 
-            />
-            <span v-if="errors.name" class="text-danger text-[10px]">{{ errors.name }}</span>
-          </div>
-
-          <div>
-            <label for="user-email">Email</label>
-            <input
-              id="user-email"
-              type="email"
-              v-model="formData.user.email"
-              @input="clearFieldError('email')"
-              :disabled="loading"
-              class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-
-            />
-            <span v-if="errors.email" class="text-danger text-[10px]">{{ errors.email }}</span>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <div>
-            <label for="user-password">Contraseña</label>
-            <input
-              id="user-password"
-              type="password"
-              v-model="formData.user.password"
-              @input="clearFieldError('password')"
-              :disabled="loading"
-              class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-
-            />
-            <span v-if="errors.password" class="text-danger text-[10px]">{{ errors.password }}</span>
-          </div>
-
-          <div>
-            <label for="user-confirm-password">Confirmar Contraseña</label>
-            <input
-              id="user-confirm-password"
-              type="password"
-              v-model="formData.user.confirmPassword"
-              @input="clearFieldError('confirmPassword')"
-              :disabled="loading"
-              class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-
-            />
-            <span v-if="errors.confirmPassword" class="text-danger text-[10px]">{{ errors.confirmPassword }}</span>
-          </div>
-        </div>
-
-        <div>
-          <label for="user-phone">Teléfono (opcional)</label>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="ui-field">
+          <label class="ui-field-k" for="user-name" data-required>Nombre completo</label>
           <input
-            id="user-phone"
-            type="tel"
-            v-model="formData.user.phone"
-            :disabled="loading"
-            class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-            placeholder="3001234567"
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- Bakery Information Section -->
-    <div class="form-container">
-      <h2>Información del Emprendimiento</h2>
-      <div class="base-card flex flex-col gap-2">
-        <div>
-          <label for="bakery-name">Nombre</label>
-          <input
-            id="bakery-name"
+            id="user-name"
+            v-model="form.name"
             type="text"
-            v-model="formData.bakery.name"
-            @input="clearFieldError('name')"
+            class="ui-input"
+            autocomplete="name"
+            required
             :disabled="loading"
-            class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-
-          />
-          <span v-if="errors.name && errors.name.includes('panadería')" class="text-danger text-[10px]">{{ errors.name }}</span>
+          >
         </div>
 
-        <div>
-          <label for="bakery-address">Dirección (opcional)</label>
+        <div class="ui-field">
+          <label class="ui-field-k" for="user-email" data-required>Email</label>
           <input
-            id="bakery-address"
-            type="text"
-            v-model="formData.bakery.address"
+            id="user-email"
+            v-model="form.email"
+            type="email"
+            class="ui-input"
+            autocomplete="email"
+            required
             :disabled="loading"
-            class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-            placeholder="Calle 123 #45-67, Bogotá"
-          />
+          >
         </div>
 
-        <!-- Social Media Section -->
-        <div class="mt-4">
-          <h3 class="text-lg font-semibold text-neutral-900 mb-4">Redes Sociales (opcional)</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div>
-              <label for="instagram">Instagram</label>
-              <input
-                id="instagram"
-                type="text"
-                v-model="formData.bakery.socialMedia.instagram"
-                :disabled="loading"
-                class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="@mipanaderia"
-              />
-            </div>
-
-            <div>
-              <label for="facebook">Facebook</label>
-              <input
-                id="facebook"
-                type="text"
-                v-model="formData.bakery.socialMedia.facebook"
-                :disabled="loading"
-                class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="Mi Panadería"
-              />
-            </div>
-
-            <div>
-              <label for="whatsapp">WhatsApp</label>
-              <input
-                id="whatsapp"
-                type="tel"
-                v-model="formData.bakery.socialMedia.whatsapp"
-                :disabled="loading"
-                class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="3001234567"
-              />
-            </div>
-
-            <div>
-              <label for="website">Sitio Web</label>
-              <input
-                id="website"
-                type="url"
-                v-model="formData.bakery.socialMedia.website"
-                @input="clearFieldError('website')"
-                :disabled="loading"
-                class="w-full focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="https://mipanaderia.com"
-              />
-              <span v-if="errors.website" class="text-danger text-[10px]">{{ errors.website }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Features Configuration Section -->
-    <div class="form-container">
-      <h2>Personaliza la Experiencia</h2>
-      <div class="base-card">
-        <!-- Payment Methods Section -->
-        <div class="mb-8">
-          <h3 class="text-lg font-semibold text-neutral-900 mb-2">Métodos de Pago</h3>
-          <p class="text-sm text-neutral-600 mb-4">
-            Selecciona los métodos de pago que acepta tu negocio
-          </p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <FeatureCard
-              v-for="method in PAYMENT_METHODS"
-              :key="method.value"
-              :model-value="isPaymentMethodActive(method.value)"
-              @update:model-value="(value) => togglePaymentMethod(method.value, value)"
-              :icon="paymentIconMap[method.value] || PhMoney"
-              :title="method.label"
-              :disabled="loading"
-            />
-          </div>
-          <span v-if="errors.activePaymentMethods" class="text-danger text-[10px] block mt-2">
-            {{ errors.activePaymentMethods }}
+        <div class="ui-field">
+          <label class="ui-field-k" for="user-password" data-required>Contraseña</label>
+          <input
+            id="user-password"
+            v-model="form.password"
+            type="password"
+            class="ui-input"
+            autocomplete="new-password"
+            required
+            :aria-invalid="!!errors.password"
+            :aria-describedby="errors.password ? 'user-password-e' : undefined"
+            :disabled="loading"
+          >
+          <span v-if="errors.password" id="user-password-e" class="ui-field-error">
+            {{ errors.password }}
           </span>
         </div>
 
-        <!-- Additional Order Features -->
-        <div class="mb-6">
-          <h3 class="text-lg font-semibold text-neutral-900 mb-2">Características Adicionales</h3>
-          <p class="text-sm text-neutral-600 mb-4">
-            Configuraciones adicionales para el manejo de pedidos
-          </p>
+        <div class="ui-field">
+          <label class="ui-field-k" for="user-confirm-password" data-required>Confirmar contraseña</label>
+          <input
+            id="user-confirm-password"
+            v-model="form.confirmPassword"
+            type="password"
+            class="ui-input"
+            autocomplete="new-password"
+            required
+            :aria-invalid="!!errors.confirmPassword"
+            :aria-describedby="errors.confirmPassword ? 'user-confirm-password-e' : undefined"
+            :disabled="loading"
+          >
+          <span v-if="errors.confirmPassword" id="user-confirm-password-e" class="ui-field-error">
+            {{ errors.confirmPassword }}
+          </span>
+        </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FeatureCard
-              v-model="formData.settings.features.order.allowPartialPayment"
-              :icon="PhCircleHalf"
-              title="Pagos Parciales"
-              description="Permite a los clientes realizar pagos parciales."
-              :disabled="loading"
-            />
-
-            <FeatureCard
-              v-model="formData.settings.features.order.timeOfDay"
-              :icon="PhClock"
-              title="Hora de Entrega"
-              description="Mostrar campo para seleccionar hora específica de entrega"
-              :disabled="loading"
-            />
-
-            <RadioFeatureCard
-              v-model="formData.settings.features.order.defaultDate"
-              :icon="PhCalendarBlank"
-              title="Tipo de Fecha por Defecto"
-              description="En tu flujo de trabajo, ¿te organizas mejor por cuándo produces o cuándo entregas?"
-              :options="defaultDateOptions"
-              name="default-date"
-              :disabled="loading"
-            />
-          </div>
+        <div class="ui-field md:col-span-2">
+          <label class="ui-field-k" for="user-phone">Teléfono (opcional)</label>
+          <input
+            id="user-phone"
+            v-model="form.phone"
+            type="tel"
+            class="ui-input"
+            autocomplete="tel"
+            placeholder="3001234567"
+            :disabled="loading"
+          >
         </div>
       </div>
     </div>
 
-    <!-- Submit Button -->
+    <div class="ui-card flex flex-col gap-3">
+      <h2 class="ui-panehead-title">Información del Emprendimiento</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="ui-field">
+          <label class="ui-field-k" for="bakery-name" data-required>Nombre</label>
+          <input
+            id="bakery-name"
+            v-model="form.bakeryName"
+            type="text"
+            class="ui-input"
+            autocomplete="organization"
+            required
+            :disabled="loading"
+          >
+        </div>
+
+        <div class="ui-field">
+          <label class="ui-field-k" for="bakery-legal-name">Razón social (opcional)</label>
+          <input
+            id="bakery-legal-name"
+            v-model="form.legalName"
+            type="text"
+            class="ui-input"
+            aria-describedby="bakery-legal-name-h"
+            :disabled="loading"
+          >
+          <span id="bakery-legal-name-h" class="ui-field-hint">
+            Si eres persona natural, tu nombre completo.
+          </span>
+        </div>
+
+        <div class="ui-field">
+          <label class="ui-field-k" for="bakery-national-id">NIT (opcional)</label>
+          <input
+            id="bakery-national-id"
+            v-model="form.nationalId"
+            type="text"
+            class="ui-input"
+            :disabled="loading"
+          >
+        </div>
+
+        <div class="ui-field">
+          <label class="ui-field-k" for="bakery-phone">Teléfono del negocio (opcional)</label>
+          <input
+            id="bakery-phone"
+            v-model="form.bakeryPhone"
+            type="tel"
+            class="ui-input"
+            autocomplete="off"
+            placeholder="3001234567"
+            :disabled="loading"
+          >
+        </div>
+
+        <div class="ui-field md:col-span-2">
+          <label class="ui-field-k" for="bakery-address">Dirección (opcional)</label>
+          <input
+            id="bakery-address"
+            v-model="form.address"
+            type="text"
+            class="ui-input"
+            autocomplete="street-address"
+            placeholder="Calle 123 #45-67, Bogotá"
+            :disabled="loading"
+          >
+        </div>
+      </div>
+    </div>
+
+    <div class="ui-card flex flex-col gap-3">
+      <h2 class="ui-panehead-title">Cómo trabajas</h2>
+
+      <OrdersSection v-model="form" :payment-methods="PAYMENT_METHODS" :disabled="loading" />
+
+      <p class="ui-field-hint">Puedes cambiar esto después en Configuración.</p>
+    </div>
+
     <div class="flex justify-center">
       <button
         type="submit"
-        :disabled="loading"
-        class="action-btn px-8 py-3 text-lg"
+        class="ui-btn ui-btn-solid px-8"
+        :disabled="loading || !hasChosenPaymentMethod(form)"
       >
         {{ loading ? 'Comenzando...' : 'Comenzar' }}
       </button>
     </div>
   </form>
 </template>
-
-<style scoped lang="scss">
-* {
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>

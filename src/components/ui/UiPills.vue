@@ -6,6 +6,8 @@ const props = defineProps({
   options: { type: Array, required: true }, // [{ value, label }]
   label: { type: String, required: true },
   required: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false },
+  hideLabel: { type: Boolean, default: false }, // the label stays for screen readers; a card above already shows the title
   minWidth: { type: String, default: '7rem' }, // narrowest a pill may get before the row wraps
 });
 const emit = defineEmits(['update:modelValue', 'change']);
@@ -22,7 +24,12 @@ const pick = (event, value) => {
 
 <template>
   <div class="ui-field">
-    <span :id="`${uid}-k`" class="ui-field-k" :data-required="required || undefined">{{ label }}</span>
+    <span
+      :id="`${uid}-k`"
+      class="ui-field-k"
+      :class="{ 'sr-only': hideLabel }"
+      :data-required="required || undefined"
+    >{{ label }}</span>
     <div
       class="grid gap-1.5"
       role="radiogroup"
@@ -36,6 +43,7 @@ const pick = (event, value) => {
           type="radio"
           :name="uid"
           :checked="modelValue === o.value"
+          :disabled="disabled"
           @change="pick($event, o.value)"
         >
         <label class="ui-btn justify-center w-full" :for="`${uid}-${o.value}`">{{ o.label }}</label>

@@ -14,6 +14,8 @@ import BakeryFeaturesForm from '@/components/forms/BakeryFeaturesForm.vue';
 import BakeryBrandingForm from '@/components/forms/BakeryBrandingForm.vue';
 import ToastNotification from '@/components/ToastNotification.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { useUnsavedChangesGuard } from '@/composables/useUnsavedChanges';
+import { featuresToForm, OWNER_FIELDS } from '@/utils/settingsForm';
 
 const settingsStore = useBakerySettingsStore();
 const bakeryStore = useBakeryStore();
@@ -23,26 +25,24 @@ const systemSettingsStore = useSystemSettingsStore();
 const staffData = ref([]);
 const b2bClientsData = ref([]);
 
-// Features form state
-const featuresFormData = ref({
-  activePaymentMethods: [],
-  allowPartialPayment: false,
-  defaultDate: 'production',
-  timeOfDay: false,
-  offlineMode: false,
-  // Reports features
-  defaultReportFilter: 'dueDate',
-  showMultipleReports: false,
-  // Products features
-  wholeGrainEnabled: false,
-  // Invoicing features
-  defaultTermsAndConditions: '',
-  taxMode: 'inclusive',
-});
+// Features form state. The settings come merged with the backend's defaults, so
+// the form reads them as they are.
+const featuresFormData = computed(() =>
+  featuresToForm(settingsStore.items[0]?.features, OWNER_FIELDS),
+);
 const isFeaturesSaving = ref(false);
+
+// Both forms save on their own button; leaving with either one edited asks first.
+const brandingFormRef = ref(null);
+const featuresFormRef = ref(null);
+const isDirty = computed(
+  () => !!(brandingFormRef.value?.isDirty || featuresFormRef.value?.isDirty),
+);
+const { isOpen: leaveOpen, leave, stay } = useUnsavedChangesGuard(isDirty);
 
 // Branding form state
 const brandingFormData = ref({
+  socialMedia: {},
   logos: {
     original: '',
     small: '',
@@ -101,9 +101,6 @@ onMounted(async () => {
 
   // Load system settings
   await systemSettingsStore.fetchSettings();
-
-  // Initialize features form
-  initializeFeaturesForm();
 
   // Initialize branding form
   initializeBrandingForm();
@@ -453,111 +450,10 @@ const convertToDisplayFormat = (date) => {
   return `${month}/${year.slice(2)}`; // Convert YYYY/MM to MM/YY
 };
 
-// Features form computed properties
-const currentOrderFeatures = computed(() => {
-  if (!settingsStore.items.length) return {};
-  return settingsStore.items[0].features?.order || {};
-});
-
-const currentReportsFeatures = computed(() => {
-  if (!settingsStore.items.length) return {};
-  return settingsStore.items[0].features?.reports || {};
-});
-
-const currentUsersFeatures = computed(() => {
-  if (!settingsStore.items.length) return {};
-  return settingsStore.items[0].features?.users || {};
-});
-
-const currentProductsFeatures = computed(() => {
-  if (!settingsStore.items.length) return {};
-  return settingsStore.items[0].features?.products || {};
-});
-
-const currentInvoicingFeatures = computed(() => {
-  if (!settingsStore.items.length) return {};
-  return settingsStore.items[0].features?.invoicing || {};
-});
-
 const currentBranding = computed(() => {
   if (!settingsStore.items.length) return {};
   return settingsStore.items[0].branding || {};
 });
-
-// Filter available payment methods to exclude complimentary (always enabled by default)
-const configurablePaymentMethods = computed(() => {
-  const allMethods = systemSettingsStore.availablePaymentMethods || [];
-  return allMethods.filter((method) => method.value !== 'complimentary');
-});
-
-// Features form handlers
-const initializeFeaturesForm = () => {
-  const orderFeatures = currentOrderFeatures.value;
-  const reportsFeatures = currentReportsFeatures.value;
-  const usersFeatures = currentUsersFeatures.value;
-  const productsFeatures = currentProductsFeatures.value;
-  const invoicingFeatures = currentInvoicingFeatures.value;
-
-  // Only update if we have valid data and avoid overriding existing values
-  const newFormData = { ...featuresFormData.value };
-
-  // Order features
-  if (orderFeatures && Object.keys(orderFeatures).length > 0) {
-    if (orderFeatures.activePaymentMethods) {
-      newFormData.activePaymentMethods = [...orderFeatures.activePaymentMethods];
-    }
-    if (Object.prototype.hasOwnProperty.call(orderFeatures, 'allowPartialPayment')) {
-      newFormData.allowPartialPayment = orderFeatures.allowPartialPayment;
-    }
-    if (Object.prototype.hasOwnProperty.call(orderFeatures, 'defaultDate')) {
-      newFormData.defaultDate = orderFeatures.defaultDate;
-    } else {
-      // Fallback to default if not set in backend
-      newFormData.defaultDate = 'production';
-    }
-    if (Object.prototype.hasOwnProperty.call(orderFeatures, 'timeOfDay')) {
-      newFormData.timeOfDay = orderFeatures.timeOfDay;
-    }
-    if (Object.prototype.hasOwnProperty.call(orderFeatures, 'offlineMode')) {
-      newFormData.offlineMode = orderFeatures.offlineMode;
-    }
-  } else {
-    // If no order features exist, ensure we have defaults
-    newFormData.defaultDate = 'production';
-  }
-
-  // Reports features
-  if (reportsFeatures && Object.keys(reportsFeatures).length > 0) {
-    if (Object.prototype.hasOwnProperty.call(reportsFeatures, 'defaultReportFilter')) {
-      newFormData.defaultReportFilter = reportsFeatures.defaultReportFilter;
-    }
-    if (Object.prototype.hasOwnProperty.call(reportsFeatures, 'showMultipleReports')) {
-      newFormData.showMultipleReports = reportsFeatures.showMultipleReports;
-    }
-  }
-
-  // Products features
-  if (productsFeatures && Object.keys(productsFeatures).length > 0) {
-    if (Object.prototype.hasOwnProperty.call(productsFeatures, 'useProductCost')) {
-      newFormData.useProductCost = productsFeatures.useProductCost;
-    }
-    if (Object.prototype.hasOwnProperty.call(productsFeatures, 'offersWholeGrain')) {
-      newFormData.wholeGrainEnabled = productsFeatures.offersWholeGrain;
-    }
-  }
-
-  // Invoicing features
-  if (invoicingFeatures && Object.keys(invoicingFeatures).length > 0) {
-    if (Object.prototype.hasOwnProperty.call(invoicingFeatures, 'defaultTermsAndConditions')) {
-      newFormData.defaultTermsAndConditions = invoicingFeatures.defaultTermsAndConditions;
-    }
-    if (Object.prototype.hasOwnProperty.call(invoicingFeatures, 'taxMode')) {
-      newFormData.taxMode = invoicingFeatures.taxMode;
-    }
-  }
-
-  featuresFormData.value = newFormData;
-};
 
 // Branding form initialization - merges bakery entity data with branding data
 const initializeBrandingForm = () => {
@@ -572,6 +468,7 @@ const initializeBrandingForm = () => {
       phone: bakery?.phone || '',
       legalName: bakery?.legalName || '',
       nationalId: bakery?.nationalId || '',
+      socialMedia: bakery?.socialMedia || {},
       // Branding fields
       logos: branding.logos || {
         original: '',
@@ -590,6 +487,7 @@ const initializeBrandingForm = () => {
       phone: bakery.phone || '',
       legalName: bakery.legalName || '',
       nationalId: bakery.nationalId || '',
+      socialMedia: bakery.socialMedia || {},
       logos: {
         original: '',
         small: '',
@@ -607,70 +505,17 @@ watch(
   () => [settingsStore.items, bakeryStore.currentBakery],
   () => {
     if (settingsStore.items.length > 0 || bakeryStore.currentBakery) {
-      initializeFeaturesForm();
       initializeBrandingForm();
     }
   },
   { immediate: true, deep: true },
 );
 
-// Auto-save with debouncing for bakery admins
-let debounceTimer = null;
-const handleFeaturesDataChanged = (formData) => {
-  // Skip if data hasn't actually changed
-  const currentData = featuresFormData.value;
-  if (currentData && JSON.stringify(currentData) === JSON.stringify(formData)) {
-    return;
-  }
-
-  // Update local form preview immediately
-  featuresFormData.value = { ...formData };
-
-  // Debounced auto-save
-  if (debounceTimer) {
-    clearTimeout(debounceTimer);
-  }
-  debounceTimer = setTimeout(async () => {
-    await saveFeaturesData(formData);
-  }, 2000);
-};
-
-const saveFeaturesData = async (formData) => {
+// `features` holds only the keys the form owns; the backend merges it into the rest.
+const saveFeaturesData = async (features) => {
   isFeaturesSaving.value = true;
   try {
-    // Preserve existing features and merge with new data
-    const currentFeatures = settingsStore.items[0]?.features || {};
-
-    await settingsStore.patch('default', {
-      features: {
-        ...currentFeatures,
-        order: {
-          ...(currentFeatures.order || {}),
-          activePaymentMethods: formData.activePaymentMethods,
-          allowPartialPayment: formData.allowPartialPayment,
-          defaultDate: formData.defaultDate,
-          timeOfDay: formData.timeOfDay,
-          offlineMode: formData.offlineMode,
-        },
-        reports: {
-          ...(currentFeatures.reports || {}),
-          defaultReportFilter: formData.defaultReportFilter,
-          showMultipleReports: formData.showMultipleReports,
-        },
-        products: {
-          ...(currentFeatures.products || {}),
-          useProductCost: formData.useProductCost,
-          offersWholeGrain: formData.wholeGrainEnabled || false,
-        },
-        invoicing: {
-          ...(currentFeatures.invoicing || {}),
-          defaultTermsAndConditions: formData.defaultTermsAndConditions || '',
-          showProductDescriptions: true,
-          showTermsAndConditions: true,
-          taxMode: formData.taxMode || 'inclusive',
-        },
-      },
-    });
+    await settingsStore.patch('default', { features });
 
     toastRef.value?.showSuccess(
       'Configuración Guardada',
@@ -700,6 +545,7 @@ const handleBrandingSubmit = async (formData) => {
       phone: formData.phone,
       legalName: formData.legalName,
       nationalId: formData.nationalId,
+      socialMedia: formData.socialMedia,
     };
 
     const brandingData = {
@@ -778,23 +624,38 @@ const handleBrandingValidationError = (error) => {
 </script>
 
 <template>
-  <!-- Bakery Branding Form -->
-  <BakeryBrandingForm
-    title="Identidad"
-    :initial-data="brandingFormData"
-    :loading="isBrandingSaving"
-    @submit="handleBrandingSubmit"
-    @validation-error="handleBrandingValidationError"
-  />
+  <!-- The forms declare no width — the host does. See .ui-formhost. -->
+  <div class="ui-formhost p-4 lg:p-6 flex flex-col gap-4">
+    <BakeryBrandingForm
+      ref="brandingFormRef"
+      title="Identidad"
+      :initial-data="brandingFormData"
+      :loading="isBrandingSaving"
+      @submit="handleBrandingSubmit"
+      @validation-error="handleBrandingValidationError"
+    />
 
-  <!-- Bakery Features Form -->
-  <BakeryFeaturesForm
-    title="Configuración de Características"
-    :initial-data="featuresFormData"
-    :available-payment-methods="configurablePaymentMethods"
-    :loading="isFeaturesSaving"
-    @data-changed="handleFeaturesDataChanged"
-  />
+    <BakeryFeaturesForm
+      v-if="featuresFormData"
+      ref="featuresFormRef"
+      title="Configuración"
+      :initial-data="featuresFormData"
+      :payment-methods="systemSettingsStore.configurablePaymentMethods"
+      :loading="isFeaturesSaving"
+      @save="saveFeaturesData"
+    />
+
+    <ConfirmDialog
+      :is-open="leaveOpen"
+      title="Cambios sin guardar"
+      message="Tienes cambios sin guardar. Si sales ahora, se pierden."
+      confirm-text="Salir sin guardar"
+      cancel-text="Seguir editando"
+      @confirm="leave"
+      @cancel="stay"
+    />
+  </div>
+
   <div class="hidden">
     <!-- Add Credit Card Form -->
     <CreditCardForm
