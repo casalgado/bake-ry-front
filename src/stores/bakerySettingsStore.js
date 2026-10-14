@@ -65,3 +65,8 @@ store.isInventoryEnabled = computed(
 store.isAccountingEnabled = computed(
   () => store.items[0]?.features?.accounting?.enabled === true,
 );
+
+// Off unless a system admin turns it on for the business.
+store.isWholeGrainEnabled = computed(
+  () => store.items[0]?.features?.products?.offersWholeGrain === true,
+);

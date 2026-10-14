@@ -8,6 +8,7 @@ import { PhPlus, PhTrash, PhX, PhCaretUp, PhCaretDown } from '@phosphor-icons/vu
 import VariationGroups from '@/models/VariationGroups';
 import { generateId, capitalize } from '@/utils/helpers';
 import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 const props = defineProps({
   initialVariations: {
@@ -35,6 +36,7 @@ const emit = defineEmits(['update']);
 
 // System settings store
 const systemSettingsStore = useSystemSettingsStore();
+const bakerySettingsStore = useBakerySettingsStore();
 
 // Ids are per instance, so two managers on one page never share a `for` target.
 const uid = useId();
@@ -101,6 +103,14 @@ onMounted(() => {
   // Load system settings if not already loaded
   if (!systemSettingsStore.isLoaded) {
     systemSettingsStore.fetchSettings();
+  }
+
+  // The integral question is gated on bakery settings, which the sidebar loads
+  // at login; fetch only if this form opened first.
+  if (!bakerySettingsStore.items.length) {
+    bakerySettingsStore.fetchAll().catch(error => {
+      console.error('Failed to load bakery settings:', error);
+    });
   }
 });
 
@@ -675,7 +685,12 @@ watch(
         :options="getUnitOptionsForDimension(dimension.type)"
       />
 
-      <div class="flex flex-col gap-1">
+      <!-- Off unless the business opted in. A dimension that already has integral
+           options keeps the control, or they could never be switched off. -->
+      <div
+        v-if="bakerySettingsStore.isWholeGrainEnabled || variationGroup.dimensionHasWholeGrainOptions(dimension.id)"
+        class="flex flex-col gap-1"
+      >
         <UiYesNo
           :model-value="getDimensionWholeGrainStatus(dimension.id)"
           label="¿Ofrecer opciones integrales para esta variación?"

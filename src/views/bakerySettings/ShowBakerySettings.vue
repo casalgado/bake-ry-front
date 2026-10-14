@@ -33,6 +33,8 @@ const featuresFormData = ref({
   // Reports features
   defaultReportFilter: 'dueDate',
   showMultipleReports: false,
+  // Products features
+  wholeGrainEnabled: false,
   // Invoicing features
   defaultTermsAndConditions: '',
   taxMode: 'inclusive',
@@ -539,6 +541,9 @@ const initializeFeaturesForm = () => {
     if (Object.prototype.hasOwnProperty.call(productsFeatures, 'useProductCost')) {
       newFormData.useProductCost = productsFeatures.useProductCost;
     }
+    if (Object.prototype.hasOwnProperty.call(productsFeatures, 'offersWholeGrain')) {
+      newFormData.wholeGrainEnabled = productsFeatures.offersWholeGrain;
+    }
   }
 
   // Invoicing features
@@ -655,6 +660,7 @@ const saveFeaturesData = async (formData) => {
         products: {
           ...(currentFeatures.products || {}),
           useProductCost: formData.useProductCost,
+          offersWholeGrain: formData.wholeGrainEnabled || false,
         },
         invoicing: {
           ...(currentFeatures.invoicing || {}),

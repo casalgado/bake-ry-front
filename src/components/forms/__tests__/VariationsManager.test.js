@@ -51,6 +51,16 @@ vi.mock('@/stores/systemSettingsStore', () => ({
   useSystemSettingsStore: () => mockSystemSettingsStore,
 }));
 
+const mockBakerySettingsStore = {
+  items: [{}],
+  isWholeGrainEnabled: true,
+  fetchAll: vi.fn().mockResolvedValue([]),
+};
+
+vi.mock('@/stores/bakerySettingsStore', () => ({
+  useBakerySettingsStore: () => mockBakerySettingsStore,
+}));
+
 // Mock the helpers
 vi.mock('@/utils/helpers', () => ({
   generateId: () => `test-id-${Date.now()}-${Math.random()}`,
@@ -300,6 +310,31 @@ describe('VariationsManager', () => {
         toggle.props('label').includes('integrales')
       );
       expect(wholeGrainToggle.exists()).toBe(true);
+    });
+
+    it('hides the wholegrain toggle when the business has not opted in', async () => {
+      mockBakerySettingsStore.isWholeGrainEnabled = false;
+      try {
+        wrapper = createWrapper();
+        await wrapper.find('input[value="WEIGHT"]').setChecked(true);
+
+        const hasToggle = wrapper.findAllComponents(MockYesNoToggle).some(toggle =>
+          toggle.props('label').includes('integrales'),
+        );
+        expect(hasToggle).toBe(false);
+
+        // Once a dimension has integral options the control stays, to switch them off.
+        const dimensionId = wrapper.vm.variationGroup.dimensions[0].id;
+        await wrapper.vm.toggleWholeGrainForDimension(dimensionId, true);
+        await wrapper.vm.$nextTick();
+
+        const stillThere = wrapper.findAllComponents(MockYesNoToggle).some(toggle =>
+          toggle.props('label').includes('integrales'),
+        );
+        expect(stillThere).toBe(true);
+      } finally {
+        mockBakerySettingsStore.isWholeGrainEnabled = true;
+      }
     });
 
     it('can enable wholegrain variations', async () => {

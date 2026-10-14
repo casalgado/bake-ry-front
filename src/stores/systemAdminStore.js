@@ -201,7 +201,10 @@ export const useSystemAdminStore = defineStore('systemAdmin', {
               showMultipleReports: featuresData.showMultipleReports,
             },
             products: {
+              // Spread first, like inventory: a patch replaces the whole features object.
+              ...(this.bakeries[bakeryIndex]?.settings?.features?.products || {}),
               useProductCost: featuresData.useProductCost,
+              offersWholeGrain: featuresData.wholeGrainEnabled || false,
             },
             invoicing: {
               defaultTermsAndConditions: featuresData.defaultTermsAndConditions || '',

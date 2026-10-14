@@ -50,6 +50,7 @@ const featuresFormData = computed(() => {
     posDefaultClientId: features.pos?.defaultClientId || null,
     inventoryEnabled: features.inventory?.enabled || false,
     accountingEnabled: features.accounting?.enabled || false,
+    wholeGrainEnabled: features.products?.offersWholeGrain || false,
   };
 });
 

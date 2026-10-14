@@ -16,6 +16,7 @@ import {
   PhCalendarBlank,
   PhWarehouse,
   PhCalculator,
+  PhGrains,
 } from '@phosphor-icons/vue';
 import { paymentIconMap } from '@/utils/paymentIcons';
 
@@ -50,6 +51,7 @@ const props = defineProps({
       // Opt-in modules
       inventoryEnabled: false,
       accountingEnabled: false,
+      wholeGrainEnabled: false,
     }),
   },
   availablePaymentMethods: {
@@ -219,6 +221,14 @@ watch(formData, (newValue) => {
             :icon="PhUser"
             title="Cargar Históricos al Seleccionar Usuario"
             description="Carga automáticamente objetos históricos cuando se selecciona un usuario"
+            :disabled="loading"
+          />
+
+          <FeatureCard
+            v-model="formData.wholeGrainEnabled"
+            :icon="PhGrains"
+            title="Opciones Integrales"
+            description="Pregunta si cada variación ofrece una versión integral"
             :disabled="loading"
           />
         </div>
