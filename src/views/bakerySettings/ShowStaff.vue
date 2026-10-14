@@ -333,7 +333,7 @@ onMounted(async () => {
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
         <!-- No surface of its own: the form is a ui-card and paints itself. -->
-        <DialogPanel class="w-full max-w-[48rem] max-h-[90dvh] overflow-y-auto">
+        <DialogPanel class="ui-formhost ui-gutter max-h-[90dvh] overflow-y-auto">
           <BakeryUserForm
             v-if="selectedUser"
             title="Editar Miembro del Equipo"

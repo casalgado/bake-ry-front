@@ -209,7 +209,7 @@ const navigateToCreate = () => {
         <!-- No surface of its own: the form is a ui-card and paints itself, so a
              second box here just nests an 8px radius inside a 12px one. dvh, not
              vh — iOS Safari's collapsing toolbar makes vh taller than the screen. -->
-        <DialogPanel class="w-full max-w-[48rem] max-h-[90dvh] overflow-y-auto">
+        <DialogPanel class="ui-formhost ui-gutter max-h-[90dvh] overflow-y-auto">
           <BakeryUserForm
             v-if="selectedItems[0]"
             :title="'Editar Usuario'"

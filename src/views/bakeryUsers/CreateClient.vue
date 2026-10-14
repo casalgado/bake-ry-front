@@ -22,10 +22,8 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <!-- The form declares no width — the host does. w-full is needed because the
-       dashboard shell is `grid justify-items-center`, which sizes children to
-       their content instead of stretching them. -->
-  <div class="p-4 lg:p-6 w-full max-w-[48rem]">
+  <!-- The form declares no width — the host does. See .ui-formhost. -->
+  <div class="ui-formhost p-4 lg:p-6">
     <BakeryUserForm
       title="Crear Nuevo Cliente"
       :loading="bakeryUserStore.loading"

@@ -23,8 +23,8 @@ const handleCancel = () => {
 
 <template>
 
-  <!-- Width lives on the host, not the form. See CreateClient.vue. -->
-  <div class="p-4 lg:p-6 w-full max-w-[48rem]">
+  <!-- The form declares no width — the host does. See .ui-formhost. -->
+  <div class="ui-formhost p-4 lg:p-6">
     <BakeryUserForm
       title="Crear nuevo usuario"
       :loading="bakeryUserStore.loading"

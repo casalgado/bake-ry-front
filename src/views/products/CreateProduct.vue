@@ -38,10 +38,10 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <div>
-    <!-- Width lives on the host, not the form. w-full because the dashboard shell
-         is `grid justify-items-center` and would size this to its content. -->
-    <div class="form-fade p-4 lg:p-6 w-full max-w-[48rem]" :class="{ 'fade-out': isRedirecting }">
+  <!-- The form declares no width — the host does. See .ui-formhost. The root
+       carries it; the toast below sits outside the fading container. -->
+  <div class="ui-formhost">
+    <div class="form-fade p-4 lg:p-6" :class="{ 'fade-out': isRedirecting }">
       <ProductForm
         :loading="productStore.loading"
         @submit="handleSubmit"
