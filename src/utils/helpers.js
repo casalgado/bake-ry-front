@@ -291,6 +291,14 @@ const sortVariations = (variations) => {
   });
 };
 
+// Category names in the order set on their collections (`displayOrder`). The
+// sort is stable, so ties keep the order the names came in; a name with no
+// collection goes last.
+const orderCategoryNames = (names, collections) => {
+  const order = Object.fromEntries(collections.map((c) => [c.name, c.displayOrder ?? 0]));
+  return [...names].sort((a, b) => (order[a] ?? 999) - (order[b] ?? 999));
+};
+
 /**
  * What a `<input type="number">` actually typed, for a field that is allowed to
  * be empty. Returns `null` for "nothing here", a number otherwise, and refuses
@@ -348,4 +356,5 @@ export {
   getVariationTypeLabel,
   getUnitTypeLabel,
   sortVariations,
+  orderCategoryNames,
 };

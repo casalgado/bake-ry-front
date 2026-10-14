@@ -5,19 +5,21 @@ let lastPosFulfillmentType = null;
 </script>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch, useId } from 'vue';
 import { useProductStore } from '@/stores/productStore';
 import { useBakeryUserStore } from '@/stores/bakeryUserStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useSystemSettingsStore } from '@/stores/systemSettingsStore';
 import UserCombox from '@/components/forms/UserCombox.vue';
 import OrderItemsManager from './OrderItemsManager.vue';
+import ProductWizard from './ProductWizard.vue';
 import PartialPaymentsManager from './PartialPaymentsManager.vue';
 import NewClientDialog from './NewClientDialog.vue';
-import RadioButtonGroup from './RadioButtonGroup.vue';
+import UiPills from '@/components/ui/UiPills.vue';
 import { formatMoney, cleanString } from '@/utils/helpers';
+import { paymentIconMap } from '@/utils/paymentIcons';
 import { getTodayString, getNextBusinessDayString, formatDateForInput } from '@/utils/dateUtils';
-import { PhCaretLeft, PhCaretRight, PhX, PhCaretDown } from '@phosphor-icons/vue';
+import { PhX, PhPlus, PhNotePencil } from '@phosphor-icons/vue';
 import { Order } from '@/models/Order.js';
 import { COMMITTED_WINDOW_DAYS, SHIPPED_STATUS } from '@/services/stockService';
 
@@ -135,6 +137,7 @@ const addBasePricesToOrderItems = (orderItems, products, preserveCurrentPrice = 
 
 const emit = defineEmits(['submit', 'cancel']);
 
+const uid = useId();
 const productStore = useProductStore();
 const bakerySettingsStore = useBakerySettingsStore();
 const systemSettingsStore = useSystemSettingsStore();
@@ -142,51 +145,34 @@ const userStore = useBakeryUserStore();
 const isNewClientDialogOpen = ref(false);
 const originalAddress = ref('');
 const fetching = ref(false);
+const formRef = ref(null);
 const userCombox = ref(null);
+const catalog = ref(null);
+const itemsManager = ref(null);
 const userHistory = ref([]);
-const currentHistoryIndex = ref(0);
 
 // POS Configuration
-const posConfig = computed(() => bakerySettingsStore.posConfig);
 const shouldAutoSelectClient = computed(() => bakerySettingsStore.shouldAutoSelectClient);
 const shouldAutoMarkPaid = computed(() => bakerySettingsStore.shouldAutoMarkPaid);
 const shouldDefaultToCurrentDate = computed(() => bakerySettingsStore.shouldDefaultToCurrentDate);
 const shouldHideDeliveryOptions = computed(() => bakerySettingsStore.shouldHideDeliveryOptions);
 const posDefaultClientId = computed(() => bakerySettingsStore.posDefaultClientId);
 
-// Product selection mode with localStorage persistence
-const getStoredSelectionMode = () => {
-  try {
-    return localStorage.getItem('productSelectionMode') || 'wizard';
-  } catch (error) {
-    return 'wizard';
-  }
-};
-
-const productSelectionMode = ref(getStoredSelectionMode());
-
-// Save selection mode preference to localStorage
-watch(productSelectionMode, (newMode) => {
-  try {
-    localStorage.setItem('productSelectionMode', newMode);
-  } catch (error) {
-    console.warn('Could not save product selection mode preference:', error);
-  }
-});
-
 const tomorrowString = getNextBusinessDayString();
 
-const deliveryFeeOptions = [
-  { value: 6000, label: '6,000' },
-  { value: 7000, label: '7,000' },
-  { value: 8000, label: '8,000' },
-  { value: 9000, label: '9,000' },
-  { value: 10000, label: '10,000' },
-  { value: 'custom', label: 'Otro' },
-];
+const deliveryFeeOptions = [7000, 8000, 9000, 10000]
+  .map((value) => ({ value, label: formatMoney(value) }))
+  .concat({ value: 'custom', label: 'Otro' });
 
-// Must stay one of the deliveryFeeOptions values, otherwise the radio group falls to "Otro"
+// Must stay one of the deliveryFeeOptions values, otherwise the pills fall to "Otro"
 const DEFAULT_DELIVERY_FEE = 7000;
+
+// Below Tailwind's sm, matching the class breakpoints used everywhere else.
+const narrowQuery = window.matchMedia('(max-width: 639px)');
+const isNarrow = ref(narrowQuery.matches);
+const onNarrowChange = (event) => { isNarrow.value = event.matches; };
+narrowQuery.addEventListener('change', onNarrowChange);
+onUnmounted(() => narrowQuery.removeEventListener('change', onNarrowChange));
 
 const getInitialFormState = () => {
   return {
@@ -254,7 +240,7 @@ const formData = ref(
         productStore.items,
         true,
       ),
-      // Ensure RadioButtonGroup fields have safe fallbacks
+      // Safe fallbacks for the single-choice fields
       fulfillmentType: props.initialData.fulfillmentType ?? 'delivery',
       paymentMethod: props.initialData.paymentMethod ?? 'cash',
       orderDiscountType: props.initialData.orderDiscountType ?? 'percentage',
@@ -285,38 +271,40 @@ const savedLines = props.initialData?.id && heldOnServer(props.initialData)
 
 const errors = ref({});
 
+// Optional sections start open when they already hold something.
+const showProductionNote = ref(!!formData.value.internalNotes);
+const showDeliveryNote = ref(!!formData.value.deliveryNotes);
+const showOrderDiscount = ref(!!formData.value.orderDiscountValue);
+
+// Where the cashier's hands go first: the catalog when the client is already
+// chosen for them, otherwise the client.
+const focusFirstField = () => {
+  if (shouldAutoSelectClient.value) catalog.value?.focus();
+  else userCombox.value?.focus();
+};
+
 const resetForm = () => {
   formData.value = getInitialFormState();
   errors.value = {};
   selectedDeliveryFee.value = DEFAULT_DELIVERY_FEE;
+  userHistory.value = [];
+  repeated.value = null;
+  showProductionNote.value = false;
+  showDeliveryNote.value = false;
+  showOrderDiscount.value = false;
   applyPOSSettings();
-
-  nextTick(() => {
-    setTimeout(() => {
-      if (shouldAutoSelectClient.value) {
-        // When auto-selecting client, focus the product search instead of user selection
-        const productSearchInput = document.getElementById('pos-product-search-input');
-        if (productSearchInput) {
-          productSearchInput.focus();
-        }
-      } else {
-        userCombox.value?.focus();
-      }
-    }, 800);
-  });
+  nextTick(focusFirstField);
 };
 
 // Expose the resetForm method to the parent component
 defineExpose({ resetForm });
 
-// Computed property for submit button text
 const submitButtonText = computed(() => {
-  return props.initialData?.id ? 'Actualizar Pedido' : 'Crear Pedido';
+  return props.initialData?.id ? 'Actualizar pedido' : 'Crear pedido';
 });
 
-// Computed property for loading text
 const loadingText = computed(() => {
-  return props.initialData ? 'Actualizando...' : 'Creando...';
+  return props.initialData ? 'Actualizando…' : 'Creando…';
 });
 
 const clearErrorsOnInput = (fields) => {
@@ -396,7 +384,6 @@ onMounted(async () => {
 
   // Handle initial user selection - either from props or POS auto-select
   if (props.initialData?.userId) {
-    // Use the provided initial user
     const user = userStore.items.find((u) => u.id === props.initialData.userId);
     if (user) {
       handleUserChange(user);
@@ -425,16 +412,9 @@ onMounted(async () => {
     'orderItems',
   ]);
 
-  // Focus product search input when auto-selecting client (after handleUserChange completes)
+  // The form renders only once fetching is done, so the refs exist from here.
   await nextTick();
-  if (shouldAutoSelectClient.value) {
-    setTimeout(() => {
-      const productSearchInput = document.getElementById('pos-product-search-input');
-      if (productSearchInput) {
-        productSearchInput.focus();
-      }
-    }, 100); // Delay to ensure it runs after handleUserChange's setTimeout
-  }
+  focusFirstField();
 });
 
 const features = computed(() => {
@@ -446,23 +426,21 @@ const shouldLoadHistoricalOnUserSelection = computed(() => {
   return features.value?.order?.loadHistoricalOnUserSelection || false;
 });
 
-const handleNewClientClick = () => {
-  isNewClientDialogOpen.value = true;
-};
-
-const handleClientCreated = (newClient) => {
-  handleUserChange(newClient);
-};
+// A client someone just chose: fill the form, then move on to the next field.
+const pickClient = (user) => handleUserChange(user, { moveFocus: true });
 
 // POS client section collapse state
 const isClientSectionCollapsed = ref(true);
 
-const handleUserChange = async (user) => {
+// Focus moves only when a person picked the client. Filled in by the form itself
+// (POS default, an order being edited), it must not pull focus from wherever the
+// cashier already is — the catalog grid, whose letter keys would land in search.
+const handleUserChange = async (user, { moveFocus = false } = {}) => {
   formData.value.userId = user.id;
   formData.value.userName = user.name;
   formData.value.userEmail = user.email;
   formData.value.userPhone = user.phone;
-  formData.value.userLegalName = user.legalName || ''; // Added userLegalName
+  formData.value.userLegalName = user.legalName || '';
   formData.value.userCategory = user.category || '';
   formData.value.userNationalId = user.nationalId || '';
   if (!props.initialData) {
@@ -479,58 +457,31 @@ const handleUserChange = async (user) => {
 
   // Only fetch and set history for new orders
   if (!props.initialData) {
+    repeated.value = null;
     try {
       userHistory.value = await userStore.getHistory(user.id);
-      if (userHistory.value.length > 0) {
-        currentHistoryIndex.value = 0;
-        const historicalOrder = userHistory.value[0];
-        if (shouldLoadHistoricalOnUserSelection.value) {
-          formData.value.orderItems = addBasePricesToOrderItems(
-            historicalOrder.orderItems,
-            productStore.items,
-          );
-          formData.value.fulfillmentType = historicalOrder.fulfillmentType;
-          formData.value.deliveryFee = historicalOrder.deliveryFee;
-          formData.value.paymentMethod = historicalOrder.paymentMethod;
-          formData.value.orderDiscountType = historicalOrder.orderDiscountType || 'percentage';
-          formData.value.orderDiscountValue = historicalOrder.orderDiscountValue || 0;
-
-          // Update selectedFeeType based on the historical delivery fee
-          const matchingOption = deliveryFeeOptions.find(
-            (option) => option.value === historicalOrder.deliveryFee,
-          );
-          selectedDeliveryFee.value = matchingOption
-            ? matchingOption.value
-            : 'custom';
-        }
-
+      const lastOrder = userHistory.value[0];
+      if (lastOrder && shouldLoadHistoricalOnUserSelection.value) {
+        formData.value.orderItems = addBasePricesToOrderItems(
+          lastOrder.orderItems,
+          productStore.items,
+        );
+        formData.value.fulfillmentType = lastOrder.fulfillmentType;
+        formData.value.deliveryFee = lastOrder.deliveryFee;
+        formData.value.paymentMethod = lastOrder.paymentMethod;
+        formData.value.orderDiscountType = lastOrder.orderDiscountType || 'percentage';
+        formData.value.orderDiscountValue = lastOrder.orderDiscountValue || 0;
+        showOrderDiscount.value = !!formData.value.orderDiscountValue;
       }
     } catch (error) {
-      console.warn('Could not fetch user history:', error.message);
       userHistory.value = [];
     }
   }
 
+  if (!moveFocus) return;
   await nextTick();
-  originalAddress.value = user.address;
-  await nextTick();
-  setTimeout(() => {
-    if (shouldDefaultToCurrentDate.value) {
-      // When defaulting to current date, focus the product search instead of date field
-      const productSearchInput = document.getElementById('pos-product-search-input');
-      if (productSearchInput) {
-        productSearchInput.focus();
-      }
-    } else {
-      // Normal mode: focus the date field
-      const nextElement = document.querySelector(
-        'input[name="preparation-date"]',
-      );
-      if (nextElement) {
-        nextElement.focus();
-      }
-    }
-  }, 0);
+  if (shouldDefaultToCurrentDate.value) catalog.value?.focus();
+  else formRef.value?.querySelector(`#${CSS.escape(`${uid}-date`)}`)?.focus();
 };
 
 const addressHasChanged = computed(() => {
@@ -541,30 +492,51 @@ const addressHasChanged = computed(() => {
   );
 });
 
-const scrollToError = async () => {
-  await nextTick(); // Wait for the DOM to update
-  const firstErrorElement = document.querySelector('.text-danger');
-  if (firstErrorElement) {
-    firstErrorElement.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-    });
-  } else {
-    // If no specific error element found, scroll to top of form
-    const form = document.querySelector('form');
-    if (form) {
-      form.scrollIntoView({ behavior: 'smooth' });
-    }
-  }
+// Past orders, newest first. A few are enough to recognise "lo de siempre";
+// further back is the orders list's job.
+const PAST_ORDERS_SHOWN = 4;
+const pastOrders = computed(() => (props.initialData ? [] : userHistory.value.slice(0, PAST_ORDERS_SHOWN)));
+
+const formatShortDate = (date) => (date
+  ? new Date(date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }).replace('.', '')
+  : '');
+
+const unitsOf = (items) => items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+
+// Repeating adds the past order's lines after the current ones. Deshacer takes
+// exactly those back out, and only while the cart still has the same number of
+// lines: once a line is added or removed, "those lines" no longer means anything.
+const repeated = ref(null);
+
+const repeatOrder = (order) => {
+  const at = formData.value.orderItems.length;
+  const added = addBasePricesToOrderItems(order.orderItems, productStore.items);
+  formData.value.orderItems = [...formData.value.orderItems, ...added];
+  repeated.value = { at, count: added.length, date: order.preparationDate || order.dueDate };
 };
+
+const canUndoRepeat = computed(() => repeated.value
+  && formData.value.orderItems.length === repeated.value.at + repeated.value.count);
+
+const undoRepeat = () => {
+  formData.value.orderItems = formData.value.orderItems.slice(0, repeated.value.at);
+  repeated.value = null;
+};
+
+const scrollToError = async () => {
+  await nextTick();
+  const firstError = formRef.value?.querySelector('.ui-field-error');
+  (firstError || formRef.value)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
 const validate = () => {
   errors.value = {};
 
-  if (!formData.value.userId) errors.value.userId = 'Cliente es requerido';
+  if (!formData.value.userId) errors.value.userId = 'Elige un cliente';
   if (!formData.value.orderItems.length)
-    errors.value.orderItems = 'Se requiere al menos un producto';
+    errors.value.orderItems = 'Agrega al menos un producto';
   if (!formData.value.preparationDate)
-    errors.value.preparationDate = 'Fecha de preparación es requerida';
+    errors.value.preparationDate = 'Elige una fecha';
   if (!formData.value.dueDate)
     errors.value.dueDate = 'Fecha de entrega es requerida';
   // Validate partial payments
@@ -585,8 +557,6 @@ const validate = () => {
       'La fecha de entrega no puede ser anterior a la fecha de preparación';
   }
 
-  console.log(errors.value);
-
   if (Object.keys(errors.value).length > 0) {
     scrollToError();
     return false;
@@ -602,14 +572,9 @@ const handleSubmit = () => {
   formData.value.internalNotes = cleanString(formData.value.internalNotes);
   formData.value.isPaid = !!formData.value.paymentDate;
 
-  // Get taxMode from bakery settings
-  const taxMode = bakerySettingsStore.items[0]?.features?.invoicing?.taxMode || 'inclusive';
-
-  console.log('Form Data:', formData.value);
-  emit('submit', { ...formData.value, taxMode });
+  emit('submit', { ...formData.value, taxMode: currentTaxMode.value });
 };
 
-// Get taxMode from bakery settings for calculations
 const currentTaxMode = computed(() => {
   return bakerySettingsStore.items[0]?.features?.invoicing?.taxMode || 'inclusive';
 });
@@ -633,6 +598,8 @@ const total = computed(() => orderForPricing.value.total);
 // Original tax before discount (for inclusive display)
 const originalTaxAmount = computed(() => subtotal.value - preTaxSubtotal.value);
 
+const itemCount = computed(() => unitsOf(formData.value.orderItems));
+
 const paymentMethodOptions = computed(() => {
   if (!bakerySettingsStore.items.length) return [];
 
@@ -640,11 +607,15 @@ const paymentMethodOptions = computed(() => {
   const availablePaymentMethods = systemSettingsStore.availablePaymentMethods || [];
   const activePaymentMethods = settings.features?.order?.activePaymentMethods || [];
 
-  // Filter available methods to only show active ones
   return availablePaymentMethods.filter(method =>
     activePaymentMethods.includes(method.value),
   );
 });
+
+const paymentMethodPills = computed(() => paymentMethodOptions.value.map((method) => ({
+  ...method,
+  icon: paymentIconMap[method.value],
+})));
 
 const fulfillmentTypes = [
   { value: 'pickup', label: 'Recoger' },
@@ -652,24 +623,66 @@ const fulfillmentTypes = [
 ];
 
 const discountTypeOptions = [
-  { value: 'percentage', label: 'Porcentaje (%)' },
-  { value: 'fixed', label: 'Fijo ($)' },
+  { value: 'percentage', label: '%' },
+  { value: 'fixed', label: '$' },
 ];
+
+// Without delivery there is only one kind of note, so it needs no qualifier.
+const productionNoteLabel = computed(() =>
+  (shouldHideDeliveryOptions.value ? 'Comentarios' : 'Comentarios producción'));
+
+// The business delivers at all (structure) vs this order is a delivery (state):
+// the first decides what exists, the second what is enabled.
+const hasDelivery = computed(() => !shouldHideDeliveryOptions.value);
+
+const isDelivery = computed(() => formData.value.fulfillmentType === 'delivery' && !shouldHideDeliveryOptions.value);
+
+const dateLabel = computed(() => {
+  if (shouldDefaultToCurrentDate.value) return 'Fecha de venta';
+  return features.value?.order?.defaultDate === 'delivery' ? 'Fecha de entrega' : 'Fecha de preparación';
+});
+
+const paymentStatusOptions = [
+  { value: false, label: 'Pendiente' },
+  { value: true, label: 'Pagado' },
+];
+
+// Paid is a two-state choice; the date is its detail. Pagado fills today, and the
+// date stays editable for a payment received another day.
+const isPaid = computed({
+  get: () => !!formData.value.paymentDate,
+  set: (paid) => {
+    formData.value.paymentDate = paid ? (formData.value.paymentDate || getTodayString()) : '';
+  },
+});
+
+const showGracePeriod = computed(() =>
+  formData.value.userCategory === 'B2B' && formData.value.invoiceGracePeriod !== null);
+
+const removeOrderDiscount = () => {
+  formData.value.orderDiscountValue = 0;
+  showOrderDiscount.value = false;
+};
 
 const selectedDeliveryFee = ref(DEFAULT_DELIVERY_FEE);
 
 watch(selectedDeliveryFee, (newValue) => {
-  if (newValue === 'custom') {
-    // Don't modify the delivery fee if it's a custom value
-    return;
-  }
+  if (newValue === 'custom') return;
   formData.value.deliveryFee = newValue;
 });
 
-// Add a watch for deliveryFee to update selectedFeeType
+// Only on a click of Otro: an order loaded with a custom fee must not steal focus.
+const onDeliveryFeePick = (value) => {
+  if (value !== 'custom') return;
+  nextTick(() => formRef.value?.querySelector(`#${CSS.escape(`${uid}-fee`)}`)?.focus());
+};
+
+// A fee from outside (a past order) picks its preset. While typing a custom one
+// it stays custom, or typing 8000 would snap back to the pills mid-number.
 watch(
   () => formData.value.deliveryFee,
   (newValue) => {
+    if (selectedDeliveryFee.value === 'custom') return;
     const matchingOption = deliveryFeeOptions.find(
       (option) => option.value === newValue,
     );
@@ -688,472 +701,270 @@ watch(
   },
 );
 
-// Navigation methods
-const handlePrevOrder = () => {
-  if (currentHistoryIndex.value < userHistory.value.length - 1) {
-    currentHistoryIndex.value++;
-    const historicalOrder = userHistory.value[currentHistoryIndex.value];
-    formData.value.orderItems = addBasePricesToOrderItems(
-      historicalOrder.orderItems,
-      productStore.items,
-    );
-    formData.value.orderDiscountType = historicalOrder.orderDiscountType || 'percentage';
-    formData.value.orderDiscountValue = historicalOrder.orderDiscountValue || 0;
-  }
-};
-
-const handleNextOrder = () => {
-  if (currentHistoryIndex.value > 0) {
-    currentHistoryIndex.value--;
-    const historicalOrder = userHistory.value[currentHistoryIndex.value];
-    formData.value.orderItems = addBasePricesToOrderItems(
-      historicalOrder.orderItems,
-      productStore.items,
-    );
-    formData.value.orderDiscountType = historicalOrder.orderDiscountType || 'percentage';
-    formData.value.orderDiscountValue = historicalOrder.orderDiscountValue || 0;
-  }
-};
-
-// Add this utility function to compare order items
-const areOrderItemsEqual = (items1, items2) => {
-  if (items1.length !== items2.length) return false;
-
-  return items1.every((item1) => {
-    const item2 = items2.find((i) => i.productId === item1.productId);
-    if (!item2) return false;
-
-    return (
-      item1.quantity === item2.quantity &&
-      item1.variation?.id === item2.variation?.id &&
-      item1.currentPrice === item2.currentPrice
-    );
-  });
-};
-
-// Add computed property to check if current items match historical items
-const isCurrentOrderModified = computed(() => {
-  if (!userHistory.value.length) return false;
-
-  const historicalOrder = userHistory.value[currentHistoryIndex.value];
-  return !areOrderItemsEqual(
-    formData.value.orderItems,
-    historicalOrder.orderItems,
-  );
-});
-
-// Modify the formatOrderDate function
-const formatOrderDate = (date) => {
-  if (isCurrentOrderModified.value) {
-    return 'nueva';
-  }
-  if (!date) return null;
-  return new Date(date)
-    .toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-    })
-    .replace('.', '');
-};
-
 const clearUser = () => {
   formData.value.userId = '';
   formData.value.userName = '';
   formData.value.userEmail = '';
   formData.value.userPhone = '';
-  formData.value.userNationalId = ''; // Added userNationalId reset
-  formData.value.userLegalName = ''; // Added userLegalName reset
+  formData.value.userNationalId = '';
+  formData.value.userLegalName = '';
   formData.value.deliveryAddress = '';
   userHistory.value = [];
-  currentHistoryIndex.value = 0;
+  repeated.value = null;
 
   nextTick(() => {
     userCombox.value?.focus();
   });
 };
-
 </script>
 
 <template>
-  <div class="form-container">
-    <h2>{{ title }}</h2>
+  <div v-if="fetching" class="ui-app ui-empty" data-ui-theme="light">Cargando…</div>
 
-    <div v-if="fetching" class="text-center py-8">
-      <p class="text-neutral-600">Cargando...</p>
-    </div>
+  <form
+    v-else
+    ref="formRef"
+    class="ui-app"
+    data-ui-theme="light"
+    @submit.prevent="handleSubmit"
+  >
+    <!-- Who, when and how: the context every line below belongs to. -->
+    <div class="ui-pane flex flex-col gap-4">
+      <h2 class="ui-panehead-title">{{ title }}</h2>
 
-    <form v-else @submit.prevent="handleSubmit">
-      <!-- Client, Date & Delivery Card -->
-      <div class="base-card flex flex-col gap-4">
+      <!-- POS: the client is chosen for the cashier, so it stays one line until asked. -->
+      <button
+        v-if="shouldAutoSelectClient && isClientSectionCollapsed"
+        type="button"
+        class="ui-item ui-item-filled"
+        @click="isClientSectionCollapsed = false"
+      >
+        <span class="ui-tag">cliente</span>
+        <span class="ui-item-title">{{ formData.userName || 'Punto de venta' }}</span>
+        <span class="ui-item-meta">Cambiar</span>
+      </button>
 
-        <!-- Collapsed POS client display -->
-        <div
-          v-if="shouldAutoSelectClient && isClientSectionCollapsed"
-          class="cursor-pointer flex items-center justify-between"
-          @click="isClientSectionCollapsed = false"
-        >
-          <span class="text-sm text-neutral-700">
-            <span class="font-bold">Cliente:</span> {{ formData.userName || 'Punto de Venta' }}
-          </span>
-          <PhCaretDown class="w-4 h-4 text-neutral-500" />
-        </div>
-
-        <template v-if="!shouldAutoSelectClient || !isClientSectionCollapsed">
-        <div>
-          <label for="client-select">{{
-            fetching ? "Clientes..." : "Clientes"
-          }}</label>
-          <div class="grid grid-cols-[1fr_auto_auto] gap-2">
+      <div v-else class="flex flex-wrap items-start gap-3">
+        <div class="ui-field flex-[2_1_16rem]">
+          <label class="ui-field-k" :for="`${uid}-client`" data-required>Cliente</label>
+          <div class="flex gap-1.5">
             <UserCombox
+              :id="`${uid}-client`"
               ref="userCombox"
               v-model="formData.userId"
+              class="flex-1 min-w-0"
               :users="userStore.items"
-              :error="errors.userId"
-              :required="true"
-              @change="handleUserChange"
+              :invalid="!!errors.userId"
+              :described-by="errors.userId ? `${uid}-client-e` : undefined"
+              @change="pickClient"
             />
             <button
+              v-if="formData.userId"
               type="button"
-              class="utility-btn m-0"
-              :class="{ 'utility-btn-inactive': !formData.userId }"
+              class="ui-btn ui-btn-icon ui-btn-field"
+              aria-label="Quitar cliente"
+              title="Quitar cliente"
               @click="clearUser"
-              :disabled="!formData.userId"
             >
-              <PhX class="" />
+              <PhX :size="13" weight="bold" />
             </button>
             <button
               v-if="!isOffline"
               type="button"
-              class="utility-btn m-0"
-              @click="handleNewClientClick"
+              class="ui-btn ui-btn-field"
+              @click="isNewClientDialogOpen = true"
             >
-              Nuevo Cliente
+              <PhPlus :size="13" weight="bold" />
+              Nuevo
             </button>
           </div>
-          <span v-if="errors.userId" class="text-danger text-sm">{{
-            errors.userId
-          }}</span>
+          <span v-if="errors.userId" :id="`${uid}-client-e`" class="ui-field-error">{{ errors.userId }}</span>
         </div>
 
-        <div
-          class="grid gap-2"
-          :class="features?.order?.timeOfDay ? 'grid-cols-2' : 'grid-cols-1'"
-        >
-          <div>
-            <label for="preparation-date"
-              >Fecha de
-              {{
-                shouldDefaultToCurrentDate ? "Venta" :
-                (features.order?.defaultDate &&
-                features.order.defaultDate === "delivery"
-                  ? "Entrega"
-                  : "Preparación")
-              }}</label
-            >
-            <input
-              id="preparation-date"
-              type="date"
-              v-model="formData.preparationDate"
-              name="preparation-date"
-              class="w-full"
-            />
-            <span v-if="errors.preparationDate" class="text-danger text-sm">{{
-              errors.preparationDate
-            }}</span>
-          </div>
-
-          <div class="hidden">
-            <label for="due-date">Fecha de Entrega</label>
-            <input
-              id="due-date"
-              type="date"
-              v-model="formData.dueDate"
-              :min="formData.preparationDate"
-              class="w-full"
-            />
-            <span v-if="errors.dueDate" class="text-danger text-sm">{{
-              errors.dueDate
-            }}</span>
-          </div>
-
-          <div :class="{ hidden: !features?.order?.timeOfDay }">
-            <label for="due-time">Hora de Entrega</label>
-            <input
-              id="due-time"
-              type="time"
-              v-model="formData.dueTime"
-              class="w-full"
-            />
-            <span v-if="errors.dueTime" class="text-danger text-sm">{{
-              errors.dueTime
-            }}</span>
-          </div>
-        </div>
-        </template>
-
-        <template v-if="!shouldHideDeliveryOptions">
-        <RadioButtonGroup
-          v-model="formData.fulfillmentType"
-          :options="fulfillmentTypes"
-          name="fulfillment-type"
-          label="Tipo de Envío"
-        />
-
-        <div v-if="formData.fulfillmentType === 'delivery'">
-          <label for="delivery-address">Dirección de Entrega</label>
-          <div class="grid grid-cols-[1fr_auto] gap-2">
-            <input
-              id="delivery-address"
-              type="text"
-              v-model="formData.deliveryAddress"
-              class="w-full"
-            />
-
-            <div v-if="addressHasChanged">
-              <input
-                type="checkbox"
-                id="update-address"
-                v-model="formData.shouldUpdateClientAddress"
-                class="sr-only peer"
-              />
-              <label
-                for="update-address"
-                class="utility-btn-inactive cursor-pointer py-1 px-2 rounded-md peer-checked:utility-btn-active peer-focus-visible:ring-2 peer-focus-visible:ring-black inline-block m-0"
-              >
-                Actualizar Cliente
-              </label>
-            </div>
-          </div>
-          <span v-if="errors.deliveryAddress" class="text-danger text-sm">{{
-            errors.deliveryAddress
-          }}</span>
-        </div>
-        </template>
-
-      </div>
-
-      <NewClientDialog
-        v-model:isOpen="isNewClientDialogOpen"
-        @client-created="handleClientCreated"
-      />
-
-      <div class="flex justify-between mx-2" >
-        <!-- Product Selection Mode Tabs -->
-        <div class="inline-flex items-center gap-2">
-          <button
-            type="button"
-            @click="productSelectionMode = 'wizard'"
-            :class="[
-              'px-3 py-1 text-sm font-medium rounded-t-lg rounded-b-none border border-gray-200 transition-colors mb-0',
-              productSelectionMode === 'wizard'
-                ? 'bg-white text-neutral-900 border-b-white z-10 relative'
-                : 'text-neutral-600 hover:text-neutral-900 bg-gray-50 border-b-gray-200'
-            ]"
+        <div class="ui-field flex-[1_1_9rem]">
+          <label class="ui-field-k" :for="`${uid}-date`" data-required>{{ dateLabel }}</label>
+          <input
+            :id="`${uid}-date`"
+            v-model="formData.preparationDate"
+            type="date"
+            class="ui-input"
+            required
+            :aria-invalid="!!(errors.preparationDate || errors.dueDate)"
+            :aria-describedby="errors.preparationDate || errors.dueDate ? `${uid}-date-e` : undefined"
           >
-            Explorar
-          </button>
-          <button
-            type="button"
-            @click="productSelectionMode = 'search'"
-            :class="[
-              'px-3 py-1 text-sm font-medium rounded-t-lg rounded-b-none border border-gray-200 transition-colors mb-0',
-              productSelectionMode === 'search'
-                ? 'bg-white text-neutral-900 border-b-white z-10 relative'
-                : 'text-neutral-600 hover:text-neutral-900 bg-gray-50 border-b-gray-200'
-            ]"
-          >
-            Buscar
-          </button>
-        </div>
-
-        <!-- Order History Navigation -->
-        <div
-          class="inline-flex items-center gap-2 bg-neutral-50 p-1 rounded-lg border border-neutral-200"
-        >
-          <button
-            type="button"
-            @click="handlePrevOrder"
-            :disabled="currentHistoryIndex === userHistory.length - 1"
-            class="p-1 my-0 hover:bg-white rounded disabled:opacity-50 disabled:hover:bg-transparent"
-          >
-            <PhCaretLeft class="w-4 h-4 text-neutral-600" />
-          </button>
-
-          <span
-            class="text-sm font-medium text-neutral-600 min-w-[60px] text-center"
-          >
-
-            {{
-              formatOrderDate(
-                userHistory[currentHistoryIndex]?.preparationDate
-                  ? userHistory[currentHistoryIndex]?.preparationDate
-                  : userHistory[currentHistoryIndex]?.dueDate
-              ) || 'nueva'
-            }}
+          <span v-if="errors.preparationDate || errors.dueDate" :id="`${uid}-date-e`" class="ui-field-error">
+            {{ errors.preparationDate || errors.dueDate }}
           </span>
+        </div>
 
-          <button
-            type="button"
-            @click="handleNextOrder"
-            :disabled="currentHistoryIndex === 0"
-            class="p-1 my-0 hover:bg-white rounded disabled:opacity-50 disabled:hover:bg-transparent"
+        <div v-if="features?.order?.timeOfDay" class="ui-field flex-[1_1_7rem]">
+          <label class="ui-field-k" :for="`${uid}-time`">Hora</label>
+          <input :id="`${uid}-time`" v-model="formData.dueTime" type="time" class="ui-input">
+        </div>
+
+        <UiPills
+          v-if="!shouldHideDeliveryOptions"
+          v-model="formData.fulfillmentType"
+          class="flex-[1_1_12rem]"
+          label="Entrega"
+          min-width="5rem"
+          :options="fulfillmentTypes"
+        />
+      </div>
+
+      <!-- Disabled on Recoger rather than removed: the form keeps its shape, and
+           the address is still there if they switch back. -->
+      <div v-if="hasDelivery" class="ui-field">
+        <label class="ui-field-k" :for="`${uid}-address`">Dirección</label>
+        <div class="flex gap-1.5">
+          <input
+            :id="`${uid}-address`"
+            v-model="formData.deliveryAddress"
+            type="text"
+            class="ui-input flex-1"
+            :disabled="!isDelivery"
           >
-            <PhCaretRight class="w-4 h-4 text-neutral-600" />
+          <!-- Only once the address differs from the client's: then it is a real question. -->
+          <button
+            v-if="addressHasChanged"
+            type="button"
+            class="ui-btn ui-btn-field"
+            :disabled="!isDelivery"
+            :aria-pressed="formData.shouldUpdateClientAddress"
+            @click="formData.shouldUpdateClientAddress = !formData.shouldUpdateClientAddress"
+          >
+            Guardar en el cliente
           </button>
         </div>
       </div>
 
-         <span v-if="errors.orderItems" class="text-danger text-sm">{{
-            errors.orderItems
-          }}</span>
-
-      <OrderItemsManager
-        v-model="formData.orderItems"
-        :products="productStore.items"
-        :selectionMode="productSelectionMode"
-        :saved-lines="savedLines"
-      />
-
-      <div class="base-card flex flex-col gap-4">
-        <div>
-          <label for="internal-notes">{{ shouldHideDeliveryOptions ? 'Comentarios' : 'Comentarios Produccion' }}</label>
-          <textarea
-            id="internal-notes"
-            v-model="formData.internalNotes"
-            class="w-full"
-            rows="3"
-          ></textarea>
+      <div v-if="pastOrders.length" class="ui-field">
+        <span class="ui-field-k">Repetir un pedido anterior</span>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button
+            v-for="order in pastOrders"
+            :key="order.id"
+            type="button"
+            class="ui-chip cursor-pointer"
+            @click="repeatOrder(order)"
+          >
+            {{ formatShortDate(order.preparationDate || order.dueDate) }}
+            <span class="ui-chip-meta">{{ unitsOf(order.orderItems) }} prod · {{ formatMoney(order.total || 0) }}</span>
+          </button>
         </div>
-
-        <div v-if="!shouldHideDeliveryOptions">
-          <label for="delivery-notes">Comentarios Domicilio</label>
-          <textarea
-            id="delivery-notes"
-            v-model="formData.deliveryNotes"
-            class="w-full"
-            rows="3"
-          ></textarea>
-        </div>
+        <span v-if="canUndoRepeat" class="ui-field-hint flex items-center gap-2">
+          Se agregó el pedido del {{ formatShortDate(repeated.date) }}.
+          <button type="button" class="ui-btn ui-btn-sm" @click="undoRepeat">Deshacer</button>
+        </span>
       </div>
+    </div>
 
-      <!-- Payment Card -->
-      <div class="base-card flex flex-col gap-4">
-        <div class="flex items-end gap-4">
-          <RadioButtonGroup
-            v-model="formData.orderDiscountType"
-            :options="discountTypeOptions"
-            name="order-discount-type"
-            label="Descuento del Pedido"
-            class="flex-1"
-          />
-          <div class="flex items-center gap-2">
-            <div
-              class="input-with-unit compact w-24"
-              :data-unit="formData.orderDiscountType === 'percentage' ? '%' : '$'"
-            >
-              <input
-                type="number"
-                v-model.number="formData.orderDiscountValue"
-                min="0"
-                :max="formData.orderDiscountType === 'percentage' ? 100 : undefined"
-                step="1"
-                placeholder="0"
-                @focus="$event.target.select()"
-              />
-            </div>
+    <div
+      class="ui-panes"
+      style="--panes: minmax(0, 1fr) minmax(0, 1.15fr); border-top: 1px solid var(--ui-line)"
+    >
+      <!-- The pane you take things from sits one step back (ui-pane-sunken). -->
+      <section class="ui-pane ui-pane-sunken" aria-label="Catálogo">
+        <div class="ui-panehead">
+          <span class="ui-panehead-title">Catálogo</span>
+        </div>
+        <ProductWizard
+          ref="catalog"
+          :products="productStore.items"
+          @select="itemsManager?.add($event)"
+        />
+      </section>
 
-            <button
-              type="button"
-              class="utility-btn m-0 self-stretch"
-              :class="{ 'utility-btn-inactive': !formData.orderDiscountValue }"
-              @click="formData.orderDiscountValue = 0"
-              :disabled="!formData.orderDiscountValue"
-            >
-              <PhX class="" />
-            </button>
-          </div>
+      <section class="ui-pane flex flex-col gap-4" aria-label="Pedido">
+        <div class="ui-panehead !mb-0">
+          <span class="ui-panehead-title">Pedido</span>
+          <span class="ui-panehead-sub">
+            {{ itemCount }} {{ itemCount === 1 ? 'producto' : 'productos' }}
+          </span>
         </div>
 
-        <RadioButtonGroup
-          v-if="formData.fulfillmentType === 'delivery' && !shouldHideDeliveryOptions"
-          v-model="selectedDeliveryFee"
-          :options="deliveryFeeOptions"
-          name="delivery-fee"
-          label="Costo de Envío"
-          has-custom-option
-          custom-option-value="custom"
-        >
-          <template #custom-input>
-            <input
-              type="number"
-              v-model="formData.deliveryFee"
-              min="0"
-              step="1"
-              placeholder="Ingrese valor personalizado"
-              class="mt-2 w-full"
-            />
-          </template>
-        </RadioButtonGroup>
+        <span v-if="errors.orderItems" class="ui-field-error">{{ errors.orderItems }}</span>
 
-        <RadioButtonGroup
-          v-model="formData.paymentMethod"
-          :options="paymentMethodOptions"
-          name="payment-method"
-          label="Método de Pago"
+        <OrderItemsManager
+          ref="itemsManager"
+          v-model="formData.orderItems"
+          :products="productStore.items"
+          :saved-lines="savedLines"
         />
 
-        <div
-          :class="formData.userCategory === 'B2B' && formData.invoiceGracePeriod !== null
-            ? 'grid grid-cols-[1fr_2fr] gap-2'
-            : ''"
+        <div class="ui-sectionhead !mb-0">Pago</div>
+
+        <UiPills
+          v-model="formData.paymentMethod"
+          label="Método"
+          min-width="7rem"
+          :options="paymentMethodPills"
+        />
+
+        <!-- Picked, Otro becomes its own field in the same cell, at the pills'
+             height (UiPills sizes them as fields when a selected- slot exists).
+             Fixed columns keep Otro last; three on a phone, where five would
+             cut "$10,000". -->
+        <UiPills
+          v-if="hasDelivery"
+          v-model="selectedDeliveryFee"
+          label="Costo de envío"
+          :columns="isNarrow ? 3 : 5"
+          :options="deliveryFeeOptions"
+          :disabled="!isDelivery"
+          @change="onDeliveryFeePick"
         >
-          <div v-if="formData.userCategory === 'B2B' && formData.invoiceGracePeriod !== null">
-            <label>Vencimiento (en dias)</label>
+          <template #selected-custom>
+            <div class="ui-field-unit" data-unit="$">
+              <input
+                :id="`${uid}-fee`"
+                v-model.number="formData.deliveryFee"
+                type="number"
+                class="ui-input ui-input-num"
+                min="0"
+                step="1"
+                aria-label="Otro costo de envío"
+                :disabled="!isDelivery"
+                @focus="$event.target.select()"
+              >
+            </div>
+          </template>
+        </UiPills>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+          <UiPills
+            v-model="isPaid"
+            label="Estado del pago"
+            min-width="6rem"
+            :options="paymentStatusOptions"
+          />
+          <!-- Always there, so choosing Pagado fills a field instead of moving the
+               layout; disabled while Pendiente, when there is no date to give. -->
+          <div class="ui-field">
+            <label class="ui-field-k" :for="`${uid}-paid-on`">Fecha de pago</label>
             <input
-              type="number"
+              :id="`${uid}-paid-on`"
+              v-model="formData.paymentDate"
+              type="date"
+              class="ui-input"
+              :disabled="!isPaid"
+            >
+          </div>
+          <div v-if="showGracePeriod" class="ui-field">
+            <label class="ui-field-k" :for="`${uid}-grace`">Vence en (días)</label>
+            <input
+              :id="`${uid}-grace`"
               v-model.number="formData.invoiceGracePeriod"
+              type="number"
+              class="ui-input ui-input-num"
               min="0"
               max="365"
-              class="w-full"
               @wheel="$event.target.blur()"
-            />
-          </div>
-
-          <div>
-            <label for="payment-date">Fecha de recepción del Pago</label>
-            <div class="grid grid-cols-[1fr_auto_auto] gap-2">
-              <input
-                id="payment-date"
-                type="date"
-                v-model="formData.paymentDate"
-                class="w-full"
-              />
-              <button
-                type="button"
-                class="utility-btn m-0"
-                :class="{ 'utility-btn-inactive': !formData.paymentDate }"
-                @click="formData.paymentDate = null"
-                :disabled="!formData.paymentDate"
-              >
-                <PhX class="" />
-              </button>
-              <button
-                class="btn utility-btn m-0"
-                type="button"
-                @click="formData.paymentDate = getTodayString()"
-              >
-                Hoy
-              </button>
-            </div>
-
-            <span v-if="errors.paymentDate" class="text-danger text-sm">{{
-              errors.paymentDate
-            }}</span>
+            >
           </div>
         </div>
 
-        <!-- Partial Payments Manager -->
-        <div v-if="features?.order?.allowPartialPayment" class="">
+        <div v-if="features?.order?.allowPartialPayment">
           <PartialPaymentsManager
             v-model="formData.partialPayments"
             :total-amount="total"
@@ -1161,87 +972,175 @@ const clearUser = () => {
             :payment-date="formData.paymentDate"
             :disabled="loading"
           />
-          <span
-            v-if="errors.partialPayments"
-            class="text-danger text-sm mt-2 block"
-          >{{ errors.partialPayments }}</span>
-        </div>
-      </div>
-
-      <div class="base-card">
-        <div class="flex flex-col gap-1 mb-4">
-          <!-- Inclusive tax mode display -->
-          <template v-if="currentTaxMode === 'inclusive'">
-            <div v-if="originalTaxAmount > 0" class="flex justify-between text-neutral-600">
-              <span>Antes de Impuesto:</span>
-              <span>{{ formatMoney(preTaxSubtotal) }}</span>
-            </div>
-            <div v-if="originalTaxAmount > 0" class="flex justify-between text-neutral-600">
-              <span>Impuesto:</span>
-              <span>{{ formatMoney(originalTaxAmount) }}</span>
-            </div>
-            <div class="flex justify-between text-neutral-600">
-              <span>Subtotal:</span>
-              <span>{{ formatMoney(subtotal) }}</span>
-            </div>
-            <div v-if="orderDiscountAmount > 0" class="flex justify-between text-green-600">
-              <span>Descuento ({{ formData.orderDiscountType === 'percentage' ? formData.orderDiscountValue + '%' : 'fijo' }}):</span>
-              <span>-{{ formatMoney(orderDiscountAmount) }}</span>
-            </div>
-          </template>
-
-          <!-- Exclusive tax mode display -->
-          <template v-else>
-            <div class="flex justify-between text-neutral-600">
-              <span>Antes de Impuesto:</span>
-              <span>{{ formatMoney(preTaxSubtotal) }}</span>
-            </div>
-            <div v-if="orderDiscountAmount > 0" class="flex justify-between text-green-600">
-              <span>Descuento ({{ formData.orderDiscountType === 'percentage' ? formData.orderDiscountValue + '%' : 'fijo' }}):</span>
-              <span>-{{ formatMoney(orderDiscountAmount) }}</span>
-            </div>
-            <div v-if="orderDiscountAmount > 0" class="flex justify-between text-neutral-600">
-              <span>Subtotal con Descuento:</span>
-              <span>{{ formatMoney(preTaxTotal) }}</span>
-            </div>
-            <div v-if="totalTaxAmount > 0" class="flex justify-between text-neutral-600">
-              <span>Impuesto:</span>
-              <span>{{ formatMoney(totalTaxAmount) }}</span>
-            </div>
-            <div class="flex justify-between text-neutral-600">
-              <span>Subtotal:</span>
-              <span>{{ formatMoney(preTaxTotal + totalTaxAmount) }}</span>
-            </div>
-          </template>
-
-          <div class="flex justify-between text-neutral-600">
-            <span>Envío:</span>
-            <span>{{
-              formData.fulfillmentType === "pickup"
-                ? "$0"
-                : formatMoney(formData.deliveryFee)
-            }}</span>
-          </div>
-          <div class="flex justify-between font-bold pt-1 border-t border-neutral-200">
-            <span>Total:</span>
-            <span>{{ formatMoney(total) }}</span>
-          </div>
+          <span v-if="errors.partialPayments" class="ui-field-error">{{ errors.partialPayments }}</span>
         </div>
 
-        <div class="flex gap-2 justify-end">
-          <button type="submit" :disabled="loading" class="action-btn">
-            {{ loading ? loadingText : submitButtonText }}
-          </button>
+        <!-- Comments: two toggles that never move, each opening its own full-width
+             box. Closing keeps the text; the pencil says a closed one has some. -->
+        <div class="grid grid-cols-2 gap-1.5">
           <button
             type="button"
-            @click="$emit('cancel')"
-            :disabled="loading"
-            class="utility-btn"
+            class="ui-btn w-full justify-center min-w-0"
+            :aria-pressed="showProductionNote"
+            :aria-controls="`${uid}-internal`"
+            @click="showProductionNote = !showProductionNote"
           >
-            Cancelar
+            <component :is="formData.internalNotes ? PhNotePencil : PhPlus" :size="12" weight="bold" class="flex-none" />
+            <span class="truncate">{{ productionNoteLabel }}</span>
+          </button>
+          <button
+            v-if="hasDelivery"
+            type="button"
+            class="ui-btn w-full justify-center min-w-0"
+            :aria-pressed="showDeliveryNote"
+            :aria-controls="`${uid}-delivery-notes`"
+            :disabled="!isDelivery"
+            @click="showDeliveryNote = !showDeliveryNote"
+          >
+            <component :is="formData.deliveryNotes ? PhNotePencil : PhPlus" :size="12" weight="bold" class="flex-none" />
+            <span class="truncate">Comentarios domicilio</span>
           </button>
         </div>
-      </div>
-    </form>
-  </div>
+
+        <div v-if="showProductionNote" class="ui-field">
+          <label class="ui-field-k" :for="`${uid}-internal`">{{ productionNoteLabel }}</label>
+          <textarea :id="`${uid}-internal`" v-model="formData.internalNotes" class="ui-input ui-input-area" rows="2"></textarea>
+        </div>
+
+        <div v-if="hasDelivery && showDeliveryNote" class="ui-field">
+          <label class="ui-field-k" :for="`${uid}-delivery-notes`">Comentarios domicilio</label>
+          <textarea
+            :id="`${uid}-delivery-notes`"
+            v-model="formData.deliveryNotes"
+            class="ui-input ui-input-area"
+            rows="2"
+            :disabled="!isDelivery"
+          ></textarea>
+        </div>
+
+        <!-- The breakdown, read like a receipt: labels left, every amount in one
+             right-hand column, so the eye runs straight down to the total. -->
+        <div class="flex flex-col gap-1.5 text-sm">
+          <template v-if="currentTaxMode === 'inclusive'">
+            <div v-if="originalTaxAmount > 0" class="flex justify-between">
+              <span class="ui-ink-muted">Antes de impuesto</span><span class="ui-num">{{ formatMoney(preTaxSubtotal) }}</span>
+            </div>
+            <div v-if="originalTaxAmount > 0" class="flex justify-between">
+              <span class="ui-ink-muted">Impuesto</span><span class="ui-num">{{ formatMoney(originalTaxAmount) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="ui-ink-muted">Subtotal</span><span class="ui-num">{{ formatMoney(subtotal) }}</span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="flex justify-between">
+              <span class="ui-ink-muted">Antes de impuesto</span><span class="ui-num">{{ formatMoney(preTaxSubtotal) }}</span>
+            </div>
+          </template>
+
+          <div class="flex justify-between items-center gap-2 min-h-[var(--ui-field-h)]">
+            <span class="flex items-center gap-1.5">
+              <span class="ui-ink-muted">Descuento</span>
+              <template v-if="showOrderDiscount">
+                <!-- %/$ as one segmented pair on the same line as the value. -->
+                <span class="flex" role="group" aria-label="Tipo de descuento">
+                  <button
+                    v-for="(o, i) in discountTypeOptions"
+                    :key="o.value"
+                    type="button"
+                    class="ui-btn ui-btn-icon ui-btn-field w-8 justify-center"
+                    :class="i === 0 ? '!rounded-r-none' : '!rounded-l-none -ml-px'"
+                    :aria-label="o.value === 'percentage' ? 'Porcentaje' : 'Valor fijo'"
+                    :aria-pressed="formData.orderDiscountType === o.value"
+                    @click="formData.orderDiscountType = o.value"
+                  >
+                    {{ o.label }}
+                  </button>
+                </span>
+                <input
+                  v-model.number="formData.orderDiscountValue"
+                  type="number"
+                  class="ui-input ui-input-num w-20"
+                  min="0"
+                  :max="formData.orderDiscountType === 'percentage' ? 100 : undefined"
+                  step="1"
+                  placeholder="0"
+                  aria-label="Valor del descuento"
+                  @focus="$event.target.select()"
+                >
+                <button
+                  type="button"
+                  class="ui-btn ui-btn-icon ui-btn-field"
+                  aria-label="Quitar descuento"
+                  title="Quitar descuento"
+                  @click="removeOrderDiscount"
+                >
+                  <PhX :size="13" weight="bold" />
+                </button>
+              </template>
+              <!-- Beside its label: the click lands where the controls will appear. -->
+              <button v-else type="button" class="ui-btn ui-btn-sm" @click="showOrderDiscount = true">
+                <PhPlus :size="12" weight="bold" />
+                Agregar
+              </button>
+            </span>
+            <span v-if="showOrderDiscount" class="ui-num">
+              {{ orderDiscountAmount > 0 ? `-${formatMoney(orderDiscountAmount)}` : formatMoney(0) }}
+            </span>
+          </div>
+
+          <template v-if="currentTaxMode !== 'inclusive'">
+            <div v-if="orderDiscountAmount > 0" class="flex justify-between">
+              <span class="ui-ink-muted">Subtotal con descuento</span><span class="ui-num">{{ formatMoney(preTaxTotal) }}</span>
+            </div>
+            <div v-if="totalTaxAmount > 0" class="flex justify-between">
+              <span class="ui-ink-muted">Impuesto</span><span class="ui-num">{{ formatMoney(totalTaxAmount) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="ui-ink-muted">Subtotal</span><span class="ui-num">{{ formatMoney(preTaxTotal + totalTaxAmount) }}</span>
+            </div>
+          </template>
+
+          <div v-if="isDelivery" class="flex justify-between">
+            <span class="ui-ink-muted">Envío</span><span class="ui-num">{{ formatMoney(formData.deliveryFee || 0) }}</span>
+          </div>
+        </div>
+
+        <!-- Always in reach: the total, in the same right-hand column as the
+             amounts above it, and the one thing you came to do. -->
+        <div
+          class="sticky bottom-0 z-10 -mx-[22px] -mb-5 px-[22px] py-3 flex flex-col gap-2.5"
+          style="background: var(--ui-surface-2); border-top: 1px solid var(--ui-line)"
+        >
+          <!-- A sticky box stops at its scroll container's padding edge, and the
+               dashboard shell has bottom padding (it clears the mobile nav), so
+               the rows scrolling past show through underneath. This fills that
+               strip. Once the bar reaches the end of the form, ui-app's
+               overflow: clip cuts it off. -->
+          <span
+            class="absolute inset-x-0 top-full h-24"
+            style="background: var(--ui-surface-2)"
+            aria-hidden="true"
+          />
+          <div class="flex justify-between items-baseline">
+            <span class="text-base font-bold">Total</span>
+            <span class="ui-num text-xl font-bold">{{ formatMoney(total) }}</span>
+          </div>
+          <div class="flex justify-end gap-2">
+            <button type="button" class="ui-btn ui-btn-danger" :disabled="loading" @click="emit('cancel')">
+              Cancelar
+            </button>
+            <button type="submit" class="ui-btn ui-btn-solid" :disabled="loading">
+              {{ loading ? loadingText : submitButtonText }}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <NewClientDialog
+      v-model:isOpen="isNewClientDialogOpen"
+      @client-created="pickClient"
+    />
+  </form>
 </template>

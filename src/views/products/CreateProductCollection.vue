@@ -6,9 +6,12 @@ import ProductCollectionForm from '@/components/forms/ProductCollectionForm.vue'
 const router = useRouter();
 const productCollectionStore = useProductCollectionStore();
 
+// A new category goes last in the catalog, not first.
 const handleSubmit = async (formData) => {
   try {
-    await productCollectionStore.create(formData);
+    if (!productCollectionStore.items.length) await productCollectionStore.fetchAll();
+    const last = Math.max(-1, ...productCollectionStore.items.map((c) => c.displayOrder ?? 0));
+    await productCollectionStore.create({ ...formData, displayOrder: last + 1 });
   } catch (error) {
     console.error('Failed to create product collection:', error);
   }

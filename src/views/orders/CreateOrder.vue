@@ -34,15 +34,18 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <OrderForm
-    ref="orderForm"
-    :title="'Crear Pedido'"
-    :loading="orderStore.loading"
-    @submit="handleSubmit"
-    @cancel="handleCancel"
-  />
-  <div v-if="orderStore.error">
-    {{ orderStore.error }}
+  <!-- The form declares no width — the host does. See .ui-formhost. -->
+  <div class="ui-formhost p-4 lg:p-6" style="--ui-form-w: 72rem">
+    <OrderForm
+      ref="orderForm"
+      title="Nuevo pedido"
+      :loading="orderStore.loading"
+      @submit="handleSubmit"
+      @cancel="handleCancel"
+    />
+    <div v-if="orderStore.error" class="ui-field-error mt-2">
+      {{ orderStore.error }}
+    </div>
   </div>
 
 </template>

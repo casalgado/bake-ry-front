@@ -7,6 +7,7 @@ import UiYesNo from '@/components/ui/UiYesNo.vue';
 import UiPills from '@/components/ui/UiPills.vue';
 import UiFeatureCard from '@/components/ui/UiFeatureCard.vue';
 import UiChoiceCard from '@/components/ui/UiChoiceCard.vue';
+import { paymentIconMap } from '@/utils/paymentIcons';
 
 /* Same local theme as the main gallery: the rest of the app has no dark styles,
  * so the flip lives on this view's wrapper and not on <html>. */
@@ -47,6 +48,12 @@ const INVENTORY_MODES = [
 ];
 
 const hasVariations = ref(false);
+const demoPayment = ref('cash');
+const PAYMENT_DEMO = [
+  { value: 'cash', label: 'Efectivo', icon: paymentIconMap.cash },
+  { value: 'transfer', label: 'Transferencia', icon: paymentIconMap.transfer },
+  { value: 'card', label: 'Tarjeta', icon: paymentIconMap.card },
+];
 const featureOn = ref(true);
 const dateMode = ref('delivery');
 const DATE_MODES = [
@@ -398,10 +405,19 @@ const reset = () => { form.value = { ...BLANK }; saved.value = ''; };
             <code>UiPills</code> reparte el ancho a partes iguales según cuántas
             opciones haya y emite <code>change</code> además de
             <code>v-model</code>. Solo una opción; varias independientes siguen
-            siendo casillas.
+            siendo casillas. Una opción puede traer <code>icon</code> (un
+            componente) delante de la etiqueta, como los métodos de pago. El
+            slot <code>selected-&lt;valor&gt;</code> reemplaza esa opción cuando
+            está elegida, en la misma celda: así "Otro" se vuelve su campo sin
+            mover la fila (costo de envío del pedido); con ese slot las píldoras
+            toman la altura de un campo. <code>columns</code> fija el número de
+            columnas en vez de repartir por <code>minWidth</code>, y una etiqueta
+            que no cabe termina en "…" con el texto completo en el
+            <code>title</code>.
           </p>
           <div class="flex flex-col gap-4">
             <UiPills v-model="inventoryMode" :options="INVENTORY_MODES" label="Control de inventario" />
+            <UiPills v-model="demoPayment" :options="PAYMENT_DEMO" label="Método de pago" min-width="6rem" />
             <UiYesNo v-model="hasVariations" label="¿Tiene variaciones?" />
             <p class="ui-field-hint">
               <code>ui-ink-muted</code>: <span class="ui-ink-muted">tinta apagada para un glifo o una palabra suelta</span>, solo color.

@@ -70,7 +70,7 @@ const methods = {
   cash: 'efectivo',
   card: 'bold',
   transfer: 'transferencia',
-  complimentary: 'regalo',
+  complimentary: 'cortesía',
   davivienda: 'davivienda',
   bancolombia: 'bancolombia',
   bbva: 'bbva',

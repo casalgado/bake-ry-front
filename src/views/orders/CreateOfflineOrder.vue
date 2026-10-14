@@ -294,15 +294,17 @@ onMounted(() => {
     </div>
   </div>
 
-  <!-- Order Form -->
-  <OrderForm
-    ref="orderForm"
-    :title="isOnline ? 'Crear Pedido' : 'Crear Pedido (Offline)'"
-    :loading="orderStore.loading || isSyncing"
-    :isOffline="!isOnline"
-    @submit="handleSubmit"
-    @cancel="handleCancelForm"
-  />
+  <!-- The form declares no width — the host does. See .ui-formhost. -->
+  <div class="ui-formhost p-4 lg:p-6" style="--ui-form-w: 72rem">
+    <OrderForm
+      ref="orderForm"
+      :title="isOnline ? 'Nuevo pedido' : 'Nuevo pedido (sin conexión)'"
+      :loading="orderStore.loading || isSyncing"
+      :isOffline="!isOnline"
+      @submit="handleSubmit"
+      @cancel="handleCancelForm"
+    />
+  </div>
   <div class="form-container">
     <!-- Form Error -->
     <div v-if="orderStore.error" class="base-card bg-red-50 border-red-200 p-3">

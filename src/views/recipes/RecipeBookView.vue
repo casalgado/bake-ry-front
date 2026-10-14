@@ -874,8 +874,7 @@ const shelfPreparations = computed(() => {
  * below, so anything deleted just drops off instead of leaving a chip that
  * errors when clicked.
  *
- * Same shape as the preference at OrderForm.vue:159, scoped per bakery because
- * a system_admin switches between them. */
+ * Scoped per bakery because a system_admin switches between them. */
 const authStore = useAuthenticationStore();
 const pinsKey = computed(
   () => `recipeBook.pins.${authStore.getBakeryId ?? 'none'}`);

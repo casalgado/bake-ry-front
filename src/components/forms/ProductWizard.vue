@@ -1,613 +1,508 @@
 <script setup>
-// ProductWizard.vue
-import { ref, computed } from 'vue';
-import { abbreviateText } from '@/utils/helpers';
-import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
+/* The order form's catalog: a 3x3 grid walked category → product → variation →
+ * quantity, with a search box that fills the same grid. One way in, not two: a
+ * search result is a slot like any other, so the keys work on it too.
+ *
+ * Keys work while the grid has focus, laid out like a numpad: QWE / ASD / ZXC,
+ * or the numpad's own 789 / 456 / 123. A slot fires on key UP, so the press can
+ * be seen first. Space or 0 goes back a step, Shift opens "Otra" on quantity.
+ * The letter chips show only while the grid has focus — when the keys work. */
+import { ref, computed, nextTick, watch, useId } from 'vue';
+import UiSearchField from '@/components/ui/UiSearchField.vue';
+import { formatMoney, orderCategoryNames } from '@/utils/helpers';
+import { useProductCollectionStore } from '@/stores/productCollectionStore';
+import { PhArrowLeft } from '@phosphor-icons/vue';
 
 const props = defineProps({
   products: {
     type: Array,
-    required: true,
     default: () => [],
   },
 });
 
 const emit = defineEmits(['select']);
 
-const keyMap = {
-  'q': 1, 'w': 2, 'e': 3,
-  'a': 4, 's': 5, 'd': 6,
-  'z': 7, 'x': 8, 'c': 9,
+// Slot order is top row first. Letters read left to right; the numpad's digits
+// are bottom-up, so its top row is 7 8 9.
+const LETTER_KEYS = ['q', 'w', 'e', 'a', 's', 'd', 'z', 'x', 'c'];
+const DIGIT_KEYS = ['7', '8', '9', '4', '5', '6', '1', '2', '3'];
+const PER_PAGE = 8;
+
+// A step behind you in the trail: a small link. The frozen base styles every
+// <button> with 13px text, padding and margin, so size and spacing are reset here.
+const CRUMB = 'ui-ink-muted text-[11.5px] font-normal m-0 p-0 cursor-pointer hover:underline truncate';
+const QUANTITIES = [1, 2, 3, 4, 5, 6, 7, 8];
+
+const slotOfKey = (key) => {
+  const letter = LETTER_KEYS.indexOf(key.toLowerCase());
+  if (letter >= 0) return letter;
+  const digit = DIGIT_KEYS.indexOf(key);
+  return digit >= 0 ? digit : null;
 };
 
-const reverseKeyMap = Object.fromEntries(
-  Object.entries(keyMap).map(([key, value]) => [value, key.toUpperCase()]),
-);
+const uid = useId();
+const root = ref(null);
+const grid = ref(null);
+const customInput = ref(null);
 
-const getKeyForNumber = (num) => reverseKeyMap[num] || num;
+const step = ref('category');
+const category = ref(null);
+const product = ref(null);
+const dimIndex = ref(0);
+const picks = ref([]); // option name per dimension, in dimension order
+// A search result already names its combination or variation, so quantity is all that is left.
+const resolved = ref(null);
+const page = ref(0);
+const pressed = ref(null);
+const gridFocused = ref(false);
+const query = ref('');
+const customOpen = ref(false);
+const customQty = ref('');
 
-const emulateNumpadPosition = (index) => {
-  const keyMapping = {
-    1: 7, 2: 8, 3: 9,
-    4: 4, 5: 5, 6: 6,
-    7: 1, 8: 2, 9: 3,
-  };
-  return keyMapping[index] || null;
-};
+// ---------- catalog ----------
 
-const getKeyIndex = (key) => {
-  if (/^[1-9]$/.test(key)) {
-    return emulateNumpadPosition(parseInt(key)) - 1;
-  }
-  return keyMap[key.toLowerCase()] ? keyMap[key.toLowerCase()] - 1 : null;
-};
+const activeProducts = computed(() => props.products.filter((p) => p.isActive !== false));
 
-const currentStep = ref('category');
-const selectedCategory = ref(null);
-const selectedProduct = ref(null);
-const selectedVariation = ref(null);
-const selectedQuantity = ref(null);
-const highlightedIndex = ref(null);
-const customQuantityMode = ref(false);
-const customQuantity = ref('');
-const currentPage = ref(0);
+// Ordered as set in Categorías › Ordenar; until then, first seen in the products.
+const collectionStore = useProductCollectionStore();
+// Without them the catalog still works, in first-seen order.
+if (!collectionStore.items.length) collectionStore.fetchAll().catch(() => {});
+const categories = computed(() => orderCategoryNames(
+  [...new Set(activeProducts.value.map((p) => p.collectionName))],
+  collectionStore.items,
+));
 
-// Multi-dimensional support
-const currentDimensionIndex = ref(0);
-const dimensionSelections = ref([]);
-
-// Get unique categories
-const categories = computed(() =>
-  [...new Set(props.products.map(p => p.collectionName))],
-);
-
-// Get products for selected category
 const categoryProducts = computed(() =>
-  props.products.filter(p =>
-    p.collectionName === selectedCategory.value &&
-    p.isActive !== false,
-  ),
-);
+  activeProducts.value.filter((p) => p.collectionName === category.value));
 
-// Get current dimension for multi-dimensional products
-const currentDimension = computed(() => {
-  const product = props.products.find(p => p.id === selectedProduct.value?.id);
+const dimensions = computed(() => product.value?.variations?.dimensions || []);
+const dimension = computed(() => dimensions.value[dimIndex.value]);
 
-  // Check for legacy variations and warn
-  if (product?.variations && Array.isArray(product.variations)) {
-    console.error('Legacy variations detected on product:', product.name, 'All products should use VariationGroups');
-    return null;
+// Case-insensitive, and a combination's selection may come in any order.
+const findMatchingCombination = (prod, selections) => {
+  const normalize = (s) => s.toLowerCase().trim();
+  const wanted = selections.map(normalize);
+  return prod?.variations?.combinations?.find((combo) =>
+    combo.selection?.length === wanted.length
+    && wanted.every((s) => combo.selection.map(normalize).includes(s)));
+};
+
+// "desde" when the variations differ: the cheapest is the honest headline.
+const priceLabel = (prod) => {
+  const combos = prod.variations?.combinations;
+  if (!combos?.length) return prod.basePrice ? formatMoney(prod.basePrice) : '';
+  const prices = combos.map((c) => c.basePrice || 0).filter((p) => p > 0);
+  if (!prices.length) return '';
+  const min = Math.min(...prices);
+  return prices.some((p) => p !== min) ? `desde ${formatMoney(min)}` : formatMoney(min);
+};
+
+// Only the last dimension pins a combination down, so only there does an option have a price.
+const optionPrice = (option) => {
+  if (dimIndex.value !== dimensions.value.length - 1) return '';
+  const combo = findMatchingCombination(product.value, [...picks.value.slice(0, dimIndex.value), option.name]);
+  return combo?.basePrice ? formatMoney(combo.basePrice) : '';
+};
+
+// ---------- search ----------
+
+// Accents ignored except ñ, same as the client search.
+const normalizeText = (text) => text
+  .normalize('NFD')
+  .replace(/[\u0300-\u0302\u0304-\u036f]/g, '')
+  .normalize('NFC')
+  .toLowerCase();
+
+// "Pan de bono · Grande" and "pan de bono grande" are the same full name.
+const asWords = (text) => normalizeText(text).replace(/·/g, ' ').split(/\s+/).filter(Boolean).join(' ');
+
+// One entry per thing you can actually put on a line: each combination, each
+// legacy variation, or the product itself.
+const searchable = computed(() => activeProducts.value.flatMap((prod) => {
+  const base = [prod.name, prod.description, prod.accountingCode];
+  const entry = (extra, label, price, pick, code) => ({
+    product: prod,
+    ...pick,
+    label,
+    price: price ? formatMoney(price) : '',
+    text: normalizeText([...base, ...extra].filter(Boolean).join(' ')),
+    // What counts as typing the whole thing: its full name or its own code.
+    exact: [label, code, prod.accountingCode].filter(Boolean).map(asWords),
+  });
+
+  if (prod.variations?.combinations?.length) {
+    return prod.variations.combinations.map((combo) => entry(
+      [combo.name, ...(combo.selection || []), combo.accountingCode],
+      `${prod.name} · ${combo.name}`,
+      combo.basePrice,
+      { combination: combo },
+      combo.accountingCode,
+    ));
   }
+  if (Array.isArray(prod.variations) && prod.variations.length) {
+    return prod.variations.map((variation) => entry(
+      [variation.name, variation.accountingCode],
+      `${prod.name} · ${variation.name}`,
+      variation.basePrice,
+      { variation },
+      variation.accountingCode,
+    ));
+  }
+  return [entry([], prod.name, prod.basePrice, {})];
+}));
 
-  return product?.variations?.dimensions[currentDimensionIndex.value];
+const searching = computed(() => query.value.trim().length >= 2);
+
+const results = computed(() => {
+  if (!searching.value) return [];
+  const terms = normalizeText(query.value).split(/\s+/).filter(Boolean);
+  return searchable.value.filter((item) => terms.every((t) => item.text.includes(t)));
 });
 
-// Current options to display based on step
-const currentOptions = computed(() => {
-  switch (currentStep.value) {
+// Typing a code or a full name that names exactly one thing adds it at once,
+// quantity 1: the till's scan-and-go. A partial word that happens to leave one
+// result does not ("bag" mid-way to "baguette integral"); that waits for Enter.
+watch(query, (typed) => {
+  const words = asWords(typed);
+  if (words.length < 2) return;
+  const named = searchable.value.filter((item) => item.exact.includes(words));
+  // Typing is one keystroke at a time (a scanner too): "croissant" is a whole
+  // name on the way to "croissant almendras", code 12 on the way to 123. While
+  // something longer still starts with it, wait; Enter settles it.
+  const longer = searchable.value.some((item) =>
+    item.exact.some((e) => e !== words && e.startsWith(words)));
+  if (named.length === 1 && !longer) addNow(named[0], 1);
+});
+
+watch(query, () => { page.value = 0; });
+
+// ---------- the grid ----------
+
+const options = computed(() => {
+  if (searching.value) {
+    return results.value.map((r) => ({ label: r.label, sub: r.product.collectionName, price: r.price, result: r }));
+  }
+  switch (step.value) {
   case 'category':
-    return categories.value;
+    return categories.value.map((c) => {
+      const n = activeProducts.value.filter((p) => p.collectionName === c).length;
+      return { label: c, sub: `${n} ${n === 1 ? 'producto' : 'productos'}`, value: c };
+    });
   case 'product':
-    return categoryProducts.value;
+    return categoryProducts.value.map((p) => ({ label: p.name, price: priceLabel(p), value: p }));
   case 'dimension':
-    return currentDimension.value?.options || [];
-  case 'quantity':
-    return Array.from({ length: 16 }, (_, i) => ({
-      name: `${i + 1}`,
-      value: i + 1,
-    }));
+    return (dimension.value?.options || []).map((o) => ({ label: o.name, price: optionPrice(o), value: o }));
   default:
-    return [];
+    return QUANTITIES.map((n) => ({ label: String(n), value: n, big: true }));
   }
 });
 
-const paginatedOptions = computed(() => {
-  const options = currentOptions.value;
-  const ITEMS_PER_PAGE = 8; // Show 8 items + 1 navigation button
-  const start = currentPage.value * ITEMS_PER_PAGE;
-  const items = options.slice(start, start + ITEMS_PER_PAGE);
-
-  // Add next/prev button if there are more pages
-  const hasMorePages = options.length > start + ITEMS_PER_PAGE;
-  const hasPreviousPages = currentPage.value > 0;
-
-  if (hasMorePages) {
-    items.push({ isNavigationNext: true });
+// Eight per page with the ninth slot for paging: the same positions the
+// cashiers already know by hand.
+const slots = computed(() => {
+  if (!searching.value && step.value === 'quantity') {
+    return [...options.value, { other: true, label: 'Otra…' }];
   }
-  if (hasPreviousPages && items.length < 9) {
-    items.push({ isNavigationPrev: true });
-  }
-
+  const start = page.value * PER_PAGE;
+  const items = options.value.slice(start, start + PER_PAGE);
+  const rest = options.value.length - start - PER_PAGE;
+  if (rest > 0) items.push({ next: true, label: `Más (${rest})` });
+  if (page.value > 0 && items.length < 9) items.push({ prev: true, label: 'Anteriores' });
   return items;
 });
 
-const totalPages = computed(() => {
-  return Math.ceil(currentOptions.value.length / 8);
+const resultsLabel = computed(() => {
+  const n = results.value.length;
+  return n ? `${n} ${n === 1 ? 'resultado' : 'resultados'}` : 'Nada coincide';
 });
 
-// Breadcrumb computed properties
-const productName = computed(() => {
-  if (!selectedProduct.value) return '';
-  return selectedProduct.value.name || '';
-});
+const atRoot = computed(() => !searching.value && step.value === 'category');
 
-const displayedQuantity = computed(() => {
-  if (currentStep.value !== 'quantity') return '';
-  if (customQuantityMode.value && customQuantity.value) {
-    return customQuantity.value;
-  }
-  return selectedQuantity.value || '#';
-});
+// ---------- moving through it ----------
 
-// Get display text for current dimension selection
-const currentDimensionText = computed(() => {
-  if (currentStep.value !== 'dimension') return '';
-  const selection = dimensionSelections.value[currentDimensionIndex.value];
-  return selection || '#';
-});
-
-// Check if selected product has variation groups
-const hasVariationGroups = computed(() => {
-  return selectedProduct.value?.variations?.dimensions?.length > 0;
-});
-
-const resetPage = () => {
-  currentPage.value = 0;
+const reset = () => {
+  step.value = 'category';
+  category.value = null;
+  product.value = null;
+  dimIndex.value = 0;
+  picks.value = [];
+  resolved.value = null;
+  page.value = 0;
+  customOpen.value = false;
+  customQty.value = '';
 };
 
-const handleSelection = (index) => {
-  const selected = paginatedOptions.value[index];
-  if (!selected) return;
+const toCategory = () => {
+  step.value = 'product';
+  product.value = null;
+  picks.value = [];
+  resolved.value = null;
+  page.value = 0;
+};
 
-  // Handle navigation buttons
-  if (selected.isNavigationNext) {
-    currentPage.value++;
-    return;
-  }
-  if (selected.isNavigationPrev) {
-    currentPage.value--;
-    return;
-  }
+const toDimension = (index) => {
+  step.value = 'dimension';
+  dimIndex.value = index;
+  picks.value = picks.value.slice(0, index);
+  page.value = 0;
+};
 
-  switch (currentStep.value) {
+const emitSelection = (quantity) => {
+  let pick = { variation: resolved.value?.variation ?? null };
+  if (resolved.value?.combination) {
+    pick = { combination: resolved.value.combination };
+  } else if (picks.value.length) {
+    const combination = findMatchingCombination(product.value, picks.value);
+    if (!combination) return;
+    pick = { combination };
+  }
+  emit('select', { category: category.value, product: product.value, ...pick, quantity });
+  reset();
+};
+
+function addNow(result, quantity) {
+  category.value = result.product.collectionName;
+  product.value = result.product;
+  resolved.value = { combination: result.combination, variation: result.variation };
+  query.value = '';
+  emitSelection(quantity);
+}
+
+const pickResult = (result) => {
+  category.value = result.product.collectionName;
+  product.value = result.product;
+  resolved.value = { combination: result.combination, variation: result.variation };
+  picks.value = [];
+  step.value = 'quantity';
+  query.value = '';
+  // On to quantity with the hands still on the keys.
+  nextTick(() => grid.value?.focus());
+};
+
+const choose = (index) => {
+  const slot = slots.value[index];
+  if (!slot) return;
+  if (slot.next) { page.value++; return; }
+  if (slot.prev) { page.value--; return; }
+  if (slot.other) { openCustom(); return; }
+  if (slot.result) { pickResult(slot.result); return; }
+
+  switch (step.value) {
   case 'category':
-    selectedCategory.value = selected;
-    currentStep.value = 'product';
-    resetPage();
-    break;
-
-  case 'product':
-    selectedProduct.value = selected;
-
-    // Check for legacy variations
-    if (selected.variations && Array.isArray(selected.variations)) {
-      console.error('Legacy variations detected on product:', selected.name, 'All products should use VariationGroups');
-      // Gracefully handle by skipping to quantity
-      currentStep.value = 'quantity';
-    } else if (selected.variations?.dimensions?.length > 0) {
-      // Modern VariationGroups system
-      currentStep.value = 'dimension';
-      currentDimensionIndex.value = 0;
-      dimensionSelections.value = [];
-    } else {
-      // No variations
-      currentStep.value = 'quantity';
-    }
-    resetPage();
-    break;
-
-  case 'dimension': {
-    // Multi-dimensional handling
-    dimensionSelections.value[currentDimensionIndex.value] = selected.name;
-
-    const selectedProd = props.products.find(p => p.id === selectedProduct.value?.id);
-    const totalDimensions = selectedProd?.variations?.dimensions?.length || 0;
-
-    if (currentDimensionIndex.value < totalDimensions - 1) {
-      // Move to next dimension
-      currentDimensionIndex.value++;
-      resetPage();
-    } else {
-      // All dimensions selected, move to quantity
-      currentStep.value = 'quantity';
-      resetPage();
-    }
-    break;
-  }
-
-  case 'quantity': {
-    selectedQuantity.value = selected.value;
-
-    // Build the final selection object
-    const currentProduct = props.products.find(p => p.id === selectedProduct.value?.id);
-
-    if (dimensionSelections.value.length > 0) {
-      // Find matching combination from product's VariationGroups
-      const combination = findMatchingCombination(currentProduct, dimensionSelections.value);
-
-      if (combination) {
-        emit('select', {
-          category: selectedCategory.value,
-          product: selectedProduct.value,
-          combination: combination,
-          quantity: selected.value,
-        });
-      } else {
-        console.error('No matching combination found for selections:', dimensionSelections.value, 'on product:', currentProduct.name);
-        // This should not happen since all combinations are pre-configured
-        return;
-      }
-    } else {
-      // No variations - emit without combination
-      emit('select', {
-        category: selectedCategory.value,
-        product: selectedProduct.value,
-        variation: null,
-        quantity: selected.value,
-      });
-    }
-
-    resetSelection();
-    break;
-  }
-  }
-};
-
-// Helper function to find matching combination in product's VariationGroups
-const findMatchingCombination = (product, selections) => {
-  if (!product?.variations?.combinations) return null;
-
-  return product.variations.combinations.find(combo => {
-    if (!combo.selection || combo.selection.length !== selections.length) return false;
-
-    // Normalize both selections and combination for case-insensitive comparison
-    const normalizeString = (str) => str.toLowerCase().trim();
-    const normalizedSelections = selections.map(normalizeString);
-    const normalizedComboSelection = combo.selection.map(normalizeString);
-
-    return normalizedSelections.every(sel => normalizedComboSelection.includes(sel));
-  });
-};
-
-const handleBreadcrumbClick = (step) => {
-  switch (step) {
-  case 'category':
-    currentStep.value = 'category';
-    selectedCategory.value = null;
-    selectedProduct.value = null;
-    selectedVariation.value = null;
-    selectedQuantity.value = null;
-    dimensionSelections.value = [];
-    currentDimensionIndex.value = 0;
-    resetPage();
+    category.value = slot.value;
+    step.value = 'product';
     break;
   case 'product':
-    currentStep.value = 'product';
-    selectedProduct.value = null;
-    selectedVariation.value = null;
-    selectedQuantity.value = null;
-    dimensionSelections.value = [];
-    currentDimensionIndex.value = 0;
-    resetPage();
+    product.value = slot.value;
+    picks.value = [];
+    dimIndex.value = 0;
+    step.value = dimensions.value.length ? 'dimension' : 'quantity';
     break;
   case 'dimension':
-    // Go back to specific dimension
-    currentStep.value = 'dimension';
-    selectedQuantity.value = null;
-    resetPage();
+    picks.value = [...picks.value.slice(0, dimIndex.value), slot.value.name];
+    if (dimIndex.value < dimensions.value.length - 1) dimIndex.value++;
+    else step.value = 'quantity';
     break;
   case 'quantity':
-    currentStep.value = 'quantity';
-    selectedQuantity.value = null;
-    break;
+    emitSelection(slot.value);
+    return;
+  }
+  page.value = 0;
+};
+
+const back = () => {
+  if (searching.value) { query.value = ''; return; }
+  customOpen.value = false;
+  page.value = 0;
+  if (step.value === 'product') {
+    reset();
+  } else if (step.value === 'dimension') {
+    if (dimIndex.value > 0) toDimension(dimIndex.value - 1);
+    else toCategory();
+  } else if (step.value === 'quantity') {
+    if (resolved.value || !dimensions.value.length) toCategory();
+    else toDimension(dimensions.value.length - 1);
   }
 };
 
-const resetSelection = () => {
-  currentStep.value = 'category';
-  selectedCategory.value = null;
-  selectedProduct.value = null;
-  selectedVariation.value = null;
-  selectedQuantity.value = null;
-  highlightedIndex.value = null;
-  customQuantity.value = '';
-  customQuantityMode.value = false;
-  dimensionSelections.value = [];
-  currentDimensionIndex.value = 0;
-  resetPage();
+function openCustom() {
+  customOpen.value = true;
+  nextTick(() => customInput.value?.focus());
+}
+
+const closeCustom = () => {
+  customOpen.value = false;
+  customQty.value = '';
+  grid.value?.focus();
 };
 
-const handleBackKey = () => {
-  switch (currentStep.value) {
-  case 'product':
-    selectedCategory.value = null;
-    currentStep.value = 'category';
-    break;
-  case 'variation':
-    selectedProduct.value = null;
-    currentStep.value = 'product';
-    break;
-  case 'dimension':
-    if (currentDimensionIndex.value > 0) {
-      // Go back to previous dimension
-      currentDimensionIndex.value--;
-      dimensionSelections.value.pop();
-    } else {
-      // Go back to product selection
-      selectedProduct.value = null;
-      dimensionSelections.value = [];
-      currentStep.value = 'product';
-    }
-    break;
-  case 'quantity':
-    if (dimensionSelections.value.length > 0) {
-      // Go back to last dimension
-      const foundProduct = props.products.find(p => p.id === selectedProduct.value?.id);
-      currentDimensionIndex.value = foundProduct.variations.dimensions.length - 1;
-      currentStep.value = 'dimension';
-    } else {
-      selectedProduct.value = null;
-      currentStep.value = 'product';
-    }
-    break;
+const addCustom = () => {
+  const quantity = parseInt(customQty.value, 10);
+  if (quantity > 0) {
+    emitSelection(quantity);
+    grid.value?.focus();
   }
-  highlightedIndex.value = null;
-  resetPage();
 };
 
-const handleKeydown = (event) => {
-  // Toggle custom quantity mode with Shift
-  if (event.key === 'Shift' && currentStep.value === 'quantity') {
+// ---------- keys ----------
+
+const onKeydown = (event) => {
+  if (event.key === 'Shift' && step.value === 'quantity' && !searching.value) {
     event.preventDefault();
-    customQuantityMode.value = !customQuantityMode.value;
-    if (!customQuantityMode.value) {
-      customQuantity.value = '';
-    }
+    openCustom();
     return;
   }
-
-  // If in custom quantity mode
-  if (customQuantityMode.value && currentStep.value === 'quantity') {
-    // Handle number inputs
-    if (/^[0-9]$/.test(event.key)) {
-      event.preventDefault();
-      customQuantity.value += event.key;
-      return;
-    }
-
-    // Handle backspace
-    if (event.key === 'Backspace' && customQuantity.value) {
-      event.preventDefault();
-      customQuantity.value = customQuantity.value.slice(0, -1);
-      return;
-    }
-
-    // Handle Enter to confirm
-    if (event.key === 'Enter' && customQuantity.value) {
-      event.preventDefault();
-      const quantity = parseInt(customQuantity.value, 10);
-      if (quantity > 0) {
-        const targetProduct = props.products.find(p => p.id === selectedProduct.value?.id);
-
-        if (dimensionSelections.value.length > 0) {
-          const combination = findMatchingCombination(targetProduct, dimensionSelections.value);
-
-          if (combination) {
-            emit('select', {
-              category: selectedCategory.value,
-              product: selectedProduct.value,
-              combination: combination,
-              quantity: quantity,
-            });
-          } else {
-            console.error('No matching combination found for selections:', dimensionSelections.value);
-            return;
-          }
-        } else {
-          emit('select', {
-            category: selectedCategory.value,
-            product: selectedProduct.value,
-            variation: null,
-            quantity: quantity,
-          });
-        }
-        resetSelection();
-      }
-      return;
-    }
-
-    // Handle Escape to exit custom mode
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      customQuantityMode.value = false;
-      customQuantity.value = '';
-      return;
-    }
-  }
-
-  // Regular numpad behavior (when not in custom mode)
-  if (!customQuantityMode.value) {
-    const index = getKeyIndex(event.key);
-    if (index !== null) {
-      event.preventDefault();
-      highlightedIndex.value = index;
-    } else if (event.key === '0' || event.key === ' ') {
-      event.preventDefault();
-      highlightedIndex.value = null;
-    }
+  const slot = slotOfKey(event.key);
+  if (slot !== null) {
+    event.preventDefault();
+    pressed.value = slot;
+  } else if (event.key === '0' || event.key === ' ') {
+    event.preventDefault();
   }
 };
 
-const handleKeyup = (event) => {
-  // Only handle key up for regular numpad mode
-  if (!customQuantityMode.value) {
-    const index = getKeyIndex(event.key);
-    if (index !== null) {
-      event.preventDefault();
-      if (highlightedIndex.value === index) {
-        handleSelection(index);
-      }
-      highlightedIndex.value = null;
-    } else if (event.key === '0' || event.key === ' ') {
-      event.preventDefault();
-      handleBackKey();
-    }
+const onKeyup = (event) => {
+  const slot = slotOfKey(event.key);
+  if (slot !== null) {
+    event.preventDefault();
+    if (pressed.value === slot) choose(slot);
+    pressed.value = null;
+  } else if (event.key === '0' || event.key === ' ') {
+    event.preventDefault();
+    back();
   }
 };
 
-const handleOptionClick = (index) => {
-  handleSelection(index);
+// Enter takes what was typed exactly (a full name or code), else the first
+// result. The list is in catalog order, not by match, so "croissant" + Enter
+// must not land on "Croissant almendras" just because it is listed first.
+const onSearchEnter = () => {
+  const words = asWords(query.value);
+  const pick = searchable.value.find((item) => item.exact.includes(words)) ?? results.value[0];
+  if (pick) pickResult(pick);
 };
 
-const getOptionDisplay = (option, index) => {
-  if (!option) return '';
-
-  if (option.isNavigationNext) return 'Más >';
-  if (option.isNavigationPrev) return '< Atrás';
-
-  switch (currentStep.value) {
-  case 'category':
-    return option;
-  case 'product':
-  case 'dimension':
-    return option.name;
-  case 'quantity':
-    return `${option.value}`;
-  default:
-    return '';
-  }
+const focus = () => {
+  root.value?.querySelector('input')?.focus();
 };
+
+defineExpose({ focus });
 </script>
-<template>
-  <div
-    class="relative w-full aspect-square flat-card p-1 mb-0"
-    tabindex="0"
-    @keydown="handleKeydown"
-    @keyup="handleKeyup"
-  >
-    <!-- Pagination indicator -->
-    <div v-if="totalPages > 1" class="absolute top-1 right-2 text-xs text-neutral-500">
-      {{ currentPage + 1 }}/{{ totalPages }}
-    </div>
 
-    <!-- Grid with numpad layout -->
-    <div class="grid grid-cols-3 grid-rows-3 gap-2 h-full p-0">
+<template>
+  <div ref="root" class="flex flex-col gap-3">
+    <UiSearchField
+      v-model="query"
+      placeholder="Buscar por nombre o código…"
+      label="Buscar producto"
+      @keydown.enter.prevent="onSearchEnter"
+    />
+
+    <!-- tabindex: the grid takes the keys itself, so it needs to hold focus. -->
+    <div
+      ref="grid"
+      class="grid grid-cols-3 gap-2"
+      tabindex="0"
+      role="group"
+      aria-label="Catálogo: teclas Q W E, A S D, Z X C; espacio vuelve atrás"
+      @keydown="onKeydown"
+      @keyup="onKeyup"
+      @focusin="gridFocused = true"
+      @focusout="gridFocused = false; pressed = null"
+    >
       <button
         v-for="i in 9"
-        type="button"
         :key="i"
-        class="utility-btn-inactive !m-0 !overflow-hidden lg:text-wrap text-nowrap"
-        :class="{
-          'invisible': !paginatedOptions[i-1],
-          'utility-btn-active': highlightedIndex === i-1,
-          'bg-neutral-300 hover:bg-neutral-350': currentStep === 'dimension' && paginatedOptions[i-1]?.isWholeGrain,
-          'bg-neutral-300 hover:bg-neutral-350': paginatedOptions[i-1]?.isNavigationNext || paginatedOptions[i-1]?.isNavigationPrev
-
-        }"
+        type="button"
         tabindex="-1"
-        @click="handleOptionClick(i-1)"
+        class="ui-btn relative h-[4.5rem] flex-col justify-center !gap-0.5 text-left !px-2.5"
+        :class="[slots[i - 1]?.big ? '!items-center' : '!items-start', { invisible: !slots[i - 1] }]"
+        :aria-pressed="pressed === i - 1"
+        @click="choose(i - 1)"
       >
         <span
-          v-if="currentStep !== 'quantity'"
-          class="button-number"
-        >
-          {{ getKeyForNumber(i) }}
-        </span>
-        <span class="leading-none text-xs">
-          {{ paginatedOptions[i-1]?.isWholeGrain
-              ? abbreviateText(getOptionDisplay(paginatedOptions[i-1], i-1), {firstWordLength: 3, lastWordLength: 2, separator: ' '})
-              : getOptionDisplay(paginatedOptions[i-1], i-1) }}
-        </span>
+          v-if="gridFocused"
+          class="ui-tag absolute top-1 right-1 !px-1.5 !py-0 uppercase"
+          aria-hidden="true"
+        >{{ LETTER_KEYS[i - 1] }}</span>
+        <span
+          class="line-clamp-2 leading-tight"
+          :class="slots[i - 1]?.big ? 'text-xl' : 'pr-4'"
+        >{{ slots[i - 1]?.label }}</span>
+        <span
+          v-if="slots[i - 1]?.price || slots[i - 1]?.sub"
+          class="ui-item-desc truncate max-w-full"
+        >{{ slots[i - 1]?.price || slots[i - 1]?.sub }}</span>
       </button>
     </div>
 
-    <!-- Breadcrumb -->
-    <div class="m-2 mt-0 py-1 px-2 text-[10px] flex items-center h-[32px] whitespace-nowrap">
-      <button
-        class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
-        :class="{ 'cursor-pointer': currentStep !== 'category' }"
-        @click="handleBreadcrumbClick('category')"
-        :disabled="currentStep === 'category'"
-      >
-        {{ abbreviateText(selectedCategory) || '>' }}
-      </button>
-
-      <span v-if="selectedCategory" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
-
-      <button
-        v-if="selectedCategory"
-        class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
-        :class="{ 'cursor-pointer': currentStep !== 'product' }"
-        @click="handleBreadcrumbClick('product')"
-        :disabled="currentStep === 'product'"
-      >
-        {{ abbreviateText(productName) || '#' }}
-      </button>
-
-      <!-- Show dimensions for multi-dimensional products -->
-      <template v-if="hasVariationGroups && selectedProduct">
-        <span
-          v-for="(dim, idx) in selectedProduct.variations?.dimensions"
-          :key="dim.id"
+    <div v-if="customOpen" class="flex gap-1.5 items-end">
+      <div class="ui-field flex-1">
+        <label class="ui-field-k" :for="`${uid}-qty`">Otra cantidad</label>
+        <input
+          :id="`${uid}-qty`"
+          ref="customInput"
+          v-model="customQty"
+          type="number"
+          min="1"
+          step="1"
+          class="ui-input ui-input-num"
+          @keydown.enter.prevent="addCustom"
+          @keydown.esc.prevent="closeCustom"
         >
-          <span v-if="idx <= currentDimensionIndex" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
-          <button
-            v-if="idx <= currentDimensionIndex"
-            class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
-            :class="{ 'cursor-pointer': currentStep !== 'dimension' || idx < currentDimensionIndex }"
-            @click="() => { currentDimensionIndex = idx; handleBreadcrumbClick('dimension'); }"
-            :disabled="currentStep === 'dimension' && idx === currentDimensionIndex"
-          >
-            {{ abbreviateText(dimensionSelections[idx]) || '#' }}
-          </button>
-        </span>
-      </template>
+      </div>
+      <button type="button" class="ui-btn ui-btn-field" @click="addCustom">Agregar</button>
+    </div>
 
-      <span v-if="currentStep === 'quantity'" class="mx-1 shrink-0 px-0 mx-0 mr-1">&gt;</span>
-
-      <button
-        v-if="currentStep === 'quantity'"
-        class="hover:text-neutral-700 transition-colors shrink-0 px-0 mx-0 mr-1"
-        :class="{
-          'cursor-pointer': currentStep !== 'quantity',
-          'animate-pulse': customQuantityMode
-        }"
-        @click="handleBreadcrumbClick('quantity')"
-        :disabled="currentStep === 'quantity'"
-      >
-        {{ displayedQuantity }}
+    <div class="flex items-center justify-between gap-2">
+      <button type="button" class="ui-btn ui-btn-sm" :disabled="atRoot" @click="back">
+        <PhArrowLeft :size="12" weight="bold" />
+        Atrás
       </button>
-
-      <!-- Optional: Add an indicator when shift is pressed -->
-      <span
-        v-if="currentStep === 'quantity' && customQuantityMode"
-        class="text-[8px] text-primary-600 ml-1"
-      >
-        ...
+      <span class="ui-item-desc text-right">
+        <template v-if="gridFocused">Espacio: atrás<template v-if="step === 'quantity'"> · Shift: otra cantidad</template></template>
+        <template v-else>Clic en el catálogo para usar el teclado</template>
       </span>
     </div>
+
+    <!-- The trail: its own line, fixed height, small. Under the grid so the
+         slots never move as it grows. A step behind you is a link back; where
+         you are is plain text. -->
+    <nav
+      class="flex flex-nowrap items-center gap-1 h-5 overflow-hidden whitespace-nowrap text-[11.5px]"
+      aria-label="Pasos del catálogo"
+    >
+      <span v-if="searching" class="ui-ink-muted">{{ resultsLabel }}</span>
+      <template v-else>
+        <span v-if="step === 'category'" class="font-semibold">Categorías</span>
+        <button v-else type="button" :class="CRUMB" @click="reset">Categorías</button>
+        <template v-if="category">
+          <span class="ui-ink-muted" aria-hidden="true">›</span>
+          <span v-if="step === 'product'" class="font-semibold truncate">{{ category }}</span>
+          <button v-else type="button" :class="CRUMB" @click="toCategory">{{ category }}</button>
+        </template>
+        <template v-if="product">
+          <span class="ui-ink-muted" aria-hidden="true">›</span>
+          <button
+            v-if="dimensions.length && !resolved && !(step === 'dimension' && dimIndex === 0)"
+            type="button"
+            :class="CRUMB"
+            @click="toDimension(0)"
+          >
+            {{ product.name }}
+          </button>
+          <span v-else class="font-semibold truncate">
+            {{ product.name }}<template v-if="resolved?.combination || resolved?.variation">
+              · {{ (resolved.combination || resolved.variation).name }}</template>
+          </span>
+        </template>
+        <template v-for="(name, i) in picks" :key="i">
+          <template v-if="step === 'quantity' || i < dimIndex">
+            <span class="ui-ink-muted" aria-hidden="true">›</span>
+            <button type="button" :class="CRUMB" @click="toDimension(i)">{{ name }}</button>
+          </template>
+        </template>
+      </template>
+    </nav>
   </div>
 </template>
-
-<style scoped lang="scss">
-.button-number {
-  @apply absolute top-0 left-1 text-xs opacity-60 lowercase;
-}
-
-.flat-card {
-  &::-webkit-scrollbar {
-    display: none;
-  }
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-.animate-pulse {
-  animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-</style>

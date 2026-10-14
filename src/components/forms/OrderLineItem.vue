@@ -1,14 +1,14 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import {
-  PhGift,
-  PhTrash,
-  PhCaretDown,
-  PhCaretUp,
-} from '@phosphor-icons/vue';
+/* One line of the order, read like a receipt: quantity, what, how much. The row
+ * shows only what differs from the default (a discount, cortesía, stock); the
+ * rest lives in the editor that opens under it. */
+import { ref, computed, useId } from 'vue';
+import UiPills from '@/components/ui/UiPills.vue';
+import { formatMoney } from '@/utils/helpers';
+import { PhMinus, PhPlus, PhCaretDown, PhTrash } from '@phosphor-icons/vue';
 
-const discount = ref(null);
-const showAdvancedFields = ref(false);
+const open = ref(false);
+const uid = useId();
 
 const props = defineProps({
   item: {
@@ -27,10 +27,10 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
-  // The order's stock lines of this product, together, exceed `available`.
-  short: {
-    type: Boolean,
-    default: false,
+  // Units the order's stock lines of this product, together, ask for beyond `available`.
+  shortBy: {
+    type: Number,
+    default: 0,
   },
 });
 
@@ -42,10 +42,6 @@ const emit = defineEmits([
   'toggle-complimentary',
   'remove',
 ]);
-
-const isPriceModified = computed(() => {
-  return props.item.basePrice > 0 && props.item.currentPrice !== props.item.basePrice;
-});
 
 // Determine if this is a variable price product (basePrice = 0)
 const isVariablePrice = computed(() => {
@@ -60,19 +56,53 @@ const effectiveReferencePrice = computed(() => {
   return props.item.basePrice;
 });
 
+const variantName = computed(() => {
+  const { combination, variation } = props.item;
+  if (combination) return combination.getDisplayName ? combination.getDisplayName() : combination.name;
+  return variation?.name || '';
+});
+
+// Read from the line itself, never kept: a row reused for another line (the cart
+// replaced by a past order) must not show the previous line's discount.
+const discount = computed(() => {
+  const { discountType, discountValue, currentPrice } = props.item;
+  if (discountType === 'percentage' && discountValue > 0) return discountValue;
+  const refPrice = effectiveReferencePrice.value;
+  return refPrice > 0 ? Math.round(((refPrice - currentPrice) / refPrice) * 100) : 0;
+});
+
+// A cortesía's discount is moot: its total column already says Cortesía.
+const hasDiscount = computed(() => !props.item.isComplimentary && discount.value > 0);
+
+const lineTotal = computed(() => (props.item.isComplimentary ? 0 : props.item.currentPrice * props.item.quantity));
+
 // Resale always takes from stock. A shortfall warns, never blocks: stock may go negative.
 const fromStock = computed(() =>
   props.inventoryMode === 'unit' || props.item.fulfillmentSource === 'stock');
-const isShort = computed(() => fromStock.value && props.short);
-const availableLabel = computed(() => `${props.available} ${props.available === 1 ? 'disponible' : 'disponibles'}`);
+const isShort = computed(() => fromStock.value && props.shortBy > 0);
 
-const toggleFulfillmentSource = () => {
-  emit('update:item', props.index, { fulfillmentSource: fromStock.value ? 'produce' : 'stock' });
+// Names the source, not just a figure: "24 disponibles" alone reads as a fact,
+// not as "this comes off the shelf". Disponible / Producir stay the inventory's
+// words (zplanning/inventory/INVENTORY.md). A shortfall adds "faltan N" beside
+// it, so "disponibles" shortens to keep the line from wrapping.
+const sourceLabel = computed(() => {
+  if (!fromStock.value) return 'Producir';
+  if (isShort.value) return `Del stock · ${props.available} disp.`;
+  return `Del stock · ${props.available} ${props.available === 1 ? 'disponible' : 'disponibles'}`;
+});
+
+const sourceOptions = computed(() => [
+  { value: 'stock', label: `Del stock (${props.available})` },
+  { value: 'produce', label: 'Producir' },
+]);
+
+const setFulfillmentSource = (source) => {
+  emit('update:item', props.index, { fulfillmentSource: source });
 };
 
 const costValidationError = computed(() => {
-  if (props.item.costPrice < 0) return 'Costo debe ser >= 0';
-  if (props.item.costPrice > props.item.currentPrice) return 'Costo mayor que precio';
+  if (props.item.costPrice < 0) return 'El costo no puede ser negativo.';
+  if (props.item.costPrice > props.item.currentPrice) return 'El costo supera el precio de venta.';
   return null;
 });
 
@@ -90,11 +120,11 @@ const handleQuantityInput = (event) => {
   }
 };
 
+// Price and discount are one value seen two ways: editing either rewrites the other.
 const handlePriceChange = (event) => {
   const newPrice = Number(event.target.value);
 
   if (isVariablePrice.value) {
-    discount.value = 0;
     emit('update:item', props.index, {
       currentPrice: newPrice,
       referencePrice: newPrice,
@@ -103,7 +133,6 @@ const handlePriceChange = (event) => {
     });
   } else {
     const discountVal = Math.round(((props.item.basePrice - newPrice) / props.item.basePrice) * 100);
-    discount.value = discountVal;
     emit('update:item', props.index, {
       currentPrice: newPrice,
       discountType: 'percentage',
@@ -113,22 +142,13 @@ const handlePriceChange = (event) => {
 };
 
 const handleDiscountChange = (event) => {
-  discount.value = Math.min(100, Math.max(0, Number(event.target.value)));
-  const refPrice = effectiveReferencePrice.value;
-  const newPrice = Math.round(refPrice * (1 - discount.value / 100));
+  const percent = Math.min(100, Math.max(0, Number(event.target.value)));
+  const newPrice = Math.round(effectiveReferencePrice.value * (1 - percent / 100));
   emit('update:item', props.index, {
     currentPrice: newPrice,
     discountType: 'percentage',
-    discountValue: discount.value,
+    discountValue: percent,
   });
-};
-
-const handleToggleComplimentary = () => {
-  emit('toggle-complimentary', props.index);
-};
-
-const handleRemove = () => {
-  emit('remove', props.index);
 };
 
 const handleCostPriceChange = (event) => {
@@ -139,222 +159,218 @@ const handleTaxPercentageChange = (event) => {
   emit('update:taxPercentage', props.index, Math.max(0, Math.min(100, Number(event.target.value))));
 };
 
-const toggleAdvancedFields = () => {
-  showAdvancedFields.value = !showAdvancedFields.value;
-};
-
-onMounted(() => {
-  // Initialize discount from stored values or calculate from prices
-  if (props.item.discountType === 'percentage' && props.item.discountValue > 0) {
-    discount.value = props.item.discountValue;
-  } else {
-    const refPrice = effectiveReferencePrice.value;
-    if (refPrice > 0) {
-      discount.value = Math.round(
-        ((refPrice - props.item.currentPrice) / refPrice) * 100,
-      );
-    } else {
-      discount.value = 0;
-    }
-  }
-});
 </script>
 
 <template>
   <div
-    class="flex flex-row items-center justify-between py-1.5 mb-3 border-neutral-300 last:border-b-0"
+    class="ui-item ui-item-filled !items-start !gap-x-3 !gap-y-2"
+    style="grid-template-columns: auto minmax(0, 1fr) auto auto"
   >
-    <div class="flex-grow">
-      <div class="flex items-center justify-between gap-2">
-        <div class="text-xs text-neutral-700 text-pill">
-          {{ item.collectionName }}
-        </div>
-        <div class="text-pill text-neutral-700 text-xs">
-          {{ item.productName }}
-          <span v-if="item.combination" class="text-xs"
-            >- {{ item.combination.getDisplayName ? item.combination.getDisplayName() : item.combination.name }}</span
-          >
-          <span v-else-if="item.variation" class="text-xs"
-            >- {{ item.variation.name }}</span
-          >
-        </div>
-        <button
-          v-if="inventoryMode === 'recipe'"
-          type="button"
-          @click="toggleFulfillmentSource"
-          class="text-pill text-xs"
-          :class="isShort ? 'text-red-700' : 'text-neutral-700'"
-          title="Disponible sale del stock; Producir va a cocina"
-        >
-          {{ fromStock ? availableLabel : 'Producir' }}
-        </button>
-        <span
-          v-else-if="inventoryMode === 'unit'"
-          class="text-pill text-xs"
-          :class="isShort ? 'text-red-700' : 'text-neutral-700'"
-        >
-          {{ availableLabel }}
-        </span>
-      </div>
+    <!-- Quantity stays in the row: it is the edit made most. Centred on the
+         summary line; the open editor is a grid row of its own below it. -->
+    <div class="flex items-center gap-1 self-center">
+      <button
+        type="button"
+        class="ui-btn ui-btn-icon"
+        aria-label="Uno menos"
+        :disabled="item.quantity <= 1"
+        @click="handleQuantityChange(-1)"
+      >
+        <PhMinus :size="11" weight="bold" />
+      </button>
+      <input
+        type="number"
+        class="ui-input ui-input-num !text-center !px-1 w-10"
+        :value="item.quantity"
+        min="1"
+        step="1"
+        :aria-label="`Cantidad de ${item.productName}`"
+        @input="handleQuantityInput"
+        @focus="$event.target.select()"
+        @wheel.prevent
+      >
+      <button
+        type="button"
+        class="ui-btn ui-btn-icon"
+        aria-label="Uno más"
+        @click="handleQuantityChange(1)"
+      >
+        <PhPlus :size="11" weight="bold" />
+      </button>
+    </div>
 
-      <!-- Controls row -->
-      <div class="grid grid-cols-[5fr_5fr_8fr_6fr] gap-2 mt-0.5 items-center">
-        <div class="flex items-center gap-1">
-          <button
-            type="button"
-            @click="handleQuantityChange(-1)"
-            class="px-0 md:px-1.5 py-0.5 text-xs bg-gray-400 hover:bg-gray-500 hover:bg-gray-200 rounded"
-            :disabled="item.quantity <= 1"
-          >
-            -
-          </button>
-          <input
-            type="number"
-            :value="item.quantity"
-            @input="handleQuantityInput"
-            @wheel.prevent
-            class="w-8 text-sm text-center bg-transparent outline-none p-0 border-none"
-            min="1"
-            step="1"
-          />
-          <button
-            type="button"
-            @click="handleQuantityChange(1)"
-            class="px-0 md:px-1.5 py-0.5 text-xs bg-gray-400 hover:bg-gray-500 hover:bg-gray-200 rounded"
-          >
-            +
-          </button>
-        </div>
+    <button
+      type="button"
+      class="min-w-0 text-left self-center !m-0 !p-0"
+      :aria-expanded="open"
+      :aria-controls="`${uid}-editor`"
+      @click="open = !open"
+    >
+      <!-- What, read as a path: the collection is context, so muted. -->
+      <span class="ui-item-title !whitespace-normal line-clamp-2 block">
+        <span class="ui-ink-muted font-normal">{{ item.collectionName }} · </span>{{ item.productName }}<template v-if="variantName"> · {{ variantName }}</template>
+      </span>
+      <!-- Only what differs from the default, as one muted line of text; with
+           nothing to say there is no second line. A shortfall is the one part
+           in full ink and weight: emphasis, not a red word (ui rule 5). -->
+      <span
+        v-if="hasDiscount || inventoryMode === 'recipe' || inventoryMode === 'unit'"
+        class="ui-item-desc block mt-0.5"
+      >
+        <template v-if="hasDiscount">-{{ discount }}%</template>
+        <template v-if="hasDiscount && (inventoryMode === 'recipe' || inventoryMode === 'unit')"> · </template>
+        <template v-if="inventoryMode === 'recipe' || inventoryMode === 'unit'">{{ sourceLabel }}</template>
+        <span v-if="isShort" class="font-semibold" style="color: var(--ui-ink)"> · {{ shortBy === 1 ? 'falta' : 'faltan' }} {{ shortBy }}</span>
+      </span>
+    </button>
 
-        <div class="flex items-center gap-1">
-          <div class="input-with-unit compact" data-unit="%">
+    <span class="flex flex-col items-end self-center">
+      <span class="ui-item-num">{{ formatMoney(lineTotal) }}</span>
+      <!-- Shown at every quantity, so the unit price is always in view and the
+           card never changes height. On a cortesía it says why the total is $0. -->
+      <span class="ui-item-desc ui-num">
+        <template v-if="item.isComplimentary">Cortesía</template>
+        <template v-else>{{ item.quantity }} × {{ formatMoney(item.currentPrice) }}</template>
+      </span>
+    </span>
+
+    <button
+      type="button"
+      class="ui-btn ui-btn-icon self-center"
+      :aria-label="open ? 'Cerrar detalle' : 'Editar línea'"
+      :aria-expanded="open"
+      :aria-controls="`${uid}-editor`"
+      @click="open = !open"
+    >
+      <PhCaretDown :size="12" weight="bold" :class="{ 'rotate-180': open }" />
+    </button>
+
+    <!-- The editor: everything that is not quantity. -->
+    <div
+      v-if="open"
+      :id="`${uid}-editor`"
+      class="col-span-full flex flex-col gap-3 pb-1"
+    >
+      <div class="grid grid-cols-2 gap-3">
+        <div class="ui-field">
+          <label class="ui-field-k" :for="`${uid}-price`">Precio unitario</label>
+          <div class="ui-field-unit" data-unit="$">
             <input
+              :id="`${uid}-price`"
               type="number"
-              @input="handleDiscountChange"
-              @wheel.prevent
-              @focus="$event.target.select()"
-              :value="discount"
-              class="w-full px-1 py-0.5 text-right border rounded text-xs text-neutral-500"
-              :disabled="item.isComplimentary"
-              max="100"
-            />
-                   <span class="absolute absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-700">Dcto</span>
-          </div>
-        </div>
-
-        <div>
-          <div class="input-with-unit compact" data-unit="$">
-            <input
-              type="number"
+              class="ui-input ui-input-num"
               :value="item.currentPrice"
-              @input="handlePriceChange"
-              @wheel.prevent
-              @focus="$event.target.select()"
-              class="w-full px-1 py-0.5 text-right border rounded text-sm"
-              :class="{
-                'price-modified-UNUSED': isPriceModified,
-                'opacity-20': item.isComplimentary,
-              }"
               step="1"
               :disabled="item.isComplimentary"
-            />
-                   <span v-if="showAdvancedFields" class="absolute absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-700">Venta</span>
+              @input="handlePriceChange"
+              @focus="$event.target.select()"
+              @wheel.prevent
+            >
           </div>
         </div>
-
-        <div class="flex items-center gap-2 justify-end">
-          <button
-            type="button"
-            @click="toggleAdvancedFields"
-            class="px-0 md:px-2 py-0.5 text-xs rounded"
-            title="Más opciones"
-          >
-            <PhCaretUp v-if="showAdvancedFields" class="w-4 h-4" weight="bold" />
-            <PhCaretDown v-else class="w-4 h-4" weight="bold" />
-          </button>
-          <button
-            type="button"
-            @click="handleToggleComplimentary"
-            class="px-0 md:px-2 py-0.5 text-xs rounded"
-            :class="{
-              'bg-gray-200': item.isComplimentary,
-              'bg-gray-100': !item.isComplimentary,
-            }"
-          >
-            <PhGift v-if="!item.isComplimentary" class="w-4 h-4" weight="light" />
-            <PhGift v-else class="w-4 h-4" weight="fill" />
-          </button>
-          <button
-            type="button"
-            @click="handleRemove"
-            class="px-0 md:px-2 py-0.5 text-xs text-red-700 hover:bg-red-50 rounded"
-          >
-            <PhTrash class="w-4 h-4" />
-          </button>
+        <div class="ui-field">
+          <label class="ui-field-k" :for="`${uid}-discount`">Descuento</label>
+          <div class="ui-field-unit" data-unit="%">
+            <input
+              :id="`${uid}-discount`"
+              type="number"
+              class="ui-input ui-input-num"
+              :value="discount"
+              min="0"
+              max="100"
+              :disabled="item.isComplimentary"
+              @input="handleDiscountChange"
+              @focus="$event.target.select()"
+              @wheel.prevent
+            >
+          </div>
         </div>
       </div>
 
-      <!-- Advanced fields row (Cost & Tax) -->
-      <div v-if="showAdvancedFields" class="grid grid-cols-[5fr_5fr_8fr_6fr] gap-2 mt-1 pb-2 border-b border-neutral-200 items-center">
-        <div></div>
-        <div class="flex items-center gap-1">
-          <div class="input-with-unit compact flex-1" data-unit="%">
+      <div class="flex flex-wrap items-end gap-3">
+        <button
+          type="button"
+          class="ui-btn"
+          :aria-pressed="!!item.isComplimentary"
+          @click="emit('toggle-complimentary', index)"
+        >
+          Cortesía
+        </button>
+        <UiPills
+          v-if="inventoryMode === 'recipe'"
+          class="flex-1 min-w-[12rem]"
+          label="Origen"
+          min-width="7rem"
+          :model-value="fromStock ? 'stock' : 'produce'"
+          :options="sourceOptions"
+          @update:model-value="setFulfillmentSource"
+        />
+      </div>
+
+      <div class="ui-sectionhead !mb-0">Impuesto y costo</div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="ui-field">
+          <label class="ui-field-k" :for="`${uid}-tax`">IVA</label>
+          <div class="ui-field-unit" data-unit="%">
             <input
+              :id="`${uid}-tax`"
               type="number"
+              class="ui-input ui-input-num"
               :value="item.taxPercentage || 0"
-              @input="handleTaxPercentageChange"
-              @wheel.prevent
-              @focus="$event.target.select()"
-              class="w-full px-1 py-0.5 text-right border rounded text-xs"
-              :disabled="item.isComplimentary"
               min="0"
               max="100"
               step="0.5"
-            />
-                   <span class="absolute absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-700">IVA</span>
+              :disabled="item.isComplimentary"
+              @input="handleTaxPercentageChange"
+              @focus="$event.target.select()"
+              @wheel.prevent
+            >
           </div>
         </div>
-        <div class="flex items-center gap-1">
-          <div class="input-with-unit compact flex-1" data-unit="$">
+        <div class="ui-field">
+          <label class="ui-field-k" :for="`${uid}-cost`">Costo</label>
+          <div class="ui-field-unit" data-unit="$">
             <input
+              :id="`${uid}-cost`"
               type="number"
-              :value="item.costPrice || 0"
-              @input="handleCostPriceChange"
-              @wheel.prevent
-              @focus="$event.target.select()"
-              class="w-full px-1 py-0.5 text-right border rounded text-xs"
-              :class="{ 'border-amber-300 bg-amber-50': costValidationError }"
-              :disabled="item.isComplimentary"
+              class="ui-input ui-input-num"
+              :value="Math.round(item.costPrice || 0)"
               min="0"
               step="1"
-            />
-           <span class="absolute absolute left-2 top-1/2 -translate-y-1/2 text-xs text-neutral-700">Costo</span>
-
+              :disabled="item.isComplimentary"
+              :aria-invalid="!!costValidationError"
+              :aria-describedby="costValidationError ? `${uid}-cost-e` : undefined"
+              @input="handleCostPriceChange"
+              @focus="$event.target.select()"
+              @wheel.prevent
+            >
           </div>
-        </div>
-
-        <div>
-          <span v-if="costValidationError" class="text-xs text-amber-600 italic">
+          <span v-if="costValidationError" :id="`${uid}-cost-e`" class="ui-field-hint">
             {{ costValidationError }}
           </span>
         </div>
+      </div>
+
+      <!-- Takes the line out of the draft: a back-out, so danger outline. -->
+      <div class="flex justify-end">
+        <button type="button" class="ui-btn ui-btn-danger" @click="emit('remove', index)">
+          <PhTrash :size="13" weight="bold" />
+          Quitar del pedido
+        </button>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped lang="scss">
-.price-modified {
-  @apply bg-yellow-50 border-yellow-300;
-}
-
+<style scoped>
 input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
-  &::-webkit-outer-spin-button,
-  &::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
+}
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 </style>

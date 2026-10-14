@@ -1,12 +1,11 @@
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import {
   Combobox,
   ComboboxInput,
   ComboboxButton,
   ComboboxOptions,
   ComboboxOption,
-  TransitionRoot,
 } from '@headlessui/vue';
 import { PhCaretUpDown } from '@phosphor-icons/vue';
 
@@ -19,13 +18,18 @@ const props = defineProps({
     type: Array,
     required: true,
   },
-  label: {
+  // The input's id, so the form's <label for> names it.
+  id: {
     type: String,
-    default: 'Usuario',
+    default: undefined,
   },
-  error: {
+  invalid: {
+    type: Boolean,
+    default: false,
+  },
+  describedBy: {
     type: String,
-    default: '',
+    default: undefined,
   },
 });
 
@@ -69,70 +73,56 @@ watch(
   { immediate: true },
 );
 
-const inputRef = ref(null);
+const root = ref(null);
 
+// The input itself, not ComboboxInput's component ref: its $el is not reliably
+// the <input>.
 const focus = () => {
-  const input = document.querySelector('[role="combobox"]');
-  input?.focus();
+  root.value?.querySelector('input')?.focus();
 };
-
-onMounted(async () => {
-  await nextTick();
-  focus();
-});
 
 defineExpose({ focus });
 </script>
+
 <template>
-  <div>
-    <Combobox :modelValue="modelValue" @update:modelValue="handleSelect">
-      <div class="relative">
-        <div class="relative w-full">
-          <ComboboxInput
-            ref="inputRef"
-            autocomplete="off"
-            enterkeyhint="done"
-            @change="query = $event.target.value"
-            :displayValue="
-              (userId) => props.users.find((u) => u.id === userId)?.name || ''
-            "
-          />
-          <ComboboxButton
-            class="absolute inset-y-0 right-0 flex items-center pr-2"
-          >
-            <PhCaretUpDown />
-          </ComboboxButton>
-        </div>
-
-        <TransitionRoot
-          leave="transition ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <ComboboxOptions
-            class="absolute mt-1 w-full rounded-md bg-white py-1 shadow-lg text-[13px] z-10"
-          >
-            <ComboboxOption
-              v-for="user in filteredUsers"
-              :key="user.id"
-              :value="user.id"
-              v-slot="{ selected, active }"
-            >
-              <div
-                class="cursor-default select-none pl-2 py-1"
-                :class="{
-                  'bg-blue-500 text-white': active,
-                  'font-bold': selected,
-                }"
-              >
-                {{ user.name }}
-              </div>
-            </ComboboxOption>
-          </ComboboxOptions>
-        </TransitionRoot>
+  <Combobox :model-value="modelValue" @update:model-value="handleSelect">
+    <div ref="root" class="relative">
+      <!-- .ui-search for the room on the right; the caret borrows the clear
+           button's glyph-in-the-field look. -->
+      <div class="ui-search">
+        <ComboboxInput
+          :id="id"
+          class="ui-input"
+          autocomplete="off"
+          enterkeyhint="done"
+          :aria-invalid="invalid || undefined"
+          :aria-describedby="describedBy"
+          :display-value="(userId) => users.find((u) => u.id === userId)?.name || ''"
+          @change="query = $event.target.value"
+        />
+        <ComboboxButton class="ui-search-clear" aria-label="Ver clientes">
+          <PhCaretUpDown :size="13" weight="bold" />
+        </ComboboxButton>
       </div>
-    </Combobox>
 
-    <p class="hidden" v-if="error">{{ error }}</p>
-  </div>
+      <ComboboxOptions
+        class="ui-card absolute z-20 mt-1 w-full max-h-72 overflow-y-auto !p-1"
+      >
+        <li v-if="!filteredUsers.length" class="ui-empty !py-4">Ningún cliente coincide.</li>
+        <ComboboxOption
+          v-for="user in filteredUsers"
+          :key="user.id"
+          v-slot="{ active }"
+          :value="user.id"
+          as="template"
+        >
+          <li class="ui-item !py-1.5" :aria-current="active || undefined">
+            <span />
+            <span class="ui-item-title">{{ user.name }}</span>
+            <span v-if="user.category" class="ui-item-meta">{{ user.category }}</span>
+          </li>
+        </ComboboxOption>
+      </ComboboxOptions>
+    </div>
+  </Combobox>
 </template>

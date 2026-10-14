@@ -139,12 +139,17 @@ Four rungs, `0` furthest from your face:
   `YesNoToggle.vue` has no call sites left and can be deleted.
 - `formatQty` in `src/utils/helpers.js` — number only, max 3 decimals, unit
   rendered as its own `<span class="ui-unit">`.
-- `UiSearchField.vue`. `.ui-search` has one real call site today
-  (`RecipeBookView.vue`; `ProductSearch.vue` is the old system and off-limits),
-  and its ~14 lines of markup plus the Escape handler are copy-pasted at each
-  one. **Extract on the second new screen that needs a search box** — two
-  examples is enough to know whether it needs debounce, a leading icon, or a
-  `clear` event of its own. One is not.
+- `UiSearchField.vue` is built (the order form's catalog uses it). No debounce,
+  leading icon or `clear` event of its own yet; add one when a call site needs it.
+  A combobox does not use it: `UiItemPicker` and `UserCombox` need their ARIA on
+  the input itself, and fallthrough attrs land on the wrapper.
+- `UiPills` options take an optional `icon` component, drawn before the label
+  (payment methods, from `utils/paymentIcons.js`). Slot `selected-<value>`
+  replaces that option while it is picked, in the same cell — "Otro" turning
+  into its input without the row changing height (order delivery fee). With such
+  a slot every pill takes `ui-btn-field`, the input's height. `columns` fixes the
+  column count instead of wrapping by `minWidth`. A label that does not fit is
+  truncated with "…" and the full text in `title`.
 - `ui-inputs.css`. `ui.css` is one file on purpose: the numbered sections are
   already the split, and a third file adds an import-order constraint that fails
   as "this screen looks slightly wrong". The form pass took it past the ~900-line

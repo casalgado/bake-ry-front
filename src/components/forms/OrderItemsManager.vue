@@ -1,6 +1,4 @@
 <script setup>
-import ProductWizard from './ProductWizard.vue';
-import ProductSearch from './ProductSearch.vue';
 import OrderLineItem from './OrderLineItem.vue';
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
@@ -17,11 +15,6 @@ const props = defineProps({
     type: Array,
     required: true,
     default: () => [],
-  },
-  selectionMode: {
-    type: String,
-    required: true,
-    default: 'wizard', // 'wizard' | 'search'
   },
   // The lines of the order as saved, when editing one. The server already holds
   // them against the stock, so they are given back before the draft is counted.
@@ -85,8 +78,8 @@ const availableFor = (item) => (stockStore.items.find((s) =>
   && s.warehouseId === warehouseOf(item),
 )?.available ?? 0) + takenBy(props.savedLines, item);
 
-// The draft's stock lines of this product together ask for more than is free.
-const isShortFor = (item) => takenBy(props.modelValue, item) > availableFor(item);
+// Units the draft's stock lines of this product ask for beyond what is free.
+const shortByFor = (item) => Math.max(0, takenBy(props.modelValue, item) - availableFor(item));
 
 // Resale always takes from stock; a recipe product does when what `lines` (the
 // draft) have not already taken covers it.
@@ -113,11 +106,11 @@ watch([() => props.modelValue, defaultsReady], ([lines, ready]) => {
   }));
 }, { immediate: true });
 
-const handleWizardSelect = (selection) => {
+// The catalog lives in the form's other pane; it hands its pick here, where the
+// stock defaults are decided.
+const add = (selection) => {
   const product = props.products.find(p => p.id === selection.product.id);
   if (!product) return;
-
-  console.log('selection', selection);
 
   // Handle combination if present (new multi-dimensional system)
   if (selection.combination) {
@@ -252,51 +245,33 @@ const updateItemTaxPercentage = (index, newTaxPercentage) => {
   );
   emit('update:modelValue', newItems);
 };
+
+defineExpose({ add });
 </script>
 
 <template>
-  <div class="mb-4 grid grid-cols-3 gap-x-3 gap-y-2 md:gap-y-0">
+  <div v-if="modelValue.length === 0" class="ui-empty">
+    <b>Todavía no hay productos</b>
+    Elígelos en el catálogo o repite un pedido anterior.
+  </div>
 
-    <!-- Product Wizard Mode -->
-    <ProductWizard
-      v-if="selectionMode === 'wizard'"
-      @select="handleWizardSelect"
-      :products="products"
-      class="col-span-3 md:col-span-1"
+  <!-- Separate cards with a gap, not shared hairlines: each line is something
+       you put there, and its open editor stays inside it. -->
+  <div v-else class="flex flex-col gap-1.5">
+    <OrderLineItem
+      v-for="(item, index) in modelValue"
+      :key="`${item.productId}-${index}`"
+      :item="item"
+      :index="index"
+      :inventory-mode="inventoryModeOf(item)"
+      :available="availableFor(item)"
+      :short-by="shortByFor(item)"
+      @update:quantity="updateItemQuantity"
+      @update:item="updateItem"
+      @update:costPrice="updateItemCostPrice"
+      @update:taxPercentage="updateItemTaxPercentage"
+      @toggle-complimentary="toggleItemComplimentary"
+      @remove="removeItem"
     />
-
-    <!-- Product Search Mode -->
-    <ProductSearch
-      v-if="selectionMode === 'search'"
-      @select="handleWizardSelect"
-      :products="products"
-      class="col-span-3 md:col-span-1"
-    />
-
-    <div class="flat-card col-span-3 md:pt-0 md:col-span-2 mb-0 text-sm">
-      <div v-if="modelValue.length === 0" class="p-4">
-        No hay productos seleccionados
-      </div>
-
-      <div v-else class="flex flex-col h-full">
-        <div class="flex-grow overflow-y-auto">
-          <OrderLineItem
-            v-for="(item, index) in modelValue"
-            :key="`${item.productId}-${index}`"
-            :item="item"
-            :index="index"
-            :inventory-mode="inventoryModeOf(item)"
-            :available="availableFor(item)"
-            :short="isShortFor(item)"
-            @update:quantity="updateItemQuantity"
-            @update:item="updateItem"
-            @update:costPrice="updateItemCostPrice"
-            @update:taxPercentage="updateItemTaxPercentage"
-            @toggle-complimentary="toggleItemComplimentary"
-            @remove="removeItem"
-          />
-        </div>
-      </div>
-    </div>
   </div>
 </template>

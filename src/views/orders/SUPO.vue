@@ -358,11 +358,12 @@ onUnmounted(() => {
     <Dialog
       :open="isFormOpen"
       @close="closeDialog"
-      class="relative z-50 form-container"
+      class="relative z-50"
     >
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <!-- No surface of its own: the form is a ui-app and paints itself. -->
+        <DialogPanel class="ui-formhost ui-gutter max-h-[90dvh] overflow-y-auto" style="--ui-form-w: 72rem">
           <OrderForm
             v-if="selectedItems[0]"
             title="Editar Pedido"

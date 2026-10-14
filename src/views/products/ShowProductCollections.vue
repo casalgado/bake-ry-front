@@ -1,6 +1,6 @@
 <script setup>
 // Vue & Router
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Dialog, DialogPanel } from '@headlessui/vue';
 import { useRouter } from 'vue-router';
 
@@ -12,9 +12,11 @@ import ProductCollectionForm from '@/components/forms/ProductCollectionForm.vue'
 
 // Store
 import { useProductCollectionStore } from '@/stores/productCollectionStore';
+import { useProductStore } from '@/stores/productStore';
+import { orderCategoryNames } from '@/utils/helpers';
 
 // Icons
-import { PhPen, PhTrash } from '@phosphor-icons/vue';
+import { PhPen, PhTrash, PhArrowUp, PhArrowDown } from '@phosphor-icons/vue';
 
 const router = useRouter();
 
@@ -27,6 +29,10 @@ const dataTable = ref(null);
 onMounted(async () => {
   await productCollectionStore.fetchAll();
 });
+
+// Same order as the catalog once one is saved; a column header still re-sorts.
+const orderedCollections = computed(() =>
+  [...productCollectionStore.items].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)));
 
 const columns = [
   {
@@ -117,20 +123,131 @@ const handleCancel = () => {
 const navigateToCreate = () => {
   router.push('/dashboard/product-collections/create');
 };
+
+// ---------- order in the order form's catalog ----------
+
+const productStore = useProductStore();
+const ordering = ref(null); // the collections being reordered; null while closed
+const orderingError = ref('');
+const savingOrder = ref(false);
+
+// Opens on what the catalog shows today: categories in the order it meets them
+// in the products, then sorted by displayOrder. Ones without products go last.
+const openOrdering = async () => {
+  orderingError.value = '';
+  // Without products the list still opens, in displayOrder only.
+  if (!productStore.items.length) await productStore.fetchAll().catch(() => {});
+  const seen = productStore.items
+    .filter((p) => p.isActive !== false)
+    .map((p) => p.collectionName);
+  const names = [...new Set([...seen, ...productCollectionStore.items.map((c) => c.name)])];
+  const byName = Object.fromEntries(productCollectionStore.items.map((c) => [c.name, c]));
+  ordering.value = orderCategoryNames(names, productCollectionStore.items)
+    .map((name) => byName[name])
+    .filter(Boolean);
+};
+
+const move = (index, by) => {
+  const list = ordering.value;
+  [list[index], list[index + by]] = [list[index + by], list[index]];
+};
+
+// Only the rows whose position changed are sent.
+const saveOrdering = async () => {
+  savingOrder.value = true;
+  orderingError.value = '';
+  try {
+    await Promise.all(ordering.value
+      .map((c, index) => (c.displayOrder === index ? null : productCollectionStore.patch(c.id, { displayOrder: index })))
+      .filter(Boolean));
+    ordering.value = null;
+  } catch (error) {
+    orderingError.value = 'No se pudo guardar el orden. Intenta de nuevo.';
+    console.error('Failed to save collection order:', error);
+  } finally {
+    savingOrder.value = false;
+  }
+};
 </script>
 
 <template>
   <div class="container p-4 px-0 lg:px-4">
     <div class="flex justify-between items-center mb-1">
       <h2 class="text-2xl font-bold mb-0">Categorias</h2>
-      <button
-        label="Crear Categoría"
-        class="action-btn"
-        @click="navigateToCreate"
-      >
-        Crear Categoría
-      </button>
+      <div class="flex gap-2">
+        <button class="action-btn" @click="openOrdering">
+          Ordenar
+        </button>
+        <button
+          label="Crear Categoría"
+          class="action-btn"
+          @click="navigateToCreate"
+        >
+          Crear Categoría
+        </button>
+      </div>
     </div>
+
+    <!-- Order of the categories in the order form's catalog -->
+    <Dialog
+      :open="!!ordering"
+      @close="ordering = null"
+      class="relative z-50"
+    >
+      <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
+      <div class="fixed inset-0 flex items-center justify-center p-4">
+        <DialogPanel class="ui-formhost ui-gutter max-h-[90dvh] overflow-y-auto" style="--ui-form-w: 28rem">
+          <div class="ui-card flex flex-col gap-4" data-ui-theme="light">
+            <div>
+              <h2 class="ui-panehead-title">Orden de las categorías</h2>
+              <p class="ui-field-hint">Así aparecen en el catálogo del pedido.</p>
+            </div>
+
+            <ol class="flex flex-col">
+              <li
+                v-for="(collection, index) in ordering"
+                :key="collection.id"
+                class="ui-item ui-item-divided"
+              >
+                <span class="ui-num ui-ink-muted w-5 text-right">{{ index + 1 }}</span>
+                <span class="truncate">{{ collection.name }}</span>
+                <span class="flex gap-1">
+                  <button
+                    type="button"
+                    class="ui-btn ui-btn-icon"
+                    :aria-label="`Subir ${collection.name}`"
+                    :disabled="index === 0"
+                    @click="move(index, -1)"
+                  >
+                    <PhArrowUp :size="11" weight="bold" />
+                  </button>
+                  <button
+                    type="button"
+                    class="ui-btn ui-btn-icon"
+                    :aria-label="`Bajar ${collection.name}`"
+                    :disabled="index === ordering.length - 1"
+                    @click="move(index, 1)"
+                  >
+                    <PhArrowDown :size="11" weight="bold" />
+                  </button>
+                </span>
+              </li>
+            </ol>
+
+            <span v-if="orderingError" class="ui-field-error">{{ orderingError }}</span>
+
+            <div class="flex gap-2 justify-end">
+              <button type="button" class="ui-btn ui-btn-danger" :disabled="savingOrder" @click="ordering = null">
+                Cancelar
+              </button>
+              <button type="button" class="ui-btn ui-btn-solid" :disabled="savingOrder" @click="saveOrdering">
+                {{ savingOrder ? 'Guardando…' : 'Guardar orden' }}
+              </button>
+            </div>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
 
     <!-- Loading State -->
     <div
@@ -177,7 +294,7 @@ const navigateToCreate = () => {
     <div v-if="!productCollectionStore.loading">
       <DataTable
         ref="dataTable"
-        :data="productCollectionStore.items"
+        :data="orderedCollections"
         :columns="columns"
         :actions="tableActions"
         :action-loading="actionLoading"
