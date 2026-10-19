@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
+import { parseSpanishName } from '@/utils/helpers';
 
 // Function to transform order data into rows
 const transformOrderToRows = (order, orderIndex) => {
@@ -1214,7 +1215,7 @@ const whatsappBroadcastSheet = (clients) => {
     const d = String(c.phone || '').replace(/\D/g, '');
     // ponytail: 10-digit == CO mobile heuristic; revisit if they onboard bulk foreign numbers
     const id = !d ? '' : d.length === 10 ? `+57${d}` : `+${d}`;
-    return [id, d ? 'TELEFONO' : 'USERNAME', c.name || '', '', ''];
+    return [id, d ? 'TELEFONO' : 'USERNAME', parseSpanishName(c.name, c.category).firstName, '', ''];
   });
   return { headers, rows, cols: [50, 20, 24, 20, 36] };
 };
@@ -1241,7 +1242,7 @@ const writeClientSheet = ({ headers, rows, cols }, filename) => {
 const exportClientList = (clients, { bakeryId, preset, groupHeader, segment, filenameStem, period, count, periodColumns }) => {
   const presetDef = preset ? CLIENT_EXPORT_PRESETS[bakeryId] : null;
   const sheet = presetDef
-    ? presetDef.build(clients)
+    ? presetDef.build(clients.map(c => ({ ...c, category: segment.toUpperCase() })))
     : buildStandardClientSheet(clients, { groupHeader, segment, periodColumns });
 
   const unit = UNIT_PLURAL[period] || period;
@@ -1253,7 +1254,7 @@ const exportClientList = (clients, { bakeryId, preset, groupHeader, segment, fil
 // One contact per client: a period repeats the same user across many orders.
 const exportOrderClientsPreset = (orders, bakeryId) => {
   const presetDef = CLIENT_EXPORT_PRESETS[bakeryId];
-  const clients = [...new Map(orders.map((o) => [o.userId, { name: o.userName, phone: o.userPhone }])).values()];
+  const clients = [...new Map(orders.map((o) => [o.userId, { name: o.userName, phone: o.userPhone, category: o.userCategory }])).values()];
   const today = new Date().toISOString().split('T')[0];
   writeClientSheet(presetDef.build(clients), `pedidos-${presetDef.label.toLowerCase()}_${today}.xlsx`);
 };

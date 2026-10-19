@@ -1,6 +1,6 @@
 <!-- components/DataTable/index.vue -->
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { PhDisc, PhArrowCounterClockwise, PhArrowClockwise, PhX } from '@phosphor-icons/vue';
 import TableHeader from './components/TableHeader.vue';
 import TableBody from './components/TableBody.vue';
@@ -95,17 +95,25 @@ const processedData = computed(() => {
   return sortData(filteredData);
 });
 
+// Rows that leave the visible set leave the selection, so actions never hit hidden rows
+watch(processedData, (rows) => {
+  const visible = new Set(rows.map(r => r.id));
+  const before = selectedRows.value.size;
+  selectedRows.value.forEach(id => { if (!visible.has(id)) selectedRows.value.delete(id); });
+  if (selectedRows.value.size !== before) emitSelectionChange();
+});
+
 // Manages row selection with shift-click support for range selection
 const handleRowSelect = ({ row, shift }) => {
   if (shift && selectedRows.value.size > 0) {
     const lastSelected = [...selectedRows.value].pop();
-    const startIdx = props.data.findIndex(r => r.id === lastSelected);
-    const endIdx = props.data.findIndex(r => r.id === row.id);
+    const startIdx = processedData.value.findIndex(r => r.id === lastSelected);
+    const endIdx = processedData.value.findIndex(r => r.id === row.id);
 
     const [start, end] = [startIdx, endIdx].sort((a, b) => a - b);
 
     for (let i = start; i <= end; i++) {
-      selectedRows.value.add(props.data[i].id);
+      selectedRows.value.add(processedData.value[i].id);
     }
   } else {
     if (selectedRows.value.has(row.id)) {

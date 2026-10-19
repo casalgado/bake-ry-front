@@ -664,6 +664,19 @@ const removeOrderDiscount = () => {
   showOrderDiscount.value = false;
 };
 
+// Switching %/$ keeps the discount amount; the typed number converts.
+const setOrderDiscountType = (type) => {
+  if (type === formData.value.orderDiscountType) return;
+  const amount = orderDiscountAmount.value;
+  const base = orderForPricing.value.taxMode === 'exclusive'
+    ? orderForPricing.value.preTaxSubtotal
+    : orderForPricing.value.postTaxSubtotal;
+  formData.value.orderDiscountValue = type === 'fixed'
+    ? amount
+    : (base ? Math.round((amount / base) * 10000) / 100 : 0);
+  formData.value.orderDiscountType = type;
+};
+
 const selectedDeliveryFee = ref(DEFAULT_DELIVERY_FEE);
 
 watch(selectedDeliveryFee, (newValue) => {
@@ -1052,7 +1065,7 @@ const clearUser = () => {
                     :class="i === 0 ? '!rounded-r-none' : '!rounded-l-none -ml-px'"
                     :aria-label="o.value === 'percentage' ? 'Porcentaje' : 'Valor fijo'"
                     :aria-pressed="formData.orderDiscountType === o.value"
-                    @click="formData.orderDiscountType = o.value"
+                    @click="setOrderDiscountType(o.value)"
                   >
                     {{ o.label }}
                   </button>
@@ -1063,7 +1076,7 @@ const clearUser = () => {
                   class="ui-input ui-input-num w-20"
                   min="0"
                   :max="formData.orderDiscountType === 'percentage' ? 100 : undefined"
-                  step="1"
+                  :step="formData.orderDiscountType === 'percentage' ? 'any' : 1"
                   placeholder="0"
                   aria-label="Valor del descuento"
                   @focus="$event.target.select()"

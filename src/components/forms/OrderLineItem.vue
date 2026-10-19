@@ -2,7 +2,7 @@
 /* One line of the order, read like a receipt: quantity, what, how much. The row
  * shows only what differs from the default (a discount, cortesía, stock); the
  * rest lives in the editor that opens under it. */
-import { ref, computed, useId } from 'vue';
+import { ref, shallowRef, computed, useId } from 'vue';
 import UiPills from '@/components/ui/UiPills.vue';
 import { formatMoney } from '@/utils/helpers';
 import { PhMinus, PhPlus, PhCaretDown, PhTrash } from '@phosphor-icons/vue';
@@ -113,6 +113,17 @@ const handleQuantityChange = (delta) => {
   }
 };
 
+// Armed for one version of the line: any edit replaces the item and disarms it.
+const armedItem = shallowRef(null);
+const confirmRemove = computed(() => armedItem.value === props.item);
+
+// At 1 the minus becomes a remove; the first tap arms it, the second removes.
+const handleMinus = () => {
+  if (props.item.quantity > 1) return handleQuantityChange(-1);
+  if (confirmRemove.value) return emit('remove', props.index);
+  armedItem.value = props.item;
+};
+
 const handleQuantityInput = (event) => {
   const newValue = parseInt(event.target.value) || 1;
   if (newValue >= 1) {
@@ -172,11 +183,13 @@ const handleTaxPercentageChange = (event) => {
       <button
         type="button"
         class="ui-btn ui-btn-icon"
-        aria-label="Uno menos"
-        :disabled="item.quantity <= 1"
-        @click="handleQuantityChange(-1)"
+        :class="{ 'ui-btn-danger': confirmRemove }"
+        :aria-label="item.quantity > 1 ? 'Uno menos' : (confirmRemove ? 'Confirmar quitar' : 'Quitar del pedido')"
+        @click="handleMinus"
+        @blur="armedItem = null"
       >
-        <PhMinus :size="11" weight="bold" />
+        <PhMinus v-if="item.quantity > 1" :size="11" weight="bold" />
+        <PhTrash v-else :size="11" weight="bold" />
       </button>
       <input
         type="number"

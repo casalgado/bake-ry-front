@@ -341,6 +341,13 @@ const columns = computed(() => [
 
 const tableFilters = computed(() => [
   {
+    field: 'userCategory',
+    options: [
+      { label: 'b2b', value: 'B2B' },
+      { label: 'b2c', value: 'B2C' },
+    ],
+  },
+  {
     field: 'fulfillmentType',
     options: [
       { label: 'recogen', value: 'pickup' },

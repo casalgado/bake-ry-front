@@ -22,6 +22,11 @@ const router = createRouter({
       component: () => import('../views/RoadmapView.vue'),
     },
     {
+      path: '/facturacion',
+      name: 'facturacion',
+      component: () => import('../views/FacturacionView.vue'),
+    },
+    {
       path: '/competition',
       name: 'competition',
       component: () => import('../views/CompetitionView.vue'),
