@@ -27,6 +27,7 @@ import { useIngredientStore } from '@/stores/ingredientStore';
 import { useProductStore } from '@/stores/productStore';
 import { useInventoryDocsStore } from '@/stores/inventoryDocsStore';
 import { useAuthenticationStore } from '@/stores/authentication';
+import { usePeriodStore } from '@/stores/periodStore';
 import { StockCountService } from '@/services/stockCountService';
 import { useItemCatalog, itemOfStock, SHELF_TITLES } from '@/composables/useItemCatalog';
 import { useWarehouses } from '@/composables/useWarehouses';
@@ -114,6 +115,7 @@ const groups = computed(() => {
       qty: 0,
       committed: 0,
       incoming: 0,
+      incomingDate: null,
       available: 0,
       rows: [],
     };
@@ -121,6 +123,10 @@ const groups = computed(() => {
     group.qty += stock.currentStock || 0;
     group.committed += stock.committed || 0;
     group.incoming += stock.incoming || 0;
+    // ISO strings: the earliest run across bodegas is the one to point at.
+    if (stock.incomingDate && (!group.incomingDate || stock.incomingDate < group.incomingDate)) {
+      group.incomingDate = stock.incomingDate;
+    }
     group.available += stock.available ?? stock.currentStock ?? 0;
     group.rows.push(stock);
     byKey.set(stock.itemKey, group);
@@ -135,6 +141,15 @@ const groups = computed(() => {
 });
 
 const valueOf = (group) => (group.cost === null ? null : group.qty * group.cost);
+
+/* The kitchen list shows one day's runs, so land on the day of the run that
+ * produces this number. */
+const periodStore = usePeriodStore();
+function openProduction(date) {
+  periodStore.setPeriodType('day');
+  periodStore.currentDate = new Date(date);
+  router.push('/dashboard/orders/production/single');
+}
 
 /* Clicking a column head sorts every shelf by it. Numbers go high to low, an
  * unresolved value sinks to the bottom, and ties fall back to the name. */
@@ -710,7 +725,7 @@ async function submitForm() {
             <!-- Disponible = existencia + en producción − comprometido. Silent
                  when no pedido or producción touches the item. -->
             <div class="flex flex-wrap items-end gap-x-7 gap-y-3 mb-4">
-              <div class="ui-stat ui-stat-hero">
+              <div class="ui-stat">
                 <span class="ui-stat-k">Existencia</span>
                 <span class="ui-stat-v">
                   {{ formatQty(selected.qty) }}<span class="ui-unit">{{ selected.unit }}</span>
@@ -723,12 +738,18 @@ async function submitForm() {
                     {{ formatQty(selected.available) }}<span class="ui-unit">{{ selected.unit }}</span>
                   </span>
                 </span>
-                <span v-if="selected.incoming" class="ui-stat">
+                <button
+                  v-if="selected.incoming"
+                  type="button"
+                  class="ui-stat text-left hover:underline !m-0 !p-0"
+                  title="Ver la producción de ese día"
+                  @click="openProduction(selected.incomingDate)"
+                >
                   <span class="ui-stat-k">En producción</span>
                   <span class="ui-stat-v">
                     {{ formatSignedQty(selected.incoming) }}<span class="ui-unit">{{ selected.unit }}</span>
                   </span>
-                </span>
+                </button>
                 <span v-if="selected.committed" class="ui-stat">
                   <span class="ui-stat-k">Comprometido</span>
                   <span class="ui-stat-v">
