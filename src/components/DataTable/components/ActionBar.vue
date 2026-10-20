@@ -17,10 +17,6 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
-  tableWidth: {
-    type: Number,
-    // required: true,
-  },
 });
 
 const emit = defineEmits(['action', 'clear-selection']);
@@ -46,6 +42,17 @@ const handleAction = (action) => {
   }
 };
 
+// The row owns every wheel gesture over it: a vertical wheel scrolls it sideways
+// (the scrollbar is hidden), and a horizontal swipe is consumed even at the edges,
+// where the browser would otherwise turn it into back/forward.
+const scrollSideways = (e) => {
+  const el = e.currentTarget;
+  const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+  if (!horizontal && el.scrollWidth <= el.clientWidth) return;
+  e.preventDefault();
+  el.scrollLeft += horizontal ? e.deltaX : e.deltaY;
+};
+
 const handleConfirm = () => {
   emit('action', confirmAction.value.id);
   confirmAction.value = null;
@@ -54,37 +61,37 @@ const handleConfirm = () => {
 const handleCancel = () => {
   confirmAction.value = null;
 };
-
-// Compute action bar width based on table width
-const actionBarStyle = computed(() => ({
-  width: `${props.tableWidth}px`,
-  left: `${(window.innerWidth - props.tableWidth) / 2}px`,
-}));
 </script>
 
 <template>
+  <!-- On lg the left 40rem stays clear for the sidebar (216px) and the fixed
+       TotalsSummary beside it; past that the actions scroll sideways.
+       ponytail: fixed reserve, measure TotalsSummary if its content grows. -->
   <div
     v-if="selectedCount > 0"
-    class="fixed bottom-10 lg:bottom-5 right-0 md:right-8 bg-white border-t rounded-lg shadow-lg z-40 max-w-full"
-    :style="actionBarStyle"
+    class="fixed bottom-10 lg:bottom-5 right-0 md:right-8 bg-white border-t rounded-lg shadow-lg z-40 max-w-full lg:max-w-[calc(100vw-40rem)]"
   >
     <div class="px-4 flex items-center gap-2 justify-between">
       <button
         @click="emit('clear-selection')"
-        class="button utility-btn-active"
+        class="button utility-btn-active shrink-0"
       >
         <span class="flex items-center gap-2"><PhX class="w-4 h-4" /> {{ selectedCount }} </span>
 
       </button>
 
-      <div class="flex items-center gap-2 overflow-x-auto">
+      <div
+        class="flex items-center gap-2 overflow-x-auto overscroll-x-contain min-w-0"
+        style="scrollbar-width: none"
+        @wheel="scrollSideways"
+      >
         <button
           v-for="action in availableActions"
           :key="action.id"
           @click="handleAction(action)"
           :disabled="loading[action.id]"
           :class="[
-            'px-4 py-2 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2',
+            'shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2',
             loading[action.id] && 'opacity-75 cursor-not-allowed',
             action.variant === 'danger'
               ? 'bg-danger text-white hover:bg-danger/90'

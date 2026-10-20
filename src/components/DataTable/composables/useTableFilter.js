@@ -30,6 +30,8 @@ export const useTableFilter = (options = {}) => {
 
   // Toggle a filter value
   const toggleFilter = (field, value) => {
+    // A filter can appear after mount (one behind a setting that loads late).
+    if (!activeFilters.value.has(field)) activeFilters.value.set(field, new Set());
     const fieldFilters = activeFilters.value.get(field);
     if (fieldFilters.has(value)) {
       fieldFilters.delete(value);
