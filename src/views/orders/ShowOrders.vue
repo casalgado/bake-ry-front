@@ -14,6 +14,7 @@ import DateCell from '@/components/DataTable/renderers/DateCell.vue';
 import ItemsCell from '@/components/DataTable/renderers/ItemsCell.vue';
 import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
 import IsPaidCell from '@/components/DataTable/renderers/IsPaidCell.vue';
+import EinvoiceCell from '@/components/DataTable/renderers/EinvoiceCell.vue';
 
 // Components
 import OrderForm from '@/components/forms/OrderForm.vue';
@@ -40,6 +41,7 @@ import {
   PhPrinter,
   PhCopy,
   PhDownloadSimple,
+  PhReceipt,
 } from '@phosphor-icons/vue';
 import { paymentIconMap } from '@/utils/paymentIcons';
 
@@ -79,6 +81,8 @@ const processData = (orders) => {
       .includes(order.userId)
       ? 'B2B'
       : 'B2C',
+    // A rejected invoice doesn't count: the order still has to be invoiced.
+    invoiced: order.einvoice && order.einvoice.status !== 'rejected' ? 'yes' : 'no',
   }));
 };
 
@@ -127,7 +131,15 @@ const {
     case 'edit':
       isFormOpen.value = true;
       break;
+    case 'einvoice':
+      window.open(router.resolve({ name: 'einvoice', params: { orderId: selectedOrder.id } }).href, '_blank');
+      break;
     case 'delete':
+      // The backend refuses it too; this says why before the confirm dialog.
+      if (selectedOrder.einvoice && selectedOrder.einvoice.status !== 'rejected' && !selectedOrder.einvoice.annulled) {
+        alert(`El pedido tiene la factura ${selectedOrder.einvoice.number}: anúlala con una nota crédito antes de eliminarlo.`);
+        return;
+      }
       orderToDelete.value = selectedOrder;
       isConfirmOpen.value = true;
       break;
@@ -136,9 +148,10 @@ const {
         id, createdAt, updatedAt, lastEditedBy,
         status, isPaid, paymentDate, isDeliveryPaid, driverMarkedAsPaid,
         partialPaymentAmount, partialPaymentDate, deliveryDriverId,
-        preparationDate, dueDate,
+        preparationDate, dueDate, einvoice,
         ...rest
       } = selectedOrder;
+      void einvoice; // a copy is a new sale, never invoiced
       duplicateData.value = {
         ...rest,
         // Where a line's units come from is decided again for the copy: the stock
@@ -337,6 +350,14 @@ const columns = computed(() => [
     ],
   },
   ...deliveryRoundColumns(authStore.getBakeryId),
+  ...(settingsStore.isEinvoicingEnabled ? [{
+    id: 'einvoice',
+    label: 'Factura',
+    field: 'invoiced',
+    sortable: true,
+    component: EinvoiceCell,
+    getProps: (row) => ({ einvoice: row.einvoice }),
+  }] : []),
 ]);
 
 const tableFilters = computed(() => [
@@ -362,6 +383,13 @@ const tableFilters = computed(() => [
     })),
   },
   ...deliveryRoundFilters(authStore.getBakeryId),
+  ...(settingsStore.isEinvoicingEnabled ? [{
+    field: 'invoiced',
+    options: [
+      { label: 'facturada', value: 'yes' },
+      { label: 'por facturar', value: 'no' },
+    ],
+  }] : []),
 ]);
 
 const tableActions = computed(() => [
@@ -404,6 +432,14 @@ const tableActions = computed(() => [
     minSelected: 1,
     variant: 'primary',
   },
+  ...(settingsStore.isEinvoicingEnabled ? [{
+    id: 'einvoice',
+    label: 'Facturar',
+    icon: PhReceipt,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'primary',
+  }] : []),
   {
     id: 'export',
     label: 'Exportar',

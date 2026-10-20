@@ -63,6 +63,18 @@ const router = createRouter({
       },
     },
     {
+      // An order's electronic invoice: the preview before issuing, the invoice
+      // after. Outside the dashboard shell, like export-orders.
+      path: '/factura/:orderId',
+      name: 'einvoice',
+      component: () => import('../views/einvoices/EinvoiceView.vue'),
+      meta: {
+        requiresAuth: true,
+        allowedRoles: ['bakery_admin', 'bakery_staff', 'accounting_assistant'],
+        requiresFeature: 'einvoicing',
+      },
+    },
+    {
       path: '/print-delivery',
       name: 'print-delivery',
       component: () => import('../views/orders/PrintDeliverySheet.vue'),
@@ -271,6 +283,12 @@ const router = createRouter({
           component: () => import('../views/orders/ShowUnpaidOrders.vue'),
         },
         {
+          path: 'facturas',
+          name: 'einvoices',
+          component: () => import('../views/einvoices/ShowEinvoices.vue'),
+          meta: { requiresFeature: 'einvoicing' },
+        },
+        {
           path: 'console',
           name: 'showConsole',
           component: () => import('../views/Console.vue'),
@@ -351,6 +369,12 @@ const router = createRouter({
           path: 'products/import-export',
           name: 'accounting-product-import-export',
           component: () => import('../views/products/ProductImportExport.vue'),
+        },
+        {
+          path: 'facturas',
+          name: 'accounting-einvoices',
+          component: () => import('../views/einvoices/ShowEinvoices.vue'),
+          meta: { requiresFeature: 'einvoicing' },
         },
       ],
     },

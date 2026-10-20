@@ -200,7 +200,8 @@ store.subscribeToChanges = async () => {
               if (key === 'id') return;
 
               // Handle orderItems array specially
-              if (key === 'orderItems' && Array.isArray(newValue)) {
+              // Replaced whole: einvoice is a summary the backend rewrites at once.
+              if ((key === 'orderItems' && Array.isArray(newValue)) || key === 'einvoice') {
                 store.items[index][key] = newValue;
               }
               // Handle primitive values normally

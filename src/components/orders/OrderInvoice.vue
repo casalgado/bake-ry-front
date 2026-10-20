@@ -177,6 +177,7 @@ const combinedItems = computed(() => {
           unitPrice: preTaxUnitPrice,
           lineTotal: preTaxUnitPrice * (item.quantity || 0),
           taxPercentage: item.taxPercentage || 0,
+          taxType: item.taxType || 'IVA',
           orderIndex,
           itemIndex,
         });
@@ -494,7 +495,7 @@ const handlePrint = () => {
             <td class="text-right">{{ formatMoney(item.unitPrice) }}</td>
             <td class="text-right">
               {{ formatMoney(item.lineTotal) }}
-              <span v-if="item.taxPercentage > 0" class="tax-indicator">IVA: {{ item.taxPercentage }}%</span>
+              <span v-if="item.taxPercentage > 0" class="tax-indicator">{{ item.taxType }}: {{ item.taxPercentage }}%</span>
             </td>
           </tr>
         </template>

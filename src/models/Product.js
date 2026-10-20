@@ -5,6 +5,13 @@ import VariationGroups from './VariationGroups.js';
 class Product extends BaseModel {
   // How a sale of this product moves stock (zplanning/inventory/INVENTORY.md §1).
   // 'none' is the default so every existing product behaves exactly as before.
+  // Which tax `taxPercentage` is: IVA, or the impuesto al consumo (INC).
+  // Same values as the backend's Product.TAX_TYPES. 0% is excluded either way.
+  static TAX_TYPES = {
+    IVA: 'IVA',
+    INC: 'INC',
+  };
+
   static INVENTORY_MODES = {
     NONE: 'none',
     UNIT: 'unit',
@@ -34,6 +41,7 @@ class Product extends BaseModel {
     costPriceSource = Product.COST_PRICE_SOURCES.MANUAL,
     currentPrice,
     taxPercentage = 0,
+    taxType = Product.TAX_TYPES.IVA,
 
     // Inventory
     inventoryMode = Product.INVENTORY_MODES.NONE,
@@ -78,6 +86,7 @@ class Product extends BaseModel {
     this.usedInRecipes = usedInRecipes;
     this.currentPrice = currentPrice || basePrice;
     this.taxPercentage = Number(Number(taxPercentage).toFixed(1));
+    this.taxType = taxType;
 
     // Display & Marketing
     this.displayOrder = displayOrder;

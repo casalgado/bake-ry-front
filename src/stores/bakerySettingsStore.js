@@ -66,6 +66,10 @@ store.isAccountingEnabled = computed(
   () => store.items[0]?.features?.accounting?.enabled === true,
 );
 
+store.isEinvoicingEnabled = computed(
+  () => store.items[0]?.features?.einvoicing?.enabled === true,
+);
+
 // Off unless the business turns it on in its own settings.
 store.isWholeGrainEnabled = computed(
   () => store.items[0]?.features?.products?.offersWholeGrain === true,

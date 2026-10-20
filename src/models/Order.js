@@ -18,6 +18,8 @@ class OrderItem {
     combination,
     recipeId,
     taxPercentage = 0,
+    // Copied from the product with the rate; lines stored without it read as IVA.
+    taxType = 'IVA',
     isComplimentary = false,
     productionBatch = 1,
     status = 0,
@@ -42,6 +44,7 @@ class OrderItem {
     this.costPrice = costPrice;
     this.recipeId = recipeId;
     this.taxPercentage = Number(Number(taxPercentage).toFixed(1));
+    this.taxType = taxType;
     this.isComplimentary = isComplimentary;
     this.productionBatch = productionBatch;
     this.status = status;
@@ -169,6 +172,7 @@ class OrderItem {
       collectionName: this.collectionName,
       isComplimentary: this.isComplimentary,
       taxPercentage: this.taxPercentage,
+      taxType: this.taxType,
       taxMode: this.taxMode,
       quantity: this.quantity,
       currentPrice: this.currentPrice,

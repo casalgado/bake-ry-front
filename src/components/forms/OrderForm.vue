@@ -308,6 +308,14 @@ const loadingText = computed(() => {
   return props.initialData ? 'Actualizando…' : 'Creando…';
 });
 
+// An invoiced order keeps what its invoice bills: client, lines, prices, fee,
+// discount. The backend refuses those edits (orderService); this disables them
+// first. A rejected invoice frees the order to be fixed and issued again.
+const lockedInvoice = computed(() => {
+  const invoice = props.initialData?.id ? props.initialData.einvoice : null;
+  return invoice && invoice.status !== 'rejected' ? invoice : null;
+});
+
 const clearErrorsOnInput = (fields) => {
   watch(
     () => fields.map((field) => formData.value[field]),
@@ -511,7 +519,12 @@ const repeated = ref(null);
 
 const repeatOrder = (order) => {
   const at = formData.value.orderItems.length;
-  const added = addBasePricesToOrderItems(order.orderItems, productStore.items);
+  // A repeat is a new sale: the tax type comes from the product as it is now,
+  // since lines saved before products had one carry none.
+  const added = addBasePricesToOrderItems(order.orderItems, productStore.items).map((line) => ({
+    ...line,
+    taxType: productStore.items.find((p) => p.id === line.productId)?.taxType ?? line.taxType,
+  }));
   formData.value.orderItems = [...formData.value.orderItems, ...added];
   repeated.value = { at, count: added.length, date: order.preparationDate || order.dueDate };
 };
@@ -746,6 +759,15 @@ const clearUser = () => {
     <div class="ui-pane flex flex-col gap-4">
       <h2 class="ui-panehead-title">{{ title }}</h2>
 
+      <p v-if="lockedInvoice" class="ui-card ui-card-body">
+        <strong>Facturada {{ lockedInvoice.number }}{{ lockedInvoice.annulled ? ' (anulada)' : '' }}.</strong>
+        Lo facturado no se puede cambiar.
+        {{ lockedInvoice.annulled
+          ? 'Para facturarlo de nuevo, duplica el pedido.'
+          : 'Para corregirlo, anula la factura con una nota crédito y duplica el pedido.' }}
+        El estado, el pago y las notas siguen editables.
+      </p>
+
       <!-- POS: the client is chosen for the cashier, so it stays one line until asked. -->
       <button
         v-if="shouldAutoSelectClient && isClientSectionCollapsed"
@@ -759,6 +781,8 @@ const clearUser = () => {
       </button>
 
       <div v-else class="flex flex-wrap items-start gap-3">
+        <!-- `contents`: a fieldset only to disable what it holds, never a box. -->
+        <fieldset class="contents" :disabled="!!lockedInvoice">
         <div class="ui-field flex-[2_1_16rem]">
           <label class="ui-field-k" :for="`${uid}-client`" data-required>Cliente</label>
           <div class="flex gap-1.5">
@@ -794,6 +818,7 @@ const clearUser = () => {
           </div>
           <span v-if="errors.userId" :id="`${uid}-client-e`" class="ui-field-error">{{ errors.userId }}</span>
         </div>
+        </fieldset>
 
         <div class="ui-field flex-[1_1_9rem]">
           <label class="ui-field-k" :for="`${uid}-date`" data-required>{{ dateLabel }}</label>
@@ -816,14 +841,15 @@ const clearUser = () => {
           <input :id="`${uid}-time`" v-model="formData.dueTime" type="time" class="ui-input">
         </div>
 
-        <UiPills
-          v-if="!shouldHideDeliveryOptions"
-          v-model="formData.fulfillmentType"
-          class="flex-[1_1_12rem]"
-          label="Entrega"
-          min-width="5rem"
-          :options="fulfillmentTypes"
-        />
+        <fieldset v-if="!shouldHideDeliveryOptions" class="contents" :disabled="!!lockedInvoice">
+          <UiPills
+            v-model="formData.fulfillmentType"
+            class="flex-[1_1_12rem]"
+            label="Entrega"
+            min-width="5rem"
+            :options="fulfillmentTypes"
+          />
+        </fieldset>
       </div>
 
       <!-- Disabled on Recoger rather than removed: the form keeps its shape, and
@@ -852,7 +878,7 @@ const clearUser = () => {
         </div>
       </div>
 
-      <div v-if="pastOrders.length" class="ui-field">
+      <div v-if="pastOrders.length && !lockedInvoice" class="ui-field">
         <span class="ui-field-k">Repetir un pedido anterior</span>
         <div class="flex flex-wrap items-center gap-1.5">
           <button
@@ -882,11 +908,13 @@ const clearUser = () => {
         <div class="ui-panehead">
           <span class="ui-panehead-title">Catálogo</span>
         </div>
-        <ProductWizard
-          ref="catalog"
-          :products="productStore.items"
-          @select="itemsManager?.add($event)"
-        />
+        <fieldset class="contents" :disabled="!!lockedInvoice">
+          <ProductWizard
+            ref="catalog"
+            :products="productStore.items"
+            @select="!lockedInvoice && itemsManager?.add($event)"
+          />
+        </fieldset>
       </section>
 
       <section class="ui-pane flex flex-col gap-4" aria-label="Pedido">
@@ -899,12 +927,14 @@ const clearUser = () => {
 
         <span v-if="errors.orderItems" class="ui-field-error">{{ errors.orderItems }}</span>
 
-        <OrderItemsManager
-          ref="itemsManager"
-          v-model="formData.orderItems"
-          :products="productStore.items"
-          :saved-lines="savedLines"
-        />
+        <fieldset class="contents" :disabled="!!lockedInvoice">
+          <OrderItemsManager
+            ref="itemsManager"
+            v-model="formData.orderItems"
+            :products="productStore.items"
+            :saved-lines="savedLines"
+          />
+        </fieldset>
 
         <div class="ui-sectionhead !mb-0">Pago</div>
 
@@ -925,7 +955,7 @@ const clearUser = () => {
           label="Costo de envío"
           :columns="isNarrow ? 3 : 5"
           :options="deliveryFeeOptions"
-          :disabled="!isDelivery"
+          :disabled="!isDelivery || !!lockedInvoice"
           @change="onDeliveryFeePick"
         >
           <template #selected-custom>
@@ -934,7 +964,7 @@ const clearUser = () => {
                 :id="`${uid}-fee`"
                 v-model="formData.deliveryFee"
                 aria-label="Otro costo de envío"
-                :disabled="!isDelivery"
+                :disabled="!isDelivery || !!lockedInvoice"
                 @focus="$event.target.select()"
               />
             </div>
@@ -1049,7 +1079,7 @@ const clearUser = () => {
           </template>
 
           <div class="flex justify-between items-center gap-2 min-h-[var(--ui-field-h)]">
-            <span class="flex items-center gap-1.5">
+            <fieldset class="flex items-center gap-1.5 m-0 p-0 border-0 min-w-0" :disabled="!!lockedInvoice">
               <span class="ui-ink-muted">Descuento</span>
               <template v-if="showOrderDiscount">
                 <!-- %/$ as one segmented pair on the same line as the value. -->
@@ -1102,7 +1132,7 @@ const clearUser = () => {
                 <PhPlus :size="12" weight="bold" />
                 Agregar
               </button>
-            </span>
+            </fieldset>
             <span v-if="showOrderDiscount" class="ui-num">
               {{ orderDiscountAmount > 0 ? `-${formatMoney(orderDiscountAmount)}` : formatMoney(0) }}
             </span>

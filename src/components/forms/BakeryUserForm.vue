@@ -11,6 +11,7 @@
 import { ref, computed, useId } from 'vue';
 import { parseSpanishName } from '@/utils/helpers';
 import UiPills from '@/components/ui/UiPills.vue';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 const props = defineProps({
   title: {
@@ -178,6 +179,42 @@ const handleUserTypeChange = (value) => {
   }
 };
 
+/* Electronic invoicing. The document number decides who the invoice is for,
+ * and the backend infers its kind (dian/invoiceData.js toBuyer): none →
+ * consumidor final, a company's → NIT, anyone else's → cédula. `fiscal.idType`
+ * is stored only as an override of that: a foreign ID, a person with a NIT, or
+ * '00' for someone who asks not to be named. Codes are the DIAN's (13 CC,
+ * 31 NIT, 22 CE, 41 pasaporte). The NIT's check digit is computed, and the city
+ * is the business's own. */
+const settingsStore = useBakerySettingsStore();
+const ANONYMOUS = '00';
+const idTypeOptions = [
+  { value: ANONYMOUS, label: 'Consumidor final' },
+  { value: '13', label: 'Cédula' },
+  { value: '31', label: 'NIT' },
+  { value: '22', label: 'Cédula extranjería' },
+  { value: '41', label: 'Pasaporte' },
+];
+const yesNo = [{ value: true, label: 'Sí' }, { value: false, label: 'No' }];
+const showFiscal = computed(() => props.formUserType === 'client' && settingsStore.isEinvoicingEnabled);
+const fiscal = ref({ idType: '', ivaResponsible: false, email: '', ...(props.initialData.fiscal || {}) });
+
+// Same rule as the backend's toBuyer, so the pills show what the invoice will say.
+const inferredIdType = computed(() => {
+  if (!String(formData.value.nationalId || '').trim()) return ANONYMOUS;
+  return formData.value.category === 'B2B' ? '31' : '13';
+});
+const idType = computed({
+  get: () => fiscal.value.idType || inferredIdType.value,
+  // Picking what would be inferred anyway stores no override, so the type keeps
+  // following the client if it later turns from Persona into Empresa.
+  set: (value) => { fiscal.value.idType = value === inferredIdType.value ? '' : value; },
+});
+
+const nidLabel = computed(() =>
+  (idType.value !== ANONYMOUS ? idTypeOptions.find((o) => o.value === idType.value)?.label : null)
+  ?? (selectedUserType.value === 'company' ? 'NIT' : 'Documento de identidad'));
+
 const errors = ref({});
 
 const validate = () => {
@@ -196,6 +233,14 @@ const validate = () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (formData.value.email && !emailRegex.test(formData.value.email)) {
     errors.value.email = 'Formato de correo electrónico inválido';
+  }
+  // Only while the section is shown: a stored override must not block saving a
+  // client after e-invoicing is turned off.
+  if (showFiscal.value && idType.value !== ANONYMOUS && !String(formData.value.nationalId || '').trim()) {
+    errors.value.nationalId = 'Para facturarle a su nombre hace falta el número de documento';
+  }
+  if (showFiscal.value && fiscal.value.email && !emailRegex.test(fiscal.value.email)) {
+    errors.value.fiscalEmail = 'Formato de correo electrónico inválido';
   }
 
   return Object.keys(errors.value).length === 0;
@@ -219,6 +264,16 @@ const handleSubmit = () => {
     legalName: formData.value.legalName || '',
     invoiceGracePeriod: formData.value.invoiceGracePeriod === '' ? null : formData.value.invoiceGracePeriod,
     ...parseSpanishName(formData.value.name, formData.value.category),
+    // Kept as it was unless the block was shown: a staff form never touches it.
+    ...(showFiscal.value ? {
+      // Spread first: fields this form doesn't edit (personType, taxLevelCode,
+      // city) stay as stored. A stored email can be null.
+      fiscal: {
+        ...fiscal.value,
+        ivaResponsible: idType.value === '31' && fiscal.value.ivaResponsible,
+        email: idType.value === ANONYMOUS ? '' : (fiscal.value.email || '').trim(),
+      },
+    } : {}),
   });
 };
 </script>
@@ -329,9 +384,60 @@ const handleSubmit = () => {
     </div>
 
     <div class="ui-field">
-      <label class="ui-field-k" :for="`${uid}-nid`">Documento de Identidad</label>
-      <input :id="`${uid}-nid`" v-model="formData.nationalId" type="text" class="ui-input">
+      <label class="ui-field-k" :for="`${uid}-nid`">{{ nidLabel }}</label>
+      <input
+        :id="`${uid}-nid`"
+        v-model="formData.nationalId"
+        type="text"
+        class="ui-input"
+        :placeholder="nidLabel === 'NIT' ? 'Sin dígito de verificación' : ''"
+        :aria-invalid="!!errors.nationalId"
+        :aria-describedby="errors.nationalId ? `${uid}-nid-e` : undefined"
+      >
+      <span v-if="errors.nationalId" :id="`${uid}-nid-e`" class="ui-field-error">
+        {{ errors.nationalId }}
+      </span>
     </div>
+
+    <section v-if="showFiscal" class="flex flex-col gap-4">
+      <div class="ui-sectionhead !mb-0">Facturación electrónica</div>
+      <div>
+        <UiPills
+          v-model="idType"
+          :options="idTypeOptions"
+          label="Factura a nombre de"
+          min-width="8rem"
+        />
+        <span class="ui-field-hint">
+          Sale solo del documento: sin documento, consumidor final; con documento, cédula
+          para una persona y NIT para una empresa (con su razón social y el dígito de
+          verificación calculado). Cámbialo solo para otro tipo de documento o si el
+          cliente pide no salir con su nombre.
+        </span>
+      </div>
+      <UiPills
+        v-if="idType === '31'"
+        v-model="fiscal.ivaResponsible"
+        :options="yesNo"
+        label="Responsable de IVA"
+        min-width="5rem"
+      />
+      <div v-if="idType !== ANONYMOUS" class="ui-field">
+        <label class="ui-field-k" :for="`${uid}-fiscal-email`">Correo para facturas</label>
+        <input
+          :id="`${uid}-fiscal-email`"
+          v-model="fiscal.email"
+          type="email"
+          class="ui-input"
+          placeholder="Si se deja vacío, el correo del cliente"
+          :aria-invalid="!!errors.fiscalEmail"
+          :aria-describedby="errors.fiscalEmail ? `${uid}-fiscal-email-e` : undefined"
+        >
+        <span v-if="errors.fiscalEmail" :id="`${uid}-fiscal-email-e`" class="ui-field-error">
+          {{ errors.fiscalEmail }}
+        </span>
+      </div>
+    </section>
 
     <div class="ui-field">
       <label class="ui-field-k" :for="`${uid}-birthday`">Fecha de Nacimiento</label>

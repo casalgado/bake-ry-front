@@ -1,5 +1,6 @@
 <!-- Sidebar.vue -->
 <script setup>
+import { computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
   PhChartLineUp,
@@ -8,15 +9,24 @@ import {
   PhTag,
   PhArrowsLeftRight,
   PhCalendarCheck,
+  PhReceipt,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
 import MobileNavigation from './MobileNavigation.vue';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 const router = useRouter();
 const route = useRoute();
+const settingsStore = useBakerySettingsStore();
 
-const navigationSections = [
+onMounted(async () => {
+  if (!settingsStore.items.length) {
+    await settingsStore.fetchById('default');
+  }
+});
+
+const navigationSections = computed(() => [
   {
     title: 'Analisis',
     items: [
@@ -38,6 +48,12 @@ const navigationSections = [
         text: 'Reportes',
         path: '/accounting/reports',
       },
+      ...(settingsStore.isEinvoicingEnabled ? [{
+        id: 'facturas',
+        icon: PhReceipt,
+        text: 'Facturas',
+        path: '/accounting/facturas',
+      }] : []),
     ],
   },
   {
@@ -63,7 +79,7 @@ const navigationSections = [
       },
     ],
   },
-];
+]);
 
 const handleLinkClick = (link) => {
   router.push(link.path);

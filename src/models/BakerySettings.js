@@ -75,6 +75,11 @@ class BakerySettings extends BaseModel {
     accounting: {
       enabled: false,
     },
+    // DIAN electronic invoicing. Its config (issuer, resolution) lives in the
+    // same block on the backend and is set there; the screens only read `enabled`.
+    einvoicing: {
+      enabled: false,
+    },
   };
 
   static DEFAULT_BRANDING = {

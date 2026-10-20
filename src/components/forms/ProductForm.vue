@@ -35,6 +35,19 @@ const props = defineProps({
 
 const emit = defineEmits(['submit', 'cancel']);
 
+const taxTypeOptions = [
+  { value: 'IVA', rate: 19 },
+  { value: 'INC', rate: 8 },
+];
+
+// Neither is pressed at 0% (excluded). Pressing one fills its usual rate, which
+// stays editable; pressing the active one again clears it back to 0%.
+const setTaxType = (o) => {
+  const isActive = formData.value.taxType === o.value && formData.value.taxPercentage > 0;
+  formData.value.taxType = o.value;
+  formData.value.taxPercentage = isActive ? 0 : o.rate;
+};
+
 // Form state with new structure
 const formData = ref(
   props.initialData
@@ -45,6 +58,7 @@ const formData = ref(
       // an undefined radio group shows nothing selected. They behave as 'none',
       // so say so — editing one must not silently change how it deducts.
       inventoryMode: props.initialData.inventoryMode || 'none',
+      taxType: props.initialData.taxType || 'IVA',
     }
     : {
       name: '',
@@ -52,6 +66,7 @@ const formData = ref(
       collectionId: '',
       collectionName: '',
       taxPercentage: 0,
+      taxType: 'IVA',
       isActive: true,
       basePrice: 0,
       costPrice: 0,
@@ -367,18 +382,40 @@ onMounted(async () => {
         </span>
       </div>
 
+      <!-- Type and rate answer one question, so they share one line, segmented
+           like the order's %/$ discount. -->
       <div class="ui-field">
-        <label class="ui-field-k" :for="`${uid}-tax`">Porcentaje de Impuesto</label>
-        <div class="ui-field-unit" data-unit="%">
-          <input
-            :id="`${uid}-tax`"
-            v-model="formData.taxPercentage"
-            type="number"
-            class="ui-input ui-input-num"
-            min="0"
-            max="100"
-            step="0.01"
-          >
+        <label class="ui-field-k flex items-center gap-1" :for="`${uid}-tax`">
+          Impuesto
+          <AppTooltip text="En 0%, excluido de impuestos." tabindex="0">
+            <PhInfo class="w-4 h-4 ui-ink-muted" />
+          </AppTooltip>
+        </label>
+        <div class="flex gap-2">
+          <div class="ui-field-unit flex-1" data-unit="%">
+            <input
+              :id="`${uid}-tax`"
+              v-model.number="formData.taxPercentage"
+              type="number"
+              class="ui-input ui-input-num"
+              min="0"
+              max="100"
+              step="0.01"
+            >
+          </div>
+          <span class="flex" role="group" aria-label="Tipo de impuesto">
+            <button
+              v-for="(o, i) in taxTypeOptions"
+              :key="o.value"
+              type="button"
+              class="ui-btn ui-btn-field justify-center"
+              :class="i === 0 ? '!rounded-r-none' : '!rounded-l-none -ml-px'"
+              :aria-pressed="formData.taxType === o.value && formData.taxPercentage > 0"
+              @click="setTaxType(o)"
+            >
+              {{ o.value }}
+            </button>
+          </span>
         </div>
       </div>
 

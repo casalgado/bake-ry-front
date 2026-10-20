@@ -24,14 +24,25 @@ const card = (wrapper, title) =>
 const submit = (wrapper) => wrapper.find('form').trigger('submit');
 
 describe('BakeryModulesForm (system admin)', () => {
-  it('sends a patch with only POS and the modules', async () => {
+  it('sends a patch with only POS, the modules and e-invoicing', async () => {
     const wrapper = mountForm();
     await card(wrapper, 'Inventario').find('input').setValue(true);
     await submit(wrapper);
 
     const patch = wrapper.emitted('save')[0][0];
-    expect(Object.keys(patch).sort()).toEqual(['accounting', 'inventory', 'pos']);
+    expect(Object.keys(patch).sort()).toEqual(['accounting', 'einvoicing', 'inventory', 'pos']);
     expect(patch.inventory.enabled).toBe(true);
+  });
+
+  it('sends issuer and resolution whole, since the backend replaces them whole', async () => {
+    const wrapper = mountForm();
+    await wrapper.find('input[autocomplete=organization]').setValue('Panadería SAS');
+    await submit(wrapper);
+
+    const { einvoicing } = wrapper.emitted('save')[0][0];
+    expect(einvoicing.issuer.legalName).toBe('Panadería SAS');
+    expect(Object.keys(einvoicing.issuer.address).sort()).toEqual(['cityCode', 'cityName', 'deptCode', 'deptName', 'line']);
+    expect(Object.keys(einvoicing.resolution)).toHaveLength(7);
   });
 
   it('sends only `enabled` for a module, never what the server owns', async () => {
@@ -48,7 +59,7 @@ describe('BakeryModulesForm (system admin)', () => {
     await submit(wrapper);
 
     const patch = wrapper.emitted('save')[0][0];
-    for (const group of ['order', 'reports', 'invoicing', 'products', 'einvoicing']) {
+    for (const group of ['order', 'reports', 'invoicing', 'products']) {
       expect(patch).not.toHaveProperty(group);
     }
   });

@@ -35,6 +35,7 @@ import {
   PhSparkle,
   PhPalette,
   PhTextbox,
+  PhReceipt,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -90,6 +91,12 @@ const navigationSections = computed(() => {
           text: 'Por Cobrar',
           path: '/dashboard/orders/unpaid',
         },
+        ...(settingsStore.isEinvoicingEnabled ? [{
+          id: 'facturas',
+          icon: PhReceipt,
+          text: 'Facturas',
+          path: '/dashboard/facturas',
+        }] : []),
       ],
     },
     {

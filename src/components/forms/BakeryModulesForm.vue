@@ -1,12 +1,13 @@
 <script setup>
-/* What only a system admin switches on for a business: POS and the opt-in
- * modules. Same contract as BakeryFeaturesForm — `save` carries a features patch
+/* What only a system admin switches on for a business: POS, the opt-in
+ * modules and DIAN e-invoicing with its configuration. Same contract as BakeryFeaturesForm — `save` carries a features patch
  * of just these keys, `isDirty` is exposed. */
 import { watch } from 'vue';
 import { useDraft } from '@/composables/useUnsavedChanges';
 import { formToFeatures, ADMIN_FIELDS } from '@/utils/settingsForm';
 import PosSection from '@/components/settings/PosSection.vue';
 import ModulesSection from '@/components/settings/ModulesSection.vue';
+import EinvoicingSection from '@/components/settings/EinvoicingSection.vue';
 
 const props = defineProps({
   title: {
@@ -49,6 +50,7 @@ defineExpose({ isDirty });
 
     <PosSection v-model="form" :disabled="loading" />
     <ModulesSection v-model="form" :disabled="loading" />
+    <EinvoicingSection v-model="form" :disabled="loading" />
 
     <div class="flex gap-2 justify-end">
       <button type="button" class="ui-btn ui-btn-danger" :disabled="loading || !isDirty" @click="reset">
