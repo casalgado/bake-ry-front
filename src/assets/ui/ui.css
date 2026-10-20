@@ -704,15 +704,10 @@ button.ui-item,
  *     color, so hover never recolors text. Icon included: a lone glyph makes
  *     the fill faint, but the border shifting to --btn-hover-line still carries
  *     it. Pointer devices only: a touch screen keeps :hover on the last tapped
- *     button, so a reused button (the order catalog's grid) would carry it into
- *     the next step. --- */
+ *     button until the next tap elsewhere. --- */
 @media (hover: hover) {
   .ui-btn:hover { background: var(--btn-hover); border-color: var(--btn-hover-line); }
 }
-
-/* Touch gets the same wash only while the finger is down, so it cannot stick.
- * iOS needs a touchstart listener for :active to fire (main.js). */
-.ui-btn:active { background: var(--btn-hover); border-color: var(--btn-hover-line); }
 
 /* --- SELECTED: a persistent state, so it goes solid — the standard segmented /
  *     toggle idiom, unambiguous next to outline siblings. Fires on aria-pressed
