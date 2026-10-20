@@ -248,7 +248,7 @@ test.describe('products with variations', () => {
     );
 
     const dialog = await openEdit(page, PRODUCTS, name);
-    await expect(priceRow(page, 'Grande').locator('input[type=number]').first()).toHaveValue('7000');
+    await expect(priceRow(page, 'Grande').locator('input[inputmode=numeric]').first()).toHaveValue('7,000');
     await dialog.getByRole('button', { name: 'Cancelar' }).click();
   });
 
@@ -292,10 +292,10 @@ test.describe('products with variations', () => {
     await createProduct(page, { name, collection, variations: [SIZE], prices: { Pequeño: [4000], Grande: [7000] } });
 
     const dialog = await openEdit(page, PRODUCTS, name);
-    await priceRow(page, 'Grande').locator('input[type=number]').first().fill('7500');
+    await priceRow(page, 'Grande').locator('input[inputmode=numeric]').first().fill('7500');
     await dialog.getByRole('button', { name: 'Agregar opción' }).click();
     await dialog.getByPlaceholder('Nombre de la opción').nth(2).fill('Mediano');
-    await priceRow(page, 'Mediano').locator('input[type=number]').first().fill('5500');
+    await priceRow(page, 'Mediano').locator('input[inputmode=numeric]').first().fill('5500');
     await saveEdit(dialog, 'Actualizar Producto', PRODUCT_API);
 
     const { variations } = await storedByName(request, 'products', name);
@@ -338,8 +338,8 @@ test.describe('products with variations', () => {
     const card = dimensionCard(page, SIZE.label);
     await expect.poll(() => optionValues(card)).toEqual(['Pequeño', 'Grande']);
 
-    await priceRow(page, 'Pequeño').locator('input[type=number]').first().fill('4000');
-    await priceRow(page, 'Grande').locator('input[type=number]').first().fill('7000');
+    await priceRow(page, 'Pequeño').locator('input[inputmode=numeric]').first().fill('4000');
+    await priceRow(page, 'Grande').locator('input[inputmode=numeric]').first().fill('7000');
     await page.getByRole('button', { name: 'Crear Producto' }).click();
     await expect(page).toHaveURL(/\/dashboard\/products$/);
 

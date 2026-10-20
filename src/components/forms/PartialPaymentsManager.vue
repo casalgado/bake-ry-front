@@ -2,6 +2,7 @@
 import { computed, nextTick, ref } from 'vue';
 import { PhPlus, PhX } from '@phosphor-icons/vue';
 import { formatMoney } from '@/utils/helpers';
+import UiMoneyInput from '@/components/ui/UiMoneyInput.vue';
 import { getTodayString } from '@/utils/dateUtils';
 
 const props = defineProps({
@@ -88,18 +89,14 @@ const remainingBalance = computed(() => (props.paymentDate
       class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-1.5 items-center"
     >
       <div class="ui-field-unit" data-unit="$">
-        <input
+        <UiMoneyInput
           data-amount
-          type="number"
-          class="ui-input ui-input-num"
-          :value="payment.amount || ''"
-          min="0"
-          step="1"
+          :model-value="payment.amount || null"
           placeholder="0"
           :aria-label="`Monto del abono ${index + 1}`"
           :disabled="disabled"
-          @input="updatePayment(index, 'amount', parseFloat($event.target.value) || 0)"
-        >
+          @update:model-value="v => updatePayment(index, 'amount', v ?? 0)"
+        />
       </div>
       <input
         type="date"

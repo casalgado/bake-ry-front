@@ -16,6 +16,7 @@ import ProductWizard from './ProductWizard.vue';
 import PartialPaymentsManager from './PartialPaymentsManager.vue';
 import NewClientDialog from './NewClientDialog.vue';
 import UiPills from '@/components/ui/UiPills.vue';
+import UiMoneyInput from '@/components/ui/UiMoneyInput.vue';
 import { formatMoney, cleanString } from '@/utils/helpers';
 import { paymentIconMap } from '@/utils/paymentIcons';
 import { getTodayString, getNextBusinessDayString, formatDateForInput } from '@/utils/dateUtils';
@@ -929,17 +930,13 @@ const clearUser = () => {
         >
           <template #selected-custom>
             <div class="ui-field-unit" data-unit="$">
-              <input
+              <UiMoneyInput
                 :id="`${uid}-fee`"
-                v-model.number="formData.deliveryFee"
-                type="number"
-                class="ui-input ui-input-num"
-                min="0"
-                step="1"
+                v-model="formData.deliveryFee"
                 aria-label="Otro costo de envío"
                 :disabled="!isDelivery"
                 @focus="$event.target.select()"
-              >
+              />
             </div>
           </template>
         </UiPills>
@@ -1070,13 +1067,22 @@ const clearUser = () => {
                     {{ o.label }}
                   </button>
                 </span>
+                <UiMoneyInput
+                  v-if="formData.orderDiscountType === 'fixed'"
+                  v-model="formData.orderDiscountValue"
+                  class="w-20"
+                  placeholder="0"
+                  aria-label="Valor del descuento"
+                  @focus="$event.target.select()"
+                />
                 <input
+                  v-else
                   v-model.number="formData.orderDiscountValue"
                   type="number"
                   class="ui-input ui-input-num w-20"
                   min="0"
-                  :max="formData.orderDiscountType === 'percentage' ? 100 : undefined"
-                  :step="formData.orderDiscountType === 'percentage' ? 'any' : 1"
+                  max="100"
+                  step="any"
                   placeholder="0"
                   aria-label="Valor del descuento"
                   @focus="$event.target.select()"

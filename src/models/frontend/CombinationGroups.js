@@ -1,3 +1,5 @@
+import { formatQty } from '@/utils/helpers';
+
 /**
  * CombinationGroups - Manages hierarchical grouping of product variations
  * for Shopify-style collapsible group interface
@@ -259,9 +261,9 @@ export default class CombinationGroups {
     const max = Math.max(...prices);
 
     if (min === max) {
-      return min.toString();
+      return formatQty(min);
     } else {
-      return `${min} - ${max}`;
+      return `${formatQty(min)} - ${formatQty(max)}`;
     }
   }
 

@@ -3,6 +3,7 @@ import { computed, ref, watch, useId } from 'vue';
 import CombinationGroups from '@/models/frontend/CombinationGroups.js';
 import { PhCaretDown, PhCaretRight, PhLock, PhLockOpen, PhInfo, PhArrowCounterClockwise } from '@phosphor-icons/vue';
 import AppTooltip from '@/components/common/AppTooltip.vue';
+import UiMoneyInput from '@/components/ui/UiMoneyInput.vue';
 
 const props = defineProps({
   variationGroup: {
@@ -188,11 +189,11 @@ const restoreRecipeCosts = () => claimedFromRecipe.value.forEach(restoreRecipeCo
  * clearing a number to type another passes through 0 on the way. */
 const isClaimed = (variant) => claimedFromRecipe.value.some(v => v.id === variant.id);
 
-const commitCost = (variant, value) => {
-  if (!(Number(value) > 0) && isClaimed(variant)) restoreRecipeCost(variant);
+const commitCost = (variant) => {
+  if (!(variant.costPrice > 0) && isClaimed(variant)) restoreRecipeCost(variant);
 };
 
-const commitGroupCost = (group, value) => group.variants.forEach(v => commitCost(v, value));
+const commitGroupCost = (group) => group.variants.forEach(commitCost);
 
 const setGroupCost = (group, value) => {
   // Snapshot before claiming: claimCost mutates the flag isCostLocked reads.
@@ -328,16 +329,12 @@ const changeGrouping = (dimensionIndex) => {
             <div class="ui-field w-28 max-sm:flex-1">
               <label class="ui-field-k sm:sr-only" :for="`${uid}-g${gi}-price`">P. Venta</label>
               <div class="ui-field-unit" data-unit="$">
-                <input
+                <UiMoneyInput
                   :id="`${uid}-g${gi}-price`"
-                  type="number"
-                  class="ui-input ui-input-num"
-                  :value="getGroupPriceValue(group.key, 'basePrice')"
+                  :model-value="getGroupPriceValue(group.key, 'basePrice') || null"
                   :placeholder="getGroupPriceDisplay(group.key, 'basePrice')"
-                  min="0"
-                  step="1"
-                  @input="updateGroupPrice(group.key, 'basePrice', parseFloat($event.target.value) || 0)"
-                >
+                  @update:model-value="v => updateGroupPrice(group.key, 'basePrice', v ?? 0)"
+                />
               </div>
             </div>
 
@@ -346,18 +343,14 @@ const changeGrouping = (dimensionIndex) => {
               <div class="ui-field-unit" data-unit="$">
                 <!-- Live while any row in the group is still manual; the locked
                      rows are skipped by CombinationGroups.updateGroupPrice. -->
-                <input
+                <UiMoneyInput
                   :id="`${uid}-g${gi}-cost`"
-                  type="number"
-                  class="ui-input ui-input-num"
-                  :value="getGroupPriceValue(group.key, 'costPrice')"
+                  :model-value="getGroupPriceValue(group.key, 'costPrice') || null"
                   :placeholder="getGroupPriceDisplay(group.key, 'costPrice')"
                   :readonly="isGroupCostLocked(group)"
-                  min="0"
-                  step="1"
-                  @input="setGroupCost(group, parseFloat($event.target.value) || 0)"
-                  @change="commitGroupCost(group, $event.target.value)"
-                >
+                  @update:model-value="v => setGroupCost(group, v ?? 0)"
+                  @change="commitGroupCost(group)"
+                />
               </div>
             </div>
 
@@ -393,34 +386,26 @@ const changeGrouping = (dimensionIndex) => {
               <div class="ui-field w-28 max-sm:flex-1">
                 <label class="ui-field-k sm:sr-only" :for="`${uid}-${variant.id}-price`">P. Venta</label>
                 <div class="ui-field-unit" data-unit="$">
-                  <input
+                  <UiMoneyInput
                     :id="`${uid}-${variant.id}-price`"
-                    type="number"
-                    class="ui-input ui-input-num"
-                    :value="variant.basePrice"
+                    :model-value="variant.basePrice"
                     placeholder="0"
-                    min="0"
-                    step="1"
-                    @input="updateCombinationPrice(variant.id, 'basePrice', parseFloat($event.target.value) || 0)"
-                  >
+                    @update:model-value="v => updateCombinationPrice(variant.id, 'basePrice', v ?? 0)"
+                  />
                 </div>
               </div>
 
               <div class="ui-field w-28 max-sm:flex-1">
                 <label class="ui-field-k sm:sr-only" :for="`${uid}-${variant.id}-cost`">P. Costo</label>
                 <div class="ui-field-unit" data-unit="$">
-                  <input
+                  <UiMoneyInput
                     :id="`${uid}-${variant.id}-cost`"
-                    type="number"
-                    class="ui-input ui-input-num"
-                    :value="variant.costPrice"
+                    :model-value="variant.costPrice"
                     :readonly="isCostLocked(variant)"
                     placeholder="0"
-                    min="0"
-                    step="1"
-                    @input="setCombinationCost(variant, parseFloat($event.target.value) || 0)"
-                    @change="commitCost(variant, $event.target.value)"
-                  >
+                    @update:model-value="v => setCombinationCost(variant, v ?? 0)"
+                    @change="commitCost(variant)"
+                  />
                 </div>
               </div>
 

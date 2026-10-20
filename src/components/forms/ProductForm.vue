@@ -5,6 +5,7 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import UiYesNo from '@/components/ui/UiYesNo.vue';
 import UiPills from '@/components/ui/UiPills.vue';
+import UiMoneyInput from '@/components/ui/UiMoneyInput.vue';
 import VariationsManager from '@/components/forms/VariationsManager.vue';
 import AppTooltip from '@/components/common/AppTooltip.vue';
 import { PhInfo, PhEye, PhEyeSlash } from '@phosphor-icons/vue';
@@ -431,17 +432,13 @@ onMounted(async () => {
         <div class="ui-field">
           <label class="ui-field-k" :for="`${uid}-base`">Precio de Venta</label>
           <div class="ui-field-unit" data-unit="$">
-            <input
+            <UiMoneyInput
               :id="`${uid}-base`"
               v-model="formData.basePrice"
-              type="number"
-              class="ui-input ui-input-num"
-              min="0"
-              step="1"
               placeholder="0"
               :aria-invalid="!!errors.basePrice"
               :aria-describedby="errors.basePrice ? `${uid}-base-e` : undefined"
-            >
+            />
           </div>
           <span v-if="errors.basePrice" :id="`${uid}-base-e`" class="ui-field-error">
             {{ errors.basePrice }}
@@ -460,18 +457,14 @@ onMounted(async () => {
           <div class="ui-field-unit" data-unit="$">
             <!-- readonly, not disabled: the value stays selectable and in the
                  tab order — a disabled number input reads as broken, not derived. -->
-            <input
+            <UiMoneyInput
               :id="`${uid}-cost`"
               v-model="formData.costPrice"
-              type="number"
-              class="ui-input ui-input-num"
-              min="0"
-              step="1"
               placeholder="0"
               :readonly="isCostFromRecipe"
               :aria-invalid="!!errors.costPrice"
               :aria-describedby="errors.costPrice ? `${uid}-cost-e` : undefined"
-            >
+            />
           </div>
           <div v-if="isCostFromRecipe" class="ui-field-hint flex items-center gap-2 flex-wrap">
             {{ formData.recipeId ? 'Calculado desde la receta.' : 'Se calculará cuando armes la receta en el recetario.' }}

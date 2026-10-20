@@ -4,6 +4,7 @@
  * rest lives in the editor that opens under it. */
 import { ref, shallowRef, computed, useId } from 'vue';
 import UiPills from '@/components/ui/UiPills.vue';
+import UiMoneyInput from '@/components/ui/UiMoneyInput.vue';
 import { formatMoney } from '@/utils/helpers';
 import { PhMinus, PhPlus, PhCaretDown, PhTrash } from '@phosphor-icons/vue';
 
@@ -133,8 +134,8 @@ const handleQuantityInput = (event) => {
 };
 
 // Price and discount are one value seen two ways: editing either rewrites the other.
-const handlePriceChange = (event) => {
-  const newPrice = Number(event.target.value);
+const handlePriceChange = (value) => {
+  const newPrice = value ?? 0;
 
   if (isVariablePrice.value) {
     emit('update:item', props.index, {
@@ -163,8 +164,8 @@ const handleDiscountChange = (event) => {
   });
 };
 
-const handleCostPriceChange = (event) => {
-  emit('update:costPrice', props.index, Number(event.target.value));
+const handleCostPriceChange = (value) => {
+  emit('update:costPrice', props.index, value ?? 0);
 };
 
 const handleTaxPercentageChange = (event) => {
@@ -269,17 +270,13 @@ const handleTaxPercentageChange = (event) => {
         <div class="ui-field">
           <label class="ui-field-k" :for="`${uid}-price`">Precio unitario</label>
           <div class="ui-field-unit" data-unit="$">
-            <input
+            <UiMoneyInput
               :id="`${uid}-price`"
-              type="number"
-              class="ui-input ui-input-num"
-              :value="item.currentPrice"
-              step="1"
+              :model-value="item.currentPrice"
               :disabled="item.isComplimentary"
-              @input="handlePriceChange"
+              @update:model-value="handlePriceChange"
               @focus="$event.target.select()"
-              @wheel.prevent
-            >
+            />
           </div>
         </div>
         <div class="ui-field">
@@ -344,20 +341,15 @@ const handleTaxPercentageChange = (event) => {
         <div class="ui-field">
           <label class="ui-field-k" :for="`${uid}-cost`">Costo</label>
           <div class="ui-field-unit" data-unit="$">
-            <input
+            <UiMoneyInput
               :id="`${uid}-cost`"
-              type="number"
-              class="ui-input ui-input-num"
-              :value="Math.round(item.costPrice || 0)"
-              min="0"
-              step="1"
+              :model-value="item.costPrice || 0"
               :disabled="item.isComplimentary"
               :aria-invalid="!!costValidationError"
               :aria-describedby="costValidationError ? `${uid}-cost-e` : undefined"
-              @input="handleCostPriceChange"
+              @update:model-value="handleCostPriceChange"
               @focus="$event.target.select()"
-              @wheel.prevent
-            >
+            />
           </div>
           <span v-if="costValidationError" :id="`${uid}-cost-e`" class="ui-field-hint">
             {{ costValidationError }}

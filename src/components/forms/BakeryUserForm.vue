@@ -100,7 +100,7 @@ const userTypeOptions = [
   },
   {
     value: 'accounting',
-    label: 'Asistente Contable',
+    label: 'Contador',
     role: 'accounting_assistant',
     category: 'PER',
   },

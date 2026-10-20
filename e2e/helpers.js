@@ -159,7 +159,7 @@ export const createProduct = async (page, { name, collection, basePrice, costPri
     }
     for (const variation of variations) await addDimension(page, variation);
     for (const [option, [sale, cost]] of Object.entries(prices)) {
-      const inputs = priceRow(page, option).locator('input[type=number]');
+      const inputs = priceRow(page, option).locator('input[inputmode=numeric]');
       await inputs.nth(0).fill(String(sale));
       if (cost !== undefined) await inputs.nth(1).fill(String(cost));
     }

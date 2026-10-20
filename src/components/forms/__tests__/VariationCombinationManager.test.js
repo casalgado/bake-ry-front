@@ -183,35 +183,34 @@ describe('VariationCombinationManager', () => {
     });
 
     it('displays base price inputs with correct values', () => {
-      const basePriceInputs = wrapper.findAll('input[type="number"]').filter(
+      const basePriceInputs = wrapper.findAll('input[inputmode="numeric"]').filter(
         input => input.attributes('placeholder') === '0'
       );
 
       expect(basePriceInputs.length).toBeGreaterThan(0);
       // Check that at least some inputs have the expected values
-      const inputValues = basePriceInputs.map(input => Number(input.element.value));
+      const inputValues = basePriceInputs.map(input => Number(input.element.value.replace(/,/g, '')));
       expect(inputValues).toContain(1000);
       expect(inputValues).toContain(1500);
       expect(inputValues).toContain(2000);
     });
 
     it('displays cost price inputs with correct values', () => {
-      const allInputs = wrapper.findAll('input[type="number"]');
+      const allInputs = wrapper.findAll('input[inputmode="numeric"]');
       expect(allInputs.length).toBeGreaterThan(3); // Should have pairs for base and cost price
 
       // Check that cost price values are present
-      const inputValues = allInputs.map(input => Number(input.element.value));
+      const inputValues = allInputs.map(input => Number(input.element.value.replace(/,/g, '')));
       expect(inputValues).toContain(600);
       expect(inputValues).toContain(900);
       expect(inputValues).toContain(1200);
     });
 
     it('has correct input attributes', () => {
-      const variantInputs = wrapper.findAll('.ui-item:not(.ui-item-filled) input[type="number"]');
+      const variantInputs = wrapper.findAll('.ui-item:not(.ui-item-filled) input[inputmode="numeric"]');
 
       variantInputs.forEach(input => {
-        expect(input.attributes('min')).toBe('0');
-        expect(input.attributes('step')).toBe('50');
+        expect(input.attributes('type')).toBe('text');
         expect(input.attributes('placeholder')).toBe('0');
       });
     });
@@ -226,7 +225,7 @@ describe('VariationCombinationManager', () => {
     });
 
     it('emits update-combination-price event when base price changes', async () => {
-      const numberInputs = wrapper.findAll('input[type="number"]');
+      const numberInputs = wrapper.findAll('input[inputmode="numeric"]');
       expect(numberInputs.length).toBeGreaterThan(0);
 
       const firstInput = numberInputs[0];
@@ -240,7 +239,7 @@ describe('VariationCombinationManager', () => {
     });
 
     it('emits update-combination-price event when cost price changes', async () => {
-      const numberInputs = wrapper.findAll('input[type="number"]');
+      const numberInputs = wrapper.findAll('input[inputmode="numeric"]');
       expect(numberInputs.length).toBeGreaterThan(1);
 
       const secondInput = numberInputs[1];
@@ -254,7 +253,7 @@ describe('VariationCombinationManager', () => {
     });
 
     it('handles invalid input values gracefully', async () => {
-      const numberInputs = wrapper.findAll('input[type="number"]');
+      const numberInputs = wrapper.findAll('input[inputmode="numeric"]');
       expect(numberInputs.length).toBeGreaterThan(0);
 
       const firstInput = numberInputs[0];
@@ -277,14 +276,14 @@ describe('VariationCombinationManager', () => {
       expect(groupHeaders).toHaveLength(3);
 
       groupHeaders.forEach(header => {
-        const inputs = header.findAll('input[type="number"]');
+        const inputs = header.findAll('input[inputmode="numeric"]');
         expect(inputs).toHaveLength(2); // basePrice and costPrice inputs
       });
     });
 
     it('shows single value when all variants have same price', async () => {
       // All variants in first group should have same price initially
-      const firstGroupInputs = wrapper.findAll('.ui-item-filled input[type="number"]');
+      const firstGroupInputs = wrapper.findAll('.ui-item-filled input[inputmode="numeric"]');
 
       // The first group should show actual values since all variants have same price
       expect(firstGroupInputs.length).toBeGreaterThan(0);
@@ -293,7 +292,7 @@ describe('VariationCombinationManager', () => {
     it('updates all group variants when group price is changed', async () => {
       // Find first group's base price input
       const firstGroupHeader = wrapper.findAll('.ui-item-filled')[0];
-      const basePriceInput = firstGroupHeader.findAll('input[type="number"]')[0];
+      const basePriceInput = firstGroupHeader.findAll('input[inputmode="numeric"]')[0];
 
       // Update group price
       await basePriceInput.setValue('2000');

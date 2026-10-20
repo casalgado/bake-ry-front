@@ -5,6 +5,7 @@ import { PhTrash, PhX, PhCircleHalf, PhCalendarBlank } from '@phosphor-icons/vue
 import UiSearchField from '@/components/ui/UiSearchField.vue';
 import UiYesNo from '@/components/ui/UiYesNo.vue';
 import UiPills from '@/components/ui/UiPills.vue';
+import UiMoneyInput from '@/components/ui/UiMoneyInput.vue';
 import UiFeatureCard from '@/components/ui/UiFeatureCard.vue';
 import UiChoiceCard from '@/components/ui/UiChoiceCard.vue';
 import { paymentIconMap } from '@/utils/paymentIcons';
@@ -193,7 +194,7 @@ const reset = () => { form.value = { ...BLANK }; saved.value = ''; };
             <div class="ui-field">
               <label class="ui-field-k" for="f-precio">Precio</label>
               <div class="ui-field-unit" data-unit="$">
-                <input id="f-precio" v-model.number="demo.price" type="number" class="ui-input ui-input-num" >
+                <UiMoneyInput id="f-precio" v-model="demo.price" />
               </div>
             </div>
             <div class="ui-field">
@@ -419,6 +420,12 @@ const reset = () => { form.value = { ...BLANK }; saved.value = ''; };
             <UiPills v-model="inventoryMode" :options="INVENTORY_MODES" label="Control de inventario" />
             <UiPills v-model="demoPayment" :options="PAYMENT_DEMO" label="Método de pago" min-width="6rem" />
             <UiYesNo v-model="hasVariations" label="¿Tiene variaciones?" />
+            <p class="ui-field-hint">
+              <code>UiMoneyInput</code> (el campo Precio de arriba): agrupa miles
+              mientras escribes y el <code>v-model</code> sigue siendo un número.
+              Solo dígitos, pesos enteros. Va dentro de tu propio
+              <code>ui-field-unit</code>; id y aria pasan directo al input.
+            </p>
             <p class="ui-field-hint">
               <code>ui-ink-muted</code>: <span class="ui-ink-muted">tinta apagada para un glifo o una palabra suelta</span>, solo color.
             </p>

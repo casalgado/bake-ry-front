@@ -145,6 +145,11 @@ Four rungs, `0` furthest from your face:
   leading icon or `clear` event of its own yet; add one when a call site needs it.
   A combobox does not use it: `UiItemPicker` and `UserCombox` need their ARIA on
   the input itself, and fallthrough attrs land on the wrapper.
+- `UiMoneyInput.vue` groups thousands while typing (`formatQty`'s comma, to
+  match `formatMoney`); `v-model` stays a Number, null when empty. Digits only.
+  Its root is the `<input>`, so the call site keeps its `ui-field-unit`. Money
+  only: %, IVA and quantities stay `type="number"`. Never read
+  `$event.target.value` off it: that is `"1,250"`.
 - `UiPills` options take an optional `icon` component, drawn before the label
   (payment methods, from `utils/paymentIcons.js`). Slot `selected-<value>`
   replaces that option while it is picked, in the same cell — "Otro" turning
