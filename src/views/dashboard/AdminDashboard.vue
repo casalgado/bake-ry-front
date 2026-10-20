@@ -22,7 +22,7 @@ onMounted(async () => {
   <section v-else class="relative grid lg:grid-cols-[200px_1fr] transition-all h-full">
     <AdminSidebar />
     <!-- Added relative positioning and proper z-index -->
-    <div class="relative grid justify-items-center grid-cols-1 bg-neutral-150  pb-20 lg:pb-5 h-full overflow-auto ui-gutter">
+    <div class="relative grid justify-items-center grid-cols-1 bg-neutral-150  pb-10 lg:pb-5 h-full overflow-auto ui-gutter">
       <RouterView />
     </div>
   </section>

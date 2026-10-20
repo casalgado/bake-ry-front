@@ -566,7 +566,7 @@ button.ui-item,
   letter-spacing: 0.03em;
   white-space: nowrap;
   background: var(--ui-accent-soft, var(--ui-surface-3));
-  /* Same fix as .ui-btn's --btn-text: the raw accent is tuned against
+  /* Same fix as .ui-btn-danger's --btn-hover-line: the raw accent is tuned against
    * surface-2, not against its own soft, and reads thin there. */
   color: color-mix(in oklab, var(--ui-accent, var(--ui-ink-muted)) 75%, var(--ui-ink));
 }
@@ -637,14 +637,13 @@ button.ui-item,
  * Nothing below repeats the hover/selected math; variants only move the vars. */
 .ui-btn {
   --btn: var(--ui-brand);
-  --btn-soft: var(--ui-brand-soft);
   --btn-ink: var(--ui-brand-ink);
-  /* Hover border color (the label keeps its rest color, so hover never tints
-   * text). Not --btn itself: the raw solid is tuned for contrast against
-   * surface-2, not against its own soft, and reads thin there. Mixed into ink
-   * rather than picked by hand so it stays one swap away — set --btn and this
-   * follows, same as -soft and -ink already do. */
-  --btn-text: color-mix(in oklab, var(--btn) 94%, black);
+  /* Hover wash and border. Neutral, not brand: a grid of buttons under a moving
+   * mouse would otherwise flash orange. Derived from ink and surface, so dark
+   * theme follows. Only the background and border react; the label keeps its
+   * rest color. */
+  --btn-hover: color-mix(in oklab, var(--ui-ink) 6%, var(--ui-surface-2));
+  --btn-hover-line: color-mix(in oklab, var(--ui-ink) 40%, var(--ui-surface-2));
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -669,9 +668,23 @@ button.ui-item,
 /* One per group: the thing you actually came to do. */
 .ui-btn-solid { background: var(--btn); border-color: var(--btn); color: var(--btn-ink); }
 
-/* Destructive. Swaps the three variables, so it composes with solid and icon. */
-.ui-btn-danger { --btn: var(--ui-danger); --btn-soft: var(--ui-danger-soft); --btn-ink: var(--ui-danger-ink); }
+/* Destructive. Swaps the variables, so it composes with solid and icon. Its
+ * hover stays red: the wash is the warning. The border is mixed toward black
+ * because the raw solid reads thin against its own soft. */
+.ui-btn-danger {
+  --btn: var(--ui-danger);
+  --btn-ink: var(--ui-danger-ink);
+  --btn-hover: var(--ui-danger-soft);
+  --btn-hover-line: color-mix(in oklab, var(--btn) 94%, black);
+}
 .ui-btn-danger:not(.ui-btn-solid) { color: var(--ui-danger); }
+
+/* Solid has no soft resting state to wash, so its hover deepens instead. Two
+ * classes so it outranks .ui-btn-danger: a solid danger deepens its red. */
+.ui-btn.ui-btn-solid {
+  --btn-hover: color-mix(in oklab, var(--btn) 86%, var(--ui-ink));
+  --btn-hover-line: var(--btn-hover);
+}
 
 /* Square. The icon is the whole label, so the side padding matches the top.
  * Give the glyph `weight="bold"` at the call site: at 12-14px a regular
@@ -686,18 +699,20 @@ button.ui-item,
  * 20 line + 4 padding + 2 border = 26, the 17px title's line box. */
 .ui-btn-sm { padding-block: 2px; }
 
-/* --- HOVER: soft wash, momentary. Only background and border react — the label
- *     keeps its rest color (ink for neutral, red for danger), so hover never
- *     recolors text. Icon included: a lone glyph makes the fill faint, but the
- *     border shifting to --btn-text still carries it. --- */
-.ui-btn:hover { background: var(--btn-soft); border-color: var(--btn-text); }
-
-/* Solid has no soft resting state to wash, so it deepens instead. */
-.ui-btn-solid:hover {
-  background: color-mix(in oklab, var(--btn) 86%, var(--ui-ink));
-  border-color: color-mix(in oklab, var(--btn) 86%, var(--ui-ink));
-  color: var(--btn-ink);
+/* --- HOVER: a neutral gray wash, momentary; danger keeps its red, solid
+ *     deepens. Only background and border react — the label keeps its rest
+ *     color, so hover never recolors text. Icon included: a lone glyph makes
+ *     the fill faint, but the border shifting to --btn-hover-line still carries
+ *     it. Pointer devices only: a touch screen keeps :hover on the last tapped
+ *     button, so a reused button (the order catalog's grid) would carry it into
+ *     the next step. --- */
+@media (hover: hover) {
+  .ui-btn:hover { background: var(--btn-hover); border-color: var(--btn-hover-line); }
 }
+
+/* Touch gets the same wash only while the finger is down, so it cannot stick.
+ * iOS needs a touchstart listener for :active to fire (main.js). */
+.ui-btn:active { background: var(--btn-hover); border-color: var(--btn-hover-line); }
 
 /* --- SELECTED: a persistent state, so it goes solid — the standard segmented /
  *     toggle idiom, unambiguous next to outline siblings. Fires on aria-pressed

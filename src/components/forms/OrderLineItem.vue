@@ -68,7 +68,8 @@ const discount = computed(() => {
   const { discountType, discountValue, currentPrice } = props.item;
   if (discountType === 'percentage' && discountValue > 0) return discountValue;
   const refPrice = effectiveReferencePrice.value;
-  return refPrice > 0 ? Math.round(((refPrice - currentPrice) / refPrice) * 100) : 0;
+  // A price above the list is a surcharge, not a negative discount.
+  return refPrice > 0 ? Math.max(0, Math.round(((refPrice - currentPrice) / refPrice) * 100)) : 0;
 });
 
 // A cortesía's discount is moot: its total column already says Cortesía.
@@ -143,7 +144,7 @@ const handlePriceChange = (event) => {
       discountValue: 0,
     });
   } else {
-    const discountVal = Math.round(((props.item.basePrice - newPrice) / props.item.basePrice) * 100);
+    const discountVal = Math.max(0, Math.round(((props.item.basePrice - newPrice) / props.item.basePrice) * 100));
     emit('update:item', props.index, {
       currentPrice: newPrice,
       discountType: 'percentage',

@@ -7,7 +7,7 @@ import UiYesNo from '@/components/ui/UiYesNo.vue';
 import UiPills from '@/components/ui/UiPills.vue';
 import VariationsManager from '@/components/forms/VariationsManager.vue';
 import AppTooltip from '@/components/common/AppTooltip.vue';
-import { PhInfo } from '@phosphor-icons/vue';
+import { PhInfo, PhEye, PhEyeSlash } from '@phosphor-icons/vue';
 import { cleanString } from '@/utils/helpers';
 
 const collectionStore = useProductCollectionStore();
@@ -295,7 +295,11 @@ onMounted(async () => {
     @submit.prevent="handleSubmit"
   >
     <div class="ui-panehead !mb-0 items-start">
-      <h2 class="ui-panehead-title">{{ title }}</h2>
+      <div class="flex flex-wrap items-baseline gap-x-3">
+        <h2 class="ui-panehead-title">{{ title }}</h2>
+        <!-- Off is shown by shape and words, not color (ui rule 5). -->
+        <span v-if="!formData.isActive" class="ui-panehead-sub">No aparece en el catálogo de pedidos</span>
+      </div>
       <!-- On/off, so a pressed toggle rather than a Sí/No pair (forms gallery, "Elegir"). -->
       <button
         type="button"
@@ -303,7 +307,14 @@ onMounted(async () => {
         :aria-pressed="formData.isActive"
         @click="formData.isActive = !formData.isActive"
       >
-        {{ formData.isActive ? 'Activo' : 'Inactivo' }}
+        <PhEye v-if="formData.isActive" :size="12" weight="bold" />
+        <PhEyeSlash v-else :size="12" weight="bold" />
+        <!-- Both labels share one grid cell, so the button is always as wide as
+             the longer one and does not resize on toggle. -->
+        <span class="grid">
+          <span class="col-start-1 row-start-1" :class="{ invisible: !formData.isActive }">Activo</span>
+          <span class="col-start-1 row-start-1" :class="{ invisible: formData.isActive }">Inactivo</span>
+        </span>
       </button>
     </div>
 

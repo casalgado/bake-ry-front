@@ -281,8 +281,8 @@ const relativeFromNow = (dateValue) => {
   const diffDays = Math.floor((Date.now() - new Date(dateValue).getTime()) / 86400000);
   if (diffDays <= 0) return 'hoy';
   if (diffDays === 1) return 'ayer';
-  if (diffDays < 7) return relativeTime.format(-diffDays, 'day');
-  if (diffDays < 35) return relativeTime.format(-Math.floor(diffDays / 7), 'week');
+  // No weeks: flooring 12 days to "hace 1 semana" reads as inside the last week.
+  if (diffDays < 60) return relativeTime.format(-diffDays, 'day');
   if (diffDays < 365) return relativeTime.format(-Math.floor(diffDays / 30), 'month');
   return relativeTime.format(-Math.floor(diffDays / 365), 'year');
 };

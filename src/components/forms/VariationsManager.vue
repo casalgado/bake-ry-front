@@ -224,6 +224,7 @@ const addOptionToDimension = async (dimensionId) => {
   if (!dimension) return;
 
   const newOption = {
+    id: generateId(),
     name: '',
     value: dimension.unit ? 0 : 1,
     displayOrder: dimension.options.length,
@@ -235,7 +236,8 @@ const addOptionToDimension = async (dimensionId) => {
 
   // Focus on the new input field after DOM update
   await nextTick();
-  const newOptionIndex = dimension.options.length - 1;
+  // By id, not last index: sorted by displayOrder, the new option may not be last.
+  const newOptionIndex = getSortedOptions(dimensionId).findIndex(option => option.id === newOption.id);
   const inputSelector = `input[data-option-index="${dimensionId}-${newOptionIndex}"]`;
   const newInput = document.querySelector(inputSelector);
   if (newInput) {

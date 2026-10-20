@@ -29,7 +29,8 @@ from there. The old Tailwind-class system still runs ~95% of the app.
 5. **No state colors.** No red numbers. Zero is muted (`ui-item-zero`), negative
    gets a soft row wash (`ui-item-negative`), digits stay readable.
 6. **Hover never moves anything.** No lift, no translate. It steps one rung up
-   the surface ladder, or fills with the soft. A selected control
+   the surface ladder, or fills with a quiet wash (a button: neutral gray,
+   danger: its soft). A selected control
    (`aria-pressed` / `aria-current` / `:checked`) fills solid — that is a
    persistent state, not motion.
 7. **Softs are derived, never picked.**
@@ -113,14 +114,15 @@ Four rungs, `0` furthest from your face:
 
 - There is no quiet/ghost button — outline is already quiet enough, and a
   borderless button next to a bordered one just reads as broken. Variants compose
-  because `.ui-btn` reads `--btn` / `--btn-soft` / `--btn-ink`; a new intent swaps
-  those three, it does not repeat the hover math. Built: `ui-btn-icon`, `ui-btn-field` (a button
+  because `.ui-btn` reads `--btn` / `--btn-ink` / `--btn-hover` / `--btn-hover-line`;
+  a new intent swaps those, it does not repeat the hover math. Built: `ui-btn-icon`, `ui-btn-field` (a button
   beside an input; takes `--ui-field-h`, the input's height), `ui-btn-sm` (a button beside a
   pane-head title; 26px, the title's line box),
   `ui-btn-danger` (every back-out action, not just deletes — §13), and the
   selected state (`aria-pressed` / `aria-current` /
   `:checked +` on a `<label class="ui-btn">` — **not** Tailwind `peer-checked:`,
-  which can only apply single classes). Hover fills with the soft; selected
+  which can only apply single classes). Hover fills with a neutral gray wash
+  (danger keeps its red soft); selected
   fills solid, and `ui-btn-solid` / the `danger` vars ride along so there is no
   per-variant selected rule.
 - Form components are two: `UiPills.vue` (one of several, `v-model` + `change`)
