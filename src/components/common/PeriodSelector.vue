@@ -16,6 +16,7 @@ const props = defineProps({
     },
     default: null,
   },
+  range: { type: Boolean, default: true },
 });
 
 const periodStore = usePeriodStore();
@@ -42,9 +43,12 @@ if (props.onlyFor && props.onlyFor.length === 1) {
   periodStore.setPeriodType(props.onlyFor[0]);
 }
 
+const canPickMonth = computed(() => !props.onlyFor || props.onlyFor.includes('month'));
+const canOpenCalendar = computed(() => canPickMonth.value || props.range);
+
 // Calendar functions
 const handleSpanClick = async () => {
-  console.log('Span clicked, period type:', periodStore.periodType);
+  if (!canOpenCalendar.value) return;
 
   // Calculate position based on span element
   await nextTick();
@@ -110,7 +114,8 @@ onUnmounted(() => {
 
       <span
         ref="spanRef"
-        class="text-neutral-800 font-medium text-center text-sm sm:text-base w-32 sm:w-36 px-1 truncate cursor-pointer hover:text-primary-600 transition-colors duration-150"
+        class="text-neutral-800 font-medium text-center text-sm sm:text-base w-32 sm:w-36 px-1 truncate transition-colors duration-150"
+        :class="{ 'cursor-pointer hover:text-primary-600': canOpenCalendar }"
         @click="handleSpanClick"
       >
         {{ periodStore.displayFormat }}
@@ -171,11 +176,12 @@ onUnmounted(() => {
       @click="closeCalendar"
     >
       <div
-        class="bg-white rounded-lg shadow-lg border border-neutral-200 w-64 p-2"
+        class="ui-card w-64 shadow-lg"
+        data-ui-theme="light"
         :style="`position: absolute; top: ${calendarPosition.top}px; left: ${calendarPosition.left}px;`"
         @click.stop
       >
-        <PeriodCalendar @close="closeCalendar" />
+        <PeriodCalendar :month="canPickMonth" :range="range" @close="closeCalendar" />
       </div>
     </div>
   </Teleport>

@@ -319,7 +319,7 @@ watch(
         Calendario de Entregas
       </h2>
       <div class="flex flex-col">
-        <PeriodSelector />
+        <PeriodSelector :range="false" />
       </div>
     </div>
 

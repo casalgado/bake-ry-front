@@ -1,95 +1,145 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { format, parseISO, differenceInCalendarDays } from 'date-fns';
+import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue';
 import { usePeriodStore } from '@/stores/periodStore';
+
+const props = defineProps({
+  month: { type: Boolean, required: true },
+  range: { type: Boolean, required: true },
+});
 
 const emit = defineEmits(['close']);
 
 const periodStore = usePeriodStore();
 
-const currentStep = ref('year'); // 'year' | 'month'
-const selectedYear = ref(new Date().getFullYear());
+const FIRST_YEAR = 2025;
+const LAST_YEAR = new Date().getFullYear();
+const MAX_RANGE_DAYS = 366;
+const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-// Generate year options (2025 to current year)
-const yearOptions = computed(() => {
-  const currentYear = new Date().getFullYear();
-  const startYear = 2025;
-  const years = [];
-  for (let year = startYear; year <= currentYear; year++) {
-    years.push(year);
-  }
-  return years;
-});
+// Opens on whatever is on screen: a custom range lands on Rango, anything else on Mes
+const mode = ref(props.range && (!props.month || periodStore.periodType === 'custom') ? 'range' : 'month');
 
-// Month options in Spanish (3-letter abbreviations)
-const monthOptions = computed(() => [
-  { name: 'Ene', value: 0 },
-  { name: 'Feb', value: 1 },
-  { name: 'Mar', value: 2 },
-  { name: 'Abr', value: 3 },
-  { name: 'May', value: 4 },
-  { name: 'Jun', value: 5 },
-  { name: 'Jul', value: 6 },
-  { name: 'Ago', value: 7 },
-  { name: 'Sep', value: 8 },
-  { name: 'Oct', value: 9 },
-  { name: 'Nov', value: 10 },
-  { name: 'Dic', value: 11 },
-]);
+const shownYear = ref(Math.min(Math.max(periodStore.currentDate.getFullYear(), FIRST_YEAR), LAST_YEAR));
 
-const handleYearSelect = (year) => {
-  selectedYear.value = year;
-  currentStep.value = 'month';
-};
+const isShownMonth = (month) =>
+  periodStore.periodType === 'month' &&
+  periodStore.currentDate.getFullYear() === shownYear.value &&
+  periodStore.currentDate.getMonth() === month;
 
-const handleMonthSelect = (month) => {
-  // Set period type to month and create new date with selected year and month
+const selectMonth = (month) => {
   periodStore.setPeriodType('month');
-  const newDate = new Date(selectedYear.value, month, 1);
-  periodStore.currentDate = newDate;
+  periodStore.currentDate = new Date(shownYear.value, month, 1);
   emit('close');
 };
 
-const currentOptions = computed(() => {
-  return currentStep.value === 'year' ? yearOptions.value : monthOptions.value;
-});
+// Prefilled with the period on screen, so tweaking one end is one edit
+const rangeStart = ref(format(periodStore.periodRange.start, 'yyyy-MM-dd'));
+const rangeEnd = ref(format(periodStore.periodRange.end, 'yyyy-MM-dd'));
+
+const rangeTooLong = computed(() =>
+  rangeStart.value && rangeEnd.value &&
+  differenceInCalendarDays(parseISO(rangeEnd.value), parseISO(rangeStart.value)) >= MAX_RANGE_DAYS,
+);
+
+const canApplyRange = computed(() =>
+  rangeStart.value && rangeEnd.value && rangeStart.value <= rangeEnd.value && !rangeTooLong.value,
+);
+
+// parseISO reads 'yyyy-MM-dd' as local midnight; new Date() would read it as UTC and land a day early
+const applyRange = () => {
+  periodStore.setCustomRange(parseISO(rangeStart.value), parseISO(rangeEnd.value));
+  emit('close');
+};
 </script>
 
 <template>
-  <div class="relative w-full aspect-square p-1 mb-0">
-    <!-- Year Selection -->
-    <div v-if="currentStep === 'year'" class="grid grid-cols-2 grid-rows-4 gap-2 h-full p-2">
-      <button
-        v-for="year in yearOptions"
-        :key="year"
-        type="button"
-        class="utility-btn-inactive !m-0 flex items-center justify-center text-sm"
-        @click="handleYearSelect(year)"
-      >
-        {{ year }}
+  <div class="flex flex-col gap-3">
+    <div v-if="month && range" class="grid grid-cols-2 gap-2">
+      <button type="button" class="ui-btn justify-center" :aria-pressed="mode === 'month'" @click="mode = 'month'">
+        Mes
+      </button>
+      <button type="button" class="ui-btn justify-center" :aria-pressed="mode === 'range'" @click="mode = 'range'">
+        Rango
       </button>
     </div>
 
-    <!-- Month Grid -->
-    <div v-else class="grid grid-cols-3 grid-rows-4 gap-2 h-full p-2">
-      <button
-        v-for="month in monthOptions"
-        :key="month.value"
-        type="button"
-        class="utility-btn-inactive !m-0 flex items-center justify-center text-sm"
-        @click="handleMonthSelect(month.value)"
+    <!-- Both panels share one grid cell, so the box always takes the taller one's
+         height and switching modes never resizes it. visibility, not v-show:
+         display: none would drop the hidden panel out of the sizing. -->
+    <div class="grid">
+      <div
+        v-if="month"
+        class="[grid-area:1/1] flex flex-col gap-2"
+        :class="{ invisible: mode !== 'month' }"
       >
-        {{ month.name }}
-      </button>
+        <div class="flex items-center justify-between">
+          <button
+            type="button"
+            class="ui-btn ui-btn-icon"
+            aria-label="Año anterior"
+            :disabled="shownYear <= FIRST_YEAR"
+            @click="shownYear--"
+          >
+            <PhCaretLeft :size="14" weight="bold" />
+          </button>
+          <span class="ui-card-title">{{ shownYear }}</span>
+          <button
+            type="button"
+            class="ui-btn ui-btn-icon"
+            aria-label="Año siguiente"
+            :disabled="shownYear >= LAST_YEAR"
+            @click="shownYear++"
+          >
+            <PhCaretRight :size="14" weight="bold" />
+          </button>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <button
+            v-for="(name, i) in MONTHS"
+            :key="name"
+            type="button"
+            class="ui-btn justify-center"
+            :aria-current="isShownMonth(i) || undefined"
+            @click="selectMonth(i)"
+          >
+            {{ name }}
+          </button>
+        </div>
+      </div>
+
+      <div
+        v-if="range"
+        class="[grid-area:1/1] flex flex-col gap-3"
+        :class="{ invisible: mode !== 'range' }"
+      >
+        <div class="ui-field">
+          <label for="period-range-start" class="ui-field-k">Desde</label>
+          <input id="period-range-start" v-model="rangeStart" type="date" class="ui-input" :max="rangeEnd">
+        </div>
+        <div class="ui-field">
+          <label for="period-range-end" class="ui-field-k">Hasta</label>
+          <input
+            id="period-range-end"
+            v-model="rangeEnd"
+            type="date"
+            class="ui-input"
+            :min="rangeStart"
+            :aria-invalid="rangeTooLong || undefined"
+            :aria-describedby="rangeTooLong ? 'period-range-error' : undefined"
+          >
+          <p v-if="rangeTooLong" id="period-range-error" class="ui-field-error">Máximo un año.</p>
+        </div>
+        <button
+          type="button"
+          class="ui-btn ui-btn-solid justify-center mt-auto"
+          :disabled="!canApplyRange"
+          @click="applyRange"
+        >
+          Aplicar
+        </button>
+      </div>
     </div>
   </div>
 </template>
-
-<style scoped lang="scss">
-.flat-card {
-  &::-webkit-scrollbar {
-    display: none;
-  }
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-</style>
