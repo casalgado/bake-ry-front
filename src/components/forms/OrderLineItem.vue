@@ -5,6 +5,7 @@
 import { ref, shallowRef, computed, useId } from 'vue';
 import UiPills from '@/components/ui/UiPills.vue';
 import UiMoneyInput from '@/components/ui/UiMoneyInput.vue';
+import AppTooltip from '@/components/common/AppTooltip.vue';
 import { formatMoney } from '@/utils/helpers';
 import { PhMinus, PhPlus, PhCaretDown, PhTrash } from '@phosphor-icons/vue';
 
@@ -30,6 +31,11 @@ const props = defineProps({
   },
   // Units the order's stock lines of this product, together, ask for beyond `available`.
   shortBy: {
+    type: Number,
+    default: 0,
+  },
+  // Units the kitchen already put in the bodega for this line (0: none).
+  producedQty: {
     type: Number,
     default: 0,
   },
@@ -93,6 +99,21 @@ const sourceLabel = computed(() => {
   return `Del stock · ${props.available} ${props.available === 1 ? 'disponible' : 'disponibles'}`;
 });
 
+// A produced line may shrink or go; it may not grow past what was made.
+const isProduced = computed(() => props.producedQty > 0);
+const atCap = computed(() => isProduced.value && props.item.quantity >= props.producedQty);
+
+// What the "Producido" tag says on hover: what happened, and what is still possible.
+const producedTip = computed(() => {
+  const n = props.producedQty;
+  const left = n - props.item.quantity;
+  const done = `La cocina ya lo produjo: ${n} uds entraron a la bodega y se descontó su receta.`;
+  return left > 0
+    ? `${done} Este pedido lleva ${props.item.quantity}; ${left === 1 ? 'la restante queda disponible' : `las ${left} restantes quedan disponibles`}.`
+    : `${done} Puedes bajar la cantidad o quitar la línea; para más, agrega otra línea.`;
+});
+const capTip = computed(() => `Ya se produjeron ${props.producedQty}. Para más, agrega otra línea de este producto.`);
+
 const sourceOptions = computed(() => [
   { value: 'stock', label: `Del stock (${props.available})` },
   { value: 'produce', label: 'Producir' },
@@ -127,7 +148,10 @@ const handleMinus = () => {
 };
 
 const handleQuantityInput = (event) => {
-  const newValue = parseInt(event.target.value) || 1;
+  const typed = parseInt(event.target.value) || 1;
+  const newValue = isProduced.value ? Math.min(typed, props.producedQty) : typed;
+  // Clamped to the same quantity, nothing re-renders: put the cap back in the box.
+  if (newValue !== typed) event.target.value = newValue;
   if (newValue >= 1) {
     emit('update:quantity', props.index, newValue);
   }
@@ -198,20 +222,24 @@ const handleTaxPercentageChange = (event) => {
         class="ui-input ui-input-num !text-center !px-1 w-10"
         :value="item.quantity"
         min="1"
+        :max="producedQty || undefined"
         step="1"
         :aria-label="`Cantidad de ${item.productName}`"
         @input="handleQuantityInput"
         @focus="$event.target.select()"
         @wheel.prevent
       >
-      <button
-        type="button"
-        class="ui-btn ui-btn-icon"
-        aria-label="Uno más"
-        @click="handleQuantityChange(1)"
-      >
-        <PhPlus :size="11" weight="bold" />
-      </button>
+      <AppTooltip :text="capTip" :disabled="!atCap">
+        <button
+          type="button"
+          class="ui-btn ui-btn-icon"
+          aria-label="Uno más"
+          :disabled="atCap"
+          @click="handleQuantityChange(1)"
+        >
+          <PhPlus :size="11" weight="bold" />
+        </button>
+      </AppTooltip>
     </div>
 
     <button
@@ -229,12 +257,17 @@ const handleTaxPercentageChange = (event) => {
            nothing to say there is no second line. A shortfall is the one part
            in full ink and weight: emphasis, not a red word (ui rule 5). -->
       <span
-        v-if="hasDiscount || inventoryMode === 'recipe' || inventoryMode === 'unit'"
+        v-if="hasDiscount || isProduced || inventoryMode === 'recipe' || inventoryMode === 'unit'"
         class="ui-item-desc block mt-0.5"
       >
         <template v-if="hasDiscount">-{{ discount }}%</template>
-        <template v-if="hasDiscount && (inventoryMode === 'recipe' || inventoryMode === 'unit')"> · </template>
-        <template v-if="inventoryMode === 'recipe' || inventoryMode === 'unit'">{{ sourceLabel }}</template>
+        <template v-if="hasDiscount && (isProduced || inventoryMode === 'recipe' || inventoryMode === 'unit')"> · </template>
+        <!-- Hover only: a tab stop inside this button would nest controls. The
+             editor's hint says the same for keyboard users. -->
+        <AppTooltip v-if="isProduced" :text="producedTip">
+          <span class="ui-tag">Producido {{ producedQty }}</span>
+        </AppTooltip>
+        <template v-else-if="inventoryMode === 'recipe' || inventoryMode === 'unit'">{{ sourceLabel }}</template>
         <span v-if="isShort" class="font-semibold" style="color: var(--ui-ink)"> · {{ shortBy === 1 ? 'falta' : 'faltan' }} {{ shortBy }}</span>
       </span>
     </button>
@@ -314,9 +347,13 @@ const handleTaxPercentageChange = (event) => {
           min-width="7rem"
           :model-value="fromStock ? 'stock' : 'produce'"
           :options="sourceOptions"
+          :disabled="isProduced"
           @update:model-value="setFulfillmentSource"
         />
       </div>
+      <span v-if="isProduced" class="ui-field-hint">
+        {{ producedTip }} El origen ya no cambia.
+      </span>
 
       <div class="ui-sectionhead !mb-0">Impuesto y costo</div>
       <div class="grid grid-cols-2 gap-3">

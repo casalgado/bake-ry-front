@@ -2,7 +2,6 @@
 import { createResourceStore } from './base/resourceStore';
 import { ProductionRunService } from '../services/productionRunService';
 import { useAuthenticationStore } from './authentication';
-import { useStockStore } from './stockStore';
 import { storeToRefs } from 'pinia';
 
 const authStore = useAuthenticationStore();
@@ -24,19 +23,11 @@ const replaceRun = (run) => {
   return run;
 };
 
-// Receiving and undoing move stock, so stock is re-read; cancelling and editing
-// move none.
-store.receiveLine = async (runId, lineId) => {
-  const run = replaceRun(await service.receiveLine(runId, lineId));
-  await useStockStore().fetchAll();
-  return run;
-};
+// Receiving and undoing move stock; stock screens refresh themselves
+// (stockStore.watchAvailability).
+store.receiveLine = async (runId, lineId) => replaceRun(await service.receiveLine(runId, lineId));
 
-store.undoLine = async (runId, lineId) => {
-  const run = replaceRun(await service.undoLine(runId, lineId));
-  await useStockStore().fetchAll();
-  return run;
-};
+store.undoLine = async (runId, lineId) => replaceRun(await service.undoLine(runId, lineId));
 
 store.cancelLine = async (runId, lineId) => replaceRun(await service.cancelLine(runId, lineId));
 

@@ -260,8 +260,9 @@ const heldOnServer = (order) => order.status >= SHIPPED_STATUS
 // holds nothing on the server.
 const savedLines = props.initialData?.id && heldOnServer(props.initialData)
   ? props.initialData.orderItems.map(({
-    productId, combination, sourceWarehouseId, quantity, fulfillmentSource,
+    id, productId, combination, sourceWarehouseId, quantity, fulfillmentSource,
   }) => ({
+    id,
     productId,
     combination: combination ? { id: combination.id } : null,
     sourceWarehouseId,
@@ -269,6 +270,13 @@ const savedLines = props.initialData?.id && heldOnServer(props.initialData)
     fulfillmentSource,
   }))
   : [];
+
+// What the kitchen already produced, per saved line: its cap. Any saved order,
+// held or not, since the server enforces the cap either way. A duplicate has
+// no id and carries no production.
+const producedById = new Map(props.initialData?.id
+  ? props.initialData.orderItems.filter((l) => l.producedQty > 0).map((l) => [l.id, l.producedQty])
+  : []);
 
 const errors = ref({});
 
@@ -933,6 +941,7 @@ const clearUser = () => {
             v-model="formData.orderItems"
             :products="productStore.items"
             :saved-lines="savedLines"
+            :produced-by-id="producedById"
           />
         </fieldset>
 

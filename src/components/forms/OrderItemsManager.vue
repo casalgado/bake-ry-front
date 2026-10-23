@@ -22,6 +22,11 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  // Saved line id → units the kitchen already put in the bodega for it.
+  producedById: {
+    type: Map,
+    default: () => new Map(),
+  },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -59,12 +64,16 @@ const inventoryModeOf = (item) => (settingsStore.isInventoryEnabled
 const warehouseOf = (item) => item.sourceWarehouseId || defaultWarehouseId.value;
 const combinationOf = (item) => item.combination?.id || null;
 
+// What the kitchen already put in the bodega for this line, read from the saved
+// order: a repeated or duplicated draft carries no production.
+const producedOf = (line) => props.producedById.get(line.id) || 0;
+
 // Units that `lines` take from the same stock row as `item`.
 const takenBy = (lines, item) => lines.reduce((sum, line) => (
   line.productId === item.productId
   && combinationOf(line) === combinationOf(item)
   && warehouseOf(line) === warehouseOf(item)
-  && (inventoryModeOf(line) === 'unit' || line.fulfillmentSource === 'stock')
+  && (inventoryModeOf(line) === 'unit' || line.fulfillmentSource === 'stock' || producedOf(line) > 0)
     ? sum + line.quantity
     : sum), 0);
 
@@ -268,6 +277,7 @@ defineExpose({ add });
       :inventory-mode="inventoryModeOf(item)"
       :available="availableFor(item)"
       :short-by="shortByFor(item)"
+      :produced-qty="producedOf(item)"
       @update:quantity="updateItemQuantity"
       @update:item="updateItem"
       @update:costPrice="updateItemCostPrice"

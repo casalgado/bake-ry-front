@@ -31,6 +31,8 @@ class OrderItem {
     invoiceTitle = '',
     fulfillmentSource,
     sourceWarehouseId = null,
+    producedQty = 0,
+    receiptNo = 0,
   }) {
     this.id = id || generateId();
     this.productId = productId;
@@ -52,6 +54,9 @@ class OrderItem {
     this.displayOrder = displayOrder;
     this.fulfillmentSource = fulfillmentSource ?? 'produce';
     this.sourceWarehouseId = sourceWarehouseId;
+    // Server-owned: what the kitchen ticked (see the backend OrderItem for the words).
+    this.producedQty = producedQty;
+    this.receiptNo = receiptNo;
 
     // Discount tracking fields
     this.referencePrice = basePrice > 0 ? basePrice : (referencePrice ?? currentPrice);

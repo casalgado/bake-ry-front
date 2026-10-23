@@ -33,6 +33,7 @@ import { useInventoryDocsStore } from '@/stores/inventoryDocsStore';
 import { useItemCatalog, itemOfStock, combosOf } from '@/composables/useItemCatalog';
 import { useWarehouses } from '@/composables/useWarehouses';
 import { formatMoney, formatQty, parseNumericInput } from '@/utils/helpers';
+import { GAP_TEXT } from '@/utils/stockGaps';
 import { formatDateDisplay, getTodayString } from '@/utils/dateUtils';
 
 const stockStore = useStockStore();
@@ -422,12 +423,6 @@ const consumption = computed(() => {
     .map((c) => ({ ...c, inStock: stockHere(c.key), short: c.qty > stockHere(c.key) }))
     .sort((a, b) => a.name.localeCompare(b.name));
 });
-
-const GAP_TEXT = {
-  missingRecipe: 'sin receta — no descuenta nada',
-  depthExceeded: 'receta demasiado profunda — se detuvo ahí',
-  missingItem: 'ya no existe — no descuenta nada',
-};
 
 // What the warning icon says on hover.
 const GAP_TIP = {

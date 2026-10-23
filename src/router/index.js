@@ -599,6 +599,19 @@ router.beforeEach(async (to, from, next) => {
       return;
     }
 
+    // Loaded once for every screen: features decide behavior, not just menus.
+    // Imported lazily: bakerySettingsStore touches pinia at module scope.
+    const { useBakerySettingsStore } = await import('@/stores/bakerySettingsStore');
+    const settingsStore = useBakerySettingsStore();
+
+    if (!settingsStore.items.length) {
+      try {
+        await settingsStore.fetchById('default');
+      } catch (err) {
+        console.error('Could not load bakery settings:', err);
+      }
+    }
+
     // System admin has access to all routes
     if (userRole === 'system_admin') {
       next();
@@ -631,18 +644,6 @@ router.beforeEach(async (to, from, next) => {
     // Opt-in modules: a disabled module's routes are not reachable, even by URL.
     // Frontend visibility only — see zplanning/inventory/INVENTORY.md §4.4.
     if (to.meta.requiresFeature) {
-      // Imported lazily: bakerySettingsStore touches pinia at module scope.
-      const { useBakerySettingsStore } = await import('@/stores/bakerySettingsStore');
-      const settingsStore = useBakerySettingsStore();
-
-      if (!settingsStore.items.length) {
-        try {
-          await settingsStore.fetchById('default');
-        } catch (err) {
-          console.error('Could not load settings for feature guard:', err);
-        }
-      }
-
       // A list means any of those modules is enough (shared screens, e.g. providers).
       const isEnabled = [to.meta.requiresFeature].flat().some(
         (feature) => settingsStore.items[0]?.features?.[feature]?.enabled === true,

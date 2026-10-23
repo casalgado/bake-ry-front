@@ -1,6 +1,6 @@
 <!-- Sidebar.vue -->
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
   PhChartLineUp,
@@ -23,12 +23,6 @@ import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 const router = useRouter();
 const route = useRoute();
 const settingsStore = useBakerySettingsStore();
-
-onMounted(async () => {
-  if (!settingsStore.items.length) {
-    await settingsStore.fetchById('default');
-  }
-});
 
 const navigationSections = computed(() => [
   ...(settingsStore.isAccountingEnabled ? [{

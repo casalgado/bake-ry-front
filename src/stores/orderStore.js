@@ -192,6 +192,11 @@ store.subscribeToChanges = async () => {
         }
         case 'modified': {
           const index = store.items.findIndex(item => item.id === change.data.id);
+          // Deletion is a soft flag, so it arrives as a modification.
+          if (index !== -1 && change.data.isDeleted) {
+            store.items.splice(index, 1);
+            break;
+          }
           if (index !== -1) {
             const currentItem = store.items[index];
 
@@ -283,6 +288,22 @@ router.afterEach((to, from) => {
     store.forceUnsubscribe();
   }
 });
+
+// The server returns the whole order after a tick: swap its lines in place.
+// Stock screens refresh themselves (stockStore.watchAvailability).
+const replaceOrderItems = (order) => {
+  const index = store.items.findIndex(item => item.id === order.id);
+  if (index !== -1) store.items[index] = { ...store.items[index], orderItems: order.orderItems };
+  return order;
+};
+
+store.produceItem = async (orderId, itemId) =>
+  replaceOrderItems((await service.produceItem(orderId, itemId)).data);
+
+store.previewProduce = async (lines) => (await service.previewProduce(lines)).data;
+
+store.unproduceItem = async (orderId, itemId) =>
+  replaceOrderItems((await service.unproduceItem(orderId, itemId)).data);
 
 // Override patchAll specifically for orders to handle orderItems correctly
 store.patchAll = async (updates) => {

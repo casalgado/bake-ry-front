@@ -1,7 +1,7 @@
 <!-- Sidebar.vue -->
 <script setup>
 import { useRouter, useRoute } from 'vue-router';
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import {
   PhChartLineUp,
   PhChartBar,
@@ -51,13 +51,6 @@ const router = useRouter();
 const route = useRoute();
 const settingsStore = useBakerySettingsStore();
 const authStore = useAuthenticationStore();
-
-// Load bakery settings when component mounts
-onMounted(async () => {
-  if (!settingsStore.items.length) {
-    await settingsStore.fetchById('default');
-  }
-});
 
 // Providers are shared by the three modules that buy from them.
 const hasProviderModule = computed(() =>

@@ -15,14 +15,18 @@ import PeriodSelector from '@/components/common/PeriodSelector.vue';
 import { useOrderStore } from '@/stores/orderStore';
 import { usePeriodStore } from '@/stores/periodStore';
 import { useProductionRunStore } from '@/stores/productionRunStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 
 // Icons & Utils
 import { PhPlusMinus, PhPencilSimple, PhTrash, PhArrowCounterClockwise } from '@phosphor-icons/vue';
 import { categoryOrder, formatQty, capitalize } from '@/utils/helpers';
+import { GAP_TEXT } from '@/utils/stockGaps';
+import Combination from '@/models/Combination.js';
 
 const periodStore = usePeriodStore();
 const orderStore = useOrderStore();
 const productionRunStore = useProductionRunStore();
+const settingsStore = useBakerySettingsStore();
 const unsubscribeRef = ref(null);
 const unsubscribeRunsRef = ref(null);
 
@@ -34,7 +38,8 @@ const selectedIds = ref([]);
 
 // Production-run lines ("Vitrina") in the same row shape as order items. Ticking
 // one receives the line, which moves stock, so it asks first and can't be
-// un-ticked here.
+// un-ticked here. With inventory on, an order row may move stock too and
+// behaves the same.
 // Only runs for the day being prepared: the live listener adds any new run, so
 // one sent for another date must not show up here.
 const inPeriod = (run) => {
@@ -64,7 +69,7 @@ const runRows = computed(() => productionRunStore.items.filter(inPeriod).flatMap
       orderComments: '',
     }))));
 
-const runRowsById = computed(() => new Map(runRows.value.map(row => [row.id, row])));
+const asksFirst = (row) => row.source === 'run' || settingsStore.isInventoryEnabled;
 
 const flattenedOrderItems = computed(() => {
   return [
@@ -174,10 +179,15 @@ const columns = [
       { value: 0, displayText: '-' },
       { value: 1, displayText: 'producido' },
     ],
-    // A produced Vitrina row doesn't un-tick: it moved stock. Say how instead of "→ -".
-    tooltipFor: (row) => (row.source === 'run' && row.status === 1
-      ? 'Para deshacer la producción, selecciona la fila'
-      : null),
+    // A produced row that asked first doesn't un-tick: it may have moved stock. Say how instead of "→ -".
+    tooltipFor: (row) => {
+      if (!asksFirst(row) || row.status !== 1) return null;
+      // A Vitrina line always moved stock; an order line only when it had a receipt.
+      const moved = row.source === 'run' || row.producedQty > 0;
+      return moved
+        ? 'Producido: entró a la bodega y se descontó su receta. Para deshacer, selecciona la fila'
+        : 'Para deshacer, selecciona la fila';
+    },
   },
 ];
 
@@ -186,9 +196,11 @@ const selectedRowIds = ref([]);
 
 const rowsById = computed(() => new Map(flattenedOrderItems.value.map(row => [row.id, row])));
 
-const pendingRunRows = (ids) => ids
-  .map(id => runRowsById.value.get(id))
+const pendingRows = (ids) => ids
+  .map(id => rowsById.value.get(id))
   .filter(row => row?.status === 0);
+
+const pendingRunRows = (ids) => pendingRows(ids).filter(row => row.source === 'run');
 
 // Any row, Vitrina or order: both can go back to pending.
 const producedRows = (ids) => ids
@@ -246,20 +258,53 @@ const DIALOG_TEXT = {
   edit: { title: 'Editar cantidad', confirm: 'Guardar' },
 };
 
-const rowLabel = (row) => `${formatQty(row.quantity)} ${capitalize(row.productName)}`;
-
-// Order items hold no stock: only Vitrina lines have a bodega to revert.
-const undoNote = (dialog) => {
-  const hasRun = dialog.rows.some(row => row.source === 'run');
-  if (!hasRun) return 'Vuelve a pendiente.';
-  const hasOrder = dialog.rows.some(row => row.source !== 'run');
-  return hasOrder
-    ? 'Vuelve a pendiente. La bodega se revierte solo en las de Vitrina.'
-    : 'Vuelve a pendiente. La bodega se revierte.';
+// Named like the Producto column, so two "Original" of different products differ.
+const rowLabel = (row) => {
+  const combination = row.combination ? new Combination(row.combination).getDisplayName() : '';
+  return `${formatQty(row.quantity)} ${capitalize(row.productName)}${combination ? ` ${combination}` : ''}`;
 };
 
+// A Vitrina line always moved stock; an order line only when it had a receipt.
+const undoNote = (dialog) => (dialog.rows.some(row => row.source === 'run' || row.producedQty > 0)
+  ? 'Vuelve a pendiente. La bodega se revierte.'
+  : 'Vuelve a pendiente.');
+
+// The server decides whether an order row's tick moves stock.
+const tick = (row) => (row.source === 'run'
+  ? productionRunStore.receiveLine(row.runId, row.lineId)
+  : orderStore.produceItem(row.orderId, row.id));
+
 function openRunDialog(kind, rows, ignored = 0) {
-  runDialog.value = { kind, rows, ignored, qty: rows[0].quantity, error: '', saving: false };
+  runDialog.value = {
+    kind, rows, ignored, qty: rows[0].quantity, error: '', saving: false,
+    consumption: null, gaps: [], previewError: '',
+  };
+  if (kind === 'receive') loadConsumption(runDialog.value);
+}
+
+// What a receive dialog would consume, summed across its rows (two breads on
+// harina show one harina). It warns, never blocks.
+async function loadConsumption(dialog) {
+  const runs = dialog.rows.filter(row => row.source === 'run');
+  const orders = dialog.rows.filter(row => row.source !== 'run');
+  try {
+    const lines = (await Promise.all([
+      runs.length ? productionRunStore.preview(runs.map(r => ({ item: r.item, plannedQty: r.quantity }))) : [],
+      orders.length ? orderStore.previewProduce(orders.map(r => ({ orderId: r.orderId, itemId: r.id }))) : [],
+    ])).flat();
+    if (runDialog.value !== dialog) return;
+    const byKey = new Map();
+    lines.forEach(line => line.components.forEach((c) => {
+      const key = `${c.item.type}:${c.item.id}:${c.item.combinationId ?? ''}`;
+      const current = byKey.get(key) ?? { name: c.name, unit: c.unit, qty: 0 };
+      current.qty += c.qty;
+      byKey.set(key, current);
+    }));
+    dialog.consumption = [...byKey.values()];
+    dialog.gaps = lines.flatMap(line => line.gaps);
+  } catch {
+    if (runDialog.value === dialog) dialog.previewError = 'No se pudo calcular lo que consume.';
+  }
 }
 
 async function confirmRunDialog() {
@@ -285,15 +330,14 @@ async function confirmRunDialog() {
   dialog.error = '';
   try {
     if (dialog.kind === 'undo') {
-      // Vitrina lines give their stock back; order items only lose the mark.
-      for (const row of dialog.rows.filter(row => row.source === 'run')) {
-        await productionRunStore.undoLine(row.runId, row.lineId);
+      for (const row of [...dialog.rows]) {
+        if (row.source === 'run') await productionRunStore.undoLine(row.runId, row.lineId);
+        else await orderStore.unproduceItem(row.orderId, row.id);
         settled(row);
       }
-      await patchOrderItems(dialog.rows.filter(row => row.source !== 'run').map(row => row.id), 'status', 0);
     } else {
       for (const row of [...dialog.rows]) {
-        if (dialog.kind === 'receive') await productionRunStore.receiveLine(row.runId, row.lineId);
+        if (dialog.kind === 'receive') await tick(row);
         else if (dialog.kind === 'remove') await productionRunStore.cancelLine(row.runId, row.lineId);
         else await productionRunStore.updateLine(row.runId, row.lineId, Number(dialog.qty));
         settled(row);
@@ -329,55 +373,26 @@ const tableFilters = computed(() => [
   },
 ]);
 
-// Sets one field on order items, grouped by order. Vitrina rows are not order
-// items and are skipped.
-async function patchOrderItems(rowIds, field, value) {
-  const orderUpdates = rowIds.filter(id => !runRowsById.value.has(id)).reduce((acc, itemId) => {
-    const orderItem = flattenedOrderItems.value.find(item => item.id === itemId);
-    if (!orderItem) return acc;
-
-    if (!acc[orderItem.orderId]) {
-      acc[orderItem.orderId] = {
-        itemIds: new Set(),
-        orderItems: orderStore.items
-          .find(order => order.id === orderItem.orderId)
-          .orderItems,
-      };
-    }
-
-    acc[orderItem.orderId].itemIds.add(itemId);
-    return acc;
-  }, {});
-
-  const updates = Object.entries(orderUpdates).map(([orderId, { orderItems, itemIds }]) => ({
-    id: orderId,
-    data: {
-      orderItems: orderItems.map(item => ({
-        ...item,
-        [field]: itemIds.has(item.id) ? value : item[field],
-      })),
-    },
-  }));
-  if (updates.length) await orderStore.patchAll(updates);
-}
-
 const handleToggleUpdate = async ({ rowIds, field, value }) => {
   try {
     rowIds.forEach(id => {
       toggleLoading.value[`${id}-${field}`] = true;
     });
 
-    // Vitrina rows: a tick moves stock and can't be taken back, so it waits for
-    // the dialog. An un-tick does nothing: the row stays producido.
-    if (field === 'status' && value === 1) {
-      const pending = pendingRunRows(rowIds);
-      // Left out: Vitrina rows already produced. Order rows in the selection are
-      // marked right below, so they are not "not included".
-      const skipped = rowIds.filter(id => runRowsById.value.has(id)).length - pending.length;
-      if (pending.length) openRunDialog('receive', pending, skipped);
+    // Rows that ask first wait for the dialog on a tick; on an un-tick they do
+    // nothing and stay producido (the tooltip says how). The rest go straight.
+    const rows = rowIds.map(id => rowsById.value.get(id)).filter(Boolean);
+    if (value === 1) {
+      const pending = rows.filter(row => row.status === 0);
+      const dialogRows = pending.filter(asksFirst);
+      // Left out: rows already produced.
+      if (dialogRows.length) openRunDialog('receive', dialogRows, rows.length - pending.length);
+      for (const row of pending.filter(row => !asksFirst(row))) await tick(row);
+    } else {
+      for (const row of rows.filter(row => row.status === 1 && !asksFirst(row))) {
+        await orderStore.unproduceItem(row.orderId, row.id);
+      }
     }
-
-    await patchOrderItems(rowIds, field, value);
     await nextTick();
   } catch (error) {
     console.error('Failed to update order items:', error);
@@ -573,7 +588,7 @@ onUnmounted(() => {
       </div>
     </Dialog>
 
-    <!-- Vitrina lines: receive (the tick), remove, edit quantity. -->
+    <!-- Receive (the tick) and undo for any row; remove and edit quantity for Vitrina lines. -->
     <Dialog :open="!!runDialog" @close="closeRunDialog()" class="relative z-50">
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
@@ -587,7 +602,19 @@ onUnmounted(() => {
               <li v-for="row in runDialog.rows" :key="row.id">{{ rowLabel(row) }}</li>
             </ul>
 
-            <p v-if="runDialog.kind === 'remove'">
+            <template v-if="runDialog.kind === 'receive'">
+              <p v-if="runDialog.previewError" class="text-neutral-500">{{ runDialog.previewError }}</p>
+              <p v-else-if="runDialog.consumption === null" class="text-neutral-500">Calculando lo que consume…</p>
+              <p v-else-if="runDialog.consumption.length">
+                Descuenta: {{ runDialog.consumption.map(c => `${formatQty(c.qty)} ${c.unit} ${c.name}`).join(' · ') }}
+              </p>
+              <p v-else-if="!runDialog.gaps.length">No descuenta ingredientes.</p>
+              <p v-for="(gap, i) in runDialog.gaps" :key="i" class="text-danger">
+                {{ capitalize(gap.name) }}: {{ GAP_TEXT[gap.reason] ?? gap.reason }}
+              </p>
+            </template>
+
+            <p v-else-if="runDialog.kind === 'remove'">
               Se elimina de las listas de producción. La bodega no cambia.
             </p>
 

@@ -35,6 +35,35 @@ export class OrderService extends BaseService {
     }
   }
 
+  // The kitchen ticks a line; the server decides whether that moves stock.
+  async produceItem(orderId, itemId) {
+    try {
+      const response = await this.api.post(`${this.basePath}/orders/${orderId}/items/${itemId}/produce`);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // What ticking each { orderId, itemId } would consume. Writes nothing.
+  async previewProduce(lines) {
+    try {
+      const response = await this.api.post(`${this.basePath}/orders/produce-preview`, { lines });
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async unproduceItem(orderId, itemId) {
+    try {
+      const response = await this.api.post(`${this.basePath}/orders/${orderId}/items/${itemId}/unproduce`);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   async getProductReport(query = {}) {
     try {
       // Format query parameters using the base service method
