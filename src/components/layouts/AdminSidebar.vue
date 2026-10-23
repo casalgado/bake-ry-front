@@ -5,6 +5,9 @@ import { computed, onMounted } from 'vue';
 import {
   PhChartLineUp,
   PhChartBar,
+  PhTruck,
+  PhEnvelopeSimple,
+  PhFileText,
   PhOven,
   PhPersonArmsSpread,
   PhCashRegister,
@@ -36,6 +39,7 @@ import {
   PhPalette,
   PhTextbox,
   PhReceipt,
+  PhRepeat,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -54,6 +58,10 @@ onMounted(async () => {
     await settingsStore.fetchById('default');
   }
 });
+
+// Providers are shared by the three modules that buy from them.
+const hasProviderModule = computed(() =>
+  settingsStore.isInventoryEnabled || settingsStore.isAccountingEnabled || settingsStore.isEinvoicingEnabled);
 
 // Check if offline mode is enabled
 const isOfflineModeEnabled = computed(() => {
@@ -151,12 +159,13 @@ const navigationSections = computed(() => {
         },
         // The three jobs are their own screens, not tabs inside Existencias:
         // isActive is an exact path match, so each highlights on its own.
-        {
+        // Shown once: with accounting on it lives under Contabilidad.
+        ...(!settingsStore.isAccountingEnabled ? [{
           id: 'inventario-ingreso',
           icon: PhArrowDown,
-          text: 'Ingreso',
+          text: 'Compra de insumos',
           path: '/dashboard/inventory/ingreso',
-        },
+        }] : []),
         {
           id: 'inventario-produccion',
           icon: PhSparkle,
@@ -174,6 +183,47 @@ const navigationSections = computed(() => {
           icon: PhChefHat,
           text: 'Recetario',
           path: '/dashboard/recipe-book',
+        },
+      ],
+    }] : []),
+    ...(settingsStore.isAccountingEnabled ? [{
+      title: 'Contabilidad',
+      items: [
+        {
+          id: 'contabilidad-resumen',
+          icon: PhCalculator,
+          text: 'Resumen',
+          path: '/dashboard/accounting',
+        },
+        {
+          id: 'contabilidad-facturas',
+          icon: PhEnvelopeSimple,
+          text: 'Facturas recibidas',
+          path: '/dashboard/accounting/facturas-recibidas',
+        },
+        {
+          id: 'contabilidad-compra',
+          icon: PhArrowDown,
+          text: 'Compra de insumos',
+          path: '/dashboard/accounting/compra-de-insumos',
+        },
+        ...(settingsStore.isEinvoicingEnabled ? [{
+          id: 'contabilidad-doc-soporte',
+          icon: PhFileText,
+          text: 'Documentos soporte',
+          path: '/dashboard/accounting/documentos-soporte',
+        }] : []),
+        {
+          id: 'contabilidad-recurrentes',
+          icon: PhRepeat,
+          text: 'Gastos recurrentes',
+          path: '/dashboard/accounting/recurrentes',
+        },
+        {
+          id: 'contabilidad-pyg',
+          icon: PhChartBar,
+          text: 'P&G',
+          path: '/dashboard/accounting/pyg',
         },
       ],
     }] : []),
@@ -228,6 +278,12 @@ const navigationSections = computed(() => {
           text: 'Clientes B2B',
           path: '/dashboard/b2b-clients',
         },
+        ...(hasProviderModule.value ? [{
+          id: 'proveedores',
+          icon: PhTruck,
+          text: 'Proveedores',
+          path: '/dashboard/providers',
+        }] : []),
         {
           id: 'staff',
           icon: PhTreeStructure,

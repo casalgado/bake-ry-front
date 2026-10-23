@@ -28,7 +28,7 @@ const form = defineModel({ required: true });
         v-model="form.accountingEnabled"
         :icon="PhCalculator"
         title="Contabilidad"
-        description="Costos fijos, gastos, otros ingresos y estado de resultados."
+        description="Gastos, facturas de proveedores y estado de resultados (P&G)."
         :disabled="disabled"
       />
     </div>

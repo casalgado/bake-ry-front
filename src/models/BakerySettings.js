@@ -97,6 +97,8 @@ class BakerySettings extends BaseModel {
     id,
     bakeryId,
     ingredientCategories = [],
+    expenseCategories = [],
+    revenueCategories = [],
     theme = {},
     features,
     branding,
@@ -111,6 +113,9 @@ class BakerySettings extends BaseModel {
     this.ingredientCategories = ingredientCategories.map((cat) =>
       cat instanceof IngredientCategory ? cat : new IngredientCategory(cat),
     );
+
+    this.expenseCategories = expenseCategories;
+    this.revenueCategories = revenueCategories;
 
     this.suggestedProductVariations = suggestedProductVariations;
     this.theme = theme;
@@ -286,6 +291,8 @@ class BakerySettings extends BaseModel {
     data.ingredientCategories = this.ingredientCategories.map((cat) =>
       cat.toPlainObject(),
     );
+    data.expenseCategories = this.expenseCategories;
+    data.revenueCategories = this.revenueCategories;
     return data;
   }
 

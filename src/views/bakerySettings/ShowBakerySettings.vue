@@ -12,6 +12,7 @@ import { auth } from '@/config/firebase';
 import CreditCardForm from '@/components/forms/CreditCardForm.vue';
 import BakeryFeaturesForm from '@/components/forms/BakeryFeaturesForm.vue';
 import BakeryBrandingForm from '@/components/forms/BakeryBrandingForm.vue';
+import AccountingCategoriesSection from '@/components/settings/AccountingCategoriesSection.vue';
 import ToastNotification from '@/components/ToastNotification.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChanges';
@@ -644,6 +645,8 @@ const handleBrandingValidationError = (error) => {
       :loading="isFeaturesSaving"
       @save="saveFeaturesData"
     />
+
+    <AccountingCategoriesSection v-if="settingsStore.isAccountingEnabled" />
 
     <ConfirmDialog
       :is-open="leaveOpen"

@@ -299,6 +299,56 @@ const router = createRouter({
           component: () => import('../views/reports/ReportsPage.vue'),
         },
         {
+          path: 'accounting',
+          name: 'admin-accounting-resumen',
+          component: () => import('../views/accounting/ResumenView.vue'),
+          meta: { requiresFeature: 'accounting' },
+        },
+        {
+          // Compra de insumos is also reachable without inventory: the layout
+          // only loads the catalogs the screen reads.
+          path: 'accounting/compra-de-insumos',
+          component: () => import('../views/inventory/InventoryLayout.vue'),
+          meta: { requiresFeature: 'accounting' },
+          children: [
+            {
+              path: '',
+              name: 'admin-accounting-compra',
+              component: () => import('../views/inventory/PurchaseDoc.vue'),
+            },
+          ],
+        },
+        {
+          path: 'accounting/facturas-recibidas',
+          name: 'admin-accounting-received',
+          component: () => import('../views/accounting/ReceivedInvoicesView.vue'),
+          meta: { requiresFeature: 'accounting' },
+        },
+        {
+          path: 'accounting/documentos-soporte',
+          name: 'admin-accounting-support-docs',
+          component: () => import('../views/accounting/SupportDocsView.vue'),
+          meta: { requiresFeature: 'einvoicing' },
+        },
+        {
+          path: 'providers',
+          name: 'providers',
+          component: () => import('../views/providers/ShowProviders.vue'),
+          meta: { requiresFeature: ['inventory', 'accounting', 'einvoicing'] },
+        },
+        {
+          path: 'accounting/recurrentes',
+          name: 'admin-accounting-recurrentes',
+          component: () => import('../views/accounting/RecurringExpensesView.vue'),
+          meta: { requiresFeature: 'accounting' },
+        },
+        {
+          path: 'accounting/pyg',
+          name: 'admin-accounting-pyg',
+          component: () => import('../views/accounting/PygView.vue'),
+          meta: { requiresFeature: 'accounting' },
+        },
+        {
           path: 'income-statement',
           name: 'admin-income-statement',
           component: () => import('../views/reports/IncomeStatement.vue'),
@@ -339,6 +389,36 @@ const router = createRouter({
           path: 'reports',
           name: 'accounting-reports',
           component: () => import('../views/reports/ReportsPage.vue'),
+        },
+        {
+          path: 'resumen',
+          name: 'accounting-resumen',
+          component: () => import('../views/accounting/ResumenView.vue'),
+          meta: { requiresFeature: 'accounting' },
+        },
+        {
+          path: 'documentos-soporte',
+          name: 'accounting-support-docs',
+          component: () => import('../views/accounting/SupportDocsView.vue'),
+          meta: { requiresFeature: 'einvoicing' },
+        },
+        {
+          path: 'facturas-recibidas',
+          name: 'accounting-received',
+          component: () => import('../views/accounting/ReceivedInvoicesView.vue'),
+          meta: { requiresFeature: 'accounting' },
+        },
+        {
+          path: 'recurrentes',
+          name: 'accounting-recurrentes',
+          component: () => import('../views/accounting/RecurringExpensesView.vue'),
+          meta: { requiresFeature: 'accounting' },
+        },
+        {
+          path: 'pyg',
+          name: 'accounting-pyg',
+          component: () => import('../views/accounting/PygView.vue'),
+          meta: { requiresFeature: 'accounting' },
         },
         {
           path: 'income-statement',
@@ -479,6 +559,7 @@ const router = createRouter({
         },
       ],
     },
+    { path: '/:pathMatch(.*)*', redirect: { name: 'home' } },
   ],
 });
 
@@ -562,8 +643,10 @@ router.beforeEach(async (to, from, next) => {
         }
       }
 
-      const isEnabled = settingsStore.items[0]
-        ?.features?.[to.meta.requiresFeature]?.enabled === true;
+      // A list means any of those modules is enough (shared screens, e.g. providers).
+      const isEnabled = [to.meta.requiresFeature].flat().some(
+        (feature) => settingsStore.items[0]?.features?.[feature]?.enabled === true,
+      );
 
       if (!isEnabled) {
         console.warn(`Access denied: module "${to.meta.requiresFeature}" is not enabled`);

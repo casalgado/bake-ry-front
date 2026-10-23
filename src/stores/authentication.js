@@ -393,7 +393,6 @@ export const useAuthenticationStore = defineStore('authentication', {
             unsubscribe();
           },
         );
-        console.timeEnd('checkAuth');
       });
 
     },

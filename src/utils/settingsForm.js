@@ -54,6 +54,14 @@ const FIELDS = {
   resolutionStartDate: 'einvoicing.resolution.startDate',
   resolutionEndDate: 'einvoicing.resolution.endDate',
   resolutionTechnicalKey: 'einvoicing.resolution.technicalKey',
+  // documento soporte: `supportDoc` is replaced whole too
+  dsResolutionNumber: 'einvoicing.supportDoc.resolution.number',
+  dsResolutionPrefix: 'einvoicing.supportDoc.resolution.prefix',
+  dsResolutionFrom: 'einvoicing.supportDoc.resolution.from',
+  dsResolutionTo: 'einvoicing.supportDoc.resolution.to',
+  dsResolutionStartDate: 'einvoicing.supportDoc.resolution.startDate',
+  dsResolutionEndDate: 'einvoicing.supportDoc.resolution.endDate',
+  dsAdjustmentNotePrefix: 'einvoicing.supportDoc.adjustmentNotePrefix',
 };
 
 const EINVOICING_FIELDS = Object.keys(FIELDS).filter((key) => FIELDS[key].startsWith('einvoicing.'));

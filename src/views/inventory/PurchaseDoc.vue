@@ -25,9 +25,11 @@
  * truth and its `itemKey` only when the item already has one. No itemKey is ever
  * built here: minting them is the backend's job alone (invariant 5), and the
  * purchases endpoint is where a line for a never-stocked item gets one. */
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, useId } from 'vue';
 import { PhX } from '@phosphor-icons/vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
+import ToastNotification from '@/components/ToastNotification.vue';
+import UiMoneyInput from '@/components/ui/UiMoneyInput.vue';
 import UiItemPicker from '@/components/ui/UiItemPicker.vue';
 import IngredientCreateCard from '@/components/recipes/IngredientCreateCard.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -55,6 +57,16 @@ const { warehouses, multiWarehouse, defaultWarehouseId } = useWarehouses();
  * delivery where you left it. */
 docsStore.open('ingreso', defaultWarehouseId.value);
 const doc = computed(() => docsStore.docs.ingreso);
+
+/* The same screen serves a business with inventory, one with accounting, or
+ * both. The stock-only parts show with inventory; the invoice taxes with
+ * accounting. The invoice fields are local: they are not part of the saved
+ * draft in inventoryDocsStore. */
+const uid = useId();
+const inventoryOn = computed(() => bakerySettingsStore.isInventoryEnabled);
+const accountingOn = computed(() => bakerySettingsStore.isAccountingEnabled);
+const blankInvoice = () => ({ ref: '', iva: null, retefuente: null, reteica: null, reteiva: null });
+const invoice = ref(blankInvoice());
 
 /* En la cabeza del usuario una Coca-Cola es un producto, no un ingrediente, así
  * que las estanterías se llaman por lo que son aquí — lo que se compra — y no
@@ -142,7 +154,7 @@ const pickerItems = computed(() =>
     name: e.name,
     kind: e.kind,
     sub: e.itemKey ? '' : 'primera compra',
-    meta: `${formatQty(stockHere(e.key))} ${e.unit}`,
+    meta: inventoryOn.value ? `${formatQty(stockHere(e.key))} ${e.unit}` : '',
   })));
 
 /* ---------------- the provider ---------------- */
@@ -306,7 +318,6 @@ const lineOf = (entry) => ({
 });
 
 function addLine(key) {
-  savedNote.value = '';
   const existing = doc.value.lines.find((l) => l.key === key);
 
   if (existing) {
@@ -414,11 +425,20 @@ async function onIngredientCreated(created, purchased) {
 
 const submitting = ref(false);
 const formError = ref('');
-const savedNote = ref('');
+const toastRef = ref(null);
 
 const canConfirm = computed(() => Boolean(doc.value.providerId)
   && rows.value.length > 0
   && rows.value.every((r) => r.qty > 0 && r.paid !== null));
+
+/* Why Confirmar is disabled, in the order the document is filled. */
+const blocker = computed(() => {
+  if (!rows.value.length) return '';
+  if (!doc.value.providerId) return 'Seleccione el proveedor para poder confirmar.';
+  if (blankQuantities.value) return `Falta la cantidad en ${blankQuantities.value} línea(s).`;
+  if (unpricedCount.value) return `Falta el total pagado en ${unpricedCount.value} línea(s). Se registra según la factura.`;
+  return '';
+});
 
 /* Cost changes are on by default, so they're spelled out once more before they
  * happen. Cancel goes back to the screen, where unticking a row keeps its cost. */
@@ -451,7 +471,6 @@ function onCostDialogConfirm() {
 async function submitPurchase() {
   if (!canConfirm.value || submitting.value) return;
   formError.value = '';
-  savedNote.value = '';
 
   // Only rows still in the list update: a price retyped back to the stored cost
   // has nothing to update, whatever its checkbox said.
@@ -473,15 +492,22 @@ async function submitPurchase() {
         total: r.paid,
         updateCost: updatesCost(r),
       })),
+      ...(accountingOn.value && {
+        invoiceRef: invoice.value.ref.trim(),
+        ivaAmount: invoice.value.iva || 0,
+        retefuente: invoice.value.retefuente || 0,
+        reteica: invoice.value.reteica || 0,
+        reteiva: invoice.value.reteiva || 0,
+      }),
     });
 
     reset();
-    savedNote.value = `Ingreso registrado: ${lineCount} línea(s).`;
+    toastRef.value?.showSuccess('Compra de insumos', `Compra registrada: ${lineCount} línea(s).`);
     if (costChanged) {
       Promise.all([ingredientStore.fetchAll(), productStore.fetchAll()]).catch(() => {});
     }
   } catch (err) {
-    formError.value = err?.message || 'No se pudo registrar el ingreso.';
+    formError.value = err?.message || 'No se pudo registrar la compra.';
   } finally {
     submitting.value = false;
   }
@@ -497,20 +523,21 @@ function reset() {
   docsStore.discard('ingreso');
   docsStore.open('ingreso', warehouseId);
   lastPrices.value = new Map();
+  invoice.value = blankInvoice();
 }
 
 /* ponytail: native confirm(), same ruling as RecipeBookView — there is no
  * ui-modal and one guard does not earn the first. */
 function discard() {
   if (!doc.value.lines.length) return;
-  if (!confirm(`Se perderán las ${doc.value.lines.length} línea(s) de este ingreso. ¿Descartar?`)) return;
+  if (!confirm(`Se perderán las ${doc.value.lines.length} línea(s) de esta compra. ¿Descartar?`)) return;
   reset();
 }
 </script>
 
 <template>
   <div class="p-4 lg:p-6">
-    <PageHeader title="Ingreso" subtitle="Lo que llegó de afuera.">
+    <PageHeader title="Compra de insumos" subtitle="Insumos y productos de reventa recibidos de un proveedor.">
       <span class="ui-panehead-sub">
         {{ doc.lines.length }} línea{{ doc.lines.length === 1 ? '' : 's' }}
       </span>
@@ -586,6 +613,11 @@ function discard() {
             </label>
           </div>
 
+          <div v-if="accountingOn" class="ui-field mb-4">
+            <label class="ui-field-k" :for="`${uid}-ref`">N.º de factura</label>
+            <input :id="`${uid}-ref`" v-model="invoice.ref" class="ui-input">
+          </div>
+
           <UiItemPicker
             class="mb-4"
             :items="pickerItems"
@@ -616,8 +648,8 @@ function discard() {
           </template>
 
           <div v-if="!rows.length" class="ui-empty">
-            <b>Este ingreso no tiene líneas</b>
-            Busca arriba el insumo o el producto que vas a registrar.
+            <b>Esta compra no tiene líneas</b>
+            Los artículos se agregan desde el buscador.
           </div>
 
           <TransitionGroup tag="div" name="ui-cascade" class="flex flex-col gap-1.5">
@@ -647,8 +679,10 @@ function discard() {
                     · {{ row.priceChange > 0 ? 'subió' : 'bajó' }}
                     {{ Math.abs(Math.round(row.priceChange * 100)) }}%
                   </template>
-                  · <template v-if="row.isNew">primera compra</template>
-                  <template v-else>en bodega {{ formatQty(row.inStock) }} {{ row.unit }}</template>
+                  <template v-if="inventoryOn">
+                    · <template v-if="row.isNew">primera compra</template>
+                    <template v-else>en bodega {{ formatQty(row.inStock) }} {{ row.unit }}</template>
+                  </template>
                 </span>
               </span>
 
@@ -689,13 +723,6 @@ function discard() {
             </div>
           </TransitionGroup>
 
-          <p v-if="blankQuantities" class="ui-item-desc mt-2">
-            {{ blankQuantities }} línea(s) sin cantidad.
-          </p>
-          <p v-if="unpricedCount" class="ui-item-desc mt-2">
-            {{ unpricedCount }} línea(s) sin costo — el total de abajo se queda corto.
-          </p>
-
           <div
             class="flex flex-wrap items-baseline justify-between gap-x-7 gap-y-3 mt-4 pt-3.5"
             style="border-top: 1px solid var(--ui-line)"
@@ -710,6 +737,28 @@ function discard() {
             </span>
           </div>
 
+          <details v-if="accountingOn" class="mt-4">
+            <summary class="ui-field-k cursor-pointer">Impuestos</summary>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+              <div class="ui-field">
+                <label class="ui-field-k" :for="`${uid}-iva`">IVA</label>
+                <UiMoneyInput :id="`${uid}-iva`" v-model="invoice.iva" class="ui-field-unit" />
+              </div>
+              <div class="ui-field">
+                <label class="ui-field-k" :for="`${uid}-rf`">Retefuente</label>
+                <UiMoneyInput :id="`${uid}-rf`" v-model="invoice.retefuente" class="ui-field-unit" />
+              </div>
+              <div class="ui-field">
+                <label class="ui-field-k" :for="`${uid}-ri`">ReteICA</label>
+                <UiMoneyInput :id="`${uid}-ri`" v-model="invoice.reteica" class="ui-field-unit" />
+              </div>
+              <div class="ui-field">
+                <label class="ui-field-k" :for="`${uid}-rv`">ReteIVA</label>
+                <UiMoneyInput :id="`${uid}-rv`" v-model="invoice.reteiva" class="ui-field-unit" />
+              </div>
+            </div>
+          </details>
+
           <div class="flex flex-wrap items-center gap-1.5 mt-4">
             <button
               class="ui-btn ui-btn-solid"
@@ -718,7 +767,7 @@ function discard() {
             >
               <template v-if="submitting">Registrando…</template>
               <template v-else>
-                Confirmar ingreso<template v-if="costUpdates.length">
+                Confirmar compra<template v-if="costUpdates.length">
                   · actualiza {{ costUpdates.length }} costo{{ costUpdates.length === 1 ? '' : 's' }}</template>
               </template>
             </button>
@@ -729,14 +778,8 @@ function discard() {
             >Descartar</button>
           </div>
           <p v-if="formError" class="ui-field-error mt-2">{{ formError }}</p>
-          <p v-if="savedNote" class="ui-item-desc mt-2">{{ savedNote }}</p>
-          <p v-else-if="rows.length && !doc.providerId" class="ui-item-desc mt-2">
-            Elige el proveedor para poder confirmar.
-          </p>
-          <p class="ui-item-desc mt-2">
-            Hasta que lo confirmes, este ingreso vive solo en este navegador:
-            aguanta una recarga, pero no lo vas a ver en otro dispositivo.
-          </p>
+          <p v-if="blocker" class="ui-item-desc mt-2">{{ blocker }}</p>
+          <p class="ui-item-desc mt-2">Borrador guardado solo en este navegador.</p>
         </div>
 
         <!-- ---------------- right: the consequence ---------------- -->
@@ -793,13 +836,13 @@ function discard() {
           </p>
 
           <!-- ---------------- how the bodega ends up ---------------- -->
-          <div class="ui-sectionhead mt-6">Existencias después de este ingreso</div>
+          <div v-if="inventoryOn" class="ui-sectionhead mt-6">Existencias después de esta compra</div>
 
-          <div v-if="!projection.length" class="ui-empty">
+          <div v-if="inventoryOn && !projection.length" class="ui-empty">
             Al agregar insumos aparecerán aquí sus existencias resultantes.
           </div>
 
-          <div v-for="row in projection" :key="row.key" class="ui-item ui-item-divided">
+          <div v-for="row in inventoryOn ? projection : []" :key="row.key" class="ui-item ui-item-divided">
             <span />
             <span class="min-w-0">
               <span class="ui-item-title block capitalize" :title="row.name">{{ row.name }}</span>
@@ -815,7 +858,7 @@ function discard() {
             </span>
           </div>
 
-          <p v-if="resaleLeftOut" class="ui-item-desc mt-3">
+          <p v-if="inventoryOn && resaleLeftOut" class="ui-item-desc mt-3">
             {{ resaleLeftOut }} línea(s) de reventa no se listan aquí. También
             entran a la bodega; esta lista se limita a los insumos, que es lo
             que se revisa antes de confirmar.
@@ -827,7 +870,7 @@ function discard() {
     <ConfirmDialog
       :is-open="costDialogOpen"
       title="Actualizar costos"
-      confirm-text="Confirmar ingreso"
+      confirm-text="Confirmar compra"
       cancel-text="Volver"
       @confirm="onCostDialogConfirm"
       @cancel="costDialogOpen = false"
@@ -854,5 +897,7 @@ function discard() {
       </table>
       <p class="text-sm text-gray-800 text-left mb-6">{{ costDialogNote }}</p>
     </ConfirmDialog>
+
+    <ToastNotification ref="toastRef" />
   </div>
 </template>

@@ -10,6 +10,10 @@ import {
   PhArrowsLeftRight,
   PhCalendarCheck,
   PhReceipt,
+  PhCalculator,
+  PhRepeat,
+  PhEnvelopeSimple,
+  PhFileText,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -27,6 +31,41 @@ onMounted(async () => {
 });
 
 const navigationSections = computed(() => [
+  ...(settingsStore.isAccountingEnabled ? [{
+    title: 'Contabilidad',
+    items: [
+      {
+        id: 'contabilidad-resumen',
+        icon: PhCalculator,
+        text: 'Resumen',
+        path: '/accounting/resumen',
+      },
+      {
+        id: 'contabilidad-facturas',
+        icon: PhEnvelopeSimple,
+        text: 'Facturas recibidas',
+        path: '/accounting/facturas-recibidas',
+      },
+      ...(settingsStore.isEinvoicingEnabled ? [{
+        id: 'contabilidad-doc-soporte',
+        icon: PhFileText,
+        text: 'Documentos soporte',
+        path: '/accounting/documentos-soporte',
+      }] : []),
+      {
+        id: 'contabilidad-recurrentes',
+        icon: PhRepeat,
+        text: 'Gastos recurrentes',
+        path: '/accounting/recurrentes',
+      },
+      {
+        id: 'contabilidad-pyg',
+        icon: PhChartBar,
+        text: 'P&G',
+        path: '/accounting/pyg',
+      },
+    ],
+  }] : []),
   {
     title: 'Analisis',
     items: [

@@ -11,6 +11,8 @@ when producing vue components, the order of the sections will always be script, 
 
 When I reference "the backend", "backend", or "back-end", this is the project I mean.
 
+E-invoicing logic lives in the backend. **Read its `src/services/dian/CLAUDE.md` before touching** `src/views/einvoices/`, `src/components/settings/EinvoicingSection.vue`, the client fiscal fields in `BakeryUserForm.vue` or the invoice lock in `OrderForm.vue`.
+
 ### Backend Architecture Overview
 
 **Stack:** Firebase Functions + Express.js + Firestore (Node.js 20)
