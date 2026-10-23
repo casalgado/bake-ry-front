@@ -104,14 +104,14 @@ Use a recipe product (Focaccia: recipe 100 harina each), a resale (Cold Brew), a
   5. Entregada (2→3): **no new movement**.
   6. Edit qty to 5 while shipped: only the **−1 delta**.
   7. Delete the order: stock back to start.
-- [ ] **S2 Producir line.** Order: Focaccia ×2 Producir. Kitchen shows it **with the customer's name**. Ship: harina −200, Focaccia's own stock untouched. Back: harina restored.
-- [ ] **S3 Switch source on a shipped order.** Shipped order with Focaccia ×2 Producir; edit the line to Disponible: harina comes back, Focaccia −2. Switch back: reversed.
+- [ ] **S2 Producir line.** Order: Focaccia ×2 Producir. Kitchen shows it **with the customer's name**. Tick it in the kitchen first (flour leaves then, §6b L1), ship: Focaccia −2. Back: Focaccia +2. Unticked: §6b L3.
+- [ ] **S3 Switch source on a shipped order.** Shipped, unticked Focaccia ×2 Producir; edit the line to Disponible: the deduction stays Focaccia −2, the `notProduced` gap disappears.
 - [ ] **S4 Non-stock edits do nothing.** On a shipped order change payment, driver, notes, delivery fee: **no new movement** (history unchanged).
 - [ ] **S5 Resale below zero.** Cold Brew ×30 with stock 24, ship: stock −6, row shows the soft negative wash (not red digits), nothing blocked.
 - [ ] **S6 None product.** Ship an order with the `none` product: no movement, no stocks doc.
-- [ ] **S7 Missing recipe.** Order a recipe product with **no recipe** (Producir), ship: order saves and ships; nothing deducted; a `stockGaps/{orderId}_{lineId}` doc exists with reason `missingRecipe`. Add the recipe, then toggle the order's status 1↔2: the gap disappears and the ingredients are deducted.
+- [ ] **S7 Missing recipe.** Now shown at the tick, not at shipping: §6b L10.
 - [ ] **S8 Deleted product.** Order with a product you then delete (soft) → ship: saves, gap `missingItem`.
-- [ ] **S9 Combination without recipe.** Order Sourdough combination **without** recipe, Producir, ship: **gap**, nothing deducted. It must **not** use the product-level recipe.
+- [ ] **S9 Combination without recipe.** At the tick, not at shipping: §6b L10.
 - [ ] **S10 Two bodegas.** (needs §10) A Disponible line with a different bodega deducts from that bodega's row.
 
 ### Bulk status
@@ -200,11 +200,11 @@ Real evenings are hard to wait for. Instead: DevTools → ⋮ → More tools →
 
 ### Individual (`Individual`)
 - [ ] **K1 Content.** Order lines show customer in **Cliente** and notes in **Comentarios**; Vitrina lines show "Vitrina" and no comments. **Disponible lines never appear.** Totals per product.
-- [ ] **K2 Order row tick.** Tick a row → producido; un-tick → back (no dialog, no stock).
-- [ ] **K3 Vitrina tick.** Tick a pending Vitrina row → dialog **Confirmar producción** listing it → confirm: existencia +planned, components down **exactly** as the Producción preview said; the row locks (tooltip: "Para deshacer la producción, selecciona la fila").
-  - Edge: select several rows (mix of order and Vitrina) and tick → dialog lists only pending Vitrina rows and says "N fila(s) seleccionada(s) no se incluyen"; order rows are marked directly.
+- [ ] **K2 Order row tick.** With inventory on, an order row ticks like a Vitrina row (§6b L1); with it off, straight through (L11).
+- [ ] **K3 Vitrina tick.** Tick a pending Vitrina row → dialog **Confirmar producción** listing it and what it consumes → confirm: existencia +planned, components down **exactly** as the dialog said; the row locks (tooltip: "Producido: entró a la bodega y se descontó su receta. Para deshacer, selecciona la fila").
+  - Edge: select several rows (mix of order and Vitrina, some already produced) and tick → dialog lists every pending row, sums what they consume, and says "N fila(s) seleccionada(s) no se incluyen" for the produced ones.
   - Edge: cancel in the dialog → nothing moves.
-- [ ] **K4 Undo.** Select a produced Vitrina row → **Deshacer producido** → dialog → confirm: stock reverts (exact opposite). Then tick it again → produces again (new receipt). Undo on an **order** row only clears the mark ("Vuelve a pendiente").
+- [ ] **K4 Undo.** Select a produced Vitrina row → **Deshacer producido** → dialog → confirm: stock reverts (exact opposite). Then tick it again → produces again (new receipt). Undo on an **order** row reverts its receipt too (L4).
 - [ ] **K5 Edit/remove pending.** One pending Vitrina row → **Editar cantidad** (value must be >0 and different) → saved; planned shown updated; receiving then books the **new** number. **Quitar de producción** on a pending row → disappears; stock and En producción reflect it. Neither action is offered on produced rows.
 - [ ] **K6 Failure partway.** Break the connection mid-confirm on several rows: the dialog keeps only the rows still pending and shows the error; retry sends the rest.
 - [ ] **K7 Filters.** Category filter lists only collections that are **actually listed** (an order with only Disponible lines doesn't add its category); status filter; period (Individual is day-only).
@@ -218,7 +218,29 @@ Real evenings are hard to wait for. Instead: DevTools → ⋮ → More tools →
 ### Roles
 - [ ] **K12** `production_assistant`: can receive, undo, remove and edit Vitrina lines. `bakery_staff`/`bakery_admin`: same.
 - [ ] **K13** `delivery_assistant` and `accounting_assistant`: opening the list is fine (if reachable), but receiving/undoing/removing/editing a Vitrina line is **refused** and the dialog shows the error. They can still read.
-- [ ] **K14** Create/preview a run as `production_assistant` → refused (staff/admin only).
+- [ ] **K14** Create a run as `production_assistant` → refused (staff/admin only). Its preview is allowed (the tick dialog needs it).
+
+---
+
+## 6b. Order-line production (the kitchen tick)
+
+Inventory on. Focaccia (recipe: 100 harina), Cold Brew (`unit`), the `none` product.
+Note Focaccia's and harina's existencia first. A tick is a production receipt:
++ the product, − its recipe. Shipping then takes the product.
+
+- [x] **L1 Tick with preview.** Order Focaccia ×4 Producir. Individual: tick → dialog lists the row and **"Descuenta: 400 g harina"** (briefly "Calculando…"). Confirm: Focaccia +4, harina −400, history shows a producción. Comprometido +4, so disponible doesn't move. Hover the row: "Producido: entró a la bodega…".
+- [x] **L2 Ship a ticked line.** Enviada: Focaccia −4 (sale), **harina untouched**.
+- [x] **L3 Forgotten tick.** Order Focaccia ×2, ship **unticked**: Focaccia −2, harina unchanged, `stockGaps/{orderId}_{lineId}` reason `notProduced`. Tick it now: Focaccia back to 0, harina −200, **gap doc gone**. `verify` and `verify-orders` are `[]`.
+- [x] **L4 Undo.** Select a ticked row → Deshacer producido → "La bodega se revierte" → exact opposite (compensation). Tick again: a new receipt, same numbers.
+- [x] **L5 Order form cap.** Edit L1's order: tag **Producido 4** (hover explains). `+` disabled at 4; typing 9 snaps to 4. Lower to 3: hover says "las 1 restantes quedan disponibles"; after saving, Focaccia disponible +1. Editor: Origen locked, with the hint.
+- [x] **L6 More of the same.** On that order add Focaccia ×2 again: a new line, defaults Producir, no tag; it shows as its own kitchen row and ticks on its own.
+- [x] **L7 Remove or delete after the tick.** Remove a produced line, or delete the order: **no movement**, Focaccia stays, disponible rises by that amount.
+- [x] **L8 Stale form.** Tab A: order form open. Tab B: tick its line. Tab A: change a note, save. Kitchen still producido, ledger unchanged.
+- [x] **L9 Flag-only ticks.** An old order with Cold Brew saved as Producir, and a `none` product line: the dialog says **"No descuenta ingredientes"**; confirm writes nothing.
+- [ ] **L10 Missing recipe.** A recipe product with no recipe (or a combination without one): the dialog shows a red **"sin receta — no descuenta nada"** and never uses the product-level recipe for a combination. Confirm: only +N of the product.
+- [x] **L11 Inventory off.** In a bakery with the switch off: tick and un-tick go straight through (no dialog, no stock), as before.
+- [ ] **L12 Roles.** `production_assistant`: ticks, sees the preview (no 403), undoes. `delivery_assistant`/`accounting_assistant`: the tick is refused and the dialog shows the error.
+- [x] **L13 Copies and tanda.** Duplicar or Repetir an order with a ticked line: the copy has **no tag, no cap**. Asignar tanda on a ticked row: it stays producido.
 
 ---
 
@@ -301,6 +323,7 @@ Start from an up-to-date stock (a few ingredients, Cold Brew, Focaccia). Have co
 | Ingreso confirm | ✔ | ✔ | ✖ | ✖ | ✖ |
 | Send a run | ✔ | ✔ | ✖ | ✖ | ✖ |
 | Receive / undo / remove / edit run line | ✔ | ✔ | ✔ | ✖ | ✖ |
+| Tick / un-tick an order line, preview what it consumes | ✔ | ✔ | ✔ | ✖ | ✖ |
 | Conteo | ✔ | ✔ | ✖ | ✖ | ✖ |
 | Ship orders (Entrega/driver table) | ✔ | ✔ | ✔ | ✔ | ✔ |
 | `verify`, `verify-orders`, `reconcile-orders` | ✔ | ✖ | ✖ | ✖ | ✖ |
