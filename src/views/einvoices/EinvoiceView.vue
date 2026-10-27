@@ -279,7 +279,7 @@ onMounted(load);
                   <template v-if="einvoice.acceptedAt"><br>Validada DIAN {{ dateTime(einvoice.acceptedAt) }}</template>
                 </template>
                 <template v-else>Vista previa</template>
-                <br>Pago: {{ PAYMENT_FORMS[doc.payment.form] }} · {{ PAYMENT_MEANS[doc.payment.meansCode] }}
+                <br>Pago: {{ PAYMENT_FORMS[doc.payment.form] }}<template v-if="!isCredit"> · {{ PAYMENT_MEANS[doc.payment.meansCode] }}</template>
                 <template v-if="isCredit && doc.payment.dueDate"><br>Vence {{ doc.payment.dueDate }}</template>
               </span>
             </div>

@@ -1245,6 +1245,13 @@ const exportClientList = (clients, { bakeryId, preset, groupHeader, segment, fil
     ? presetDef.build(clients.map(c => ({ ...c, category: segment.toUpperCase() })))
     : buildStandardClientSheet(clients, { groupHeader, segment, periodColumns });
 
+  // Report-only extra column; the orders-view preset export keeps the bare template.
+  if (presetDef) {
+    sheet.headers.push('Última orden');
+    sheet.rows.forEach((row, i) => row.push(dateOnly(clients[i].lastOrderDate)));
+    sheet.cols.push(12);
+  }
+
   const unit = UNIT_PLURAL[period] || period;
   const today = new Date().toISOString().split('T')[0];
   const stem = presetDef ? `${filenameStem}-b2chat` : filenameStem;

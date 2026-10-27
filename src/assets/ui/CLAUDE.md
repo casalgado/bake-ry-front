@@ -73,6 +73,11 @@ from there. The old Tailwind-class system still runs ~95% of the app.
     neither commit nor abandon — a mode switch, Deshacer, "run again". `Eliminar`
     of a saved record is `ui-btn-danger ui-btn-solid`: outline vs solid is "back
     out" vs "destroy", same color.
+14. **A choice never changes the form's height.** Fields that depend on a choice
+    (Pagado → fecha y método de pago) are always rendered and `disabled` until
+    the choice enables them; no `v-if`. Choosing fills a field instead of pushing
+    everything below it down. The order form's Fecha de pago and
+    `SupplierPaymentFields` in `ReceivedInvoiceReview` are the reference.
 
 ## The surface ladder
 
