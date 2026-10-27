@@ -1,19 +1,29 @@
+<script>
+// Unsaved choices per invoice id, so closing the dialog or leaving the page keeps them.
+// Module scope: survives remounts; a reload or logout (which reloads) clears it.
+const drafts = new Map();
+</script>
+
 <script setup>
 /* One received invoice: where each line goes. A line is an insumo (it enters
  * Compra de insumos with its ingredient and quantity), a gasto or inversión
  * category, or omitted. Nothing is placed for the user: an undecided line blocks
  * Confirmar. */
-import { ref, computed, onMounted, useId } from 'vue';
-import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { ref, computed, onMounted, onBeforeUnmount, useId } from 'vue';
+import SupplierPaymentFields from '@/components/accounting/SupplierPaymentFields.vue';
+import UiChoiceCard from '@/components/ui/UiChoiceCard.vue';
+import IngredientCreateCard from '@/components/recipes/IngredientCreateCard.vue';
+import { PhWallet, PhPlus } from '@phosphor-icons/vue';
+import { getTodayString, formatDateDisplay } from '@/utils/dateUtils';
 import { useReceivedInvoiceStore } from '@/stores/receivedInvoiceStore';
 import { useIngredientStore } from '@/stores/ingredientStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
-import { formatMoney } from '@/utils/helpers';
+import { formatMoney, capitalize } from '@/utils/helpers';
 
 const props = defineProps({
   invoice: { type: Object, required: true },
 });
-const emit = defineEmits(['done', 'cancel']);
+const emit = defineEmits(['done', 'cancel', 'provider-created']);
 
 const uid = useId();
 const invoiceStore = useReceivedInvoiceStore();
@@ -46,7 +56,20 @@ const toDestination = ({ choice, ingredientId, qty }) => {
   return { kind, categoryId };
 };
 
-const rows = ref(props.invoice.lines.map(toForm));
+const fresh = () => ({
+  rows: props.invoice.lines.map(toForm),
+  // Owed by default: it goes to Por pagar until someone pays it.
+  isPaid: false,
+  payment: { paymentDate: getTodayString(), paymentMethod: 'transfer' },
+});
+const start = drafts.get(props.invoice.id) ?? fresh();
+const rows = ref(start.rows);
+const isPaid = ref(start.isPaid);
+const payment = ref(start.payment);
+const paymentStatusOptions = [
+  { value: false, label: 'Por pagar' },
+  { value: true, label: 'Pagada' },
+];
 const busy = ref(false);
 const error = ref('');
 
@@ -58,11 +81,34 @@ const ingredients = computed(() =>
     .sort((a, b) => a.name.localeCompare(b.name)));
 const unitOf = (id) => ingredients.value.find((ingredient) => ingredient.id === id)?.unit ?? '';
 
+const ingredientCategories = computed(() =>
+  (settingsStore.items[0]?.ingredientCategories ?? []).filter((cat) => cat.isActive !== false));
+const creatingFor = ref(null); // line index
+
+/* The store's create already pushed it, so the select resolves the id at once. */
+function onIngredientCreated(i, created) {
+  rows.value[i].ingredientId = created.id;
+  creatingFor.value = null;
+}
+
 const isInsumoIncomplete = (row) => row.choice === 'insumo' && (!row.ingredientId || !(Number(row.qty) > 0));
 const undecided = computed(() => rows.value.filter((row) => !row.choice || isInsumoIncomplete(row)).length);
 const needsProvider = computed(() => !props.invoice.providerId);
 const isCreditNote = computed(() => props.invoice.kind === 'credit_note');
-const canConfirm = computed(() => !isCreditNote.value && !needsProvider.value && !undecided.value && !busy.value);
+
+/* Stored on unmount, and only if it differs from what the server gave us, so an
+ * invoice opened and closed untouched picks up later server changes. */
+const snapshot = () => JSON.stringify({ rows: rows.value, isPaid: isPaid.value, payment: payment.value });
+const untouched = JSON.stringify(fresh());
+let keepDraft = true;
+
+onBeforeUnmount(() => {
+  drafts.delete(props.invoice.id);
+  if (keepDraft && snapshot() !== untouched) drafts.set(props.invoice.id, JSON.parse(snapshot()));
+});
+
+const canConfirm = computed(() => !isCreditNote.value && !needsProvider.value && !undecided.value && !busy.value
+  && (!isPaid.value || (payment.value.paymentDate && payment.value.paymentMethod)));
 
 async function run(action) {
   busy.value = true;
@@ -80,28 +126,19 @@ async function run(action) {
 
 const save = () => invoiceStore.setDestinations(props.invoice.id, rows.value.map(toDestination));
 
-async function saveAndClose() {
-  if (await run(save)) emit('done', 'Cambios guardados');
-}
-
 async function confirm() {
   if (!canConfirm.value) return;
   if (await run(async () => {
     await save();
-    await invoiceStore.confirm(props.invoice.id);
-  })) emit('done', 'Factura registrada');
-}
-
-const confirmIgnore = ref(false);
-
-async function ignore() {
-  const ok = await run(() => invoiceStore.ignore(props.invoice.id));
-  confirmIgnore.value = false;
-  if (ok) emit('done', 'Factura omitida');
+    await invoiceStore.confirm(props.invoice.id, isPaid.value ? { isPaid: true, ...payment.value } : null);
+  })) {
+    keepDraft = false;
+    emit('done', isPaid.value ? 'Factura registrada y pagada' : 'Factura registrada en Por pagar');
+  }
 }
 
 async function createProvider() {
-  if (await run(() => invoiceStore.createProvider(props.invoice.id))) emit('done', 'Proveedor creado');
+  if (await run(() => invoiceStore.createProvider(props.invoice.id))) emit('provider-created');
 }
 
 onMounted(() => {
@@ -112,18 +149,20 @@ onMounted(() => {
 
 <template>
   <div class="ui-card flex flex-col gap-4" data-ui-theme="light">
-    <div>
-      <h2 class="ui-panehead-title">
-        {{ isCreditNote ? 'Nota crédito' : 'Factura' }} {{ invoice.invoiceRef }}
-      </h2>
-      <p class="ui-item-desc">
-        {{ invoice.supplier.name }} · {{ invoice.supplier.documentType }} {{ invoice.supplier.nationalId }}
-        · {{ formatMoney(invoice.totals.total) }}
-      </p>
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="ui-panehead-title">
+          {{ isCreditNote ? 'Nota crédito' : 'Factura' }} {{ invoice.invoiceRef }}
+        </h2>
+        <p class="ui-item-desc">
+          {{ invoice.supplier.name }} · {{ invoice.supplier.documentType }} {{ invoice.supplier.nationalId }}
+          · {{ formatMoney(invoice.totals.total) }}
+        </p>
+      </div>
     </div>
 
     <p v-if="isCreditNote" class="ui-field-hint">
-      Las notas crédito todavía no se pueden registrar. Omítela si no la necesitas.
+      Las notas crédito aún no se pueden registrar.
     </p>
 
     <p v-if="invoice.buyerMismatch" class="ui-field-hint">
@@ -181,8 +220,40 @@ onMounted(() => {
             <span class="ui-field-hint">En la unidad del ingrediente, no en la de la factura.</span>
           </div>
         </div>
+
+        <template v-if="rows[i].choice === 'insumo'">
+          <button
+            type="button"
+            class="ui-btn ui-btn-sm self-start"
+            @click="creatingFor = creatingFor === i ? null : i"
+          >
+            <PhPlus :size="14" weight="bold" />
+            {{ creatingFor === i ? 'Cancelar' : 'Nuevo ingrediente' }}
+          </button>
+          <IngredientCreateCard
+            v-if="creatingFor === i"
+            :name="capitalize(line.description.toLowerCase())"
+            editable-name
+            :categories="ingredientCategories"
+            :allow-preparacion="false"
+            @created="(created) => onIngredientCreated(i, created)"
+          />
+        </template>
       </div>
     </div>
+
+    <template v-if="!isCreditNote">
+      <UiChoiceCard
+        v-model="isPaid"
+        :icon="PhWallet"
+        title="Estado del pago"
+        :description="isPaid
+          ? 'Se registra como pagada con esta fecha y método.'
+          : `Vence ${invoice.dueDate ? formatDateDisplay(invoice.dueDate, { year: 'numeric' }) : 'sin fecha'}. Queda en Por pagar.`"
+        :options="paymentStatusOptions"
+      />
+      <SupplierPaymentFields v-model="payment" :disabled="!isPaid" />
+    </template>
 
     <p v-if="undecided" class="ui-item-desc">Falta definir el destino de {{ undecided }} línea(s).</p>
     <p class="ui-item-desc">
@@ -191,23 +262,10 @@ onMounted(() => {
     <span v-if="error" class="ui-field-error" role="alert">{{ error }}</span>
 
     <div class="flex flex-wrap gap-2 justify-end">
-      <button type="button" class="ui-btn ui-btn-danger" :disabled="busy" @click="emit('cancel')">Cancelar</button>
-      <button type="button" class="ui-btn" :disabled="busy" @click="confirmIgnore = true">Omitir factura</button>
-      <button type="button" class="ui-btn" :disabled="busy" @click="saveAndClose">Guardar</button>
+      <button type="button" class="ui-btn" :disabled="busy" @click="emit('cancel')">Cerrar</button>
       <button type="button" class="ui-btn ui-btn-solid" :disabled="!canConfirm" @click="confirm">
-        {{ busy ? 'Procesando…' : 'Confirmar' }}
+        {{ busy ? 'Registrando…' : 'Registrar' }}
       </button>
     </div>
-
-    <ConfirmDialog
-      :is-open="confirmIgnore"
-      title="Omitir factura"
-      message="La factura saldrá de la bandeja y no se registrará."
-      confirm-text="Omitir"
-      cancel-text="Cancelar"
-      :loading="busy"
-      @confirm="ignore"
-      @cancel="confirmIgnore = false"
-    />
   </div>
 </template>

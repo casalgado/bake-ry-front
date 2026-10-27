@@ -16,6 +16,7 @@ export const useReceivedInvoiceStore = createResourceStore('receivedInvoices', s
 const store = useReceivedInvoiceStore();
 
 store.setDestinations = (id, destinations) => service.setDestinations(id, destinations);
-store.confirm = (id) => service.confirm(id);
+store.confirm = (id, payment) => service.confirm(id, payment);
+store.setPayment = (id, payment) => service.setPayment(id, payment);
 store.ignore = (id) => service.ignore(id);
 store.createProvider = (id) => service.createProvider(id);

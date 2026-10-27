@@ -27,8 +27,6 @@ import {
   PhListChecks,
   PhMinus,
   PhTag,
-  PhUserPlus,
-  PhUserCirclePlus,
   PhWifiX,
   PhGear,
   PhArrowsLeftRight,
@@ -40,6 +38,7 @@ import {
   PhTextbox,
   PhReceipt,
   PhRepeat,
+  PhCoins,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -66,7 +65,7 @@ const isOfflineModeEnabled = computed(() => {
 const navigationSections = computed(() => {
   const baseSections = [
     {
-      title: 'Pedidos',
+      title: 'Ventas',
       items: [
         {
           id: 'pedidos',
@@ -89,7 +88,7 @@ const navigationSections = computed(() => {
         {
           id: 'por_cobrar',
           icon: PhHandCoins,
-          text: 'Por Cobrar',
+          text: 'Por cobrar',
           path: '/dashboard/orders/unpaid',
         },
         ...(settingsStore.isEinvoicingEnabled ? [{
@@ -191,25 +190,31 @@ const navigationSections = computed(() => {
         {
           id: 'contabilidad-facturas',
           icon: PhEnvelopeSimple,
-          text: 'Facturas recibidas',
+          text: 'Buzón',
           path: '/dashboard/accounting/facturas-recibidas',
+        },
+        {
+          id: 'contabilidad-por-pagar',
+          icon: PhCoins,
+          text: 'Por pagar',
+          path: '/dashboard/accounting/por-pagar',
         },
         {
           id: 'contabilidad-compra',
           icon: PhArrowDown,
-          text: 'Compra de insumos',
+          text: 'Compras',
           path: '/dashboard/accounting/compra-de-insumos',
         },
         ...(settingsStore.isEinvoicingEnabled ? [{
           id: 'contabilidad-doc-soporte',
           icon: PhFileText,
-          text: 'Documentos soporte',
+          text: 'Doc. soporte',
           path: '/dashboard/accounting/documentos-soporte',
         }] : []),
         {
           id: 'contabilidad-recurrentes',
           icon: PhRepeat,
-          text: 'Gastos recurrentes',
+          text: 'Recurrentes',
           path: '/dashboard/accounting/recurrentes',
         },
         {
@@ -252,43 +257,32 @@ const navigationSections = computed(() => {
           text: 'Clientes',
           path: '/dashboard/users',
         },
-        {
-          id: 'nuevo_cliente',
-          icon: PhUserPlus,
-          text: 'Crear Cliente',
-          path: '/dashboard/users/create-client',
-        },
-        {
-          id: 'usuarios_activos',
-          icon: PhHandshake,
-          text: 'Clientes Activos',
-          path: '/dashboard/users/active',
-        },
-
+        // Hidden from the sidebar; the route still works.
+        // {
+        //   id: 'usuarios_activos',
+        //   icon: PhHandshake,
+        //   text: 'Clientes Activos',
+        //   path: '/dashboard/users/active',
+        // },
         {
           id: 'b2b-clients',
           icon: PhStorefront,
           text: 'Clientes B2B',
           path: '/dashboard/b2b-clients',
         },
-        ...(hasProviderModule.value ? [{
-          id: 'proveedores',
-          icon: PhTruck,
-          text: 'Proveedores',
-          path: '/dashboard/providers',
-        }] : []),
         {
           id: 'staff',
           icon: PhTreeStructure,
           text: 'Equipo',
           path: '/dashboard/staff',
         },
-        {
-          id: 'nuevo_empleado',
-          icon: PhUserCirclePlus,
-          text: 'Agrandar Equipo',
-          path: '/dashboard/users/create-staff',
-        },
+        // Last: it comes and goes with the modules, so the links above never shift.
+        ...(hasProviderModule.value ? [{
+          id: 'proveedores',
+          icon: PhTruck,
+          text: 'Proveedores',
+          path: '/dashboard/providers',
+        }] : []),
       ],
     },
     {

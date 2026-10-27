@@ -14,6 +14,9 @@ import {
   PhRepeat,
   PhEnvelopeSimple,
   PhFileText,
+  PhCashRegister,
+  PhHandCoins,
+  PhCoins,
 } from '@phosphor-icons/vue';
 import SidebarLink from '@/components/common/SidebarLink.vue';
 import SidebarDivider from '@/components/common/SidebarDivider.vue';
@@ -25,6 +28,29 @@ const route = useRoute();
 const settingsStore = useBakerySettingsStore();
 
 const navigationSections = computed(() => [
+  {
+    title: 'Ventas',
+    items: [
+      {
+        id: 'pedidos',
+        icon: PhCashRegister,
+        text: 'Pedidos',
+        path: '/accounting/pedidos',
+      },
+      {
+        id: 'por-cobrar',
+        icon: PhHandCoins,
+        text: 'Por cobrar',
+        path: '/accounting/por-cobrar',
+      },
+      ...(settingsStore.isEinvoicingEnabled ? [{
+        id: 'facturas',
+        icon: PhReceipt,
+        text: 'Facturas',
+        path: '/accounting/facturas',
+      }] : []),
+    ],
+  },
   ...(settingsStore.isAccountingEnabled ? [{
     title: 'Contabilidad',
     items: [
@@ -37,19 +63,25 @@ const navigationSections = computed(() => [
       {
         id: 'contabilidad-facturas',
         icon: PhEnvelopeSimple,
-        text: 'Facturas recibidas',
+        text: 'Buzón',
         path: '/accounting/facturas-recibidas',
+      },
+      {
+        id: 'contabilidad-por-pagar',
+        icon: PhCoins,
+        text: 'Por pagar',
+        path: '/accounting/por-pagar',
       },
       ...(settingsStore.isEinvoicingEnabled ? [{
         id: 'contabilidad-doc-soporte',
         icon: PhFileText,
-        text: 'Documentos soporte',
+        text: 'Doc. soporte',
         path: '/accounting/documentos-soporte',
       }] : []),
       {
         id: 'contabilidad-recurrentes',
         icon: PhRepeat,
-        text: 'Gastos recurrentes',
+        text: 'Recurrentes',
         path: '/accounting/recurrentes',
       },
       {
@@ -81,12 +113,6 @@ const navigationSections = computed(() => [
         text: 'Reportes',
         path: '/accounting/reports',
       },
-      ...(settingsStore.isEinvoicingEnabled ? [{
-        id: 'facturas',
-        icon: PhReceipt,
-        text: 'Facturas',
-        path: '/accounting/facturas',
-      }] : []),
     ],
   },
   {

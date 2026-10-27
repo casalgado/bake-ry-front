@@ -19,9 +19,17 @@ export class ReceivedInvoiceService extends BaseService {
     return this.#send('put', `${id}/destinations`, { destinations });
   }
 
-  /** Books the purchase and the records. Safe to repeat after a failure. */
-  confirm(id) {
-    return this.#send('post', `${id}/confirm`);
+  /**
+   * Books the purchase and the records. Safe to repeat after a failure.
+   * `payment` ({ isPaid, paymentDate, paymentMethod }) books it paid; without it, it stays owed.
+   */
+  confirm(id, payment = null) {
+    return this.#send('post', `${id}/confirm`, { payment });
+  }
+
+  /** Marks a booked invoice paid, or back to owed with { isPaid: false }. */
+  setPayment(id, payment) {
+    return this.#send('put', `${id}/payment`, payment);
   }
 
   ignore(id) {

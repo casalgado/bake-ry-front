@@ -325,6 +325,12 @@ const router = createRouter({
           meta: { requiresFeature: 'accounting' },
         },
         {
+          path: 'accounting/por-pagar',
+          name: 'admin-accounting-payables',
+          component: () => import('../views/accounting/PayablesView.vue'),
+          meta: { requiresFeature: 'accounting' },
+        },
+        {
           path: 'accounting/documentos-soporte',
           name: 'admin-accounting-support-docs',
           component: () => import('../views/accounting/SupportDocsView.vue'),
@@ -376,6 +382,16 @@ const router = createRouter({
       },
       children: [
         {
+          path: 'pedidos',
+          name: 'accounting-orders',
+          component: () => import('../views/accounting/AccountingOrdersView.vue'),
+        },
+        {
+          path: 'por-cobrar',
+          name: 'accounting-unpaid',
+          component: () => import('../views/orders/ShowUnpaidOrders.vue'),
+        },
+        {
           path: 'salesReport',
           name: 'accountingSalesReport',
           component: () => import('../views/orders/ShowSalesReport.vue'),
@@ -406,6 +422,12 @@ const router = createRouter({
           path: 'facturas-recibidas',
           name: 'accounting-received',
           component: () => import('../views/accounting/ReceivedInvoicesView.vue'),
+          meta: { requiresFeature: 'accounting' },
+        },
+        {
+          path: 'por-pagar',
+          name: 'accounting-payables',
+          component: () => import('../views/accounting/PayablesView.vue'),
           meta: { requiresFeature: 'accounting' },
         },
         {
