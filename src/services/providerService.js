@@ -14,4 +14,14 @@ export class ProviderService extends BaseService {
       throw this.handleError(error);
     }
   }
+
+  /** Everything booked against the provider, newest first: `[{ kind, id, date, ref, description, total, isPaid }]`. */
+  async getHistory(id) {
+    try {
+      const response = await this.api.get(`${this.getPath()}/${id}/history`);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
 }

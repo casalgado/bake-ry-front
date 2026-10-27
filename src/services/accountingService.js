@@ -25,25 +25,6 @@ export class AccountingService extends BaseService {
     }
   }
 
-  /** Freezes a month's figures; later edits show as drift on the P&G. */
-  async closePeriod(period) {
-    try {
-      const response = await this.api.post(`${this.getPath()}/months/${period}/close`);
-      return response.data;
-    } catch (error) {
-      throw this.handleError(error);
-    }
-  }
-
-  async reopenPeriod(period) {
-    try {
-      const response = await this.api.delete(`${this.getPath()}/months/${period}/close`);
-      return response.data;
-    } catch (error) {
-      throw this.handleError(error);
-    }
-  }
-
   /** Turns a pending template into that month's record. Overrides are whole pesos. */
   async confirmTemplate(period, templateId, overrides = {}) {
     try {

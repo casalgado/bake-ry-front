@@ -1,53 +1,152 @@
 <script setup>
-/* The month at a glance: totals strip and the month's records. Stepping months
- * uses its own state in accountingStore, not the global period selector. */
-import { ref, computed, onMounted } from 'vue';
+/* The month at a glance: its gastos, inversiones and otros ingresos, what is still
+ * pending. The month comes from the global period selector,
+ * locked to months while this screen is open. */
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { Dialog, DialogPanel } from '@headlessui/vue';
-import { PhCaretLeft, PhCaretRight, PhPlus, PhArrowsClockwise, PhTrash, PhFileText } from '@phosphor-icons/vue';
-import PageHeader from '@/components/ui/PageHeader.vue';
+
+// DataTable Core
+import DataTable from '@/components/DataTable/index.vue';
+
+// DataTable Renderers
+import DateCell from '@/components/DataTable/renderers/DateCell.vue';
+import MoneyCell from '@/components/DataTable/renderers/MoneyCell.vue';
+import ValueWithDescription from '@/components/DataTable/renderers/ValueWithDescription.vue';
+
+// Components
+import PeriodSelector from '@/components/common/PeriodSelector.vue';
+import TotalsSummary from '@/components/common/TotalsSummary.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import RecordForm from '@/components/accounting/RecordForm.vue';
 import PendingTemplates from '@/components/accounting/PendingTemplates.vue';
 import SupportDocForm from '@/components/accounting/SupportDocForm.vue';
+
+// Stores
 import { isAnnulled } from '@/services/supportDocService';
 import { useSupportDocStore } from '@/stores/supportDocStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useAccountingStore } from '@/stores/accountingStore';
 import { useAccountingRecordStore } from '@/stores/accountingRecordStore';
 import { useProviderStore } from '@/stores/providerStore';
-import { formatMoney, capitalize } from '@/utils/helpers';
+import { usePeriodStore } from '@/stores/periodStore';
+
+// Icons
+import { PhPen, PhTrash, PhArrowsClockwise, PhFileText, PhPlus } from '@phosphor-icons/vue';
+
+// Utils
+import { formatMoney } from '@/utils/helpers';
 
 const accountingStore = useAccountingStore();
 const recordStore = useAccountingRecordStore();
 const providerStore = useProviderStore();
+const settingsStore = useBakerySettingsStore();
+const supportDocStore = useSupportDocStore();
+const periodStore = usePeriodStore();
 
-const monthLabel = computed(() => {
-  const [year, month] = accountingStore.period.split('-').map(Number);
-  return capitalize(new Date(year, month - 1, 1).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' }));
-});
-
-// Totals read as zero until the month arrives; show a dash instead of a false "nothing this month".
-const money = (value) => (accountingStore.loading ? '–' : formatMoney(value));
+// The selector below locks the shared period to months; leaving puts back what the
+// other screens had, so Pedidos does not open on a whole month.
+const previousPeriod = {
+  type: periodStore.periodType,
+  start: periodStore.customStartDate,
+  end: periodStore.customEndDate,
+};
 
 // The same screen lives under both dashboards; the link stays in the one it is in.
 const route = useRoute();
 const pygRoute = computed(() => (route.name === 'accounting-resumen' ? 'accounting-pyg' : 'admin-accounting-pyg'));
-
 const receivedRoute = computed(() => (route.name === 'accounting-resumen' ? 'accounting-received' : 'admin-accounting-received'));
 
-const pendingCount = computed(() => accountingStore.pendingTemplates.length);
+const providerOf = (record) => providerStore.items.find((provider) => provider.id === record.providerId);
+const supportDocOf = (record) => supportDocStore.bySourceId(record.id);
 
-const providerName = (id) => providerStore.items.find((p) => p.id === id)?.name ?? '';
-const dayOf = (date) => new Date(date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+const TYPE_LABELS = { expense: 'Gasto', investment: 'Inversión', revenue: 'Ingreso' };
+const kindOf = (record) => {
+  if (record.type === 'revenue') return 'revenue';
+  return record.isInvestment ? 'investment' : 'expense';
+};
 
+// Documento soporte: only with e-invoicing on, for a gasto whose supplier does not
+// invoice. A gasto from the Buzón already has an e-invoice, so it never needs one.
+// An annulled one stays annulled: the backend issues one document per record.
+const supportDocStatus = (record) => {
+  const doc = supportDocOf(record);
+  if (doc) return isAnnulled(doc) ? 'annulled' : 'issued';
+  if (!settingsStore.isEinvoicingEnabled || record.type !== 'expense' || record.receivedInvoiceId) return '';
+  if (!record.providerId) return 'noProvider';
+  return providerOf(record)?.issuesEinvoice === true ? '' : 'pending';
+};
+
+const supportDocLabel = (record, status) => {
+  const doc = supportDocOf(record);
+  return {
+    issued: doc?.number,
+    annulled: `${doc?.number} · Anulado`,
+    pending: 'Pendiente',
+    noProvider: 'Sin proveedor',
+  }[status] ?? '';
+};
+
+// Flat fields so the table can search, sort and filter on them.
+const tableData = computed(() => accountingStore.records.map((record) => {
+  const kind = kindOf(record);
+  const supportDoc = supportDocStatus(record);
+  return {
+    ...record,
+    kind,
+    kindLabel: TYPE_LABELS[kind],
+    detail: [
+      record.description,
+      record.counterparty,
+      providerOf(record)?.name,
+      record.invoiceRef && `Factura ${record.invoiceRef}`,
+    ].filter(Boolean).join(' · '),
+    supportDoc,
+    supportDocLabel: supportDocLabel(record, supportDoc),
+  };
+}));
+
+const pendingSupportDocs = computed(() => tableData.value.filter((record) => record.supportDoc === 'pending').length);
+
+// Selection
+const dataTable = ref(null);
+const selectedIds = ref([]);
+const selectedItems = computed(() => tableData.value.filter((record) => selectedIds.value.includes(record.id)));
+
+const handleSelectionChange = (ids) => {
+  selectedIds.value = ids;
+};
+
+const clearSelection = () => {
+  dataTable.value?.clearSelection();
+};
+
+// Compute totals
+const totals = computed(() => {
+  // Use selected records if any are selected, otherwise use all table data
+  const records = selectedItems.value.length > 0 ? selectedItems.value : tableData.value;
+  const sumOf = (kind) => records
+    .filter((record) => record.kind === kind)
+    .reduce((sum, record) => sum + record.amount, 0);
+
+  return [
+    { label: 'Gastos', value: sumOf('expense') },
+    { label: 'Inversiones', value: sumOf('investment') },
+    { label: 'Otros ingresos', value: sumOf('revenue') },
+  ];
+});
+
+// Dialog state
 // `formKey` remounts the form, so a repeat never inherits the last one's typing.
-const formOpen = ref(false);
+const isFormOpen = ref(false);
 const formKey = ref(0);
 const prefill = ref(null);
 const editing = ref(null);
-
 const newType = ref('expense');
+const supportDocRecord = ref(null);
+const recordToDelete = ref(null);
+const deleteError = ref('');
+const actionError = ref('');
 
 // `repeat` starts a new record from a stored one; otherwise the record is edited.
 // `type` only matters for a blank form: a stored record brings its own.
@@ -56,74 +155,177 @@ function openForm(record = null, { repeat = false, type = 'expense' } = {}) {
   prefill.value = repeat ? record : null;
   editing.value = repeat ? null : record;
   formKey.value++;
-  formOpen.value = true;
+  isFormOpen.value = true;
 }
 
+const supportDocRefusals = {
+  issued: (doc) => `Este gasto ya tiene el documento soporte ${doc.number}.`,
+  annulled: (doc) => `El documento soporte ${doc.number} de este gasto fue anulado.`,
+  noProvider: () => 'Asigna un proveedor al gasto para emitir el documento soporte.',
+  '': () => 'Este registro no requiere documento soporte.',
+};
+
+const handleAction = ({ actionId, selectedIds: ids }) => {
+  const record = tableData.value.find((item) => item.id === ids[0]);
+  const stored = accountingStore.records.find((item) => item.id === ids[0]);
+  actionError.value = '';
+
+  switch (actionId) {
+  case 'edit':
+    openForm(stored);
+    break;
+  case 'repeat':
+    openForm(stored, { repeat: true });
+    break;
+  case 'delete':
+    deleteError.value = '';
+    recordToDelete.value = record;
+    break;
+  case 'support-doc':
+    if (record.supportDoc !== 'pending') {
+      actionError.value = supportDocRefusals[record.supportDoc](supportDocOf(record));
+      return;
+    }
+    supportDocRecord.value = record;
+    break;
+  }
+};
+
+const columns = computed(() => [
+  {
+    id: 'date',
+    label: 'Fecha',
+    field: 'date',
+    sortable: true,
+    component: DateCell,
+    getProps: (row) => ({
+      value: row.date,
+    }),
+  },
+  {
+    id: 'categoryName',
+    label: 'Categoría',
+    field: 'categoryName',
+    sortable: true,
+    component: ValueWithDescription,
+    getProps: (row) => ({
+      value: row.categoryName,
+      description: row.detail || null,
+    }),
+  },
+  {
+    id: 'kind',
+    label: 'Tipo',
+    field: 'kindLabel',
+    sortable: true,
+  },
+  {
+    id: 'amount',
+    label: 'Monto',
+    field: 'amount',
+    sortable: true,
+    component: MoneyCell,
+    getProps: (row) => ({
+      value: row.amount,
+    }),
+  },
+  ...(settingsStore.isEinvoicingEnabled ? [{
+    id: 'supportDoc',
+    label: 'Doc. soporte',
+    field: 'supportDocLabel',
+    sortable: true,
+  }] : []),
+]);
+
+const tableFilters = computed(() => [
+  {
+    field: 'kind',
+    options: [
+      { label: 'gasto', value: 'expense' },
+      { label: 'inversión', value: 'investment' },
+      { label: 'ingreso', value: 'revenue' },
+    ],
+  },
+  {
+    field: 'paymentMethod',
+    options: [
+      { label: 'efectivo', value: 'cash' },
+      { label: 'transferencia', value: 'transfer' },
+    ],
+  },
+  ...(settingsStore.isEinvoicingEnabled ? [{
+    field: 'supportDoc',
+    options: [
+      { label: 'doc. soporte pendiente', value: 'pending' },
+      { label: 'doc. soporte emitido', value: 'issued' },
+      { label: 'doc. soporte anulado', value: 'annulled' },
+      { label: 'sin proveedor', value: 'noProvider' },
+    ],
+  }] : []),
+]);
+
+const tableActions = computed(() => [
+  {
+    id: 'edit',
+    label: 'Editar',
+    icon: PhPen,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'primary',
+  },
+  {
+    id: 'repeat',
+    label: 'Repetir',
+    icon: PhArrowsClockwise,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'primary',
+  },
+  {
+    id: 'delete',
+    label: 'Eliminar',
+    icon: PhTrash,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'danger',
+  },
+  ...(settingsStore.isEinvoicingEnabled ? [{
+    id: 'support-doc',
+    label: 'Doc. soporte',
+    icon: PhFileText,
+    minSelected: 1,
+    maxSelected: 1,
+    variant: 'primary',
+  }] : []),
+]);
+
+const closeDialog = () => {
+  isFormOpen.value = false;
+  supportDocRecord.value = null;
+  recordToDelete.value = null;
+  clearSelection();
+};
+
 async function onSaved() {
-  formOpen.value = false;
+  closeDialog();
   await accountingStore.loadMonth();
 }
 
-const closeDialog = ref(false);
-const closing = ref(false);
-
-// Closing and reopening are the same dialog: what the month is now decides which.
-// A refusal usually means another tab changed the month, so reload it before saying why.
-async function toggleClose() {
-  closing.value = true;
+const handleConfirmDelete = async () => {
   try {
-    if (accountingStore.closed) await accountingStore.reopenPeriod();
-    else await accountingStore.closePeriod();
-    closeDialog.value = false;
-  } catch (err) {
-    closeDialog.value = false;
+    await recordStore.remove(recordToDelete.value.id);
+    closeDialog();
     await accountingStore.loadMonth();
-    accountingStore.error = err?.message || 'No se pudo actualizar el cierre del mes';
-  } finally {
-    closing.value = false;
-  }
-}
-
-const closedOn = computed(() => (accountingStore.closed
-  ? new Date(accountingStore.closed.closedAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })
-  : ''));
-
-const toDelete = ref(null);
-const deleting = ref(false);
-const deleteError = ref('');
-
-function askDelete(record) {
-  deleteError.value = '';
-  toDelete.value = record;
-}
-
-async function confirmDelete() {
-  deleting.value = true;
-  deleteError.value = '';
-  try {
-    await recordStore.remove(toDelete.value.id);
-    await accountingStore.loadMonth();
-    toDelete.value = null;
   } catch (err) {
     deleteError.value = err?.message || 'No se pudo eliminar el registro';
-  } finally {
-    deleting.value = false;
   }
-}
+};
 
-// Documento soporte: only with e-invoicing on, for a gasto whose supplier does not invoice.
-const settingsStore = useBakerySettingsStore();
-const supportDocStore = useSupportDocStore();
-const supportDocOf = (record) => supportDocStore.bySourceId(record.id);
-const providerOf = (record) => providerStore.items.find((provider) => provider.id === record.providerId);
-
-const canIssueSupportDoc = (record) => settingsStore.isEinvoicingEnabled
-  && record.type === 'expense'
-  && !!record.providerId
-  && providerOf(record)?.issuesEinvoice !== true
-  && !supportDocOf(record);
-
-const supportDocRecord = ref(null);
+// Watch for period changes and reload the month
+watch(() => accountingStore.period, () => {
+  clearSelection();
+  accountingStore.loadMonth();
+});
 
 onMounted(async () => {
   accountingStore.loadMonth();
@@ -131,127 +333,70 @@ onMounted(async () => {
   if (!settingsStore.items.length) await settingsStore.fetchById('default');
   if (settingsStore.isEinvoicingEnabled) supportDocStore.ensureLoaded();
 });
+
+onUnmounted(() => {
+  if (previousPeriod.type === 'custom') periodStore.setCustomRange(previousPeriod.start, previousPeriod.end);
+  else periodStore.setPeriodType(previousPeriod.type);
+});
 </script>
 
 <template>
-  <div class="p-4 lg:p-6 w-full max-w-4xl">
-    <PageHeader title="Resumen" subtitle="Gastos, inversiones y otros ingresos del mes.">
-      <button type="button" class="ui-btn" @click="openForm(null, { type: 'revenue' })">
-        <PhPlus :size="14" weight="bold" /> Nuevo ingreso
-      </button>
-      <button type="button" class="ui-btn ui-btn-solid" @click="openForm()">
-        <PhPlus :size="14" weight="bold" /> Nuevo gasto
-      </button>
-    </PageHeader>
-
-    <div class="flex items-center gap-2 mb-4">
-      <button type="button" class="ui-btn ui-btn-icon" aria-label="Mes anterior" @click="accountingStore.stepMonth(-1)">
-        <PhCaretLeft :size="14" weight="bold" />
-      </button>
-      <span class="ui-panehead-title min-w-40 text-center">{{ monthLabel }}</span>
-      <button type="button" class="ui-btn ui-btn-icon" aria-label="Mes siguiente" @click="accountingStore.stepMonth(1)">
-        <PhCaretRight :size="14" weight="bold" />
-      </button>
-    </div>
-
-    <div class="flex flex-wrap items-center gap-3 mb-4">
-      <span v-if="accountingStore.closed" class="ui-tag">Mes cerrado el {{ closedOn }}</span>
-      <button type="button" class="ui-btn ui-btn-sm" @click="closeDialog = true">
-        {{ accountingStore.closed ? 'Reabrir mes' : 'Cerrar mes' }}
-      </button>
-    </div>
-
-    <p class="mb-4">
-      <RouterLink :to="{ name: pygRoute }" class="underline">Ver P&G</RouterLink>
-    </p>
-
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-      <div class="ui-stat">
-        <span class="ui-stat-k">Gastos</span>
-        <span class="ui-stat-v">{{ money(accountingStore.totals.expense) }}</span>
-      </div>
-      <div class="ui-stat">
-        <span class="ui-stat-k">Inversiones</span>
-        <span class="ui-stat-v">{{ money(accountingStore.totals.investment) }}</span>
-      </div>
-      <div class="ui-stat">
-        <span class="ui-stat-k">Otros ingresos</span>
-        <span class="ui-stat-v">{{ money(accountingStore.totals.revenue) }}</span>
+  <div class="container p-4 px-0 lg:px-4">
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-4">
+      <h2 class="text-2xl font-bold text-neutral-800">Resumen</h2>
+      <div class="flex flex-col gap-2 items-center lg:items-stretch">
+        <PeriodSelector :only-for="['month']" :range="false" />
+        <TotalsSummary
+          class="relative lg:fixed lg:bottom-5 lg:left-[216px] z-[9]"
+          :categories="totals"
+          :format-value="formatMoney"
+        />
       </div>
     </div>
 
-    <p v-if="pendingCount" class="mb-4">
-      <span class="ui-tag">
-        {{ pendingCount }} {{ pendingCount === 1 ? 'gasto recurrente sin confirmar' : 'gastos recurrentes sin confirmar' }}
-      </span>
-    </p>
-
-    <p v-if="accountingStore.pendingReceivedInvoices" class="mb-4">
-      <RouterLink :to="{ name: receivedRoute }" class="ui-tag">
-        {{ accountingStore.pendingReceivedInvoices }}
-        {{ accountingStore.pendingReceivedInvoices === 1 ? 'factura recibida por registrar' : 'facturas recibidas por registrar' }}
-      </RouterLink>
-    </p>
-
-    <p v-if="accountingStore.error || supportDocStore.error" class="ui-field-error" role="alert">
-      {{ accountingStore.error || supportDocStore.error }}
-    </p>
-
-    <PendingTemplates v-if="pendingCount" :templates="accountingStore.pendingTemplates" />
-
-    <div v-if="!accountingStore.records.length && !accountingStore.loading" class="ui-empty">
-      <b>No hay registros este mes.</b>
-    </div>
-
-    <div v-else class="flex flex-col">
-      <div v-for="record in accountingStore.records" :key="record.id" class="ui-item">
-        <span class="ui-item-meta w-14 shrink-0">{{ dayOf(record.date) }}</span>
-        <button type="button" class="min-w-0 text-left !m-0 !p-0" @click="openForm(record)">
-          <span class="ui-item-title block">{{ record.categoryName }}</span>
-          <span class="ui-item-desc block">
-            {{ [record.description, record.counterparty, providerName(record.providerId), record.invoiceRef && `Factura ${record.invoiceRef}`].filter(Boolean).join(' · ') }}
-          </span>
+    <!-- Month Bar -->
+    <div class="flex flex-col lg:flex-row justify-between items-center gap-2 mb-4">
+      <div class="flex flex-wrap items-center justify-center gap-2">
+        <RouterLink :to="{ name: pygRoute }" class="ui-btn">
+          Ver P&G
+        </RouterLink>
+        <RouterLink
+          v-if="accountingStore.pendingReceivedInvoices"
+          :to="{ name: receivedRoute }"
+          class="ui-btn"
+        >
+          {{ accountingStore.pendingReceivedInvoices }}
+          {{ accountingStore.pendingReceivedInvoices === 1 ? 'factura por registrar' : 'facturas por registrar' }}
+        </RouterLink>
+        <button
+          v-if="pendingSupportDocs"
+          type="button"
+          class="ui-btn"
+          @click="dataTable?.toggleFilter('supportDoc', 'pending')"
+        >
+          {{ pendingSupportDocs }}
+          {{ pendingSupportDocs === 1 ? 'documento soporte pendiente' : 'documentos soporte pendientes' }}
         </button>
-        <span class="ui-item-trail">
-          <span v-if="record.isInvestment" class="ui-tag">Inversión</span>
-          <span v-if="record.type === 'revenue'" class="ui-tag">Ingreso</span>
-          <span v-if="supportDocOf(record)" class="ui-tag">
-            Doc. soporte {{ supportDocOf(record).number }}{{ isAnnulled(supportDocOf(record)) ? ' · Anulado' : '' }}
-          </span>
-          <button
-            v-else-if="canIssueSupportDoc(record)"
-            type="button"
-            class="ui-btn ui-btn-icon"
-            aria-label="Emitir documento soporte"
-            title="Emitir documento soporte"
-            @click="supportDocRecord = record"
-          >
-            <PhFileText :size="14" />
-          </button>
-          <span class="ui-item-num ui-num">{{ formatMoney(record.amount) }}</span>
-          <button
-            type="button"
-            class="ui-btn ui-btn-icon"
-            aria-label="Repetir"
-            title="Repetir"
-            @click="openForm(record, { repeat: true })"
-          >
-            <PhArrowsClockwise :size="14" />
-          </button>
-          <button
-            type="button"
-            class="ui-btn ui-btn-icon ui-btn-danger"
-            aria-label="Eliminar"
-            title="Eliminar"
-            @click="askDelete(record)"
-          >
-            <PhTrash :size="14" />
-          </button>
-        </span>
+      </div>
+      <div class="flex gap-2">
+        <button type="button" class="ui-btn" @click="openForm(null, { type: 'revenue' })">
+          <PhPlus :size="14" weight="bold" /> Nuevo ingreso
+        </button>
+        <button type="button" class="ui-btn ui-btn-solid" @click="openForm()">
+          <PhPlus :size="14" weight="bold" /> Nuevo gasto
+        </button>
       </div>
     </div>
 
-    <Dialog :open="formOpen" class="relative z-50" @close="formOpen = false">
+    <!-- Error State -->
+    <div v-if="actionError || accountingStore.error || supportDocStore.error" class="text-danger text-center py-4">
+      {{ actionError || accountingStore.error || supportDocStore.error }}
+    </div>
+
+    <PendingTemplates v-if="accountingStore.pendingTemplates.length" :templates="accountingStore.pendingTemplates" />
+
+    <!-- Record Form Dialog -->
+    <Dialog :open="isFormOpen" @close="closeDialog" class="relative z-50">
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel class="ui-formhost ui-gutter max-h-[90dvh] overflow-y-auto" style="--ui-form-w: 32rem">
@@ -262,13 +407,14 @@ onMounted(async () => {
             :record="editing"
             :type="newType"
             @saved="onSaved"
-            @cancel="formOpen = false"
+            @cancel="closeDialog"
           />
         </DialogPanel>
       </div>
     </Dialog>
 
-    <Dialog :open="!!supportDocRecord" class="relative z-50" @close="supportDocRecord = null">
+    <!-- Support Doc Dialog -->
+    <Dialog :open="!!supportDocRecord" @close="closeDialog" class="relative z-50">
       <div class="fixed inset-0 bg-black/30" aria-hidden="true" />
       <div class="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel class="ui-formhost ui-gutter max-h-[90dvh] overflow-y-auto" style="--ui-form-w: 36rem">
@@ -277,34 +423,36 @@ onMounted(async () => {
             :key="supportDocRecord.id"
             :record="supportDocRecord"
             :provider="providerOf(supportDocRecord)"
-            @cancel="supportDocRecord = null"
+            @cancel="closeDialog"
           />
         </DialogPanel>
       </div>
     </Dialog>
 
+    <!-- Confirm Delete Dialog -->
     <ConfirmDialog
-      :is-open="closeDialog"
-      :title="accountingStore.closed ? 'Reabrir mes' : 'Cerrar mes'"
-      :message="accountingStore.closed
-        ? 'Al reabrir, el mes deja de compararse con sus cifras de cierre.'
-        : 'Se conservan las cifras actuales del mes. Si luego se modifica un registro, el P&G lo indicará.'"
-      :confirm-text="accountingStore.closed ? 'Reabrir' : 'Cerrar mes'"
-      cancel-text="Cancelar"
-      :loading="closing"
-      @confirm="toggleClose"
-      @cancel="closeDialog = false"
-    />
-
-    <ConfirmDialog
-      :is-open="!!toDelete"
-      title="Eliminar registro"
-      :message="deleteError || `¿Eliminar ${toDelete?.categoryName ?? ''} por ${formatMoney(toDelete?.amount ?? 0)}?`"
+      :is-open="!!recordToDelete"
+      title="Eliminar Registro"
+      :message="deleteError || `¿Estás seguro de querer eliminar ${recordToDelete?.categoryName ?? ''} por ${formatMoney(recordToDelete?.amount ?? 0)}?`"
       confirm-text="Eliminar"
       cancel-text="Cancelar"
-      :loading="deleting"
-      @confirm="confirmDelete"
-      @cancel="toDelete = null"
+      :loading="recordStore.loading"
+      @confirm="handleConfirmDelete"
+      @cancel="recordToDelete = null"
+    />
+
+    <!-- Table -->
+    <DataTable
+      ref="dataTable"
+      :data="tableData"
+      :columns="columns"
+      :actions="tableActions"
+      :filters="tableFilters"
+      :searchable-columns="['categoryName', 'detail', 'invoiceRef']"
+      :data-loading="accountingStore.loading"
+      @selection-change="handleSelectionChange"
+      @action="handleAction"
+      class="bg-white shadow-lg rounded-lg"
     />
   </div>
 </template>

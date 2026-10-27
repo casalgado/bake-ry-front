@@ -15,14 +15,19 @@ const uid = useId();
 const settingsStore = useBakerySettingsStore();
 const providerStore = useProviderStore();
 
+/* The select's value, as in the invoice review: '', 'insumo' or `${kind}:${categoryId}`. */
+const choiceOf = (destination) => {
+  if (!destination) return '';
+  return destination.kind === 'insumo' ? 'insumo' : `${destination.kind}:${destination.categoryId}`;
+};
+
 const form = ref({
   name: props.provider?.name ?? '',
   documentType: props.provider?.documentType ?? 'NIT',
   nationalId: props.provider?.nationalId ?? '',
   email: props.provider?.email ?? '',
   phone: props.provider?.phone ?? '',
-  destinationKind: props.provider?.defaultDestination?.kind ?? '',
-  categoryId: props.provider?.defaultDestination?.categoryId ?? '',
+  destination: choiceOf(props.provider?.defaultDestination),
   // '' unknown, 'yes' sends e-invoices, 'no' needs a documento soporte
   issuesEinvoice: { true: 'yes', false: 'no' }[props.provider?.issuesEinvoice] ?? '',
   legalName: props.provider?.legalName ?? '',
@@ -39,16 +44,16 @@ const ISSUES = { yes: true, no: false };
 const saving = ref(false);
 const error = ref('');
 
-const needsCategory = computed(() => ['expense', 'investment'].includes(form.value.destinationKind));
-const categoryOptions = computed(() =>
-  (settingsStore.items[0]?.expenseCategories ?? []).filter((cat) =>
-    cat.isActive && !!cat.isInvestment === (form.value.destinationKind === 'investment')),
-);
+const categories = computed(() =>
+  (settingsStore.items[0]?.expenseCategories ?? []).filter((cat) => cat.isActive));
+const expenseOptions = computed(() => categories.value.filter((cat) => !cat.isInvestment));
+const investmentOptions = computed(() => categories.value.filter((cat) => cat.isInvestment));
 
 // A stored category deactivated since is not offered; the backend refuses it, so pick again.
-watch(categoryOptions, (options) => {
-  if (settingsStore.items.length && !options.some((cat) => cat.id === form.value.categoryId)) {
-    form.value.categoryId = '';
+watch(categories, (options) => {
+  const categoryId = form.value.destination.split(':')[1];
+  if (settingsStore.items.length && categoryId && !options.some((cat) => cat.id === categoryId)) {
+    form.value.destination = '';
   }
 }, { immediate: true });
 
@@ -61,23 +66,21 @@ const sharedEmail = computed(() => {
 });
 
 const canSave = computed(() =>
-  !!form.value.name.trim() && (!needsCategory.value || !!form.value.categoryId) && !saving.value,
+  !!form.value.name.trim() && !saving.value,
 );
 
 async function save() {
   if (!canSave.value) return;
   saving.value = true;
   error.value = '';
-  const { destinationKind, categoryId } = form.value;
+  const [kind, categoryId] = form.value.destination.split(':');
   const payload = {
     name: form.value.name.trim(),
     documentType: form.value.documentType,
     nationalId: form.value.nationalId.trim() || null,
     email: form.value.email.trim(),
     phone: form.value.phone.trim() || null,
-    defaultDestination: destinationKind
-      ? { kind: destinationKind, ...(needsCategory.value && { categoryId }) }
-      : null,
+    defaultDestination: kind ? { kind, ...(categoryId && { categoryId }) } : null,
     issuesEinvoice: ISSUES[form.value.issuesEinvoice] ?? null,
     legalName: form.value.legalName.trim() || null,
     personType: form.value.personType,
@@ -141,20 +144,16 @@ onMounted(() => {
     </div>
 
     <div class="ui-field">
-      <label class="ui-field-k" :for="`${uid}-dest`">Destino habitual de sus compras</label>
-      <select :id="`${uid}-dest`" v-model="form.destinationKind" class="ui-input" @change="form.categoryId = ''">
-        <option value="">Sin destino predeterminado</option>
+      <label class="ui-field-k" :for="`${uid}-dest`">Clasificar facturas como</label>
+      <select :id="`${uid}-dest`" v-model="form.destination" class="ui-input">
+        <option value="">Sin clasificación predeterminada</option>
         <option value="insumo">Compra de insumos</option>
-        <option value="expense">Gasto</option>
-        <option value="investment">Inversión</option>
-      </select>
-    </div>
-
-    <div v-if="needsCategory" class="ui-field">
-      <label class="ui-field-k" :for="`${uid}-cat`" data-required>Categoría</label>
-      <select :id="`${uid}-cat`" v-model="form.categoryId" class="ui-input" required>
-        <option value="" disabled>Seleccionar categoría</option>
-        <option v-for="cat in categoryOptions" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+        <optgroup label="Gasto">
+          <option v-for="cat in expenseOptions" :key="cat.id" :value="`expense:${cat.id}`">{{ cat.name }}</option>
+        </optgroup>
+        <optgroup v-if="investmentOptions.length" label="Inversión">
+          <option v-for="cat in investmentOptions" :key="cat.id" :value="`investment:${cat.id}`">{{ cat.name }}</option>
+        </optgroup>
       </select>
     </div>
 

@@ -83,54 +83,50 @@ const paymentOptions = computed(() => {
 
 const providers = computed(() => providerStore.items.filter((p) => !p.isDeleted));
 
-// A new provider is typed inline, in the same place the picker is.
+// A new provider is typed inline, in the same place the picker is, and created on save.
 const NEW_PROVIDER = '__new__';
-const newProviderName = ref('');
-const creatingProvider = ref(false);
+const newProvider = ref({ name: '', documentType: 'NIT', nationalId: '' });
 
-async function createProvider() {
-  const name = newProviderName.value.trim();
-  if (!name) return;
-  creatingProvider.value = true;
-  try {
-    const created = await providerStore.create({ name });
-    form.value.providerId = created.id;
-    newProviderName.value = '';
-  } catch (err) {
-    error.value = err?.message || 'No se pudo crear el proveedor';
-  } finally {
-    creatingProvider.value = false;
-  }
-}
-
-const hasProvider = computed(() => !!form.value.providerId && form.value.providerId !== NEW_PROVIDER);
-const canSave = computed(() => !!form.value.categoryId && !isInsumos.value && form.value.amount > 0 && !saving.value);
+const isNewProvider = computed(() => form.value.providerId === NEW_PROVIDER);
+const hasProvider = computed(() => !!form.value.providerId);
+const canSave = computed(() => !!form.value.categoryId && !isInsumos.value && form.value.amount > 0
+  && !(isNewProvider.value && !newProvider.value.name.trim()) && !saving.value);
 
 async function save() {
   if (!canSave.value) return;
   saving.value = true;
   error.value = '';
-  const { amount, ivaAmount, retefuente, reteica, reteiva } = form.value;
-  const common = {
-    categoryId: form.value.categoryId,
-    amount,
-    description: form.value.description.trim(),
-    date: form.value.date,
-    period: form.value.period,
-    paymentMethod: form.value.paymentMethod,
-  };
-  const payload = isRevenue
-    ? { ...common, counterparty: form.value.counterparty.trim() }
-    : {
-      ...common,
-      ivaAmount: ivaAmount || 0,
-      retefuente: retefuente || 0,
-      reteica: reteica || 0,
-      reteiva: reteiva || 0,
-      providerId: hasProvider.value ? form.value.providerId : null,
-      invoiceRef: hasProvider.value ? form.value.invoiceRef.trim() : '',
-    };
   try {
+    // Stored in the form, so a retry after a failed save reuses it instead of creating another.
+    if (!isRevenue && isNewProvider.value) {
+      const { name, documentType, nationalId } = newProvider.value;
+      const created = await providerStore.create({
+        name: name.trim(),
+        documentType,
+        nationalId: nationalId.trim() || null,
+      });
+      form.value.providerId = created.id;
+    }
+    const { amount, ivaAmount, retefuente, reteica, reteiva } = form.value;
+    const common = {
+      categoryId: form.value.categoryId,
+      amount,
+      description: form.value.description.trim(),
+      date: form.value.date,
+      period: form.value.period,
+      paymentMethod: form.value.paymentMethod,
+    };
+    const payload = isRevenue
+      ? { ...common, counterparty: form.value.counterparty.trim() }
+      : {
+        ...common,
+        ivaAmount: ivaAmount || 0,
+        retefuente: retefuente || 0,
+        reteica: reteica || 0,
+        reteiva: reteiva || 0,
+        providerId: hasProvider.value ? form.value.providerId : null,
+        invoiceRef: hasProvider.value ? form.value.invoiceRef.trim() : '',
+      };
     if (props.record) await recordStore.patch(props.record.id, payload);
     else await recordStore.create({ type: isRevenue ? 'revenue' : 'expense', ...payload });
     emit('saved');
@@ -223,22 +219,26 @@ onMounted(() => {
         <option v-for="p in providers" :key="p.id" :value="p.id">{{ p.name }}</option>
         <option :value="NEW_PROVIDER">+ Nuevo proveedor…</option>
       </select>
-      <div v-if="form.providerId === NEW_PROVIDER" class="flex gap-2 mt-2">
+      <div v-if="isNewProvider" class="flex flex-col gap-2 mt-2">
         <input
-          v-model="newProviderName"
-          class="ui-input flex-1"
+          v-model="newProvider.name"
+          class="ui-input"
           placeholder="Nombre del proveedor"
           aria-label="Nombre del nuevo proveedor"
-          @keydown.enter.prevent="createProvider"
         >
-        <button
-          type="button"
-          class="ui-btn"
-          :disabled="creatingProvider || !newProviderName.trim()"
-          @click="createProvider"
-        >
-          Crear
-        </button>
+        <div class="flex gap-2">
+          <select v-model="newProvider.documentType" class="ui-input w-28" aria-label="Tipo de documento">
+            <option value="NIT">NIT</option>
+            <option value="CC">Cédula</option>
+          </select>
+          <input
+            v-model="newProvider.nationalId"
+            class="ui-input flex-1"
+            inputmode="numeric"
+            placeholder="Número (opcional)"
+            aria-label="Número de documento"
+          >
+        </div>
       </div>
     </div>
 

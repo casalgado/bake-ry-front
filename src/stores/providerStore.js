@@ -16,3 +16,4 @@ export const useProviderStore = createResourceStore('providers', service);
 const store = useProviderStore();
 
 store.getLastPurchase = (id) => service.getLastPurchase(id);
+store.getHistory = (id) => service.getHistory(id);

@@ -22,12 +22,13 @@ export function pygRows(statement) {
 
   return [
     row('Ventas de productos', (c) => c.orders.productSales),
-    row('Domicilios', (c) => c.orders.deliveryFees),
     row('Costo de ventas', (c) => c.orders.cogs),
     row('Utilidad bruta', (c) => c.orders.grossProfit, { style: 'total' }),
     row('Otros ingresos', (c) => c.otherRevenue.total),
+    row('Domicilios', (c) => c.orders.deliveryFees, { style: 'indent' }),
     ...categoryRows('otherRevenue'),
     row('Gastos', (c) => c.expenses.total, { style: 'total' }),
+    row('Costo de domicilios', (c) => c.orders.deliveryCosts, { style: 'indent' }),
     ...categoryRows('expenses'),
     row('Utilidad neta', (c) => c.netProfit, { style: 'total' }),
     row('Margen neto (%)', (c) => c.netMarginPct, { style: 'percent' }),

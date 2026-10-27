@@ -3,7 +3,6 @@
  * column per month plus the range total. Compras and Inversiones are memo lines
  * under the net and are never subtracted from it. */
 import { ref, computed, watch } from 'vue';
-import PageHeader from '@/components/ui/PageHeader.vue';
 import { useAccountingStore } from '@/stores/accountingStore';
 import { formatMoney, capitalize } from '@/utils/helpers';
 
@@ -24,8 +23,9 @@ watch([from, to], ([start, end]) => {
 
 const statement = computed(() => accountingStore.statement);
 
+// Total first, so it stays in view while the months scroll.
 const columns = computed(() => (statement.value
-  ? [...statement.value.months, { period: 'total', ...statement.value.totals }]
+  ? [{ period: 'total', ...statement.value.totals }, ...statement.value.months]
   : []));
 
 const columnLabel = (column) => {
@@ -38,7 +38,10 @@ const money = (value) => (value ? formatMoney(value) : '–');
 
 const line = (label, pick, options = {}) => ({
   label,
-  cells: columns.value.map((column) => (options.percent ? `${pick(column)}%` : money(pick(column)))),
+  cells: columns.value.map((column) => {
+    const value = pick(column);
+    return { text: options.percent ? `${value}%` : money(value), negative: value < 0 };
+  }),
   ...options,
 });
 
@@ -47,19 +50,20 @@ const categoryLines = (group) =>
   (statement.value?.totals[group].byCategory ?? []).map((category) => line(
     category.name,
     (column) => column[group].byCategory.find((c) => c.categoryId === category.categoryId)?.total ?? 0,
-    { desc: category.pucCode },
+    { desc: category.pucCode, sub: true },
   ));
 
 const rows = computed(() => [
   line('Ventas de productos', (c) => c.orders.productSales),
-  line('Domicilios', (c) => c.orders.deliveryFees),
   line('Costo de ventas', (c) => c.orders.cogs),
   line('Utilidad bruta', (c) => c.orders.grossProfit, { strong: true }),
   line('Otros ingresos', (c) => c.otherRevenue.total),
+  line('Domicilios', (c) => c.orders.deliveryFees, { sub: true }),
   ...categoryLines('otherRevenue'),
   line('Gastos', (c) => c.expenses.total, { strong: true }),
+  line('Costo de domicilios', (c) => c.orders.deliveryCosts, { sub: true }),
   ...categoryLines('expenses'),
-  line('Utilidad neta', (c) => c.netProfit, { strong: true }),
+  line('Utilidad neta', (c) => c.netProfit, { strong: true, net: true }),
   line('Margen neto', (c) => c.netMarginPct, { percent: true }),
 ]);
 
@@ -67,11 +71,6 @@ const memoRows = computed(() => [
   line('Compras de insumos', (c) => c.purchasesTotal),
   line('Inversiones', (c) => c.investments.total),
 ]);
-
-const gridStyle = computed(() => ({
-  gridTemplateColumns: `minmax(11rem, 1.4fr) repeat(${columns.value.length}, minmax(8.5rem, 1fr))`,
-  minWidth: `${11 + columns.value.length * 8.5}rem`,
-}));
 
 const exportError = ref('');
 
@@ -90,68 +89,101 @@ const uncostedCount = computed(() => statement.value?.excludedProducts.length ??
 </script>
 
 <template>
-  <div class="p-4 lg:p-6 w-full max-w-6xl">
-    <PageHeader title="P&G" subtitle="Estado de resultados por mes." />
-
-    <div class="flex flex-wrap items-end gap-4 mb-4">
-      <div class="ui-field">
-        <label class="ui-field-k" for="pyg-from">Desde</label>
-        <input id="pyg-from" v-model="from" type="month" class="ui-input">
+  <div class="container p-4 px-0 lg:px-4">
+    <div class="flex flex-col lg:flex-row justify-between items-center gap-2 mb-4">
+      <h2 class="text-2xl font-bold text-neutral-800">P&G</h2>
+      <div class="flex flex-wrap items-end gap-4">
+        <div class="ui-field">
+          <label class="ui-field-k" for="pyg-from">Desde</label>
+          <input id="pyg-from" v-model="from" type="month" class="ui-input">
+        </div>
+        <div class="ui-field">
+          <label class="ui-field-k" for="pyg-to">Hasta</label>
+          <input id="pyg-to" v-model="to" type="month" class="ui-input">
+        </div>
+        <button type="button" class="ui-btn" :disabled="!statement" @click="download">Exportar a Excel</button>
       </div>
-      <div class="ui-field">
-        <label class="ui-field-k" for="pyg-to">Hasta</label>
-        <input id="pyg-to" v-model="to" type="month" class="ui-input">
-      </div>
-      <button type="button" class="ui-btn" :disabled="!statement" @click="download">Exportar a Excel</button>
-    </div>
-    <p v-if="exportError" class="ui-field-error" role="alert">{{ exportError }}</p>
-
-    <div v-if="pendingCount || uncostedCount" class="flex flex-wrap gap-2 mb-4">
-      <span v-if="pendingCount" class="ui-tag">
-        {{ pendingCount }} {{ pendingCount === 1 ? 'gasto recurrente sin confirmar' : 'gastos recurrentes sin confirmar' }}
-      </span>
-      <span v-if="uncostedCount" class="ui-tag">
-        {{ uncostedCount }} {{ uncostedCount === 1 ? 'producto sin costo' : 'productos sin costo' }}: el costo de ventas está incompleto
-      </span>
     </div>
 
-    <p v-if="accountingStore.statementError" class="ui-field-error" role="alert">
-      {{ accountingStore.statementError }}
+    <!-- Error State -->
+    <div v-if="exportError || accountingStore.statementError" class="text-danger text-center py-4">
+      {{ exportError || accountingStore.statementError }}
+    </div>
+
+    <!-- Warnings -->
+    <p v-if="pendingCount || uncostedCount" class="text-sm text-amber-700 mb-2">
+      <span v-if="pendingCount">
+        {{ pendingCount }} {{ pendingCount === 1 ? 'gasto recurrente sin confirmar' : 'gastos recurrentes sin confirmar' }}.
+      </span>
+      <span v-if="uncostedCount">
+        {{ uncostedCount }} {{ uncostedCount === 1 ? 'producto sin costo' : 'productos sin costo' }}: el costo de ventas está incompleto.
+      </span>
     </p>
 
-    <div v-if="statement" class="overflow-x-auto">
-      <div class="ui-item ui-item-divided" :style="gridStyle">
-        <span />
-        <span v-for="column in columns" :key="column.period" class="ui-item-meta text-right">
-          {{ columnLabel(column) }}
-          <span v-if="column.closed" class="ui-tag normal-case">
-            {{ column.closed.drifted ? 'Editado tras cierre' : 'Cerrado' }}
-          </span>
-        </span>
-      </div>
+    <!-- Statement -->
+    <div v-if="statement" class="bg-white shadow-lg rounded-lg overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-neutral-100 text-neutral-600">
+          <tr>
+            <th class="sticky left-0 z-[1] bg-neutral-100 min-w-[13rem]" />
+            <th
+              v-for="(column, index) in columns"
+              :key="column.period"
+              class="px-4 py-3 text-right font-semibold whitespace-nowrap"
+              :class="{ 'border-r border-neutral-200': index === 0 }"
+            >
+              {{ columnLabel(column) }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(row, i) in rows"
+            :key="i"
+            class="border-b border-neutral-100"
+            :class="{ 'border-t border-t-neutral-300 font-semibold': row.strong, 'bg-neutral-50': row.net }"
+          >
+            <td
+              class="sticky left-0 z-[1] px-4 py-2 whitespace-nowrap"
+              :class="[row.net ? 'bg-neutral-50' : 'bg-white', row.sub ? 'pl-8 text-xs text-neutral-500' : 'text-neutral-800']"
+            >
+              <span v-if="row.desc">{{ row.desc }} · </span>{{ row.label }}
+            </td>
+            <td
+              v-for="(cell, index) in row.cells"
+              :key="index"
+              class="px-4 py-2 text-right whitespace-nowrap tabular-nums"
+              :class="{
+                'text-danger': cell.negative,
+                'text-xs text-neutral-500': row.sub && !cell.negative,
+                'border-r border-neutral-200': index === 0,
+              }"
+            >{{ cell.text }}</td>
+          </tr>
 
-      <div v-for="(row, i) in rows" :key="i" class="ui-item ui-item-divided" :style="gridStyle">
-        <span class="min-w-0">
-          <span class="ui-item-title block">{{ row.label }}</span>
-          <span v-if="row.desc" class="ui-item-desc">{{ row.desc }}</span>
-        </span>
-        <span
-          v-for="(cell, index) in row.cells"
-          :key="index"
-          class="text-right ui-num"
-          :class="row.strong ? 'ui-item-num' : 'ui-item-meta'"
-        >{{ cell }}</span>
-      </div>
-
-      <h2 class="ui-panehead-title mt-6 mb-1 px-3">Partidas informativas (no afectan la utilidad neta)</h2>
-      <div v-for="row in memoRows" :key="row.label" class="ui-item ui-item-divided" :style="gridStyle">
-        <span class="ui-item-title">{{ row.label }}</span>
-        <span v-for="(cell, index) in row.cells" :key="index" class="ui-item-meta text-right ui-num">{{ cell }}</span>
-      </div>
+          <tr>
+            <td
+              :colspan="columns.length + 1"
+              class="px-4 pt-4 pb-1 text-xs font-semibold uppercase text-neutral-500 bg-neutral-50"
+            >
+              Partidas informativas (no afectan la utilidad neta)
+            </td>
+          </tr>
+          <tr v-for="row in memoRows" :key="row.label" class="border-b border-neutral-100 last:border-0">
+            <td class="sticky left-0 z-[1] bg-white px-4 py-2 whitespace-nowrap text-neutral-800">{{ row.label }}</td>
+            <td
+              v-for="(cell, index) in row.cells"
+              :key="index"
+              class="px-4 py-2 text-right whitespace-nowrap tabular-nums text-neutral-600"
+              :class="{ 'border-r border-neutral-200': index === 0 }"
+            >{{ cell.text }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <div v-else-if="!accountingStore.statementLoading && !accountingStore.statementError" class="ui-empty">
-      <b>Seleccione un rango de meses.</b>
+    <div v-else-if="!accountingStore.statementLoading && !accountingStore.statementError" class="text-neutral-500 text-center py-4">
+      Seleccione un rango de meses.
     </div>
   </div>
 </template>

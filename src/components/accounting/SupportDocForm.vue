@@ -119,7 +119,7 @@ const removeLine = (index) => lines.value.splice(index, 1);
         <template v-if="differs"> · difiere del valor del gasto ({{ formatMoney(record.amount) }}).</template>
       </p>
       <p v-if="missing.length" class="ui-field-hint">
-        Al proveedor le falta: {{ missing.join(', ') }}. Complétalo en Proveedores antes de emitir.
+        Al proveedor le falta: {{ missing.join(', ') }}. Completar en Proveedores antes de emitir.
       </p>
       <p class="ui-item-desc">
         Se emite una sola vez por gasto y se envía a la DIAN de inmediato. Sin IVA ni retenciones.

@@ -39,47 +39,43 @@ async function confirm(template) {
 </script>
 
 <template>
-  <div class="mb-5">
-    <h2 class="ui-panehead-title mb-2">Por confirmar</h2>
-    <div class="flex flex-col">
-      <div v-for="template in templates" :key="template.id" class="flex flex-col">
-        <div class="ui-item">
-          <span class="min-w-0">
-            <span class="ui-item-title block">{{ template.name }}</span>
-            <span class="ui-item-desc">{{ template.categoryName }}</span>
-          </span>
-          <span class="ui-item-trail">
-            <UiMoneyInput
-              v-if="editingId === template.id"
-              v-model="editedAmount"
-              class="ui-field-unit w-36"
-              :aria-label="`Monto de ${template.name}`"
-            />
-            <span v-else class="ui-item-num ui-num">{{ formatMoney(template.defaultAmount) }}</span>
-            <button
-              v-if="editingId !== template.id"
-              type="button"
-              class="ui-btn ui-btn-icon"
-              aria-label="Editar monto"
-              title="Editar monto"
-              @click="startEdit(template)"
-            >
-              <PhPencilSimple :size="14" />
-            </button>
-            <button
-              type="button"
-              class="ui-btn ui-btn-solid"
-              :disabled="busyId === template.id || (editingId === template.id && !(editedAmount > 0))"
-              @click="confirm(template)"
-            >
-              <PhCheck :size="14" weight="bold" /> Confirmar
-            </button>
-          </span>
+  <div class="base-card">
+    <h3 class="text-lg font-bold text-neutral-800 mb-2">Gastos recurrentes por confirmar</h3>
+    <div
+      v-for="template in templates"
+      :key="template.id"
+      class="py-2 border-b border-neutral-200 last:border-0"
+    >
+      <div class="flex items-center gap-4">
+        <div class="min-w-0 flex-1">
+          <div class="font-medium text-neutral-800">{{ template.name }}</div>
+          <div class="text-xs text-neutral-500">{{ template.categoryName }}</div>
         </div>
-        <span v-if="errors[template.id]" class="ui-field-error" role="alert">
-          {{ errors[template.id] }}
-        </span>
+        <UiMoneyInput
+          v-if="editingId === template.id"
+          v-model="editedAmount"
+          class="ui-field-unit w-36"
+          :aria-label="`Monto de ${template.name}`"
+        />
+        <span v-else class="whitespace-nowrap">{{ formatMoney(template.defaultAmount) }}</span>
+        <button
+          v-if="editingId !== template.id"
+          class="utility-btn-inactive"
+          aria-label="Editar monto"
+          title="Editar monto"
+          @click="startEdit(template)"
+        >
+          <PhPencilSimple :size="14" />
+        </button>
+        <button
+          class="action-btn flex items-center gap-1"
+          :disabled="busyId === template.id || (editingId === template.id && !(editedAmount > 0))"
+          @click="confirm(template)"
+        >
+          <PhCheck :size="14" weight="bold" /> Confirmar
+        </button>
       </div>
+      <div v-if="errors[template.id]" class="text-danger text-sm">{{ errors[template.id] }}</div>
     </div>
   </div>
 </template>
