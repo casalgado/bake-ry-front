@@ -122,7 +122,7 @@ const endedLabel = computed(() => ({
 const confirmingClose = ref(false);
 
 const closeQuestion = computed(() => {
-  if (status.value === 'closing') return 'Se retoma el cierre donde quedó.';
+  if (status.value === 'closing') return 'El cierre continuará donde se detuvo.';
   const n = rows.value.length;
   return `La existencia de ${n} artículo${n === 1 ? '' : 's'} pasa a ser lo que se contó. Los demás no cambian.`;
 });
@@ -163,7 +163,7 @@ async function close() {
 
           <!-- Discarded: what was typed, who typed it. Nothing was compared. -->
           <template v-else-if="status === 'discarded'">
-            <div v-if="!rows.length" class="ui-empty">No se alcanzó a contar nada.</div>
+            <div v-if="!rows.length" class="ui-empty">Sin artículos contados.</div>
             <div v-for="row in rows" :key="row.itemKey" class="ui-item ui-item-divided">
               <span />
               <span class="min-w-0">
@@ -179,7 +179,7 @@ async function close() {
 
             <div v-if="status === 'open' && hoursOpen >= STALE_HOURS" class="ui-empty mb-4" style="padding-block: 12px">
               <b>Abierto hace {{ hoursOpen }} h</b>
-              Las ventas de ese tiempo quedan absorbidas por el conteo.
+              Las ventas de este periodo se reflejan como diferencia del conteo.
             </div>
 
             <div class="flex flex-wrap gap-x-7 gap-y-3 mb-5">
@@ -206,13 +206,12 @@ async function close() {
             </div>
 
             <p v-if="status === 'closed'" class="ui-item-desc mb-4">
-              Desde el último conteo: bajas reportadas {{ formatMoney(wasteValue) }}
-              + encontrado por el conteo {{ signedMoney(foundValue) }} (sin explicar).
+              Desde el último conteo: bajas registradas {{ formatMoney(wasteValue) }}
+              · diferencia sin explicar {{ signedMoney(foundValue) }}.
             </p>
 
             <div v-if="!rows.length" class="ui-empty">
-              <b>Nada contado todavía</b>
-              Vuelve a contar y escribe lo que hay en la bodega.
+              <b>Sin artículos contados</b>
             </div>
 
             <div
@@ -263,7 +262,7 @@ async function close() {
 
             <div v-if="status === 'closing'" class="ui-empty mt-5" style="padding-block: 12px">
               <b>Cerrando el conteo…</b>
-              Si esto no termina en un momento, ciérralo de nuevo: retoma donde quedó.
+              Si el proceso no termina, continuará donde se detuvo.
               <button class="ui-btn ui-btn-solid mt-2" :disabled="closing" @click="confirmingClose = true">
                 Terminar de cerrar
               </button>
@@ -271,7 +270,7 @@ async function close() {
 
             <div v-if="status === 'open'" class="flex flex-wrap items-center justify-between gap-1.5 mt-5">
               <router-link class="ui-btn" :to="`/dashboard/inventory/conteos/${countId}`">
-                ← Volver a contar
+                ← Volver al conteo
               </router-link>
               <button
                 class="ui-btn ui-btn-solid"

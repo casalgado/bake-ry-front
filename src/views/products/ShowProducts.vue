@@ -237,8 +237,8 @@ const toggleRowExpanded = (rowId) => {
 
 <template>
   <div class="container p-4 px-0 lg:px-4">
-    <div class="flex justify-between items-center mb-1">
-      <h2 class="text-2xl font-bold mb-0">Productos</h2>
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-4 lg:min-h-[52px]">
+      <h2 class="text-2xl font-bold text-neutral-800">Productos</h2>
       <button
         label="Crear Producto"
         class="action-btn"

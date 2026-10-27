@@ -478,7 +478,7 @@ async function send() {
       lines: rows.value.map((r) => ({ item: r.item, plannedQty: r.qty })),
     });
     reset();
-    savedNote.value = `Enviado a producción: ${lineCount} línea(s). La cocina lo ve en su lista.`;
+    savedNote.value = `Enviado a producción: ${lineCount} línea(s).`;
   } catch (err) {
     formError.value = err?.message || 'No se pudo enviar a producción.';
   } finally {
@@ -506,7 +506,7 @@ function discard() {
 
 <template>
   <div class="p-4 lg:p-6">
-    <PageHeader title="Producción" subtitle="Lo que vas a hacer.">
+    <PageHeader title="Producción">
       <span class="ui-panehead-sub">
         {{ doc.lines.length }} línea{{ doc.lines.length === 1 ? '' : 's' }}
       </span>
@@ -545,7 +545,7 @@ function discard() {
             class="mb-4"
             :items="pickerItems"
             :titles="pickerTitles"
-            placeholder="Agregar lo que vas a hacer…"
+            placeholder="Agregar artículo…"
             label="Agregar artículo"
             @select="addLine"
           />
@@ -558,8 +558,7 @@ function discard() {
             {{ blankQuantities }} línea(s) sin cantidad.
           </p>
           <p v-if="unpricedCount" class="ui-item-desc mt-2">
-            {{ unpricedCount }} línea(s) sin costo — les falta receta, así que el
-            total de abajo se queda corto.
+            {{ unpricedCount }} línea(s) sin receta. El costo total no las incluye.
           </p>
 
           <div
@@ -592,24 +591,24 @@ function discard() {
           <p v-if="formError" class="ui-field-error mt-2">{{ formError }}</p>
           <p v-if="savedNote" class="ui-item-desc mt-2">{{ savedNote }}</p>
           <p class="ui-item-desc mt-2">
-            Al enviar, la cocina lo ve en su lista. La bodega cambia cuando la
-            cocina marca cada línea como producida. Hasta que lo envíes, este
-            documento vive solo en este navegador.
+            Al enviar, la producción aparece en la lista de la cocina. Las
+            existencias se actualizan cuando cada línea se marca como producida.
+            El borrador se guarda solo en este navegador.
           </p>
         </div>
 
         <!-- ---------------- right: what you are making ---------------- -->
         <div class="ui-pane">
           <div class="ui-panehead">
-            <span class="ui-panehead-title">Lo que vas a producir</span>
+            <span class="ui-panehead-title">Artículos a producir</span>
             <span v-if="rows.length" class="ui-panehead-sub">
               {{ rows.length }} línea{{ rows.length === 1 ? '' : 's' }}
             </span>
           </div>
 
           <div v-if="!rows.length" class="ui-empty">
-            <b>Todavía no hay nada en esta producción</b>
-            Busca a la izquierda lo que vas a hacer y agrégalo.
+            <b>Sin artículos</b>
+            Los artículos agregados desde el buscador aparecen aquí.
           </div>
 
           <TransitionGroup tag="div" name="ui-cascade" class="flex flex-col gap-1.5">
@@ -676,7 +675,7 @@ function discard() {
 
           <!-- ---------------- what it will consume ---------------- -->
           <template v-if="rows.length">
-            <div class="ui-sectionhead mt-6">Lo que va a consumir</div>
+            <div class="ui-sectionhead mt-6">Consumo de insumos</div>
 
             <p v-if="previewError" class="ui-field-error">{{ previewError }}</p>
             <div v-else-if="!consumption.length && !gaps.length" class="ui-empty">
@@ -688,8 +687,8 @@ function discard() {
               <span class="min-w-0">
                 <span class="ui-item-title block capitalize" :title="c.name">{{ c.name }}</span>
                 <span class="ui-item-desc">
-                  hay {{ formatQty(c.inStock) }} {{ c.unit }}
-                  <template v-if="c.short"> · <b>no alcanza</b></template>
+                  en bodega {{ formatQty(c.inStock) }} {{ c.unit }}
+                  <template v-if="c.short"> · <b>insuficiente</b></template>
                 </span>
               </span>
               <span class="ui-item-trail">
@@ -714,8 +713,8 @@ function discard() {
             </div>
 
             <p v-if="consumption.some((c) => c.short)" class="ui-item-desc mt-3">
-              Puedes enviarlo igual: la bodega queda en negativo hasta que
-              registres el ingreso o corrijas el conteo.
+              Se puede enviar de todas formas. La existencia quedará en negativo
+              hasta registrar un ingreso o un conteo.
             </p>
           </template>
         </div>

@@ -434,7 +434,7 @@ const canConfirm = computed(() => Boolean(doc.value.providerId)
 /* Why Confirmar is disabled, in the order the document is filled. */
 const blocker = computed(() => {
   if (!rows.value.length) return '';
-  if (!doc.value.providerId) return 'Seleccione el proveedor para poder confirmar.';
+  if (!doc.value.providerId) return 'Falta el proveedor.';
   if (blankQuantities.value) return `Falta la cantidad en ${blankQuantities.value} línea(s).`;
   if (unpricedCount.value) return `Falta el total pagado en ${unpricedCount.value} línea(s). Se registra según la factura.`;
   return '';
@@ -558,7 +558,7 @@ function discard() {
               <span class="min-w-0">
                 <span class="ui-item-title block" :title="providerName">{{ providerName }}</span>
                 <span class="ui-item-desc">
-                  <template v-if="loadingLast">buscando su última compra…</template>
+                  <template v-if="loadingLast">cargando última compra…</template>
                   <template v-else-if="lastPrices.size">con los precios de su última compra</template>
                   <template v-else>sin compras anteriores</template>
                 </span>
@@ -642,8 +642,8 @@ function discard() {
               @created="onIngredientCreated"
             />
             <p class="ui-item-desc -mt-2 mb-4">
-              Aquí solo se crean ingredientes. Los productos de reventa se
-              registran en Productos. Las preparaciones en el Recetario.
+              Solo se crean ingredientes. Los productos de reventa se crean en
+              Productos y las preparaciones en el Recetario.
             </p>
           </template>
 
@@ -676,7 +676,7 @@ function discard() {
                   <template v-if="row.estimated"> · precio anterior</template>
                   <template v-else-if="row.priceChange !== null">
                     · antes <span class="ui-num">{{ formatUnitCost(row.lastUnitCost) }}</span>
-                    · {{ row.priceChange > 0 ? 'subió' : 'bajó' }}
+                    · {{ row.priceChange > 0 ? 'aumentó' : 'disminuyó' }}
                     {{ Math.abs(Math.round(row.priceChange * 100)) }}%
                   </template>
                   <template v-if="inventoryOn">
@@ -707,7 +707,7 @@ function discard() {
                   :value="row.paid"
                   placeholder="total"
                   :aria-label="'Total pagado por ' + row.name"
-                  title="Lo que dice la factura por esta línea"
+                  title="Valor de la línea según la factura"
                   @input="setField(row._i, 'total', $event.target.value)"
                 >
 
@@ -848,7 +848,7 @@ function discard() {
               <span class="ui-item-title block capitalize" :title="row.name">{{ row.name }}</span>
               <span class="ui-item-desc">
                 <template v-if="row.isNew">primera compra</template>
-                <template v-else>hay {{ formatQty(row.inStock) }} {{ row.unit }}</template>
+                <template v-else>en bodega {{ formatQty(row.inStock) }} {{ row.unit }}</template>
               </span>
             </span>
             <span class="ui-item-trail">
@@ -859,9 +859,8 @@ function discard() {
           </div>
 
           <p v-if="inventoryOn && resaleLeftOut" class="ui-item-desc mt-3">
-            {{ resaleLeftOut }} línea(s) de reventa no se listan aquí. También
-            entran a la bodega; esta lista se limita a los insumos, que es lo
-            que se revisa antes de confirmar.
+            {{ resaleLeftOut }} línea(s) de reventa no se listan. También
+            ingresan a la bodega.
           </p>
         </div>
       </div>

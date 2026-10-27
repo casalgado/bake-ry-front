@@ -45,7 +45,6 @@ const emit = defineEmits([
   'update:quantity',
   'update:item',
   'update:costPrice',
-  'update:taxPercentage',
   'toggle-complimentary',
   'remove',
 ]);
@@ -190,10 +189,6 @@ const handleDiscountChange = (event) => {
 
 const handleCostPriceChange = (value) => {
   emit('update:costPrice', props.index, value ?? 0);
-};
-
-const handleTaxPercentageChange = (event) => {
-  emit('update:taxPercentage', props.index, Math.max(0, Math.min(100, Number(event.target.value))));
 };
 
 </script>
@@ -358,22 +353,13 @@ const handleTaxPercentageChange = (event) => {
       <div class="ui-sectionhead !mb-0">Impuesto y costo</div>
       <div class="grid grid-cols-2 gap-3">
         <div class="ui-field">
-          <label class="ui-field-k" :for="`${uid}-tax`">IVA</label>
-          <div class="ui-field-unit" data-unit="%">
-            <input
-              :id="`${uid}-tax`"
-              type="number"
-              class="ui-input ui-input-num"
-              :value="item.taxPercentage || 0"
-              min="0"
-              max="100"
-              step="0.5"
-              :disabled="item.isComplimentary"
-              @input="handleTaxPercentageChange"
-              @focus="$event.target.select()"
-              @wheel.prevent
-            >
-          </div>
+          <label class="ui-field-k" :for="`${uid}-tax`">Impuesto</label>
+          <input
+            :id="`${uid}-tax`"
+            class="ui-input"
+            :value="item.taxPercentage > 0 ? `${item.taxType || 'IVA'} ${item.taxPercentage}%` : 'Excluido'"
+            disabled
+          >
         </div>
         <div class="ui-field">
           <label class="ui-field-k" :for="`${uid}-cost`">Costo</label>

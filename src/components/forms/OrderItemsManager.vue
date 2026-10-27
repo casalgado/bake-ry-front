@@ -250,13 +250,6 @@ const updateItemCostPrice = (index, newCostPrice) => {
   emit('update:modelValue', newItems);
 };
 
-const updateItemTaxPercentage = (index, newTaxPercentage) => {
-  const newItems = props.modelValue.map((item, i) =>
-    i !== index ? item : { ...item, taxPercentage: newTaxPercentage },
-  );
-  emit('update:modelValue', newItems);
-};
-
 defineExpose({ add });
 </script>
 
@@ -281,7 +274,6 @@ defineExpose({ add });
       @update:quantity="updateItemQuantity"
       @update:item="updateItem"
       @update:costPrice="updateItemCostPrice"
-      @update:taxPercentage="updateItemTaxPercentage"
       @toggle-complimentary="toggleItemComplimentary"
       @remove="removeItem"
     />

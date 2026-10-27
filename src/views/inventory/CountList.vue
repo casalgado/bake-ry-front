@@ -66,13 +66,13 @@ const dateOf = (count) =>
 
 <template>
   <div class="p-4 lg:p-6">
-    <PageHeader title="Conteos" subtitle="Lo que hay en la bodega, contado a mano." />
+    <PageHeader title="Conteos" />
 
     <div class="ui-app">
       <div class="ui-panes" style="--panes: minmax(0, 1fr)">
         <div class="ui-pane max-w-3xl w-full mx-auto">
           <div v-if="error" class="ui-empty mb-4">
-            <b>Algo falló</b>
+            <b>Error al cargar los conteos</b>
             {{ error }}
           </div>
 
@@ -93,7 +93,7 @@ const dateOf = (count) =>
                 </span>
                 <span class="ui-item-desc">
                   <template v-if="multiWarehouse">{{ warehouseName(count.warehouseId) }} · </template>
-                  empezado {{ dateOf(count) }} por {{ count.createdBy?.name }}
+                  iniciado {{ dateOf(count) }} por {{ count.createdBy?.name }}
                   <template v-if="count.counters.length"> · {{ count.counters.join(', ') }}</template>
                 </span>
               </span>
@@ -113,13 +113,13 @@ const dateOf = (count) =>
                 </select>
               </div>
               <button class="ui-btn ui-btn-solid" :disabled="starting" @click="start">
-                {{ hasOpenIn(warehouseId) ? 'Unirse al conteo' : 'Empezar conteo' }}
+                {{ hasOpenIn(warehouseId) ? 'Unirse al conteo' : 'Iniciar conteo' }}
               </button>
             </div>
             <div class="ui-sectionhead mt-6">Anteriores</div>
 
             <div v-if="!pastCounts.length" class="ui-empty">
-              Todavía no hay conteos cerrados.
+              Sin conteos anteriores.
             </div>
 
             <router-link
@@ -133,7 +133,7 @@ const dateOf = (count) =>
                 <span class="ui-item-desc">
                   <template v-if="multiWarehouse">{{ warehouseName(count.warehouseId) }} · </template>
                   <template v-if="count.status === 'discarded'">
-                    Descartado · por {{ count.closedBy?.name }} · {{ count.counted }} escritos
+                    Descartado · por {{ count.closedBy?.name }} · {{ count.counted }} registrados
                   </template>
                   <template v-else-if="count.status === 'closing'">
                     Cerrando · {{ count.counted }} contados

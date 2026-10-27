@@ -6,7 +6,7 @@
  * It owns the writes so a second screen (Ingreso) can reuse the whole gesture
  * instead of re-implementing "what a new ingredient looks like". It emits what
  * it made; the screen decides what to do with it. */
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useIngredientStore } from '@/stores/ingredientStore';
 import { useRecipeStore } from '@/stores/recipeStore';
 import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
@@ -40,6 +40,9 @@ const props = defineProps({
    * exists because you pressed Crear, so the gesture is finished and the form is
    * where you are going next. */
   autofocus: { type: Boolean, default: false },
+  /* Off where the name comes from a search box you just typed in. On where it
+   * comes from somewhere else (an invoice line) and needs correcting. */
+  editableName: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['created', 'created-preparacion']);
@@ -49,11 +52,13 @@ const recipeStore = useRecipeStore();
 const settingsStore = useBakerySettingsStore();
 
 const TYPES = [
-  { id: 'ingrediente', label: 'Ingrediente', hint: 'lo compras' },
-  { id: 'preparacion', label: 'Preparación', hint: 'la haces' },
+  { id: 'ingrediente', label: 'Ingrediente', hint: 'se compra' },
+  { id: 'preparacion', label: 'Preparación', hint: 'se produce' },
 ];
 
 const type = ref('ingrediente');
+const itemName = ref(props.name);
+watch(() => props.name, (v) => { itemName.value = v; });
 const draft = ref({ unit: '', costPerUnit: '', qty: '', total: '', categoryName: '' });
 const creating = ref(false);
 const createError = ref('');
@@ -140,8 +145,8 @@ async function requireCategory() {
    * (`categoryName`), así que lo que se guarda mal se propaga. */
   const name = capitalize(categoryName.value);
   createError.value = '';
-  if (!draft.value.unit || !name) {
-    createError.value = 'Escribe una unidad y una categoría.';
+  if (!itemName.value.trim() || !draft.value.unit || !name) {
+    createError.value = 'Nombre, unidad y categoría son obligatorios.';
     return null;
   }
 
@@ -159,7 +164,7 @@ async function requireCategory() {
      * arreglo que vuelve no es una promesa de nadie. */
     const created = settings?.ingredientCategories?.find((c) => c.name === name);
     if (created) return created;
-    createError.value = `Se guardó la categoría «${name}», pero el servidor no la devolvió. Vuelve a intentarlo.`;
+    createError.value = `Se guardó la categoría «${name}», pero el servidor no la devolvió. Intentar de nuevo.`;
   } catch (err) {
     createError.value = err?.message || 'No se pudo crear la categoría.';
   }
@@ -183,7 +188,7 @@ async function createIngredient() {
 
   try {
     const created = await ingredientStore.create({
-      name: props.name,
+      name: itemName.value.trim(),
       unit: draft.value.unit,
       costPerUnit: costPerUnit.value,
       categoryId: category.id,
@@ -226,7 +231,7 @@ async function createPreparacion() {
     /* No costPerUnit: it is derived from the recipe and the first save
      * overwrites anything set here. */
     created = await ingredientStore.create({
-      name: props.name,
+      name: itemName.value.trim(),
       unit: draft.value.unit,
       categoryId: category.id,
       categoryName: category.name,
@@ -251,9 +256,9 @@ async function createPreparacion() {
     clear();
   } catch (err) {
     createError.value = created
-      ? `Se creó el ingrediente «${created.name}», pero no su receta: ${
+      ? `Se creó «${created.name}», pero no su receta: ${
         err?.message || 'error desconocido'
-      }. Búscalo en la estantería para volver a intentarlo.`
+      }. La receta se puede crear seleccionándolo en la lista.`
       : err?.message || 'No se pudo crear la preparación.';
   } finally {
     creating.value = false;
@@ -267,8 +272,14 @@ const submit = () =>
 <template>
   <form class="ui-card mb-4 flex flex-col gap-2" @submit.prevent="submit">
     <span class="ui-card-title">
-      Crear: <span class="capitalize">{{ name }}</span>
+      <template v-if="editableName">Crear ingrediente</template>
+      <template v-else>Crear: <span class="capitalize">{{ itemName }}</span></template>
     </span>
+
+    <label v-if="editableName" class="ui-field">
+      <span class="ui-field-k">Nombre</span>
+      <input v-model="itemName" class="ui-input" required>
+    </label>
 
     <!-- The toggle replaces the paragraph that used to explain the difference:
          you pick what you are making and the form asks only for that. Ingreso
@@ -377,7 +388,7 @@ const submit = () =>
               v-if="!filteredCategories.length && !canCreateCategory"
               class="ui-empty"
             >
-              Escribe para crear la primera categoría.
+              Sin categorías. Escribir un nombre para crear una.
             </div>
 
             <ComboboxOption
@@ -416,8 +427,8 @@ const submit = () =>
     <p v-if="purchase && type === 'ingrediente'" class="ui-item-desc">
       <template v-if="costPerUnit > 0">
         Costo por {{ draft.unit || 'unidad' }}:
-        <b class="ui-num">{{ formatUnitCost(costPerUnit) }}</b>. Queda como el
-        costo del insumo y se puede corregir en el próximo ingreso.
+        <b class="ui-num">{{ formatUnitCost(costPerUnit) }}</b>. Se guarda como
+        costo del insumo y se puede corregir en la próxima compra.
       </template>
       <template v-else>
         Con la cantidad y el total se calcula el costo por unidad. Sin ellos el

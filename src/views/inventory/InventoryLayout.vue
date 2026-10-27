@@ -100,7 +100,7 @@ onUnmounted(() => {
          while everything under it is inset. -->
     <p v-if="catalogError" class="ui-empty mx-4 lg:mx-6 mt-4 lg:mt-6" style="padding-block: 12px">
       <b>No se pudieron cargar los catálogos</b>
-      Los nombres y los costos de esta pantalla van a salir incompletos.
+      Los nombres y costos pueden aparecer incompletos.
       {{ catalogError }}
     </p>
 

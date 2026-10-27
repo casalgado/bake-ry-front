@@ -22,7 +22,9 @@ import {
 } from '@phosphor-icons/vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import UiSearchField from '@/components/ui/UiSearchField.vue';
+import IngredientCreateCard from '@/components/recipes/IngredientCreateCard.vue';
 import { useStockStore } from '@/stores/stockStore';
+import { useBakerySettingsStore } from '@/stores/bakerySettingsStore';
 import { useIngredientStore } from '@/stores/ingredientStore';
 import { useProductStore } from '@/stores/productStore';
 import { useInventoryDocsStore } from '@/stores/inventoryDocsStore';
@@ -202,6 +204,19 @@ const shelves = computed(() =>
     .filter((shelf) => shelf.items.length));
 
 const expanded = ref({});
+
+const bakerySettingsStore = useBakerySettingsStore();
+const categories = computed(() =>
+  (bakerySettingsStore.items[0]?.ingredientCategories ?? []).filter((c) => c.isActive !== false));
+
+/* Lands on what was just made: its stocks doc exists once the create returns,
+ * and selecting it swaps the create card for its (empty) history. */
+async function onIngredientCreated(created) {
+  await stockStore.fetchAll().catch(() => {});
+  const stock = stockStore.items.find(
+    (s) => s.itemType === 'ingredient' && s.ingredientId === created.id);
+  if (stock) selectedKey.value = stock.itemKey;
+}
 
 /* ---------------- right: one item ---------------- */
 
@@ -411,7 +426,7 @@ async function submitForm() {
   if (form.value === 'cost') {
     const cost = Number(d.costPerUnit);
     if (!Number.isFinite(cost) || cost < 0) {
-      formError.value = 'Escribe un costo válido.';
+      formError.value = 'Costo inválido.';
       return;
     }
 
@@ -475,7 +490,7 @@ async function submitForm() {
   }
 
   if (!Number.isFinite(qty) || qty === 0) {
-    formError.value = 'Escribe una cantidad.';
+    formError.value = 'Falta la cantidad.';
     return;
   }
 
@@ -490,7 +505,7 @@ async function submitForm() {
   }
 
   if (form.value === 'transfer' && !d.toWarehouseId) {
-    formError.value = 'Elige la bodega de destino.';
+    formError.value = 'Falta la bodega de destino.';
     return;
   }
 
@@ -533,7 +548,7 @@ async function submitForm() {
 
 <template>
   <div class="p-4 lg:p-6">
-    <PageHeader title="Existencias" subtitle="Qué hay ahora mismo, y si ese número es cierto." />
+    <PageHeader title="Existencias" />
 
     <div class="ui-app">
       <div class="ui-panes" style="--panes: minmax(0, 1fr) minmax(0, 1.05fr)">
@@ -596,12 +611,11 @@ async function submitForm() {
             {{ stockStore.error }}
           </div>
           <div v-else-if="!stockStore.items.length" class="ui-empty">
-            <b>Todavía no llevas inventario de nada</b>
-            Activa el control de existencias en un ingrediente o en un producto y
-            aparecerá aquí.
+            <b>Sin artículos con inventario</b>
+            Los ingredientes y productos con control de existencias aparecen aquí.
           </div>
           <div v-else-if="!shelves.length" class="ui-empty">
-            Nada coincide con esa búsqueda.
+            Sin resultados.
           </div>
 
           <div v-for="shelf in shelves" :key="shelf.key" class="mb-4">
@@ -697,17 +711,23 @@ async function submitForm() {
           </div>
 
           <p v-if="unresolvedCount" class="ui-item-desc mt-2">
-            {{ unresolvedCount }} artículo(s) sin costo resuelto — el valor de arriba
-            se queda corto hasta que su ingrediente o producto vuelva a existir.
+            {{ unresolvedCount }} artículo(s) sin costo. El valor en bodega no los incluye.
           </p>
         </div>
 
         <!-- ---------------- right: one item ---------------- -->
         <div class="ui-pane ui-pane-sunken">
-          <div v-if="!selected" class="ui-empty">
-            <b>Ninguna selección</b>
-            Elige un artículo para ver su historia.
-          </div>
+          <!-- Nothing selected is the free pane, so it offers the one thing the
+               shelf can't: adding to it. A search that found nothing is the
+               likeliest name. -->
+          <IngredientCreateCard
+            v-if="!selected"
+            :name="shelves.length ? '' : search.trim()"
+            editable-name
+            :categories="categories"
+            :allow-preparacion="false"
+            @created="onIngredientCreated"
+          />
 
           <template v-else>
             <div class="ui-panehead">
@@ -783,17 +803,14 @@ async function submitForm() {
               <span class="ui-card-title">{{ FORM_TITLES[form] }}</span>
 
               <p v-if="form === 'adjust'" class="ui-card-body">
-                El ajuste es una corrección de información: escribe cuánto sobra o
-                falta, no la existencia final.
+                Suma o resta una cantidad a la existencia actual.
               </p>
               <p v-else-if="form === 'waste'" class="ui-card-body">
-                Una baja es valor que se perdió. Se registra aparte de los ajustes
-                para que la merma se pueda separar después.
+                Registra una pérdida de inventario, separada de los ajustes.
               </p>
               <p v-else-if="form === 'cost'" class="ui-card-body">
-                El costo no es un movimiento: no cambia la existencia, revalúa lo
-                que ya hay<template v-if="selected.kind === 'ingr'"> y se propaga
-                  a las recetas que usan este ingrediente</template>.
+                Cambia el costo unitario sin modificar la existencia<template v-if="selected.kind === 'ingr'">
+                  y actualiza las recetas que usan este ingrediente</template>.
               </p>
 
               <div class="flex flex-wrap gap-2">
@@ -840,7 +857,7 @@ async function submitForm() {
                 <label v-if="form === 'transfer'" class="ui-field flex-1 min-w-[8rem]">
                   <span class="ui-field-k">Hacia</span>
                   <select v-model="draft.toWarehouseId" class="ui-input" required>
-                    <option value="" disabled>Elige…</option>
+                    <option value="" disabled>Seleccionar…</option>
                     <option
                       v-for="w in warehouses.filter((x) => x.id !== draft.warehouseId)"
                       :key="w.id" :value="w.id"
@@ -855,7 +872,7 @@ async function submitForm() {
                   v-model="draft.reason"
                   class="ui-input"
                   type="text"
-                  placeholder="carga inicial, sobró de producción…"
+                  placeholder="Carga inicial, sobrante de producción…"
                   required
                 >
               </label>
@@ -866,7 +883,7 @@ async function submitForm() {
                   v-model="draft.note"
                   class="ui-input"
                   type="text"
-                  placeholder="se rompió el bulto…"
+                  placeholder="Bulto dañado…"
                 >
               </label>
 
@@ -894,7 +911,7 @@ async function submitForm() {
                   <!-- Vacío no siempre es "no se usa": un producto con costo
                        escrito a mano (costPriceSource 'manual') tampoco se
                        mueve, y la propagación lo respeta a propósito. -->
-                  No mueve ningún otro costo.
+                  No afecta otros costos.
                 </p>
               </div>
 
@@ -935,8 +952,7 @@ async function submitForm() {
                 </div>
 
                 <div v-if="!movements.length" class="ui-empty">
-                  <b>Sin movimientos todavía</b>
-                  Registra un ingreso, una producción o un ajuste y aparecerán aquí.
+                  <b>Sin movimientos</b>
                 </div>
 
                 <div

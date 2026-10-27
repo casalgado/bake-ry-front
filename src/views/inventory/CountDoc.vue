@@ -170,7 +170,7 @@ async function goReview() {
   leaving.value = false;
 
   if (failed.size || invalid.size) {
-    error.value = 'Hay números sin guardar. Corrígelos antes de revisar.';
+    error.value = 'Hay cantidades sin guardar. Corregir antes de revisar.';
     return;
   }
   router.push(`/dashboard/inventory/conteos/${countId}/revisar`);
@@ -189,14 +189,8 @@ const fill = computed(() => (total.value ? Math.round(done.value / total.value *
 const counters = computed(() =>
   [...new Set(Object.values(count.value?.items ?? {}).map((row) => row.by?.name).filter(Boolean))]);
 
-/* Ends the count for everyone, so the dialog says who else is in it. */
 const confirmingDiscard = ref(false);
 const discarding = ref(false);
-
-const discardMessage = computed(() => {
-  const who = counters.value.length ? ` Están contando: ${counters.value.join(', ')}.` : '';
-  return `Descartar termina el conteo para todos y no mueve nada.${who}`;
-});
 
 async function discard() {
   discarding.value = true;
@@ -214,7 +208,7 @@ async function discard() {
 
 <template>
   <div class="p-4 lg:p-6">
-    <PageHeader title="Conteo" subtitle="Escribe lo que hay, no la diferencia.">
+    <PageHeader title="Conteo">
       <router-link class="ui-btn" to="/dashboard/inventory/conteos">Conteos</router-link>
     </PageHeader>
 
@@ -237,7 +231,7 @@ async function discard() {
               <div class="flex items-baseline justify-between gap-3 mt-1.5 ui-panehead-sub">
                 <span>
                   <template v-if="multiWarehouse">{{ warehouseName(count.warehouseId) }} · </template>
-                  {{ counters.length ? counters.join(', ') : 'Nadie ha contado todavía' }}
+                  {{ counters.length ? counters.join(', ') : 'Sin conteos registrados' }}
                 </span>
                 <b class="ui-num">{{ done }} / {{ total }}</b>
               </div>
@@ -251,11 +245,10 @@ async function discard() {
             />
 
             <div v-if="!total" class="ui-empty">
-              <b>Esta bodega está vacía</b>
-              No hay nada que contar todavía.
+              <b>Bodega sin artículos</b>
             </div>
             <div v-else-if="!items.length" class="ui-empty">
-              Nada coincide con esa búsqueda.
+              Sin resultados.
             </div>
 
             <div v-for="shelf in shelves" :key="shelf.key" class="mb-4">
@@ -269,16 +262,16 @@ async function discard() {
                 <span class="min-w-0">
                   <span class="ui-item-title block capitalize">{{ row.name }}</span>
                   <span v-if="failed.has(row.itemKey)" class="ui-field-error block">
-                    No se guardó: vuelve a escribirlo.
+                    No se guardó. Ingresar el valor de nuevo.
                   </span>
                   <span v-else-if="invalid.has(row.itemKey)" class="ui-field-error block">
-                    Escribe 0 o más. No se guardó.
+                    Valor inválido: debe ser 0 o mayor.
                   </span>
                   <!-- Only after entry: the expected number before it would anchor
                        the count to what the system already believes. -->
                   <span v-if="rowOf(row.itemKey)" class="ui-item-desc">
                     contado por {{ rowOf(row.itemKey).by?.name }}
-                    · sistema decía {{ formatQty(row.expected) }}
+                    · sistema: {{ formatQty(row.expected) }}
                     ·
                     <template v-if="differenceOf(row) === 0">sin diferencia</template>
                     <template v-else>{{ formatSignedQty(differenceOf(row)) }}</template>
@@ -301,8 +294,8 @@ async function discard() {
             </div>
 
             <p class="ui-item-desc mt-4">
-              Contaste {{ done }} de {{ total }} artículos — los demás se quedan como
-              están. Cada número se guarda solo.
+              {{ done }} de {{ total }} artículos contados. Los no contados conservan
+              su existencia. Los cambios se guardan automáticamente.
             </p>
             <p v-if="error" class="ui-field-error mt-2">{{ error }}</p>
 
@@ -316,7 +309,7 @@ async function discard() {
             <ConfirmDialog
               :is-open="confirmingDiscard"
               title="Descartar conteo"
-              :message="discardMessage"
+              message="Al descartar, el conteo se cierra para todos sin modificar existencias."
               confirm-text="Descartar"
               cancel-text="Volver"
               :loading="discarding"
