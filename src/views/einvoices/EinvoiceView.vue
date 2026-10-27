@@ -33,7 +33,6 @@ const ID_TYPE_LABELS = { 13: 'CC', 22: 'CE', 31: 'NIT', 41: 'Pasaporte' };
 // The DIAN's number for an anonymous buyer (backend invoiceData.js CONSUMIDOR_FINAL).
 const CONSUMIDOR_FINAL_ID = '222222222222';
 const PAYMENT_FORMS = { 1: 'Contado', 2: 'Crédito' };
-const PAYMENT_MEANS = { 10: 'Efectivo', 31: 'Transferencia', 1: 'No definido' };
 
 const loading = ref(true);
 const busy = ref(false);
@@ -70,10 +69,23 @@ const money = (n) => {
   const cents = Number.isInteger(value) ? {} : { minimumFractionDigits: 2, maximumFractionDigits: 2 };
   return `${value < 0 ? '-' : ''}$${Math.abs(value).toLocaleString('es-CO', cents)}`;
 };
-const idLabel = ({ idType, idNumber, checkDigit }) =>
-  `${ID_TYPE_LABELS[idType] || idType} ${idNumber}${checkDigit != null ? `-${checkDigit}` : ''}`;
+// Same as the PDF: one labeled line per fact the buyer has.
+const buyerFacts = computed(() => {
+  const { name, idType, idNumber, checkDigit, address, phone, email } = doc.value.buyer;
+  return [
+    ['Cliente', name.toUpperCase()],
+    [ID_TYPE_LABELS[idType] || idType, `${idNumber}${checkDigit != null ? `-${checkDigit}` : ''}`],
+    ['Dirección', address?.line ? [address.line, address.cityName, address.deptName].filter(Boolean).join(', ') : null],
+    ['Teléfono', phone],
+    ['Email', email],
+  ].filter(([, value]) => value);
+});
 // "2026-10-20 12:37:17" in Colombia's time, as the PDF prints it.
 const dateTime = (d) => (d ? new Date(d).toLocaleString('sv-SE', { timeZone: 'America/Bogota' }) : '');
+// Same as the PDF: contado is due the day it is issued (today, in a preview).
+const dueDate = computed(() => (isCredit.value
+  ? doc.value.payment.dueDate
+  : dateTime(isIssued.value ? einvoice.value.issuedAt : new Date()).slice(0, 10)));
 
 const load = async () => {
   loading.value = true;
@@ -153,8 +165,10 @@ const saveOrder = (formData) => run(async () => {
 
 const close = () => {
   window.close();
-  // A tab not opened by script can't close itself.
-  if (!window.closed) router.back();
+  // A tab not opened by script can't close itself; then back, or to the orders list.
+  if (window.closed) return;
+  if (window.history.state?.back) router.back();
+  else router.push({ name: authStore.user?.role === 'accounting_assistant' ? 'accounting-orders' : 'orders' });
 };
 
 onMounted(load);
@@ -192,7 +206,7 @@ onMounted(load);
         <button v-if="!isIssued && invoice" type="button" class="ui-btn ui-btn-solid" :disabled="busy" @click="confirm = 'issue'">
           <PhPaperPlaneTilt :size="14" /> {{ einvoice ? 'Reintentar' : 'Emitir factura' }}
         </button>
-        <button type="button" class="ui-btn ui-btn-danger" @click="close">
+        <button type="button" class="ui-btn" @click="close">
           <PhX :size="14" /> Cerrar
         </button>
       </div>
@@ -261,10 +275,12 @@ onMounted(load);
         >
           <div class="flex flex-wrap justify-between gap-6">
             <div class="flex flex-col">
+              <img v-if="issuer.logo" :src="issuer.logo" alt="" class="max-w-[140px] max-h-[48px] object-contain object-left mb-2">
               <span class="text-[19px] font-bold leading-tight">{{ issuer.tradeName || issuer.legalName }}</span>
               <span class="ui-ink-muted mt-1">
                 <template v-if="issuer.tradeName">{{ issuer.legalName }}<br></template>
                 NIT {{ issuer.nit }}-{{ issuer.checkDigit }}<br>
+                <template v-if="issuer.regime">{{ issuer.regime }}<br></template>
                 {{ issuer.address?.line }}<br>
                 {{ issuer.address?.cityName }}, {{ issuer.address?.deptName }}<br>
                 {{ [issuer.phone, issuer.email].filter(Boolean).join(' · ') }}
@@ -279,8 +295,8 @@ onMounted(load);
                   <template v-if="einvoice.acceptedAt"><br>Validada DIAN {{ dateTime(einvoice.acceptedAt) }}</template>
                 </template>
                 <template v-else>Vista previa</template>
-                <br>Pago: {{ PAYMENT_FORMS[doc.payment.form] }}<template v-if="!isCredit"> · {{ PAYMENT_MEANS[doc.payment.meansCode] }}</template>
-                <template v-if="isCredit && doc.payment.dueDate"><br>Vence {{ doc.payment.dueDate }}</template>
+                <br>Pago: {{ PAYMENT_FORMS[doc.payment.form] }}
+                <br>Vence {{ dueDate }}
               </span>
             </div>
           </div>
@@ -294,10 +310,8 @@ onMounted(load);
           </div>
 
           <div class="flex flex-col pt-3" style="border-top: 1px solid var(--ui-line)">
-            <span class="ui-ink-muted text-[11px] font-bold uppercase tracking-wide">Cliente</span>
-            <span class="text-[13.5px] font-bold uppercase">{{ doc.buyer.name }}</span>
-            <span class="ui-ink-muted">
-              {{ [idLabel(doc.buyer), doc.buyer.email, doc.buyer.address?.line].filter(Boolean).join(' · ') }}
+            <span v-for="[label, value] in buyerFacts" :key="label">
+              <strong>{{ label }}:</strong> <span class="ui-ink-muted">{{ value }}</span>
             </span>
           </div>
 

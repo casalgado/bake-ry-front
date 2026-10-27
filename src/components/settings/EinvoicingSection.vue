@@ -35,6 +35,12 @@ const issuerFields = [
     placeholder: 'O-47',
     hint: 'Del RUT (casilla 53), separadas por ";". O-13 gran contribuyente, O-15 autorretenedor, O-23 agente de retención IVA, O-47 régimen simple, R-99-PN no aplica.',
   },
+  {
+    key: 'issuerRegime',
+    label: 'Régimen en la factura',
+    placeholder: 'Régimen simple de tributación · Responsable de IVA',
+    hint: 'Se imprime bajo el NIT. Debe indicar si es responsable de IVA.',
+  },
   { key: 'issuerPhone', label: 'Teléfono', type: 'tel' },
   { key: 'issuerEmail', label: 'Correo', type: 'email', hint: 'Los clientes responden aquí, y en pruebas las facturas llegan aquí.' },
 ];

@@ -80,7 +80,7 @@ const isCellHighlighted = (row, column) => {
         @click="(event) => handleRowClick(event, row)"
         :class="[
           'cursor-pointer border-t border-separate border-spacing-0 border-neutral-400 transition-colors duration-50',          selectedRows.has(row.id)
-            ? 'bg-neutral hover:bg-neutral-600 text-white'
+            ? 'bg-neutral hover:bg-neutral-600 text-white [&_.text-neutral-400]:text-neutral-200 [&_.text-neutral-500]:text-neutral-200 [&_.text-neutral-600]:text-neutral-200 [&_.text-neutral-700]:text-neutral-200'
             : [
               'odd:bg-neutral-100',
               'hover:bg-neutral-200'

@@ -40,6 +40,7 @@ const FIELDS = {
   issuerTradeName: 'einvoicing.issuer.tradeName',
   issuerPersonType: 'einvoicing.issuer.personType',
   issuerTaxLevelCode: 'einvoicing.issuer.taxLevelCode',
+  issuerRegime: 'einvoicing.issuer.regime',
   issuerPhone: 'einvoicing.issuer.phone',
   issuerEmail: 'einvoicing.issuer.email',
   issuerAddressLine: 'einvoicing.issuer.address.line',

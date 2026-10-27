@@ -96,7 +96,8 @@ const processFile = (file) => {
   error.value = '';
 
   // Validate file type
-  if (!file.type.startsWith('image/')) {
+  // Dropped files skip the input's accept, so check the type here too.
+  if (!props.acceptedFormats.split(',').includes(file.type)) {
     const errorMsg = 'Por favor selecciona un archivo de imagen válido';
     error.value = errorMsg;
     emit('validation-error', {
